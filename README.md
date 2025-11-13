@@ -56,23 +56,15 @@ npx react-native run-android
 
 前往 [高德开放平台](https://lbs.amap.com/) 注册并创建应用，获取 API Key。
 
-### 2. 配置 API Key
+> ⚠️ **原生配置说明**
+> 
+> 高德地图 SDK 需要在原生项目中进行配置（如在 AndroidManifest.xml 中配置 Key、添加权限等）。具体的原生配置步骤请参考：
+> - **Android**: [高德地图 Android SDK 配置指南](https://lbs.amap.com/api/android-sdk/guide/create-project/android-studio-create-project)
+> - **iOS**: [高德地图 iOS SDK 配置指南](https://lbs.amap.com/api/ios-sdk/guide/create-project/cocoapods)
+> 
+> 对于 Expo 项目，建议使用 `npx expo prebuild` 生成原生代码后，按照高德官网文档进行配置。
 
-在 `app.json` 中配置（推荐）：
-
-```json
-{
-  "expo": {
-    "android": {
-      "config": {
-        "gaodeMapApiKey": "your-android-api-key"
-      }
-    }
-  }
-}
-```
-
-### 3. 初始化 SDK
+### 2. 初始化 SDK
 
 ```tsx
 import { useEffect } from 'react';
@@ -92,7 +84,7 @@ export default function App() {
 }
 ```
 
-### 4. 使用地图组件
+### 3. 使用地图组件
 
 ```tsx
 import { MapView } from 'expo-gaode-map';
