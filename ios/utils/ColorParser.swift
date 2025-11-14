@@ -73,18 +73,19 @@ class ColorParser {
             hex = r + g + b + a
         }
         
-        // 处理 #RRGGBBAA 格式
+        // 处理 #AARRGGBB 或 #RRGGBBAA 格式
         if hex.count == 8 {
             let scanner = Scanner(string: hex)
             var hexNumber: UInt64 = 0
             
             if scanner.scanHexInt64(&hexNumber) {
-                let red = CGFloat((hexNumber & 0xff000000) >> 24) / 255
-                let green = CGFloat((hexNumber & 0x00ff0000) >> 16) / 255
-                let blue = CGFloat((hexNumber & 0x0000ff00) >> 8) / 255
-                alpha = CGFloat(hexNumber & 0x000000ff) / 255
+                // 尝试 ARGB 格式（Android 风格）
+                let alphaARGB = CGFloat((hexNumber & 0xff000000) >> 24) / 255
+                let redARGB = CGFloat((hexNumber & 0x00ff0000) >> 16) / 255
+                let greenARGB = CGFloat((hexNumber & 0x0000ff00) >> 8) / 255
+                let blueARGB = CGFloat(hexNumber & 0x000000ff) / 255
                 
-                return UIColor(red: red, green: green, blue: blue, alpha: alpha)
+                return UIColor(red: redARGB, green: greenARGB, blue: blueARGB, alpha: alphaARGB)
             }
         }
         
@@ -146,7 +147,7 @@ class ColorParser {
     }
 }
 
-// UIColor 扩展，支持从数字创建
+// UIColor 扩展，支持从数字创建（ARGB 格式）
 extension UIColor {
     convenience init(hex: Int) {
         let alpha = CGFloat((hex >> 24) & 0xFF) / 255.0
@@ -154,5 +155,10 @@ extension UIColor {
         let green = CGFloat((hex >> 8) & 0xFF) / 255.0
         let blue = CGFloat(hex & 0xFF) / 255.0
         self.init(red: red, green: green, blue: blue, alpha: alpha)
+    }
+    
+    // 别名方法，与 hex 功能相同
+    convenience init(argb: Int) {
+        self.init(hex: argb)
     }
 }

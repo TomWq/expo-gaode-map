@@ -2,7 +2,7 @@
  * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
  * @Date         : 2025-11-13 15:01:30
  * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-14 15:48:14
+ * @LastEditTime : 2025-11-15 01:08:27
  * @FilePath     : /expo-gaode-map/src/components/overlays/Polyline.tsx
  * @Description  : 地图折线组件 - 使用命令式 API
  * 
@@ -32,30 +32,27 @@ import type { PolylineProps } from '../../types';
  */
 export default function Polyline(props: PolylineProps) {
   const mapRef = React.useContext(MapContext);
-  const polylineIdRef = React.useRef<string>(`polyline_${Date.now()}_${Math.random()}`);
-  const isInitialMount = React.useRef(true);
+  const polylineIdRef = React.useRef<string | null>(null);
 
   // 添加折线
   React.useEffect(() => {
-    const polylineId = polylineIdRef.current;
+    const polylineId = `polyline_${Date.now()}_${Math.random()}`;
+    polylineIdRef.current = polylineId;
     
-    mapRef?.current?.addPolyline?.(polylineId, props);
+    // 只传递必要的属性
+    const polylineProps = {
+      points: props.points,
+      width: props.width,
+      color: props.color,
+      ...(props.texture && { texture: props.texture }),
+    };
+    
+    mapRef?.current?.addPolyline?.(polylineId, polylineProps);
 
     return () => {
       mapRef?.current?.removePolyline?.(polylineId);
     };
   }, []);
-
-  // 监听 Props 变化，更新折线（跳过初始渲染）
-  React.useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    
-    const polylineId = polylineIdRef.current;
-    mapRef?.current?.updatePolyline?.(polylineId, props);
-  }, [props.points, props.width, props.color]);
 
   return null;
 }

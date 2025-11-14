@@ -339,7 +339,7 @@ await mapRef.current?.removeMarker('marker1');
 
 ### Polyline (折线)
 
-**声明式用法:**
+**声明式用法 - 普通折线:**
 ```tsx
 <MapView style={{ flex: 1 }}>
   <Polyline
@@ -348,24 +348,85 @@ await mapRef.current?.removeMarker('marker1');
       { latitude: 39.95, longitude: 116.45 },
       { latitude: 40.0, longitude: 116.5 },
     ]}
-    strokeWidth={5}
-    strokeColor="#FF0000FF"
+    width={5}
+    color="#FFFF0000"
     onPress={() => console.log('点击折线')}
+  />
+</MapView>
+```
+
+**声明式用法 - 纹理折线:**
+```tsx
+import { Image } from 'react-native';
+
+const iconUri = Image.resolveAssetSource(require('./assets/arrow.png')).uri;
+
+<MapView style={{ flex: 1 }}>
+  <Polyline
+    points={[
+      { latitude: 39.9, longitude: 116.4 },
+      { latitude: 39.95, longitude: 116.45 },
+      { latitude: 40.0, longitude: 116.5 },
+    ]}
+    width={20}
+    color="#FFFF0000"
+    texture={iconUri}
+    onPress={() => console.log('点击纹理折线')}
   />
 </MapView>
 ```
 
 **命令式用法:**
 ```tsx
+// 普通折线
 await mapRef.current?.addPolyline('polyline1', {
   points: [
     { latitude: 39.9, longitude: 116.4 },
     { latitude: 40.0, longitude: 116.5 },
   ],
-  strokeWidth: 5,
-  strokeColor: 0xFFFF0000,
+  width: 5,
+  color: '#FFFF0000',
+});
+
+// 纹理折线
+await mapRef.current?.addPolyline('polyline2', {
+  points: [
+    { latitude: 39.9, longitude: 116.4 },
+    { latitude: 40.0, longitude: 116.5 },
+  ],
+  width: 20,
+  color: '#FFFF0000',
+  texture: iconUri,
+});
+
+// 分段纹理示例（使用多个 Polyline）
+const point1 = { latitude: 39.9, longitude: 116.4 };
+const point2 = { latitude: 39.95, longitude: 116.45 };
+const point3 = { latitude: 40.0, longitude: 116.5 };
+
+// 第一段：红色箭头
+await mapRef.current?.addPolyline('segment1', {
+  points: [point1, point2],
+  width: 20,
+  color: '#FFFF0000',
+  texture: redArrowUri,
+});
+
+// 第二段：蓝色箭头
+await mapRef.current?.addPolyline('segment2', {
+  points: [point2, point3],
+  width: 20,
+  color: '#FF0000FF',
+  texture: blueArrowUri,
 });
 ```
+
+> **注意**：
+> - 颜色格式使用 ARGB（`#AARRGGBB`），例如 `#FFFF0000` 表示不透明红色
+> - `texture` 支持网络图片（http/https）和本地文件（file://）
+> - 纹理图片会沿着折线方向平铺显示
+> - 建议纹理折线使用较大的 `width` 值（如 20）以获得更好的显示效果
+> - **分段纹理限制**：单个 Polyline 只能设置一个纹理。如需不同线段使用不同纹理，请创建多个 Polyline 组件
 
 ### Polygon (多边形)
 

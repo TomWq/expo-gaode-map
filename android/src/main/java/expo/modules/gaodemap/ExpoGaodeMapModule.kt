@@ -368,6 +368,10 @@ class ExpoGaodeMapModule : Module() {
       Prop<Int>("strokeColor") { view: PolylineView, color ->
         view.setStrokeColor(color)
       }
+      
+      Prop<String?>("texture") { view: PolylineView, texture ->
+        view.setTexture(texture)
+      }
     }
     
     // Polygon - 多边形

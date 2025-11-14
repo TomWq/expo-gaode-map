@@ -135,6 +135,12 @@ export interface PolylineProps {
   dotted?: boolean;
 
   /**
+   * 纹理图片
+   * 支持网络图片(http/https)、本地文件(file://)或资源名称
+   */
+  texture?: string;
+
+  /**
    * 点击事件
    */
   onPress?: () => void;

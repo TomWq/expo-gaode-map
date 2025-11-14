@@ -1,9 +1,12 @@
 package expo.modules.gaodemap.managers
 
 import android.util.Log
+import android.graphics.BitmapFactory
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.BitmapDescriptorFactory
 import expo.modules.gaodemap.utils.ColorParser
+import java.net.URL
 
 /**
  * 覆盖物管理器
@@ -151,9 +154,14 @@ class OverlayManager(private val aMap: AMap) {
     @Suppress("UNCHECKED_CAST")
     val points = props["points"] as? List<Map<String, Double>>
     val width = (props["width"] as? Number)?.toFloat() ?: 10f
-    val color = ColorParser.parseColor(props["color"])
+    val texture = props["texture"] as? String
+    val color = if (!texture.isNullOrEmpty()) {
+      android.graphics.Color.TRANSPARENT
+    } else {
+      ColorParser.parseColor(props["color"])
+    }
     
-    if (points != null && points.isNotEmpty()) {
+    if (points != null && points.size >= 2) {
       val latLngs = points.map { point ->
         val lat = point["latitude"] ?: 0.0
         val lng = point["longitude"] ?: 0.0
@@ -166,6 +174,30 @@ class OverlayManager(private val aMap: AMap) {
         .color(color)
       
       val polyline = aMap.addPolyline(options)
+      
+      // 处理纹理
+      if (!texture.isNullOrEmpty()) {
+        Thread {
+          try {
+            val bitmap = if (texture.startsWith("http://") || texture.startsWith("https://")) {
+              BitmapFactory.decodeStream(URL(texture).openStream())
+            } else if (texture.startsWith("file://")) {
+              BitmapFactory.decodeFile(texture.substring(7))
+            } else {
+              null
+            }
+            
+            bitmap?.let {
+              val descriptor = BitmapDescriptorFactory.fromBitmap(it)
+              polyline.setCustomTexture(descriptor)
+              Log.d(TAG, "✅ 纹理设置成功")
+            }
+          } catch (e: Exception) {
+            Log.e(TAG, "纹理加载失败: ${e.message}")
+          }
+        }.start()
+      }
+      
       polylines[id] = polyline
       Log.d(TAG, "✅ 折线创建成功")
     }

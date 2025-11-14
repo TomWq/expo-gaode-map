@@ -3,12 +3,14 @@ package expo.modules.gaodemap.overlays
 import android.content.Context
 import android.graphics.Color
 import com.amap.api.maps.AMap
+import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
+import java.net.URL
 
 class PolylineView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
@@ -17,6 +19,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   private var polyline: Polyline? = null
   private var aMap: AMap? = null
   private var points: List<LatLng> = emptyList()
+  private var textureUrl: String? = null
   
   /**
    * 设置地图实例
@@ -92,7 +95,6 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
    * 设置透明度
    */
   fun setOpacity(opacity: Float) {
-    // 通过修改颜色的 alpha 通道实现透明度
     polyline?.let { line ->
       val currentColor = line.color
       val alpha = (opacity * 255).toInt()
@@ -101,19 +103,68 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   }
   
   /**
+   * 设置纹理图片
+   */
+  fun setTexture(url: String?) {
+    textureUrl = url
+    createOrUpdatePolyline()
+  }
+  
+  /**
    * 创建或更新折线
    */
   private fun createOrUpdatePolyline() {
     aMap?.let { map ->
-      if (polyline == null && points.isNotEmpty()) {
+      // 移除旧折线
+      polyline?.remove()
+      polyline = null
+      
+      if (points.isNotEmpty()) {
         val options = PolylineOptions()
           .addAll(points)
           .width(10f)
           .color(Color.BLUE)
         
+        // 设置纹理
+        textureUrl?.let { url ->
+          try {
+            when {
+              url.startsWith("http://") || url.startsWith("https://") -> {
+                // 网络图片异步加载
+                Thread {
+                  try {
+                    val connection = URL(url).openConnection()
+                    val inputStream = connection.getInputStream()
+                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                    inputStream.close()
+                    post {
+                      polyline?.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+                    }
+                  } catch (e: Exception) {
+                    e.printStackTrace()
+                  }
+                }.start()
+              }
+              url.startsWith("file://") -> {
+                val path = url.substring(7)
+                val bitmap = android.graphics.BitmapFactory.decodeFile(path)
+                bitmap?.let { options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(it)) }
+              }
+              else -> {
+                val resId = context.resources.getIdentifier(url, "drawable", context.packageName)
+                if (resId != 0) {
+                  val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                  options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+                }
+              }
+            }
+          } catch (e: Exception) {
+            e.printStackTrace()
+          }
+        }
+        
         polyline = map.addPolyline(options)
         
-        // 设置点击监听
         map.setOnPolylineClickListener { clickedPolyline ->
           if (clickedPolyline == polyline) {
             onPress(mapOf("id" to clickedPolyline.id))

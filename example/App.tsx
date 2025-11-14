@@ -37,6 +37,7 @@ type PolylineData = {
   points: { latitude: number; longitude: number }[];
   width: number;
   color: string;
+  texture?: string;
 };
 
 // 定义多边形类型
@@ -88,8 +89,8 @@ export default function App() {
         // 初始化高德地图 SDK
         console.log('正在初始化高德地图 SDK...');
         initSDK({
-          androidKey: '',
-          iosKey: '',
+          androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
+          iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
         });
         console.log('✅ 高德地图 SDK 初始化成功');
       } catch (error) {
@@ -138,7 +139,7 @@ export default function App() {
             latitude: loc.latitude,
             longitude: loc.longitude,
           },
-          zoom: 20,
+          zoom:  15,
         }, 300);
       }
     } catch (error) {
@@ -238,41 +239,56 @@ export default function App() {
     Alert.alert('成功', '已清除所有标记');
   };
 
-  // 添加折线
+  // 添加普通折线
   const addPolyline = () => {
     if (!location) {
       Alert.alert('提示', '请先获取位置');
       return;
     }
 
-    const colors = [
-      '#FFFF0000',  // 红色
-      '#FF00FF00',  // 绿色
-      '#FF0000FF',  // 蓝色
-      '#FFFFFF00',  // 黄色
-      '#FFFF00FF',  // 紫色
+    const colors = ['#FFFF0000', '#FF00FF00', '#FF0000FF', '#FFFFFF00', '#FFFF00FF'];
+    const randomColor = colors[polylines.length % colors.length];
+    
+    const points = [
+      { latitude: location.latitude, longitude: location.longitude },
+      { latitude: location.latitude + 0.002, longitude: location.longitude + 0.003 },
+      { latitude: location.latitude + 0.004, longitude: location.longitude },
     ];
     
-    const randomColor = colors[polylines.length % colors.length];
-    // 增加偏移量，让点之间距离更大，折线更明显
-    const randomOffset = () => (Math.random() - 0.5) * 0.05;
-    
-    // 生成3-5个点的折线
-    const pointCount = 3 + Math.floor(Math.random() * 3);
-    const points = Array.from({ length: pointCount }, (_, i) => ({
-      latitude: location.latitude + randomOffset(),
-      longitude: location.longitude + randomOffset(),
-    }));
-    
     const newPolyline: PolylineData = {
-      id: `polyline_${Date.now()}`,
+      id: `polyline_${Date.now()}_${Math.random()}`, // 添加随机数确保唯一性
       points,
-      width: 2, // 固定宽度 20，更明显
+      width: 5,
       color: randomColor,
     };
 
     setPolylines(prev => [...prev, newPolyline]);
-    Alert.alert('成功', `已添加第 ${polylines.length + 1} 条折线（${pointCount}个点）\n颜色: ${['红色', '绿色', '蓝色', '黄色', '紫色'][polylines.length % 5]}`);
+    Alert.alert('成功', `已添加普通折线（3个点）`);
+  };
+
+  // 添加纹理折线
+  const addTexturePolyline = () => {
+    if (!location) {
+      Alert.alert('提示', '请先获取位置');
+      return;
+    }
+    
+    const points = [
+      { latitude: location.latitude, longitude: location.longitude },
+      { latitude: location.latitude + 0.002, longitude: location.longitude + 0.003 },
+      { latitude: location.latitude + 0.004, longitude: location.longitude },
+    ];
+    
+    const newPolyline: PolylineData = {
+      id: `polyline_${Date.now()}`,
+      points,
+      width: 20,
+      color: '#FFFF0000',
+      texture: iconUri,
+    };
+
+    setPolylines(prev => [...prev, newPolyline]);
+    Alert.alert('成功', '已添加纹理折线（3个点）\n✨ 带纹理贴图');
   };
 
   // 移除最后一条折线
@@ -344,16 +360,17 @@ export default function App() {
         style={styles.map}
         myLocationEnabled={true}
         indoorViewEnabled={true}
+        mapType={4}
          userLocationRepresentation={{
-            showsAccuracyRing: true,
-            fillColor: '#4285F4',
-            strokeColor: '#1967D2',
-            lineWidth: 2,
-            enablePulseAnimation: true, // 仅 iOS
-            locationDotFillColor: 'blue', // 仅 iOS
-            image:iconUri,
-            imageWidth: 40,
-            imageHeight: 40,
+            // showsAccuracyRing: true,
+            // fillColor: '#4285F4',
+            // strokeColor: '#1967D2',
+            // lineWidth: 2,
+            // enablePulseAnimation: true, // 仅 iOS
+            // locationDotFillColor: 'blue', // 仅 iOS
+            // image:iconUri,
+            // imageWidth: 40,
+            // imageHeight: 40,
           }}
           onMapPress={() => {
             console.log('onMapPress:');
@@ -403,6 +420,7 @@ export default function App() {
             points={polyline.points}
             width={polyline.width}
             color={polyline.color}
+            texture={polyline.texture}
           />
         ))}
 
@@ -495,9 +513,15 @@ export default function App() {
         {location && (
           <>
             <Button
-              title={`添加折线 (当前 ${polylines.length} 条)`}
+              title={`添加普通折线 (当前 ${polylines.length} 条)`}
               onPress={addPolyline}
               color="#9C27B0"
+            />
+            <View style={styles.buttonSpacer} />
+            <Button
+              title="添加纹理折线"
+              onPress={addTexturePolyline}
+              color="#673AB7"
             />
             <View style={styles.buttonSpacer} />
             <Button
