@@ -14,7 +14,7 @@
 - ✅ 完整的 TypeScript 类型定义（零 any 类型）
 - ✅ 模块化架构设计
 - ✅ 同时支持声明式组件和命令式 API
-- ✅ 跨平台支持（Android 完整支持，iOS 开发中）
+- ✅ 跨平台支持（Android、iOS）
 - ✅ 支持自定义样式和事件监听
 
 ## 📦 安装
@@ -104,494 +104,43 @@ export default function MapScreen() {
 }
 ```
 
-## 📚 核心功能
+## 📚 功能概览
 
 ### 🗺️ 地图显示
-
-#### 基础用法
-
-```tsx
-import { MapView } from 'expo-gaode-map';
-
-<MapView
-  style={{ flex: 1 }}
-  mapType={0}  // 0: 标准, 1: 卫星, 2: 夜间, 3: 导航, 4: 公交
-  initialCameraPosition={{
-    target: { latitude: 39.9, longitude: 116.4 },
-    zoom: 15,
-    tilt: 30,      // 倾斜角度 (0-60)
-    bearing: 0,    // 旋转角度 (0-360)
-  }}
-  myLocationEnabled={true}
-  followUserLocation={false}  // 是否跟随用户位置
-  onPress={(e) => console.log('点击地图', e)}
-  onLongPress={(e) => console.log('长按地图', e)}
-  onLoad={() => console.log('地图加载完成')}
-/>
-```
-
-#### 相机控制
-
-使用 Ref 调用地图方法：
-
-```tsx
-import { useRef } from 'react';
-import { MapView, type MapViewRef } from 'expo-gaode-map';
-
-function MapWithControls() {
-  const mapRef = useRef<MapViewRef>(null);
-
-  const moveToBeijing = async () => {
-    await mapRef.current?.moveCamera(
-      {
-        target: { latitude: 39.9, longitude: 116.4 },
-        zoom: 15,
-      },
-      1000 // 动画时长（毫秒）
-    );
-  };
-
-  const zoomIn = async () => {
-    await mapRef.current?.setZoom(16, true);
-  };
-
-  return (
-    <MapView
-      ref={mapRef}
-      style={{ flex: 1 }}
-    />
-  );
-}
-```
+- 多种地图类型（标准、卫星、夜间等）
+- 相机控制（移动、缩放、旋转、倾斜）
+- 手势控制和 UI 控件配置
+- 缩放级别限制
 
 ### 📍 定位功能
-
-#### 开始/停止定位
-
-```tsx
-import { start, stop, isStarted } from 'expo-gaode-map';
-
-// 开始连续定位
-start();
-
-// 停止定位
-stop();
-
-// 检查定位状态
-const started = await isStarted();
-```
-
-#### 获取当前位置
-
-```tsx
-import { getCurrentLocation } from 'expo-gaode-map';
-
-const location = await getCurrentLocation();
-console.log(location);
-// {
-//   latitude: 39.9042,
-//   longitude: 116.4074,
-//   accuracy: 10,
-//   altitude: 50,
-//   bearing: 90,
-//   speed: 5,
-//   address: '北京市朝阳区...',
-//   province: '北京市',
-//   city: '北京市',
-//   district: '朝阳区',
-//   street: '建国路',
-//   ...
-// }
-```
-
-#### 定位配置
-
-```tsx
-import {
-  setLocatingWithReGeocode,
-  setLocationMode,
-  setInterval,
-} from 'expo-gaode-map';
-
-// 是否返回逆地理信息（地址）
-setLocatingWithReGeocode(true);
-
-// 定位模式: 0-高精度, 1-低功耗, 2-仅设备
-setLocationMode(0);
-
-// 定位间隔（毫秒）
-setInterval(2000);
-```
-
-#### 监听定位更新
-
-```tsx
-import { useEffect } from 'react';
-import { addLocationListener } from 'expo-gaode-map';
-
-function LocationTracking() {
-  useEffect(() => {
-    const subscription = addLocationListener((location) => {
-      console.log('位置更新:', location);
-    });
-
-    return () => subscription.remove();
-  }, []);
-
-  return (
-    // 你的组件
-  );
-}
-```
+- 连续定位和单次定位
+- 逆地理编码（地址解析）
+- 定位配置（精度、间隔、模式等）
+- 自定义定位蓝点样式
 
 ### 🎨 覆盖物
+- Circle（圆形）
+- Marker（标记点）
+- Polyline（折线）
+- Polygon（多边形）
+- 支持声明式和命令式两种使用方式
 
-#### Circle (圆形)
+### 📝 更多示例
 
-**声明式用法：**
+详细的使用示例请查看：[EXAMPLES.md](docs/EXAMPLES.md)
 
-```tsx
-import { MapView, Circle } from 'expo-gaode-map';
+包含：
+- 基础地图应用
+- 定位追踪应用
+- 覆盖物操作示例
+- 高级用法和最佳实践
 
-<MapView style={{ flex: 1 }}>
-  <Circle
-    center={{ latitude: 39.9, longitude: 116.4 }}
-    radius={1000}                    // 半径（米）
-    fillColor="#8800FF00"           // 填充颜色（ARGB 格式）
-    strokeColor="#FFFF0000"         // 边框颜色
-    strokeWidth={2}                 // 边框宽度
-    onPress={() => console.log('点击圆形')}
-  />
-</MapView>
-```
+## 📝 文档
 
-**命令式用法：**
+- [API 文档](docs/API.md) - 完整的 API 参考
+- [使用示例](docs/EXAMPLES.md) - 详细的代码示例
 
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-// 添加圆形
-await mapRef.current?.addCircle('circle1', {
-  center: { latitude: 39.9, longitude: 116.4 },
-  radius: 1000,
-  fillColor: 0x8800FF00,
-  strokeColor: 0xFFFF0000,
-  strokeWidth: 2,
-});
-
-// 更新圆形
-await mapRef.current?.updateCircle('circle1', {
-  radius: 2000,
-  fillColor: 0x880000FF,
-});
-
-// 移除圆形
-await mapRef.current?.removeCircle('circle1');
-```
-
-#### Marker (标记点)
-
-**声明式用法：**
-
-```tsx
-import { MapView, Marker } from 'expo-gaode-map';
-
-<MapView style={{ flex: 1 }}>
-  <Marker
-    position={{ latitude: 39.9, longitude: 116.4 }}
-    title="标题"
-    description="描述信息"
-    draggable={true}
-    onPress={() => console.log('点击标记')}
-    onDragStart={() => console.log('开始拖动')}
-    onDrag={(e) => console.log('拖动中', e)}
-    onDragEnd={(e) => console.log('拖动结束', e)}
-  />
-</MapView>
-```
-
-**命令式用法：**
-
-```tsx
-await mapRef.current?.addMarker('marker1', {
-  position: { latitude: 39.9, longitude: 116.4 },
-  title: '标题',
-  draggable: true,
-});
-
-await mapRef.current?.updateMarker('marker1', {
-  position: { latitude: 40.0, longitude: 116.5 },
-});
-
-await mapRef.current?.removeMarker('marker1');
-```
-
-#### Polyline (折线)
-
-**声明式用法：**
-
-```tsx
-import { MapView, Polyline } from 'expo-gaode-map';
-
-<MapView style={{ flex: 1 }}>
-  <Polyline
-    points={[
-      { latitude: 39.9, longitude: 116.4 },
-      { latitude: 39.95, longitude: 116.45 },
-      { latitude: 40.0, longitude: 116.5 },
-    ]}
-    strokeWidth={5}
-    strokeColor="#FF0000FF"
-    onPress={() => console.log('点击折线')}
-  />
-</MapView>
-```
-
-**命令式用法：**
-
-```tsx
-await mapRef.current?.addPolyline('polyline1', {
-  points: [
-    { latitude: 39.9, longitude: 116.4 },
-    { latitude: 40.0, longitude: 116.5 },
-  ],
-  width: 5,
-  color: 0xFFFF0000,
-});
-
-await mapRef.current?.updatePolyline('polyline1', {
-  width: 10,
-  color: 0xFF0000FF,
-});
-
-await mapRef.current?.removePolyline('polyline1');
-```
-
-#### Polygon (多边形)
-
-**声明式用法：**
-
-```tsx
-import { MapView, Polygon } from 'expo-gaode-map';
-
-<MapView style={{ flex: 1 }}>
-  <Polygon
-    points={[
-      { latitude: 39.9, longitude: 116.3 },
-      { latitude: 39.9, longitude: 116.4 },
-      { latitude: 39.8, longitude: 116.4 },
-    ]}
-    fillColor="#8800FF00"
-    strokeColor="#FFFF0000"
-    strokeWidth={2}
-    onPress={() => console.log('点击多边形')}
-  />
-</MapView>
-```
-
-**命令式用法：**
-
-```tsx
-await mapRef.current?.addPolygon('polygon1', {
-  points: [
-    { latitude: 39.9, longitude: 116.3 },
-    { latitude: 39.9, longitude: 116.4 },
-    { latitude: 39.8, longitude: 116.4 },
-  ],
-  fillColor: 0x8800FF00,
-  strokeColor: 0xFFFF0000,
-  strokeWidth: 2,
-});
-
-await mapRef.current?.updatePolygon('polygon1', {
-  fillColor: 0x880000FF,
-});
-
-await mapRef.current?.removePolygon('polygon1');
-```
-
-## 📖 API 文档
-
-### MapView Props
-
-#### 基础配置
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `mapType` | `MapType` | `0` | 地图类型（0: 标准, 1: 卫星, 2: 夜间, 3: 导航, 4: 公交） |
-| `initialCameraPosition` | `CameraPosition` | - | 初始相机位置 |
-| `style` | `ViewStyle` | - | 组件样式 |
-
-#### 定位相关
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `myLocationEnabled` | `boolean` | `false` | 是否显示定位点 |
-| `followUserLocation` | `boolean` | `false` | 是否跟随用户位置（开启后地图会自动移动） |
-
-#### 控件显示
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `zoomControlsEnabled` | `boolean` | `true` | 是否显示缩放控件（Android） |
-| `compassEnabled` | `boolean` | `true` | 是否显示指南针 |
-| `scaleControlsEnabled` | `boolean` | `true` | 是否显示比例尺 |
-
-#### 手势控制
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `zoomGesturesEnabled` | `boolean` | `true` | 是否启用缩放手势 |
-| `scrollGesturesEnabled` | `boolean` | `true` | 是否启用滑动手势 |
-| `rotateGesturesEnabled` | `boolean` | `true` | 是否启用旋转手势 |
-| `tiltGesturesEnabled` | `boolean` | `true` | 是否启用倾斜手势 |
-
-#### 图层显示
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `trafficEnabled` | `boolean` | `false` | 是否显示路况信息 |
-| `buildingsEnabled` | `boolean` | `true` | 是否显示3D建筑 |
-| `indoorViewEnabled` | `boolean` | `false` | 是否显示室内地图 |
-
-#### 事件回调
-
-| 事件 | 参数 | 说明 |
-|------|------|------|
-| `onPress` | `(event: LatLng) => void` | 点击地图事件 |
-| `onLongPress` | `(event: LatLng) => void` | 长按地图事件 |
-| `onLoad` | `() => void` | 地图加载完成事件 |
-
-### MapView 方法（通过 Ref 调用）
-
-```tsx
-interface MapViewRef {
-  // 相机控制
-  moveCamera(position: CameraPosition, duration?: number): Promise<void>;
-  setCenter(center: LatLng, animated?: boolean): Promise<void>;
-  setZoom(zoom: number, animated?: boolean): Promise<void>;
-  getCameraPosition(): Promise<CameraPosition>;
-  getLatLng(point: Point): Promise<LatLng>;
-  
-  // Circle 操作
-  addCircle(id: string, props: CircleProps): Promise<void>;
-  removeCircle(id: string): Promise<void>;
-  updateCircle(id: string, props: Partial<CircleProps>): Promise<void>;
-  
-  // Marker 操作
-  addMarker(id: string, props: MarkerProps): Promise<void>;
-  removeMarker(id: string): Promise<void>;
-  updateMarker(id: string, props: Partial<MarkerProps>): Promise<void>;
-  
-  // Polyline 操作
-  addPolyline(id: string, props: PolylineProps): Promise<void>;
-  removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<PolylineProps>): Promise<void>;
-  
-  // Polygon 操作
-  addPolygon(id: string, props: PolygonProps): Promise<void>;
-  removePolygon(id: string): Promise<void>;
-  updatePolygon(id: string, props: Partial<PolygonProps>): Promise<void>;
-}
-```
-
-### 定位 API
-
-#### 定位控制
-
-| 方法 | 参数 | 返回值 | 说明 |
-|------|------|--------|------|
-| `initSDK` | `{androidKey, iosKey}` | `void` | 初始化 SDK |
-| `start` | - | `void` | 开始连续定位 |
-| `stop` | - | `void` | 停止定位 |
-| `isStarted` | - | `Promise<boolean>` | 检查是否正在定位 |
-| `getCurrentLocation` | - | `Promise<Location>` | 获取当前位置（单次定位） |
-
-#### 定位配置
-
-| 方法 | 参数 | 返回值 | 说明 |
-|------|------|--------|------|
-| `setLocatingWithReGeocode` | `boolean` | `void` | 是否返回逆地理信息 |
-| `setLocationMode` | `0 \| 1 \| 2` | `void` | 定位模式（0: 高精度, 1: 低功耗, 2: 仅设备） |
-| `setInterval` | `number` | `void` | 定位间隔（毫秒） |
-| `setOnceLocation` | `boolean` | `void` | 是否单次定位 |
-| `setSensorEnable` | `boolean` | `void` | 是否使用设备传感器 |
-| `setWifiScan` | `boolean` | `void` | 是否允许 WiFi 扫描 |
-| `setGpsFirst` | `boolean` | `void` | 是否 GPS 优先 |
-| `setGeoLanguage` | `string` | `void` | 逆地理语言（'zh' 或 'en'） |
-
-#### 坐标转换
-
-| 方法 | 参数 | 返回值 | 说明 |
-|------|------|--------|------|
-| `coordinateConvert` | `coordinate, type` | `Promise<LatLng>` | 坐标转换为高德坐标 |
-
-### 类型定义
-
-#### MapType (地图类型)
-
-```typescript
-enum MapType {
-  NORMAL = 0,      // 标准地图
-  SATELLITE = 1,   // 卫星地图
-  NIGHT = 2,       // 夜间地图
-  NAVI = 3,        // 导航地图
-  BUS = 4,         // 公交地图
-}
-```
-
-#### CameraPosition (相机位置)
-
-```typescript
-interface CameraPosition {
-  target: LatLng;    // 目标位置
-  zoom: number;      // 缩放级别 (3-20)
-  tilt?: number;     // 倾斜角度 (0-60)
-  bearing?: number;  // 旋转角度 (0-360)
-}
-```
-
-#### LatLng (经纬度)
-
-```typescript
-interface LatLng {
-  latitude: number;   // 纬度
-  longitude: number;  // 经度
-}
-```
-
-#### Location (定位信息)
-
-```typescript
-interface Location {
-  // 基础位置信息
-  latitude: number;        // 纬度
-  longitude: number;       // 经度
-  accuracy: number;        // 精度（米）
-  altitude: number;        // 海拔（米）
-  bearing: number;         // 方向角（度）
-  speed: number;           // 速度（米/秒）
-  
-  // 地址信息（需要开启逆地理）
-  address?: string;        // 详细地址
-  province?: string;       // 省份
-  city?: string;          // 城市
-  district?: string;      // 区县
-  street?: string;        // 街道
-  streetNumber?: string;  // 门牌号
-  country?: string;       // 国家
-  cityCode?: string;      // 城市编码
-  adCode?: string;        // 区域编码
-  poiName?: string;       // POI 名称
-  aoiName?: string;       // AOI 名称
-  
-  // 其他信息
-  provider?: string;      // 定位提供者
-  timestamp?: number;     // 时间戳
-}
-```
-
-## 🎯 完整示例
+## ⚠️ 注意事项
 
 ### 基础地图应用
 
@@ -915,8 +464,6 @@ const clearAll = async () => {
   await mapRef.current?.removeMarker('marker1');
 };
 ```
-
-## ⚠️ 注意事项
 
 ### 权限配置
 

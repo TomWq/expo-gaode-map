@@ -34,14 +34,6 @@ class ExpoGaodeMapModule : Module() {
     }
 
     /**
-     * 设置 API Key（地图 + 定位）
-     */
-    Function("setApiKey") { key: String ->
-      SDKInitializer.initSDK(appContext.reactContext!!, key)
-      getLocationManager()
-    }
-
-    /**
      * 获取 SDK 版本
      */
     Function("getVersion") {
@@ -201,10 +193,17 @@ class ExpoGaodeMapModule : Module() {
       Prop<Boolean>("scrollGesturesEnabled") { view, enabled -> view.setScrollEnabled(enabled) }
       Prop<Boolean>("rotateGesturesEnabled") { view, enabled -> view.setRotateEnabled(enabled) }
       Prop<Boolean>("tiltGesturesEnabled") { view, enabled -> view.setTiltEnabled(enabled) }
+      
+      // 缩放级别限制
+      Prop<Float>("maxZoom") { view, maxZoom -> view.setMaxZoom(maxZoom) }
+      Prop<Float>("minZoom") { view, minZoom -> view.setMinZoom(minZoom) }
 
       // 地图图层
       Prop<Boolean>("myLocationEnabled") { view, show -> view.setShowsUserLocation(show) }
       Prop<Boolean>("followUserLocation") { view, follow -> view.setFollowUserLocation(follow) }
+      Prop<Map<String, Any>?>("userLocationRepresentation") { view, representation ->
+        representation?.let { view.setUserLocationRepresentation(it) }
+      }
       Prop<Boolean>("trafficEnabled") { view, show -> view.setShowsTraffic(show) }
       Prop<Boolean>("buildingsEnabled") { view, show -> view.setShowsBuildings(show) }
       Prop<Boolean>("indoorViewEnabled") { view, show -> view.setShowsIndoorMap(show) }

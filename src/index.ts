@@ -2,7 +2,7 @@
  * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
  * @Date         : 2025-11-13 14:45:15
  * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 18:26:20
+ * @LastEditTime : 2025-11-14 16:15:52
  * @FilePath     : /expo-gaode-map/src/index.ts
  * @Description  : 高德地图 Expo Module 主导出文件
  * 
@@ -17,7 +17,7 @@ export * from './types';
 export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
 
 // 导出 SDK 模块
-export { default as AMapSDK, initSDK, setApiKey, getVersion } from './modules/AMapSDK';
+export { default as AMapSDK, initSDK, getVersion } from './modules/AMapSDK';
 
 // 导出定位模块
 export {

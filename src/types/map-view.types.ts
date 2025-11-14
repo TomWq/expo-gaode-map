@@ -42,19 +42,41 @@ export interface MapViewProps {
 
   /**
    * 是否跟随用户位置
-   * 当为 true 时，地图会自动移动跟随用户位置（适合导航场景）
-   * 当为 false 时，只显示定位点，不会自动移动地图（默认值，适合浏览场景）
    * @default false
    */
   followUserLocation?: boolean;
 
   /**
-   * 是否显示定位图标
+   * 定位蓝点配置
    */
-  myLocationIcon?: boolean;
+  userLocationRepresentation?: {
+    /** 精度圈是否显示 @default true */
+    showsAccuracyRing?: boolean;
+    /** 是否显示方向指示 @default true @platform ios */
+    showsHeadingIndicator?: boolean;
+    /** 精度圈填充颜色 支持 '#RRGGBB'、'red' 或 ARGB 数字 */
+    fillColor?: string | number;
+    /** 精度圈边线颜色 */
+    strokeColor?: string | number;
+    /** 精度圈边线宽度 @default 0 */
+    lineWidth?: number;
+    /** 内部蓝色圆点是否使用律动效果 @default true @platform ios */
+    enablePulseAnimation?: boolean;
+    /** 定位点背景色 @default 'white' @platform ios */
+    locationDotBgColor?: string | number;
+    /** 定位点蓝色圆点颜色 @default 'blue' @platform ios */
+    locationDotFillColor?: string | number;
+    /** 定位图标 支持网络图片(http/https)、本地文件(file://)或资源名称 */
+    image?: string;
+    /** 定位图标宽度(像素) */
+    imageWidth?: number;
+    /** 定位图标高度(像素) */
+    imageHeight?: number;
+  };
 
   /**
    * 是否显示室内地图
+   * 
    */
   indoorViewEnabled?: boolean;
 

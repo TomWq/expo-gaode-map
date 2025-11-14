@@ -13,6 +13,20 @@ import com.amap.api.maps.model.LatLng
 class CameraManager(private val aMap: AMap) {
   
   /**
+   * 设置最大缩放级别
+   */
+  fun setMaxZoomLevel(maxZoom: Float) {
+    aMap.maxZoomLevel = maxZoom
+  }
+  
+  /**
+   * 设置最小缩放级别
+   */
+  fun setMinZoomLevel(minZoom: Float) {
+    aMap.minZoomLevel = minZoom
+  }
+  
+  /**
    * 设置初始相机位置
    */
   fun setInitialCameraPosition(position: Map<String, Any?>) {

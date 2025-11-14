@@ -1,13 +1,19 @@
 package expo.modules.gaodemap.managers
 
+import android.content.Context
+import android.graphics.BitmapFactory
 import com.amap.api.maps.AMap
+import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.MyLocationStyle
+import expo.modules.gaodemap.utils.ColorParser
+import java.io.File
+import java.net.URL
 
 /**
  * UI 和手势管理器
  * 负责地图控件显示、手势控制、图层显示等
  */
-class UIManager(private val aMap: AMap) {
+class UIManager(private val aMap: AMap, private val context: Context) {
   
   // ==================== 控件显示 ====================
   
@@ -64,26 +70,122 @@ class UIManager(private val aMap: AMap) {
   
   // ==================== 图层显示 ====================
   
+  private var currentLocationStyle: MyLocationStyle? = null
+  
   /**
    * 设置是否显示用户位置
-   * @param show 是否显示
-   * @param followUserLocation 是否跟随用户位置（默认 false，只显示不移动地图）
    */
   fun setShowsUserLocation(show: Boolean, followUserLocation: Boolean = false) {
     if (show) {
-      val myLocationStyle = MyLocationStyle()
-      // 根据参数选择定位类型
-      val locationType = if (followUserLocation) {
-        MyLocationStyle.LOCATION_TYPE_FOLLOW  // 跟随用户位置
-      } else {
-        MyLocationStyle.LOCATION_TYPE_SHOW    // 只显示，不移动地图
+      if (currentLocationStyle == null) {
+        currentLocationStyle = MyLocationStyle()
       }
-      myLocationStyle.myLocationType(locationType)
-      aMap.myLocationStyle = myLocationStyle
+      val locationType = if (followUserLocation) {
+        MyLocationStyle.LOCATION_TYPE_FOLLOW
+      } else {
+        MyLocationStyle.LOCATION_TYPE_SHOW
+      }
+      currentLocationStyle?.myLocationType(locationType)
+      aMap.myLocationStyle = currentLocationStyle
       aMap.isMyLocationEnabled = true
     } else {
       aMap.isMyLocationEnabled = false
     }
+  }
+  
+  /**
+   * 设置用户位置样式
+   * 统一 iOS 和 Android 的 API
+   */
+  fun setUserLocationRepresentation(config: Map<String, Any>) {
+    if (currentLocationStyle == null) {
+      currentLocationStyle = MyLocationStyle()
+    }
+    
+    val style = currentLocationStyle!!
+    
+    // 精度圈边线颜色 (strokeColor)
+    config["strokeColor"]?.let {
+      style.strokeColor(ColorParser.parseColor(it))
+    }
+    
+    // 精度圈填充颜色 (fillColor)
+    config["fillColor"]?.let {
+      style.radiusFillColor(ColorParser.parseColor(it))
+    }
+    
+    // 精度圈边线宽度 (lineWidth)
+    (config["lineWidth"] as? Number)?.let {
+      style.strokeWidth(it.toFloat())
+    }
+    
+    // 是否显示精度圈 (showsAccuracyRing)
+    (config["showsAccuracyRing"] as? Boolean)?.let {
+      style.showMyLocation(it)
+    }
+    
+    // 自定义图标 (image)
+    (config["image"] as? String)?.let { imagePath ->
+      android.util.Log.d("UIManager", "设置定位图标: $imagePath")
+      
+      // 将 dp 转换为 px (与 iOS points 对应)
+      val density = context.resources.displayMetrics.density
+      val imageWidth = (config["imageWidth"] as? Number)?.let { (it.toFloat() * density).toInt() }
+      val imageHeight = (config["imageHeight"] as? Number)?.let { (it.toFloat() * density).toInt() }
+      
+      // 网络图片需要在后台线程加载
+      if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+        Thread {
+          try {
+            val originalBitmap = BitmapFactory.decodeStream(URL(imagePath).openStream())
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+              originalBitmap?.let { bitmap ->
+                val scaledBitmap = if (imageWidth != null && imageHeight != null) {
+                  android.graphics.Bitmap.createScaledBitmap(bitmap, imageWidth, imageHeight, true)
+                } else bitmap
+                
+                android.util.Log.d("UIManager", "网络图片加载成功")
+                style.myLocationIcon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
+                aMap.myLocationStyle = style
+              } ?: android.util.Log.e("UIManager", "网络图片加载失败")
+            }
+          } catch (e: Exception) {
+            android.util.Log.e("UIManager", "加载网络图片异常", e)
+          }
+        }.start()
+      } else {
+        try {
+          val originalBitmap = when {
+            imagePath.startsWith("file://") -> {
+              BitmapFactory.decodeFile(imagePath.substring(7))
+            }
+            else -> {
+              val resId = context.resources.getIdentifier(
+                imagePath.substringBeforeLast('.'),
+                "drawable",
+                context.packageName
+              )
+              if (resId != 0) {
+                BitmapFactory.decodeResource(context.resources, resId)
+              } else null
+            }
+          }
+          
+          originalBitmap?.let { bitmap ->
+            val scaledBitmap = if (imageWidth != null && imageHeight != null) {
+              android.graphics.Bitmap.createScaledBitmap(bitmap, imageWidth, imageHeight, true)
+            } else bitmap
+            
+            android.util.Log.d("UIManager", "本地图片加载成功")
+            style.myLocationIcon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
+          } ?: android.util.Log.e("UIManager", "本地图片加载失败")
+        } catch (e: Exception) {
+          android.util.Log.e("UIManager", "加载本地图片异常", e)
+        }
+      }
+    }
+    
+    aMap.myLocationStyle = style
   }
   
   /**

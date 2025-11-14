@@ -3,6 +3,7 @@ package expo.modules.gaodemap.managers
 import android.util.Log
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.LatLng
+import expo.modules.gaodemap.utils.ColorParser
 
 /**
  * 覆盖物管理器
@@ -28,8 +29,8 @@ class OverlayManager(private val aMap: AMap) {
     @Suppress("UNCHECKED_CAST")
     val center = props["center"] as? Map<String, Double>
     val radius = (props["radius"] as? Number)?.toDouble() ?: 1000.0
-    val fillColor = (props["fillColor"] as? Number)?.toInt() ?: android.graphics.Color.argb(50, 0, 0, 255)
-    val strokeColor = (props["strokeColor"] as? Number)?.toInt() ?: android.graphics.Color.BLUE
+    val fillColor = ColorParser.parseColor(props["fillColor"])
+    val strokeColor = ColorParser.parseColor(props["strokeColor"])
     val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat() ?: 10f
     
     if (center != null) {
@@ -63,8 +64,8 @@ class OverlayManager(private val aMap: AMap) {
       @Suppress("UNCHECKED_CAST")
       val center = props["center"] as? Map<String, Double>
       val radius = (props["radius"] as? Number)?.toDouble()
-      val fillColor = (props["fillColor"] as? Number)?.toInt()
-      val strokeColor = (props["strokeColor"] as? Number)?.toInt()
+      val fillColor = props["fillColor"]?.let { ColorParser.parseColor(it) }
+      val strokeColor = props["strokeColor"]?.let { ColorParser.parseColor(it) }
       val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat()
       
       center?.let {
@@ -150,14 +151,7 @@ class OverlayManager(private val aMap: AMap) {
     @Suppress("UNCHECKED_CAST")
     val points = props["points"] as? List<Map<String, Double>>
     val width = (props["width"] as? Number)?.toFloat() ?: 10f
-    
-    val colorValue = props["color"]
-    val color = when (colorValue) {
-      is Long -> colorValue.toInt()
-      is Int -> colorValue
-      is Double -> colorValue.toInt()
-      else -> android.graphics.Color.RED
-    }
+    val color = ColorParser.parseColor(props["color"])
     
     if (points != null && points.isNotEmpty()) {
       val latLngs = points.map { point ->
@@ -190,7 +184,7 @@ class OverlayManager(private val aMap: AMap) {
       @Suppress("UNCHECKED_CAST")
       val points = props["points"] as? List<Map<String, Double>>
       val width = (props["width"] as? Number)?.toFloat()
-      val color = (props["color"] as? Number)?.toInt()
+      val color = props["color"]?.let { ColorParser.parseColor(it) }
       
       points?.let {
         val latLngs = it.map { point ->
@@ -215,22 +209,8 @@ class OverlayManager(private val aMap: AMap) {
     
     @Suppress("UNCHECKED_CAST")
     val points = props["points"] as? List<Map<String, Double>>
-    
-    val fillColorValue = props["fillColor"]
-    val fillColor = when (fillColorValue) {
-      is Long -> fillColorValue.toInt()
-      is Int -> fillColorValue
-      is Double -> fillColorValue.toInt()
-      else -> android.graphics.Color.argb(50, 0, 0, 255)
-    }
-    
-    val strokeColorValue = props["strokeColor"]
-    val strokeColor = when (strokeColorValue) {
-      is Long -> strokeColorValue.toInt()
-      is Int -> strokeColorValue
-      is Double -> strokeColorValue.toInt()
-      else -> android.graphics.Color.BLUE
-    }
+    val fillColor = ColorParser.parseColor(props["fillColor"])
+    val strokeColor = ColorParser.parseColor(props["strokeColor"])
     
     val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat() ?: 10f
     val zIndex = (props["zIndex"] as? Number)?.toFloat() ?: 0f
@@ -267,22 +247,8 @@ class OverlayManager(private val aMap: AMap) {
     polygons[id]?.let { polygon ->
       @Suppress("UNCHECKED_CAST")
       val points = props["points"] as? List<Map<String, Double>>
-      
-      val fillColorValue = props["fillColor"]
-      val fillColor = when (fillColorValue) {
-        is Long -> fillColorValue.toInt()
-        is Int -> fillColorValue
-        is Double -> fillColorValue.toInt()
-        else -> null
-      }
-      
-      val strokeColorValue = props["strokeColor"]
-      val strokeColor = when (strokeColorValue) {
-        is Long -> strokeColorValue.toInt()
-        is Int -> strokeColorValue
-        is Double -> strokeColorValue.toInt()
-        else -> null
-      }
+      val fillColor = props["fillColor"]?.let { ColorParser.parseColor(it) }
+      val strokeColor = props["strokeColor"]?.let { ColorParser.parseColor(it) }
       
       val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat()
       val zIndex = (props["zIndex"] as? Number)?.toFloat()

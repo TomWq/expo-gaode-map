@@ -2,7 +2,7 @@
  * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
  * @Date         : 2025-11-13 14:41:55
  * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 14:42:00
+ * @LastEditTime : 2025-11-14 16:15:20
  * @FilePath     : /expo-gaode-map/src/modules/AMapSDK.ts
  * @Description  : 
  * 
@@ -21,16 +21,7 @@ import type { SDKConfig } from '../types';
  * @param config SDK 配置
  */
 export function initSDK(config: SDKConfig): void {
-  const apiKey = config.iosKey || config.androidKey || '';
-  ExpoGaodeMapModule.setApiKey?.(apiKey);
-}
-
-/**
- * 设置 API Key
- * @param key API 密钥
- */
-export function setApiKey(key: string): void {
-  ExpoGaodeMapModule.setApiKey?.(key);
+  ExpoGaodeMapModule.initSDK?.(config);
 }
 
 /**
@@ -43,6 +34,5 @@ export async function getVersion(): Promise<string> {
 
 export default {
   initSDK,
-  setApiKey,
   getVersion,
 };

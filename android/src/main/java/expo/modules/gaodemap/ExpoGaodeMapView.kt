@@ -64,7 +64,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
       
       // 初始化管理器
       cameraManager = CameraManager(aMap)
-      uiManager = UIManager(aMap)
+      uiManager = UIManager(aMap, context)
       overlayManager = OverlayManager(aMap)
       Log.d(TAG, "管理器初始化完成")
       
@@ -164,6 +164,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
   fun setRotateEnabled(enabled: Boolean) = uiManager.setRotateEnabled(enabled)
   fun setTiltEnabled(enabled: Boolean) = uiManager.setTiltEnabled(enabled)
   
+  fun setMaxZoom(maxZoom: Float) = cameraManager.setMaxZoomLevel(maxZoom)
+  fun setMinZoom(minZoom: Float) = cameraManager.setMinZoomLevel(minZoom)
+  
   fun setShowsUserLocation(show: Boolean) = uiManager.setShowsUserLocation(show, followUserLocation)
   
   fun setFollowUserLocation(follow: Boolean) {
@@ -171,6 +174,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     // 如果定位已开启，立即应用新设置
     uiManager.setShowsUserLocation(true, follow)
   }
+  
+  fun setUserLocationRepresentation(representation: Map<String, Any>) {
+    uiManager.setUserLocationRepresentation(representation)
+  }
+  
   fun setShowsTraffic(show: Boolean) = uiManager.setShowsTraffic(show)
   fun setShowsBuildings(show: Boolean) = uiManager.setShowsBuildings(show)
   fun setShowsIndoorMap(show: Boolean) = uiManager.setShowsIndoorMap(show)

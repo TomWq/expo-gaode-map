@@ -10,17 +10,16 @@ import {
   start, 
   stop, 
   getCurrentLocation,
-  ExpoGaodeMapModule
 } from 'expo-gaode-map';
-import { StyleSheet, View, Text, Button, Alert, Platform, PermissionsAndroid } from 'react-native';
+import {Image, StyleSheet, View, Text, Button, Alert, Platform, PermissionsAndroid, ScrollView } from 'react-native';
 
 // 定义圆形类型
 type CircleData = {
   id: string;
   center: { latitude: number; longitude: number };
   radius: number;
-  fillColor: number;
-  strokeColor: number;
+  fillColor: string;
+  strokeColor: string;
   strokeWidth: number;
 };
 
@@ -37,17 +36,20 @@ type PolylineData = {
   id: string;
   points: { latitude: number; longitude: number }[];
   width: number;
-  color: number;
+  color: string;
 };
 
 // 定义多边形类型
 type PolygonData = {
   id: string;
   points: { latitude: number; longitude: number }[];
-  fillColor: number;
-  strokeColor: number;
+  fillColor: string;
+  strokeColor: string;
   strokeWidth: number;
 };
+
+// 获取图片的本地 URI
+const iconUri = Image.resolveAssetSource(require('./assets/icon.png')).uri;
 
 export default function App() {
   const mapRef = useRef<MapViewRef>(null);
@@ -87,7 +89,7 @@ export default function App() {
         console.log('正在初始化高德地图 SDK...');
         initSDK({
           androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
-          iosKey: '',
+          iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
         });
         console.log('✅ 高德地图 SDK 初始化成功');
       } catch (error) {
@@ -136,7 +138,7 @@ export default function App() {
             latitude: loc.latitude,
             longitude: loc.longitude,
           },
-          zoom: 15,
+          zoom: 20,
         }, 300);
       }
     } catch (error) {
@@ -152,13 +154,13 @@ export default function App() {
       return;
     }
 
-    // 随机颜色
+    // 随机颜色 - 使用 RN 风格的十六进制字符串
     const colors = [
-      { fill: 0x4400FF00, stroke: 0xFF00FF00 }, // 绿色
-      { fill: 0x440000FF, stroke: 0xFFFF0000 }, // 红色
-      { fill: 0x44FF0000, stroke: 0xFF0000FF }, // 蓝色
-      { fill: 0x44FFFF00, stroke: 0xFFFF00FF }, // 黄色
-      { fill: 0x44FF00FF, stroke: 0xFFFFFF00 }, // 紫色
+      { fill: '#4400FF00', stroke: '#FF00FF00' }, // 绿色
+      { fill: '#440000FF', stroke: '#FFFF0000' }, // 红色
+      { fill: '#44FF0000', stroke: '#FF0000FF' }, // 蓝色
+      { fill: '#44FFFF00', stroke: '#FFFF00FF' }, // 黄色
+      { fill: '#44FF00FF', stroke: '#FFFFFF00' }, // 紫色
     ];
     
     const randomColor = colors[circles.length % colors.length];
@@ -244,11 +246,11 @@ export default function App() {
     }
 
     const colors = [
-      -65536,     // 红色 0xFFFF0000
-      -16711936,  // 绿色 0xFF00FF00
-      -16776961,  // 蓝色 0xFF0000FF
-      -256,       // 黄色 0xFFFFFF00
-      -65281,     // 紫色 0xFFFF00FF
+      '#FFFF0000',  // 红色
+      '#FF00FF00',  // 绿色
+      '#FF0000FF',  // 蓝色
+      '#FFFFFF00',  // 黄色
+      '#FFFF00FF',  // 紫色
     ];
     
     const randomColor = colors[polylines.length % colors.length];
@@ -265,7 +267,7 @@ export default function App() {
     const newPolyline: PolylineData = {
       id: `polyline_${Date.now()}`,
       points,
-      width: 20, // 固定宽度 20，更明显
+      width: 2, // 固定宽度 20，更明显
       color: randomColor,
     };
 
@@ -296,10 +298,6 @@ export default function App() {
       return;
     }
 
-    // 使用 Android Color.argb() 格式
-    const randomIndex = polygons.length % 5;
-    const randomOffset = () => (Math.random() - 0.5) * 0.01; // 减小偏移量，确保在视野内
-    
     // 生成一个明显的三角形
     const points = [
       { latitude: location.latitude, longitude: location.longitude },
@@ -307,23 +305,15 @@ export default function App() {
       { latitude: location.latitude - 0.002, longitude: location.longitude + 0.003 },
     ];
     
-    // 使用负数表示有符号整数
-    // 0x880000FF = -2013265921 (有符号32位整数)
-    const fillColorUnsigned = 0x880000FF;
-    const fillColorSigned = fillColorUnsigned > 0x7FFFFFFF 
-      ? fillColorUnsigned - 0x100000000 
-      : fillColorUnsigned;
-    
     const newPolygon: PolygonData = {
       id: `polygon_${Date.now()}`,
       points,
-      fillColor: fillColorSigned, // -2013265921
-      strokeColor: -65536,         // 红色边框
+      fillColor: '#880000FF',   // 半透明蓝色填充
+      strokeColor: '#FFFF0000', // 红色边框
       strokeWidth: 10,
     };
 
     console.log('🔷 添加多边形:', JSON.stringify(newPolygon));
-    console.log('🔷 fillColor 转换: 0x880000FF ->', fillColorSigned);
     setPolygons(prev => [...prev, newPolygon]);
     Alert.alert('成功', `已添加第 ${polygons.length + 1} 个多边形\n蓝色填充，红色边框`);
   };
@@ -353,18 +343,30 @@ export default function App() {
         ref={mapRef}
         style={styles.map}
         myLocationEnabled={true}
-        // followUserLocation={true}
-        myLocationIcon={true}
-        zoomControlsEnabled={false}
-       
+        indoorViewEnabled={true}
+         userLocationRepresentation={{
+            showsAccuracyRing: true,
+            fillColor: '#4285F4',
+            strokeColor: '#1967D2',
+            lineWidth: 2,
+            enablePulseAnimation: true, // 仅 iOS
+            locationDotFillColor: 'blue', // 仅 iOS
+            image:iconUri,
+            imageWidth: 40,
+            imageHeight: 40,
+          }}
+        compassEnabled={false}
+        tiltGesturesEnabled={false}
         initialCameraPosition={{
           target: {
             latitude: 39.90923,
             longitude: 116.397428,
           },
-          zoom:18,
+          zoom: 18,  // 室内地图需要较高缩放级别
         }}
-        mapType={0}
+       minZoom={10}
+        maxZoom={20}
+        // mapType={3}
         onLoad={() => console.log('地图加载完成')}
       >
         {/* 渲染所有标记 */}
@@ -412,19 +414,19 @@ export default function App() {
       </MapView>
 
       {/* 定位信息显示 */}
-      {/* {location && (
+      {location && (
         <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>纬度: {location.latitude?.toFixed(6)}</Text>
+          {/* <Text style={styles.infoText}>纬度: {location.latitude?.toFixed(6)}</Text>
           <Text style={styles.infoText}>经度: {location.longitude?.toFixed(6)}</Text>
-          <Text style={styles.infoText}>精度: {location.accuracy?.toFixed(2)}m</Text>
+          <Text style={styles.infoText}>精度: {location.accuracy?.toFixed(2)}m</Text> */}
           {(location as any).address && (
             <Text style={styles.infoText}>地址: {(location as any).address}</Text>
           )}
         </View>
-      )} */}
+      )}
 
       {/* 控制按钮 */}
-      <View style={styles.buttonContainer}>
+      <ScrollView style={styles.buttonContainer}>
         <Button
           title="获取当前位置"
           onPress={getLocation}
@@ -540,7 +542,7 @@ export default function App() {
           onPress={isLocating ? stopLocation : startLocation}
           color={isLocating ? "#FF6347" : "#4CAF50"}
         />
-      </View>
+      </ScrollView>
     </View>
   );
 }
