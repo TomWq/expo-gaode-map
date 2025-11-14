@@ -2,7 +2,7 @@
 
 一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，提供地图显示、定位、覆盖物等功能：
 - Android: [高德地图 Android SDK](https://lbs.amap.com/api/android-sdk/summary)
-- iOS: [高德地图 iOS SDK](https://lbs.amap.com/api/ios-sdk/summary) (开发中)
+- iOS: [高德地图 iOS SDK](https://lbs.amap.com/api/ios-sdk/summary) 
 
 > 💡 本组件使用 [Expo Modules API](https://docs.expo.dev/modules/overview/) 构建，提供了类型安全的原生模块接口和优秀的开发体验。
 
