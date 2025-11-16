@@ -16,6 +16,7 @@
 - ✅ 同时支持声明式组件和命令式 API
 - ✅ 跨平台支持（Android、iOS）
 - ✅ 支持自定义样式和事件监听
+- ✅ 同时支持 React Native 新旧架构（Paper & Fabric）
 
 ## 📦 安装
 
