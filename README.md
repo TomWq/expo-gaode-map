@@ -525,22 +525,6 @@ const clearAll = async () => {
 };
 ```
 
-### 权限配置
-
-在 `app.json` 中配置定位权限（Android）：
-
-```json
-{
-  "expo": {
-    "android": {
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
-    }
-  }
-}
-```
 
 ### 颜色格式
 
@@ -580,10 +564,18 @@ MIT
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 - [GitHub 仓库](https://github.com/yourusername/expo-gaode-map)
 
+## 🙏 致谢
+
+本项目在开发过程中参考了以下优秀项目，特此致谢：
+
+- **[react-native-amap3d](https://github.com/qiuxiang/react-native-amap3d)** - 一个优秀的 React Native 高德地图组件，为本项目的设计和实现提供了重要参考
+
+感谢这些开源项目的贡献者们，他们的工作为社区带来了宝贵的经验和代码。
+
 ## 📮 反馈与支持
 
 如果你在使用过程中遇到问题或有任何建议，欢迎：
 
-- 📝 提交 [GitHub Issue](https://github.com/yourusername/expo-gaode-map/issues)
-- 💬 参与 [Discussions](https://github.com/yourusername/expo-gaode-map/discussions)
+- 📝 提交 [GitHub Issue](https://github.com/TomWq/expo-gaode-map/issues)
+- 💬 参与 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
 - ⭐ 给项目点个 Star 支持一下
