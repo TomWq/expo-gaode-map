@@ -1,11 +1,4 @@
 /*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 14:57:30
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-14 19:38:00
- * @FilePath     : /expo-gaode-map/src/modules/AMapView.ts
- * @Description  : 高德地图视图控制模块
- * 
  * ⚠️ 警告: 此模块中的方法已不推荐使用
  * 请使用 MapView 的 ref 方式调用这些方法
  * 
@@ -13,7 +6,6 @@
  * const mapRef = useRef<MapViewRef>(null);
  * mapRef.current?.moveCamera({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 10 });
  * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
  */
 
 import ExpoGaodeMapModule from '../ExpoGaodeMapModule';

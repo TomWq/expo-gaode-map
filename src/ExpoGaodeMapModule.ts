@@ -1,13 +1,4 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 14:03:56
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 14:58:00
- * @FilePath     : /expo-gaode-map/src/ExpoGaodeMapModule.ts
- * @Description  : 
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
+
 import { NativeModule, requireNativeModule } from 'expo';
 import type { ExpoGaodeMapModuleEvents } from './ExpoGaodeMap.types';
 

@@ -1,32 +1,26 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 15:02:00
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 18:43:00
- * @FilePath     : /expo-gaode-map/src/components/overlays/Circle.tsx
- * @Description  : 地图圆形组件 - 使用命令式 API
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
-
 import * as React from 'react';
 import type { CircleProps } from '../../types';
 import { MapContext } from '../../ExpoGaodeMapView';
 
 /**
- * 地图圆形组件
+ * Circle 组件 - 高德地图圆形覆盖物
  * 
- * @example
- * ```tsx
- * <MapView>
- *   <Circle
- *     center={{ latitude: 39.9, longitude: 116.4 }}
- *     radius={1000}
- *     fillColor={0x440000FF}
- *     strokeColor={0xFFFF0000}
- *   />
- * </MapView>
- * ```
+ * 该组件用于在高德地图上绘制圆形覆盖物，支持动态更新圆形属性。
+ * 
+ * @param {CircleProps} props - 圆形属性配置
+ * @param {LatLng} props.center - 圆形中心点坐标
+ * @param {number} props.radius - 圆形半径（米）
+ * @param {string} props.fillColor - 填充颜色（十六进制或RGBA）
+ * @param {string} props.strokeColor - 边框颜色（十六进制或RGBA）
+ * @param {number} props.strokeWidth - 边框宽度（像素）
+ * 
+ * @returns {null} 该组件不渲染任何UI元素
+ * 
+ * @remarks
+ * 1. 组件挂载时自动添加圆形到地图
+ * 2. 组件卸载时自动移除圆形
+ * 3. 当中心点、半径、颜色等属性变化时自动更新圆形
+ * 4. 使用 React Context 获取地图实例引用
  */
 export default function Circle(props: CircleProps) {
   const mapRef = React.useContext(MapContext);
@@ -58,8 +52,13 @@ export default function Circle(props: CircleProps) {
       }
     };
   }, []);
-  
-  // 当 props 变化时更新圆形
+
+
+  /**
+   * 当Circle组件的props发生变化时，更新地图上的圆形覆盖物
+   * 如果圆形ID和地图引用都存在，则调用地图实例的updateCircle方法更新圆形
+   * 更新成功后会打印日志确认
+   */
   React.useEffect(() => {
     console.log('Circle props 变化，更新圆形');
     if (circleIdRef.current && mapRef?.current) {

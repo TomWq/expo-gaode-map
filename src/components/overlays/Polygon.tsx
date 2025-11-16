@@ -1,37 +1,23 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 15:01:45
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 19:24:22
- * @FilePath     : /expo-gaode-map/src/components/overlays/Polygon.tsx
- * @Description  : 地图多边形组件 - 命令式 API
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
-
-
 import { useContext, useEffect, useRef } from 'react';
 import type { PolygonProps } from '../../types';
 import { MapContext } from '../../ExpoGaodeMapView';
 
+
 /**
- * 地图多边形组件 - 命令式 API
+ * 高德地图多边形覆盖物组件
  * 
- * @example
- * ```tsx
- * <MapView>
- *   <Polygon
- *     points={[
- *       { latitude: 39.9, longitude: 116.4 },
- *       { latitude: 39.91, longitude: 116.41 },
- *       { latitude: 39.92, longitude: 116.40 },
- *     ]}
- *     fillColor={0x44FF0000}
- *     strokeColor={-65536}
- *     strokeWidth={5}
- *   />
- * </MapView>
- * ```
+ * @param props - 多边形配置属性
+ * @param props.points - 多边形顶点坐标数组，至少需要3个点
+ * @param props.fillColor - 多边形填充颜色，十六进制格式，默认0x440000FF
+ * @param props.strokeColor - 多边形边框颜色，默认-16776961
+ * @param props.strokeWidth - 多边形边框宽度，默认10
+ * @param props.zIndex - 多边形层级，默认0
+ * 
+ * @remarks
+ * 组件内部会自动生成唯一ID用于标识多边形，并在组件挂载时添加到地图，
+ * 更新时同步修改多边形属性，卸载时自动移除多边形。
+ * 
+ * 注意：points数组长度必须大于等于3才能有效绘制多边形。
  */
 export default function Polygon(props: PolygonProps) {
   const { points, fillColor, strokeColor, strokeWidth, zIndex } = props;

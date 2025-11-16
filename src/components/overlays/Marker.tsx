@@ -1,31 +1,21 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 15:01:10
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 18:55:00
- * @FilePath     : /expo-gaode-map/src/components/overlays/Marker.tsx
- * @Description  : 地图标记组件 - 使用命令式 API
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
-
 import * as React from 'react';
 import { MapContext } from '../../ExpoGaodeMapView';
 import type { MarkerProps } from '../../types';
 
 /**
- * 地图标记组件
+ * Marker 组件 - 用于在地图上显示标记点
  * 
- * @example
- * ```tsx
- * <MapView>
- *   <Marker
- *     position={{ latitude: 39.9, longitude: 116.4 }}
- *     title="标记点"
- *     onPress={() => console.log('Marker pressed')}
- *   />
- * </MapView>
- * ```
+ * @param props - 标记点属性配置
+ * @param props.position - 标记点坐标 [经度, 纬度]
+ * @param props.title - 标记点标题
+ * @param props.draggable - 标记点是否可拖动
+ * 
+ * @remarks
+ * 组件内部会自动处理标记点的添加、更新和移除
+ * 当组件卸载时会自动移除对应的地图标记
+ * 
+ * @note
+ * 组件本身不渲染任何DOM元素，仅作为地图标记的逻辑容器
  */
 export default function Marker(props: MarkerProps) {
   const mapRef = React.useContext(MapContext);

@@ -1,13 +1,4 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 14:03:56
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-13 14:30:00
- * @FilePath     : /expo-gaode-map/src/ExpoGaodeMap.types.ts
- * @Description  : 高德地图 Expo Module 主类型定义文件
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
+
 
 // 导出所有类型定义
 export * from './types';

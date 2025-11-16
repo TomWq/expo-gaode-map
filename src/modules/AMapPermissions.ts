@@ -1,13 +1,4 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-15 02:20:56
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-15 02:20:58
- * @FilePath     : /expo-gaode-map/src/modules/AMapPermissions.ts
- * @Description  : 
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
+
 /*
  * 高德地图权限管理模块
  */
@@ -29,7 +20,8 @@ export interface PermissionStatus {
 }
 
 /**
- * 检查位置权限状态
+ * 检查当前应用是否具有位置权限
+ * @returns {Promise<PermissionStatus>} 返回一个Promise，解析为位置权限状态
  */
 export async function checkLocationPermission(): Promise<PermissionStatus> {
   return await ExpoGaodeMapModule.checkLocationPermission();
@@ -37,6 +29,7 @@ export async function checkLocationPermission(): Promise<PermissionStatus> {
 
 /**
  * 请求位置权限
+ * @returns {Promise<PermissionStatus>} 返回一个Promise，解析为位置权限状态
  */
 export async function requestLocationPermission(): Promise<PermissionStatus> {
   return await ExpoGaodeMapModule.requestLocationPermission();

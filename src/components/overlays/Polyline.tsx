@@ -1,34 +1,22 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-11-13 15:01:30
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-11-15 01:08:27
- * @FilePath     : /expo-gaode-map/src/components/overlays/Polyline.tsx
- * @Description  : 地图折线组件 - 使用命令式 API
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
-
 import * as React from 'react';
 import { MapContext } from '../../ExpoGaodeMapView';
 import type { PolylineProps } from '../../types';
 
+
 /**
- * 地图折线组件
+ * Polyline 组件用于在高德地图上绘制折线
  * 
- * @example
- * ```tsx
- * <MapView>
- *   <Polyline
- *     points={[
- *       { latitude: 39.9, longitude: 116.4 },
- *       { latitude: 39.91, longitude: 116.41 },
- *     ]}
- *     color="#FF0000"
- *     width={5}
- *   />
- * </MapView>
- * ```
+ * @param props - 折线的配置属性
+ * @param props.points - 折线的坐标点数组
+ * @param props.width - 折线的宽度（像素）
+ * @param props.color - 折线的颜色（十六进制或RGBA）
+ * @param [props.texture] - 可选，折线的纹理样式
+ * 
+ * @remarks
+ * 组件内部使用 React 的 useEffect 钩子来管理折线的生命周期：
+ * 1. 组件挂载时创建折线并添加到地图
+ * 2. 组件卸载时自动从地图移除折线
+ * 3. 使用 ref 保存折线ID以便清理
  */
 export default function Polyline(props: PolylineProps) {
   const mapRef = React.useContext(MapContext);
