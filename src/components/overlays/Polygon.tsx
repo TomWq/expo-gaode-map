@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef } from 'react';
 import type { PolygonProps } from '../../types';
-import { MapContext } from '../../ExpoGaodeMapView';
+import { MapContext, PolygonEventContext } from '../../ExpoGaodeMapView';
 
 
 /**
@@ -12,6 +12,7 @@ import { MapContext } from '../../ExpoGaodeMapView';
  * @param props.strokeColor - 多边形边框颜色，默认-16776961
  * @param props.strokeWidth - 多边形边框宽度，默认10
  * @param props.zIndex - 多边形层级，默认0
+ * @param props.onPress - 多边形点击事件
  * 
  * @remarks
  * 组件内部会自动生成唯一ID用于标识多边形，并在组件挂载时添加到地图，
@@ -22,6 +23,7 @@ import { MapContext } from '../../ExpoGaodeMapView';
 export default function Polygon(props: PolygonProps) {
   const { points, fillColor, strokeColor, strokeWidth, zIndex } = props;
   const nativeRef = useContext(MapContext);
+  const eventManager = useContext(PolygonEventContext);
   const polygonIdRef = useRef<string | null>(null);
   const propsRef = useRef(props);
   
@@ -39,6 +41,12 @@ export default function Polygon(props: PolygonProps) {
       const polygonId = `polygon_${Date.now()}_${Math.random()}`;
       polygonIdRef.current = polygonId;
       
+      if (eventManager && props.onPress) {
+        eventManager.register(polygonId, {
+          onPress: props.onPress,
+        });
+      }
+      
       const { points, fillColor, strokeColor, strokeWidth, zIndex } = propsRef.current;
       
       if (points && points.length >= 3) {
@@ -55,8 +63,13 @@ export default function Polygon(props: PolygonProps) {
     checkAndAdd();
     
     return () => {
-      if (polygonIdRef.current && nativeRef?.current) {
-        nativeRef.current.removePolygon(polygonIdRef.current);
+      if (polygonIdRef.current) {
+        if (eventManager) {
+          eventManager.unregister(polygonIdRef.current);
+        }
+        if (nativeRef?.current) {
+          nativeRef.current.removePolygon(polygonIdRef.current);
+        }
       }
     };
   }, []);

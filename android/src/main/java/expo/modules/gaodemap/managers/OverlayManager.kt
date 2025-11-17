@@ -32,12 +32,20 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
   // Circle ID 映射
   private val circleIdMap = mutableMapOf<com.amap.api.maps.model.Circle, String>()
   
+  // Polygon ID 映射
+  private val polygonIdMap = mutableMapOf<com.amap.api.maps.model.Polygon, String>()
+  
+  // Polyline ID 映射
+  private val polylineIdMap = mutableMapOf<com.amap.api.maps.model.Polyline, String>()
+  
   // 事件回调
   var onMarkerPress: ((String, Double, Double) -> Unit)? = null
   var onMarkerDragStart: ((String, Double, Double) -> Unit)? = null
   var onMarkerDrag: ((String, Double, Double) -> Unit)? = null
   var onMarkerDragEnd: ((String, Double, Double) -> Unit)? = null
   var onCirclePress: ((String, Double, Double) -> Unit)? = null
+  var onPolygonPress: ((String, Double, Double) -> Unit)? = null
+  var onPolylinePress: ((String, Double, Double) -> Unit)? = null
   
   private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
   
@@ -345,11 +353,13 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       }
       
       polylines[id] = polyline
+      polylineIdMap[polyline] = id
     }
   }
   
   fun removePolyline(id: String) {
     polylines[id]?.let { polyline ->
+      polylineIdMap.remove(polyline)
       polyline.remove()
       polylines.remove(id)
     }
@@ -404,12 +414,14 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       
       val polygon = aMap.addPolygon(options)
       polygons[id] = polygon
+      polygonIdMap[polygon] = id
       Log.d(TAG, "✅ 多边形创建成功")
     }
   }
   
   fun removePolygon(id: String) {
     polygons[id]?.let { polygon ->
+      polygonIdMap.remove(polygon)
       polygon.remove()
       polygons.remove(id)
     }
@@ -456,6 +468,78 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
     return null
   }
   
+  /**
+   * 检查点击位置是否在某个多边形内
+   */
+  fun checkPolygonPress(latLng: LatLng): String? {
+    for ((polygon, id) in polygonIdMap) {
+      if (polygon.contains(latLng)) {
+        return id
+      }
+    }
+    return null
+  }
+  
+  /**
+   * 检查点击位置是否在某条折线附近
+   */
+  fun checkPolylinePress(latLng: LatLng): String? {
+    val threshold = 20.0 // 20米容差
+    for ((polyline, id) in polylineIdMap) {
+      val points = polyline.points
+      if (points.size < 2) continue
+      
+      for (i in 0 until points.size - 1) {
+        val distance = distanceToSegment(latLng, points[i], points[i + 1])
+        if (distance <= threshold) {
+          return id
+        }
+      }
+    }
+    return null
+  }
+  
+  /**
+   * 计算点到线段的距离(米)
+   */
+  private fun distanceToSegment(point: LatLng, start: LatLng, end: LatLng): Double {
+    val p = android.location.Location("").apply {
+      latitude = point.latitude
+      longitude = point.longitude
+    }
+    val a = android.location.Location("").apply {
+      latitude = start.latitude
+      longitude = start.longitude
+    }
+    val b = android.location.Location("").apply {
+      latitude = end.latitude
+      longitude = end.longitude
+    }
+    
+    val ab = a.distanceTo(b).toDouble()
+    if (ab == 0.0) return a.distanceTo(p).toDouble()
+    
+    val ap = a.distanceTo(p).toDouble()
+    val bp = b.distanceTo(p).toDouble()
+    
+    val t = maxOf(0.0, minOf(1.0,
+      ((point.latitude - start.latitude) * (end.latitude - start.latitude) +
+       (point.longitude - start.longitude) * (end.longitude - start.longitude)) / (ab * ab)
+    ))
+    
+    val projection = LatLng(
+      start.latitude + t * (end.latitude - start.latitude),
+      start.longitude + t * (end.longitude - start.longitude)
+    )
+    
+    val proj = android.location.Location("").apply {
+      latitude = projection.latitude
+      longitude = projection.longitude
+    }
+    
+    return p.distanceTo(proj).toDouble()
+  }
+  
   fun clear() {
     circles.values.forEach { it.remove() }
     circles.clear()
@@ -469,6 +553,9 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
     
     polygons.values.forEach { it.remove() }
     polygons.clear()
+    polygonIdMap.clear()
+    
+    polylineIdMap.clear()
   }
   
   /**

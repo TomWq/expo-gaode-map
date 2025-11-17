@@ -10,6 +10,8 @@ import MAMapKit
  * - 响应属性变化并更新渲染
  */
 class PolygonView: ExpoView {
+    let onPress = EventDispatcher()
+    
     /// 多边形点数组
     var points: [[String: Double]] = []
     /// 填充颜色

@@ -17,6 +17,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   private var polygon: Polygon? = null
   private var aMap: AMap? = null
   private var points: List<LatLng> = emptyList()
+  private var strokeWidth: Float = 10f
   
   /**
    * 设置地图实例
@@ -65,8 +66,11 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置边框宽度
    */
   fun setStrokeWidth(width: Float) {
+    // Android 需要乘以屏幕密度以匹配 iOS 的视觉效果
+    val density = context.resources.displayMetrics.density
+    strokeWidth = width * density
     polygon?.let {
-      it.strokeWidth = width
+      it.strokeWidth = strokeWidth
     } ?: createOrUpdatePolygon()
   }
   
@@ -89,7 +93,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
           .addAll(points)
           .fillColor(Color.argb(50, 0, 0, 255))
           .strokeColor(Color.BLUE)
-          .strokeWidth(10f)
+          .strokeWidth(strokeWidth)
         
         polygon = map.addPolygon(options)
         
@@ -97,6 +101,22 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
         // 如果需要点击事件，需要通过其他方式实现
       }
     }
+  }
+  
+  /**
+   * 检查点击位置是否在多边形内
+   */
+  fun checkPress(latLng: LatLng): Boolean {
+    polygon?.let { poly ->
+      if (poly.contains(latLng)) {
+        onPress(mapOf(
+          "latitude" to latLng.latitude,
+          "longitude" to latLng.longitude
+        ))
+        return true
+      }
+    }
+    return false
   }
   
   /**

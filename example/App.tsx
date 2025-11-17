@@ -12,7 +12,8 @@ import {
   getCurrentLocation,
   checkLocationPermission,
   requestLocationPermission,
-  MarkerProps
+  MarkerProps,
+  configure
 } from 'expo-gaode-map';
 import {Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView, Animated } from 'react-native';
 
@@ -55,6 +56,7 @@ type PolygonData = {
 // 获取图片的本地 URI
 const iconUri = Image.resolveAssetSource(require('./assets/icon.png')).uri;
 
+
 export default function App() {
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<any>(null);
@@ -76,15 +78,23 @@ export default function App() {
         });
         
         const status = await checkLocationPermission();
+        console.log('📍 初始权限状态:', status);
+        
         if (!status.granted) {
+          console.log('📍 请求权限...');
           const result = await requestLocationPermission();
+          console.log('📍 权限请求结果:', result);
+          
           if (!result.granted) {
+            console.log('📍 权限被拒绝,使用默认位置');
             setInitialPosition({ target: { latitude: 39.90923, longitude: 116.397428 }, zoom: 18 });
             return;
           }
         }
         
+        console.log('📍 开始获取位置...');
         const loc = await getCurrentLocation();
+        console.log('📍 获取到位置:', loc);
         setLocation(loc);
         setInitialPosition({
           target: { latitude: loc.latitude, longitude: loc.longitude },
@@ -97,6 +107,11 @@ export default function App() {
           duration: 500,
           useNativeDriver: true,
         }).start();
+
+        configure({
+          allowsBackgroundLocationUpdates: true
+        })
+
        
       } catch (error) {
         console.error('初始化失败:', error);
@@ -144,7 +159,7 @@ export default function App() {
             latitude: loc.latitude,
             longitude: loc.longitude,
           },
-          zoom:  15,
+          zoom:  18,
         }, 300);
       }
     } catch (error) {
@@ -370,6 +385,7 @@ export default function App() {
             indoorViewEnabled={true}
             trafficEnabled={true}
             mapType={0}
+            
             userLocationRepresentation={{}}
             onMapPress={() => console.log('onMapPress:')}
             onMapLongPress={() => console.log('onMapLongPress')}
@@ -470,19 +486,22 @@ export default function App() {
             ]}
             fillColor="red"
             strokeColor="#000"
-            strokeWidth={5}
+            strokeWidth={2}
             onPress={() => console.log('点击多边形')}
+            zIndex={99}
           />
           
-          {/* 文档示例 3: 静态 Polyline */}
+          {/* 文档示例 3: 静态 Polyline - 虚线 + 大地线 */}
           <Polyline
             points={[
               { latitude: 39.9, longitude: 116.4 },
               { latitude: 39.95, longitude: 116.45 },
-              { latitude: 40.0, longitude: 116.5 },
+              // { latitude: 40.0, longitude: 116.5 },
             ]}
             width={10}
-            color="#eeffcc"
+            dotted={true}
+          
+            color="#FFFF0000"
             onPress={() => console.log('点击折线')}
           />
        

@@ -216,9 +216,10 @@ export default function App() {
    - ✅ 提供默认位置作为后备方案
 
 3. **地图渲染**:
-   - ✅ 等待初始化完成后再渲染地图
+   - ✅ **重要**: 等待 `initialPosition` 设置后再渲染 MapView
    - ✅ 使用 `initialCameraPosition` 设置初始位置
-   - ✅ Android 和 iOS 会自动处理位置更新
+   - ⚠️ **iOS 注意**: 如果在获取位置前就渲染地图,会先显示默认位置(北京)再跳转,造成闪烁
+   - ✅ Android 和 iOS 都会在地图显示时直接定位到指定位置
 
 ## 常见问题
 
@@ -264,17 +265,26 @@ await mapRef.current?.moveCamera({
 
 ### Q: 如何配置定位参数?
 
-**A:** 使用 `configure` 函数:
+**A:** 使用 `configure` 函数,**必须在 `initSDK` 之后调用**:
 
 ```tsx
-import { configure } from 'expo-gaode-map';
+import { initSDK, configure } from 'expo-gaode-map';
 
+// 1. 先初始化 SDK
+initSDK({
+  androidKey: 'your-android-api-key',
+  iosKey: 'your-ios-api-key',
+});
+
+// 2. 再配置定位参数
 configure({
   withReGeocode: true,  // 返回地址信息
   mode: 0,              // 高精度模式
   interval: 2000,       // 2秒更新一次
 });
 ```
+
+> ⚠️ **重要**: `configure` 必须在 `initSDK` 之后调用,否则配置可能不生效。
 
 ### Q: Android 和 iOS 的初始化有区别吗?
 

@@ -7,6 +7,8 @@ import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
+import com.amap.api.maps.model.PolylineOptions.LineCapType
+import com.amap.api.maps.model.PolylineOptions.LineJoinType
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -19,6 +21,10 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   private var polyline: Polyline? = null
   private var aMap: AMap? = null
   private var points: List<LatLng> = emptyList()
+  private var strokeWidth: Float = 10f
+  private var strokeColor: Int = Color.BLUE
+  private var isDotted: Boolean = false
+  private var isGeodesic: Boolean = false
   private var textureUrl: String? = null
   
   /**
@@ -50,8 +56,11 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
    * 设置线宽
    */
   fun setStrokeWidth(width: Float) {
+    // Android 需要乘以屏幕密度以匹配 iOS 的视觉效果
+    val density = context.resources.displayMetrics.density
+    strokeWidth = width * density
     polyline?.let {
-      it.width = width
+      it.width = strokeWidth
     } ?: createOrUpdatePolyline()
   }
   
@@ -59,6 +68,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
    * 设置线条颜色
    */
   fun setStrokeColor(color: Int) {
+    strokeColor = color
     polyline?.let {
       it.color = color
     } ?: createOrUpdatePolyline()
@@ -67,19 +77,17 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置是否虚线
    */
-  fun setDashed(dashed: Boolean) {
-    polyline?.let {
-      it.isDottedLine = dashed
-    } ?: createOrUpdatePolyline()
+  fun setDotted(dotted: Boolean) {
+    isDotted = dotted
+    createOrUpdatePolyline()
   }
   
   /**
-   * 设置是否使用渐变色
+   * 设置是否绘制大地线
    */
-  fun setGradient(gradient: Boolean) {
-    polyline?.let {
-      it.isGeodesic = gradient
-    } ?: createOrUpdatePolyline()
+  fun setGeodesic(geodesic: Boolean) {
+    isGeodesic = geodesic
+    createOrUpdatePolyline()
   }
   
   /**
@@ -122,8 +130,14 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
       if (points.isNotEmpty()) {
         val options = PolylineOptions()
           .addAll(points)
-          .width(10f)
-          .color(Color.BLUE)
+          .width(strokeWidth)
+          .color(strokeColor)
+          .geodesic(isGeodesic)
+        
+        // 设置虚线样式
+        if (isDotted) {
+            options.dottedLineType = PolylineOptions.DOTTEDLINE_TYPE_SQUARE
+        }
         
         // 设置纹理
         textureUrl?.let { url ->
@@ -164,14 +178,66 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
         }
         
         polyline = map.addPolyline(options)
-        
-        map.setOnPolylineClickListener { clickedPolyline ->
-          if (clickedPolyline == polyline) {
-            onPress(mapOf("id" to clickedPolyline.id))
-          }
+      }
+    }
+  }
+  
+  /**
+   * 检查点击位置是否在折线附近
+   */
+  fun checkPress(latLng: LatLng): Boolean {
+    polyline?.let { line ->
+      val threshold = 20.0 // 20米容差
+      val linePoints = line.points
+      if (linePoints.size < 2) return false
+      
+      for (i in 0 until linePoints.size - 1) {
+        val distance = distanceToSegment(latLng, linePoints[i], linePoints[i + 1])
+        if (distance <= threshold) {
+          onPress(mapOf(
+            "latitude" to latLng.latitude,
+            "longitude" to latLng.longitude
+          ))
+          return true
         }
       }
     }
+    return false
+  }
+  
+  private fun distanceToSegment(point: LatLng, start: LatLng, end: LatLng): Double {
+    val p = android.location.Location("").apply {
+      latitude = point.latitude
+      longitude = point.longitude
+    }
+    val a = android.location.Location("").apply {
+      latitude = start.latitude
+      longitude = start.longitude
+    }
+    val b = android.location.Location("").apply {
+      latitude = end.latitude
+      longitude = end.longitude
+    }
+    
+    val ab = a.distanceTo(b).toDouble()
+    if (ab == 0.0) return a.distanceTo(p).toDouble()
+    
+    val t = maxOf(0.0, minOf(1.0,
+      ((point.latitude - start.latitude) * (end.latitude - start.latitude) +
+       (point.longitude - start.longitude) * (end.longitude - start.longitude)) / (ab * ab)
+    ))
+    
+    val projection = LatLng(
+      start.latitude + t * (end.latitude - start.latitude),
+      start.longitude + t * (end.longitude - start.longitude)
+    )
+    
+    val proj = android.location.Location("").apply {
+      latitude = projection.latitude
+      longitude = projection.longitude
+    }
+    
+    return p.distanceTo(proj).toDouble()
   }
   
   /**

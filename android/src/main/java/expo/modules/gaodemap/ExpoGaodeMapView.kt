@@ -6,6 +6,7 @@ import android.view.View
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import com.amap.api.maps.MapsInitializer
+import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -50,6 +51,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
   private val onMarkerDrag by EventDispatcher()
   private val onMarkerDragEnd by EventDispatcher()
   private val onCirclePress by EventDispatcher()
+  private val onPolygonPress by EventDispatcher()
+  private val onPolylinePress by EventDispatcher()
   
   // 高德地图视图
   private lateinit var mapView: MapView
@@ -114,6 +117,20 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             "longitude" to lng
           ))
         }
+        onPolygonPress = { id, lat, lng ->
+          this@ExpoGaodeMapView.onPolygonPress(mapOf(
+            "polygonId" to id,
+            "latitude" to lat,
+            "longitude" to lng
+          ))
+        }
+        onPolylinePress = { id, lat, lng ->
+          this@ExpoGaodeMapView.onPolylinePress(mapOf(
+            "polylineId" to id,
+            "latitude" to lat,
+            "longitude" to lng
+          ))
+        }
       }
       
       // 添加地图视图到布局
@@ -149,16 +166,47 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
    */
   private fun setupMapListeners() {
     aMap.setOnMapClickListener { latLng ->
-      // 先检查是否点击了圆形
+      // 检查声明式 PolylineView
+      if (checkDeclarativePolylinePress(latLng)) {
+        return@setOnMapClickListener
+      }
+      
+      // 检查声明式 PolygonView
+      if (checkDeclarativePolygonPress(latLng)) {
+        return@setOnMapClickListener
+      }
+      
+      // 检查声明式 CircleView
+      if (checkDeclarativeCirclePress(latLng)) {
+        return@setOnMapClickListener
+      }
+      
+      // 检查命令式圆形
       val circleId = overlayManager.checkCirclePress(latLng)
       if (circleId != null) {
         overlayManager.onCirclePress?.invoke(circleId, latLng.latitude, latLng.longitude)
-      } else {
-        onMapPress(mapOf(
-          "latitude" to latLng.latitude,
-          "longitude" to latLng.longitude
-        ))
+        return@setOnMapClickListener
       }
+      
+      // 检查命令式多边形
+      val polygonId = overlayManager.checkPolygonPress(latLng)
+      if (polygonId != null) {
+        overlayManager.onPolygonPress?.invoke(polygonId, latLng.latitude, latLng.longitude)
+        return@setOnMapClickListener
+      }
+      
+      // 检查命令式折线
+      val polylineId = overlayManager.checkPolylinePress(latLng)
+      if (polylineId != null) {
+        overlayManager.onPolylinePress?.invoke(polylineId, latLng.latitude, latLng.longitude)
+        return@setOnMapClickListener
+      }
+      
+      // 如果都没点击,触发地图点击事件
+      onMapPress(mapOf(
+        "latitude" to latLng.latitude,
+        "longitude" to latLng.longitude
+      ))
     }
     
     aMap.setOnMapLongClickListener { latLng ->
@@ -445,6 +493,42 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         is ClusterView -> it.setMap(aMap)
       }
     }
+  }
+  
+  private fun checkDeclarativePolylinePress(latLng: LatLng): Boolean {
+    for (i in 0 until childCount) {
+      val child = getChildAt(i)
+      if (child is PolylineView) {
+        if (child.checkPress(latLng)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+  
+  private fun checkDeclarativePolygonPress(latLng: LatLng): Boolean {
+    for (i in 0 until childCount) {
+      val child = getChildAt(i)
+      if (child is PolygonView) {
+        if (child.checkPress(latLng)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+  
+  private fun checkDeclarativeCirclePress(latLng: LatLng): Boolean {
+    for (i in 0 until childCount) {
+      val child = getChildAt(i)
+      if (child is CircleView) {
+        if (child.checkPress(latLng)) {
+          return true
+        }
+      }
+    }
+    return false
   }
   
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {

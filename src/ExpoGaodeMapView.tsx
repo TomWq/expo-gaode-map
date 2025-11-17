@@ -77,6 +77,58 @@ class CircleEventManager {
 
 export const CircleEventContext = React.createContext<CircleEventManager | null>(null);
 
+// Polygon 事件管理器
+type PolygonEventCallbacks = {
+  onPress?: () => void;
+};
+
+class PolygonEventManager {
+  private callbacks = new Map<string, PolygonEventCallbacks>();
+  
+  register(polygonId: string, callbacks: PolygonEventCallbacks) {
+    this.callbacks.set(polygonId, callbacks);
+  }
+  
+  unregister(polygonId: string) {
+    this.callbacks.delete(polygonId);
+  }
+  
+  trigger(polygonId: string, eventType: keyof PolygonEventCallbacks) {
+    const callbacks = this.callbacks.get(polygonId);
+    if (callbacks && callbacks[eventType]) {
+      callbacks[eventType]!();
+    }
+  }
+}
+
+export const PolygonEventContext = React.createContext<PolygonEventManager | null>(null);
+
+// Polyline 事件管理器
+type PolylineEventCallbacks = {
+  onPress?: () => void;
+};
+
+class PolylineEventManager {
+  private callbacks = new Map<string, PolylineEventCallbacks>();
+  
+  register(polylineId: string, callbacks: PolylineEventCallbacks) {
+    this.callbacks.set(polylineId, callbacks);
+  }
+  
+  unregister(polylineId: string) {
+    this.callbacks.delete(polylineId);
+  }
+  
+  trigger(polylineId: string, eventType: keyof PolylineEventCallbacks) {
+    const callbacks = this.callbacks.get(polylineId);
+    if (callbacks && callbacks[eventType]) {
+      callbacks[eventType]!();
+    }
+  }
+}
+
+export const PolylineEventContext = React.createContext<PolylineEventManager | null>(null);
+
 /**
  * 高德地图视图组件，提供地图操作API和覆盖物管理功能
  * 
@@ -100,6 +152,8 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const internalRef = React.useRef<MapViewRef | null>(null);
   const markerEventManager = React.useRef(new MarkerEventManager()).current;
   const circleEventManager = React.useRef(new CircleEventManager()).current;
+  const polygonEventManager = React.useRef(new PolygonEventManager()).current;
+  const polylineEventManager = React.useRef(new PolylineEventManager()).current;
   
   // 处理 Marker 事件
   const handleMarkerPress = React.useCallback((event: any) => {
@@ -146,6 +200,22 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     }
     props.onCirclePress?.(event);
   }, [props.onCirclePress]);
+  
+  const handlePolygonPress = React.useCallback((event: any) => {
+    const polygonId = event.nativeEvent?.polygonId;
+    if (polygonId) {
+      polygonEventManager.trigger(polygonId, 'onPress');
+    }
+    props.onPolygonPress?.(event);
+  }, [props.onPolygonPress]);
+  
+  const handlePolylinePress = React.useCallback((event: any) => {
+    const polylineId = event.nativeEvent?.polylineId;
+    if (polylineId) {
+      polylineEventManager.trigger(polylineId, 'onPress');
+    }
+    props.onPolylinePress?.(event);
+  }, [props.onPolylinePress]);
 
   const apiRef: MapViewRef = React.useMemo(() => ({
     /**
@@ -348,17 +418,23 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     <MapContext.Provider value={internalRef}>
       <MarkerEventContext.Provider value={markerEventManager}>
         <CircleEventContext.Provider value={circleEventManager}>
-          <NativeView
-            ref={nativeRef}
-            {...props}
-            onMarkerPress={handleMarkerPress}
-            onMarkerDragStart={handleMarkerDragStart}
-            onMarkerDrag={handleMarkerDrag}
-            onMarkerDragEnd={handleMarkerDragEnd}
-            onCirclePress={handleCirclePress}
-          >
-            {props.children}
-          </NativeView>
+          <PolygonEventContext.Provider value={polygonEventManager}>
+            <PolylineEventContext.Provider value={polylineEventManager}>
+              <NativeView
+                ref={nativeRef}
+                {...props}
+                onMarkerPress={handleMarkerPress}
+                onMarkerDragStart={handleMarkerDragStart}
+                onMarkerDrag={handleMarkerDrag}
+                onMarkerDragEnd={handleMarkerDragEnd}
+                onCirclePress={handleCirclePress}
+                onPolygonPress={handlePolygonPress}
+                onPolylinePress={handlePolylinePress}
+              >
+                {props.children}
+              </NativeView>
+            </PolylineEventContext.Provider>
+          </PolygonEventContext.Provider>
         </CircleEventContext.Provider>
       </MarkerEventContext.Provider>
     </MapContext.Provider>

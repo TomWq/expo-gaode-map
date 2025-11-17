@@ -167,26 +167,37 @@ configure({
 
 #### 单独配置方法
 
+> **平台支持说明**：部分配置方法仅在特定平台有效，其他平台会静默忽略
+
+##### 通用配置（全平台支持）
+
 | 方法 | 参数 | 说明 |
 |------|------|------|
 | `setLocatingWithReGeocode` | `boolean` | 是否返回逆地理信息 |
-| `setLocationMode` | `0 \| 1 \| 2` | 定位模式 |
-| `setInterval` | `number` | 定位间隔（毫秒） |
+| `setInterval` | `number` | 定位间隔（毫秒）/ 距离过滤（米） |
+| `setGeoLanguage` | `string` | 逆地理语言 |
+
+##### Android 专用配置
+
+| 方法 | 参数 | 说明 |
+|------|------|------|
+| `setLocationMode` | `0 \| 1 \| 2` | 定位模式（0: 高精度, 1: 省电, 2: 仅设备） |
 | `setOnceLocation` | `boolean` | 是否单次定位 |
 | `setSensorEnable` | `boolean` | 是否使用设备传感器 |
 | `setWifiScan` | `boolean` | 是否允许 WiFi 扫描 |
 | `setGpsFirst` | `boolean` | 是否 GPS 优先 |
-| `setGeoLanguage` | `string` | 逆地理语言 |
-| `setLocationCacheEnable` | `boolean` | 是否使用缓存策略（Android） |
-| `setHttpTimeOut` | `number` | 网络请求超时（Android） |
+| `setOnceLocationLatest` | `boolean` | 是否等待 WiFi 列表刷新 |
+| `setLocationCacheEnable` | `boolean` | 是否使用缓存策略 |
+| `setHttpTimeOut` | `number` | 网络请求超时（毫秒） |
 
-#### iOS 特有配置
+##### iOS 专用配置
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
 | `setLocationTimeout` | `number` | 定位超时时间（秒） |
 | `setReGeocodeTimeout` | `number` | 逆地理超时时间（秒） |
-| `setDesiredAccuracy` | `number` | 期望精度（米） |
+| `setDesiredAccuracy` | `number` | 期望精度（0-5，0: 最适合导航, 1: 最佳, 2: 10米, 3: 100米, 4: 1公里, 5: 3公里） |
+| `setDistanceFilter` | `number` | 距离过滤器（米） |
 | `setPausesLocationUpdatesAutomatically` | `boolean` | 是否自动暂停定位更新 |
 | `setAllowsBackgroundLocationUpdates` | `boolean` | 是否允许后台定位 |
 
@@ -204,6 +215,69 @@ configure({
 | `coordinateConvert` | `coordinate, type` | `Promise<LatLng>` | 坐标转换为高德坐标 |
 
 ## 覆盖物组件
+
+> **事件回调说明**：所有覆盖物的事件回调（如 `onPress`）仅在**声明式用法**中有效。使用命令式 API（如 `addCircle`、`addMarker` 等）添加的覆盖物无法触发这些事件。
+
+### Circle (圆形)
+
+#### 属性
+
+| 属性 | 类型 | 平台 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `center` | `LatLng` | 全平台 | - | 圆心坐标（必需） |
+| `radius` | `number` | 全平台 | - | 半径（米） |
+| `fillColor` | `string` | 全平台 | - | 填充颜色（ARGB 格式：`#AARRGGBB`） |
+| `strokeColor` | `string` | 全平台 | - | 边框颜色（ARGB 格式：`#AARRGGBB`） |
+| `strokeWidth` | `number` | 全平台 | `1` | 边框宽度（点/dp） |
+
+#### 事件
+
+| 事件 | 参数 | 说明 |
+|------|------|------|
+| `onPress` | `() => void` | 点击圆形 |
+
+### Polyline (折线)
+
+#### 属性
+
+| 属性 | 类型 | 平台 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `points` | `LatLng[]` | 全平台 | - | 折线坐标点数组（必需） |
+| `width` | `number` | 全平台 | `5` | 线宽（点/dp） |
+| `color` | `string` | 全平台 | - | 线条颜色（ARGB 格式：`#AARRGGBB`） |
+| `texture` | `string` | 全平台 | - | 纹理图片 URL |
+| `dotted` | `boolean` | 仅 Android | `false` | 是否绘制虚线 |
+| `geodesic` | `boolean` | 仅 Android | `false` | 是否绘制大地曲线 |
+| `zIndex` | `number` | 全平台 | `0` | 层级 |
+
+#### 事件
+
+| 事件 | 参数 | 说明 |
+|------|------|------|
+| `onPress` | `() => void` | 点击折线 |
+
+> **纹理说明**：
+> - 支持网络图片（http/https）和本地文件（使用 `Image.resolveAssetSource()`）
+> - 纹理会沿着折线方向平铺显示
+> - 建议纹理折线使用较大的 `width` 值（如 20）以获得更好的显示效果
+> - **分段纹理限制**：单个 Polyline 只能设置一个纹理。如需不同线段使用不同纹理，请创建多个 Polyline 组件
+
+### Polygon (多边形)
+
+#### 属性
+
+| 属性 | 类型 | 平台 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `points` | `LatLng[]` | 全平台 | - | 多边形顶点坐标数组（必需） |
+| `fillColor` | `string` | 全平台 | - | 填充颜色（ARGB 格式：`#AARRGGBB`） |
+| `strokeColor` | `string` | 全平台 | - | 边框颜色（ARGB 格式：`#AARRGGBB`） |
+| `strokeWidth` | `number` | 全平台 | `1` | 边框宽度（点/dp） |
+
+#### 事件
+
+| 事件 | 参数 | 说明 |
+|------|------|------|
+| `onPress` | `() => void` | 点击多边形 |
 
 ### Marker (标记点)
 

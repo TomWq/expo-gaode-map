@@ -149,16 +149,22 @@ export interface PolylineProps {
 
   /**
    * 是否使用渐变色
+   * @platform android
+   * @note iOS 不支持
    */
   gradient?: boolean;
 
   /**
    * 是否绘制大地线
+   * @platform android
+   * @note iOS 不支持
    */
   geodesic?: boolean;
 
   /**
    * 是否绘制虚线
+   * @platform android
+   * @note iOS 不支持
    */
   dotted?: boolean;
 

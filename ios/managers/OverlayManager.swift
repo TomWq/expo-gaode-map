@@ -24,6 +24,14 @@ class OverlayManager {
     var onCirclePress: (([String: Any]) -> Void)?
     /// Circle ID 映射 (overlay -> id)
     private var circleIdMap: [MACircle: String] = [:]
+    /// Polygon ID 映射 (overlay -> id)
+    private var polygonIdMap: [MAPolygon: String] = [:]
+    /// Polyline ID 映射 (overlay -> id)
+    private var polylineIdMap: [MAPolyline: String] = [:]
+    /// Polygon 点击回调
+    var onPolygonPress: (([String: Any]) -> Void)?
+    /// Polyline 点击回调
+    var onPolylinePress: (([String: Any]) -> Void)?
     
     /**
      * 初始化覆盖物管理器
@@ -191,6 +199,7 @@ class OverlayManager {
         // 先保存样式和 overlay，再添加到地图
         overlayStyles[id] = props
         overlays[id] = polyline
+        polylineIdMap[polyline] = id
         mapView.add(polyline)
     }
     
@@ -199,10 +208,11 @@ class OverlayManager {
      * @param id 折线唯一标识
      */
     func removePolyline(id: String) {
-        guard let mapView = mapView, let polyline = overlays[id] else { return }
+        guard let mapView = mapView, let polyline = overlays[id] as? MAPolyline else { return }
         mapView.remove(polyline)
         overlays.removeValue(forKey: id)
         overlayStyles.removeValue(forKey: id)
+        polylineIdMap.removeValue(forKey: polyline)
     }
     
     /**
@@ -234,6 +244,7 @@ class OverlayManager {
         let polygon = MAPolygon(coordinates: &coordinates, count: UInt(coordinates.count))
         overlayStyles[id] = props
         overlays[id] = polygon
+        polygonIdMap[polygon!] = id
         mapView.add(polygon!)
     }
     
@@ -242,10 +253,11 @@ class OverlayManager {
      * @param id 多边形唯一标识
      */
     func removePolygon(id: String) {
-        guard let mapView = mapView, let polygon = overlays[id] else { return }
+        guard let mapView = mapView, let polygon = overlays[id] as? MAPolygon else { return }
         mapView.remove(polygon)
         overlays.removeValue(forKey: id)
         overlayStyles.removeValue(forKey: id)
+        polygonIdMap.removeValue(forKey: polygon)
     }
     
     /**
@@ -293,13 +305,13 @@ class OverlayManager {
             // 设置线宽
             if let width = style?["width"] as? Double {
                 renderer.lineWidth = CGFloat(width)
-                print("🔷 OverlayManager: width=\(width)")
+               
             } else if let strokeWidth = style?["strokeWidth"] as? Double {
                 renderer.lineWidth = CGFloat(strokeWidth)
-                print("🔷 OverlayManager: strokeWidth=\(strokeWidth)")
+              
             } else {
                 renderer.lineWidth = 8
-                print("🔷 OverlayManager: 使用默认 width=8")
+               
             }
             
             // 设置线条样式
@@ -337,18 +349,18 @@ class OverlayManager {
             if let fillColor = style?["fillColor"] {
                 let parsedColor = ColorParser.parseColor(fillColor)
                 renderer.fillColor = parsedColor
-                print("🔶 OverlayManager: fillColor=\(fillColor) -> \(String(describing: parsedColor))")
+              
             }
             // 设置边框颜色
             if let strokeColor = style?["strokeColor"] {
                 let parsedColor = ColorParser.parseColor(strokeColor)
                 renderer.strokeColor = parsedColor
-                print("🔶 OverlayManager: strokeColor=\(strokeColor) -> \(String(describing: parsedColor))")
+               
             }
             // 设置边框宽度
             if let strokeWidth = style?["strokeWidth"] as? Double {
                 renderer.lineWidth = CGFloat(strokeWidth)
-                print("🔶 OverlayManager: strokeWidth=\(strokeWidth)")
+              
             }
             
             return renderer
@@ -403,6 +415,99 @@ class OverlayManager {
     }
     
     /**
+     * 检查点击位置是否在多边形内
+     */
+    func checkPolygonPress(at coordinate: CLLocationCoordinate2D) -> Bool {
+        for (polygon, polygonId) in polygonIdMap {
+            let count = Int(polygon.pointCount)
+            guard count >= 3 else { continue }
+            
+            var coords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: count)
+            polygon.getCoordinates(&coords, range: NSRange(location: 0, length: count))
+            
+            if isPoint(coordinate, inPolygon: coords) {
+                onPolygonPress?([
+                    "polygonId": polygonId,
+                    "latitude": coordinate.latitude,
+                    "longitude": coordinate.longitude
+                ])
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
+     * 检查点击位置是否在折线附近
+     */
+    func checkPolylinePress(at coordinate: CLLocationCoordinate2D) -> Bool {
+        let threshold: Double = 20.0
+        for (polyline, polylineId) in polylineIdMap {
+            let count = Int(polyline.pointCount)
+            guard count >= 2 else { continue }
+            
+            var coords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: count)
+            polyline.getCoordinates(&coords, range: NSRange(location: 0, length: count))
+            
+            if isPoint(coordinate, nearPolyline: coords, threshold: threshold) {
+                onPolylinePress?([
+                    "polylineId": polylineId,
+                    "latitude": coordinate.latitude,
+                    "longitude": coordinate.longitude
+                ])
+                return true
+            }
+        }
+        return false
+    }
+    
+    private func isPoint(_ point: CLLocationCoordinate2D, inPolygon coords: [CLLocationCoordinate2D]) -> Bool {
+        var inside = false
+        var j = coords.count - 1
+        
+        for i in 0..<coords.count {
+            if ((coords[i].latitude > point.latitude) != (coords[j].latitude > point.latitude)) {
+                let slope = (coords[j].longitude - coords[i].longitude) * (point.latitude - coords[i].latitude) / (coords[j].latitude - coords[i].latitude)
+                if point.longitude < slope + coords[i].longitude {
+                    inside = !inside
+                }
+            }
+            j = i
+        }
+        return inside
+    }
+    
+    private func isPoint(_ point: CLLocationCoordinate2D, nearPolyline coords: [CLLocationCoordinate2D], threshold: Double) -> Bool {
+        for i in 0..<(coords.count - 1) {
+            let distance = distanceFromPoint(point, toLineSegment: (coords[i], coords[i + 1]))
+            if distance <= threshold {
+                return true
+            }
+        }
+        return false
+    }
+    
+    private func distanceFromPoint(_ point: CLLocationCoordinate2D, toLineSegment line: (CLLocationCoordinate2D, CLLocationCoordinate2D)) -> Double {
+        let p = CLLocation(latitude: point.latitude, longitude: point.longitude)
+        let a = CLLocation(latitude: line.0.latitude, longitude: line.0.longitude)
+        let b = CLLocation(latitude: line.1.latitude, longitude: line.1.longitude)
+        
+        let ab = a.distance(from: b)
+        if ab == 0 { return a.distance(from: p) }
+        
+        let t = max(0, min(1, ((p.coordinate.latitude - a.coordinate.latitude) * (b.coordinate.latitude - a.coordinate.latitude) +
+                               (p.coordinate.longitude - a.coordinate.longitude) * (b.coordinate.longitude - a.coordinate.longitude)) /
+                              (ab * ab)))
+        
+        let projection = CLLocationCoordinate2D(
+            latitude: a.coordinate.latitude + t * (b.coordinate.latitude - a.coordinate.latitude),
+            longitude: a.coordinate.longitude + t * (b.coordinate.longitude - a.coordinate.longitude)
+        )
+        
+        return p.distance(from: CLLocation(latitude: projection.latitude, longitude: projection.longitude))
+    }
+    
+    /**
      * 清除所有覆盖物和标记点
      */
     func clear() {
@@ -416,5 +521,8 @@ class OverlayManager {
         overlays.removeAll()
         overlayStyles.removeAll()
         annotations.removeAll()
+        circleIdMap.removeAll()
+        polygonIdMap.removeAll()
+        polylineIdMap.removeAll()
     }
 }

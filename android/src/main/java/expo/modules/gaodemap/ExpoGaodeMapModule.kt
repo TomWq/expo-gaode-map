@@ -1,6 +1,6 @@
 package expo.modules.gaodemap
 
-import android.util.Log
+
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.gaodemap.modules.SDKInitializer
@@ -17,9 +17,7 @@ import expo.modules.gaodemap.overlays.*
  * - 地图视图和覆盖物注册
  */
 class ExpoGaodeMapModule : Module() {
-  companion object {
-    private const val TAG = "ExpoGaodeMapModule"
-  }
+
   
   /** 定位管理器实例 */
   private var locationManager: LocationManager? = null
@@ -181,6 +179,62 @@ class ExpoGaodeMapModule : Module() {
       getLocationManager().setHttpTimeOut(httpTimeOut)
     }
 
+    /**
+     * 设置定位精度 (iOS 专用,Android 空实现)
+     * @param accuracy 精度级别
+     */
+    Function("setDesiredAccuracy") { _: Int ->
+      // Android 不支持此配置
+    }
+
+    /**
+     * 设置定位超时时间 (iOS 专用,Android 空实现)
+     * @param timeout 超时时间(秒)
+     */
+    Function("setLocationTimeout") { _: Int ->
+      // Android 不支持此配置
+    }
+
+    /**
+     * 设置逆地理超时时间 (iOS 专用,Android 空实现)
+     * @param timeout 超时时间(秒)
+     */
+    Function("setReGeocodeTimeout") { _: Int ->
+      // Android 不支持此配置
+    }
+
+    /**
+     * 设置距离过滤器 (iOS 专用,Android 空实现)
+     * @param distance 最小距离变化(米)
+     */
+    Function("setDistanceFilter") { _: Double ->
+      // Android 不支持此配置
+    }
+
+    /**
+     * 设置是否自动暂停定位更新 (iOS 专用,Android 空实现)
+     * @param pauses 是否自动暂停
+     */
+    Function("setPausesLocationUpdatesAutomatically") { _: Boolean ->
+      // Android 不支持此配置
+    }
+
+    /**
+     * 设置是否允许后台定位 (iOS 专用,Android 空实现)
+     * @param allows 是否允许后台定位
+     */
+    Function("setAllowsBackgroundLocationUpdates") { _: Boolean ->
+      // Android 不支持此配置
+    }
+
+    /**
+     * 设置定位协议 (未实现)
+     * @param protocol 协议类型
+     */
+    Function("setLocationProtocol") { _: Int ->
+      // 未实现
+    }
+
     // ==================== 权限管理 ====================
     
     /**
@@ -271,7 +325,7 @@ class ExpoGaodeMapModule : Module() {
     View(ExpoGaodeMapView::class) {
       
       // 事件
-      Events("onMapPress", "onMapLongPress", "onLoad", "onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd", "onCirclePress")
+      Events("onMapPress", "onMapLongPress", "onLoad", "onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd", "onCirclePress", "onPolygonPress", "onPolylinePress")
 
       // 地图类型
       Prop<Int>("mapType") { view, type ->
@@ -477,6 +531,18 @@ class ExpoGaodeMapModule : Module() {
       
       Prop<String?>("texture") { view: PolylineView, texture ->
         view.setTexture(texture)
+      }
+      
+      Prop<Boolean>("dotted") { view: PolylineView, dotted ->
+        view.setDotted(dotted)
+      }
+      
+      Prop<Boolean>("geodesic") { view: PolylineView, geodesic ->
+        view.setGeodesic(geodesic)
+      }
+      
+      Prop<Float>("zIndex") { view: PolylineView, zIndex ->
+        view.setZIndex(zIndex)
       }
     }
     

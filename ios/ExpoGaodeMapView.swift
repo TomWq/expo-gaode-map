@@ -64,6 +64,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     let onMarkerDrag = EventDispatcher()
     let onMarkerDragEnd = EventDispatcher()
     let onCirclePress = EventDispatcher()
+    let onPolygonPress = EventDispatcher()
+    let onPolylinePress = EventDispatcher()
     
     // MARK: - 私有属性
     
@@ -92,15 +94,22 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         mapView = MAMapView(frame: bounds)
         mapView.delegate = self
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        addSubview(mapView)
+        
+        // 先不添加到视图,等设置完初始位置再添加
         
         cameraManager = CameraManager(mapView: mapView)
         uiManager = UIManager(mapView: mapView)
         overlayManager = OverlayManager(mapView: mapView)
         
-        // 设置 Circle 点击回调
+        // 设置覆盖物点击回调
         overlayManager.onCirclePress = { [weak self] event in
             self?.onCirclePress(event)
+        }
+        overlayManager.onPolygonPress = { [weak self] event in
+            self?.onPolygonPress(event)
+        }
+        overlayManager.onPolylinePress = { [weak self] event in
+            self?.onPolylinePress(event)
         }
         
         setupDefaultConfig()
@@ -118,19 +127,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     override func addSubview(_ view: UIView) {
         super.addSubview(view)
         
-        print("🔧 添加子视图: \(type(of: view))")
+
         
         if let markerView = view as? MarkerView {
-            print("✅ 识别为 MarkerView")
             markerView.setMap(mapView)
         } else if let circleView = view as? CircleView {
-            print("✅ 识别为 CircleView")
             circleView.setMap(mapView)
         } else if let polylineView = view as? PolylineView {
-            print("✅ 识别为 PolylineView")
             polylineView.setMap(mapView)
         } else if let polygonView = view as? PolygonView {
-            print("✅ 识别为 PolygonView")
             polygonView.setMap(mapView)
         } else if let heatMapView = view as? HeatMapView {
             heatMapView.setMap(mapView)
@@ -162,8 +167,13 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     func applyProps() {
         uiManager.setMapType(mapType)
         
-        if let position = initialCameraPosition, isMapLoaded {
+        // 如果有初始位置且地图还未添加到视图,先设置位置再添加
+        if let position = initialCameraPosition, mapView.superview == nil {
             cameraManager.setInitialCameraPosition(position)
+            addSubview(mapView)
+        } else if mapView.superview == nil {
+            // 没有初始位置,直接添加地图
+            addSubview(mapView)
         }
         
         uiManager.setShowsScale(showsScale)
@@ -323,9 +333,6 @@ extension ExpoGaodeMapView {
     public func mapViewDidFinishLoadingMap(_ mapView: MAMapView) {
         guard !isMapLoaded else { return }
         isMapLoaded = true
-        if let position = initialCameraPosition {
-            cameraManager.setInitialCameraPosition(position)
-        }
         onLoad(["loaded": true])
     }
     
@@ -346,6 +353,26 @@ extension ExpoGaodeMapView {
         
         // 检查是否点击了圆形 (命令式 API)
         if overlayManager.checkCirclePress(at: coordinate) {
+            return
+        }
+        
+        // 检查是否点击了多边形 (声明式)
+        if checkPolygonPress(at: coordinate) {
+            return
+        }
+        
+        // 检查是否点击了多边形 (命令式 API)
+        if overlayManager.checkPolygonPress(at: coordinate) {
+            return
+        }
+        
+        // 检查是否点击了折线 (声明式)
+        if checkPolylinePress(at: coordinate) {
+            return
+        }
+        
+        // 检查是否点击了折线 (命令式 API)
+        if overlayManager.checkPolylinePress(at: coordinate) {
             return
         }
         
@@ -389,6 +416,125 @@ extension ExpoGaodeMapView {
         let fromLocation = CLLocation(latitude: from.latitude, longitude: from.longitude)
         let toLocation = CLLocation(latitude: to.latitude, longitude: to.longitude)
         return fromLocation.distance(from: toLocation)
+    }
+    
+    /**
+     * 检查点击位置是否在多边形内
+     */
+    private func checkPolygonPress(at coordinate: CLLocationCoordinate2D) -> Bool {
+        let polygonViews = subviews.compactMap { $0 as? PolygonView }
+        
+        for polygonView in polygonViews {
+            guard let polygon = polygonView.polygon else { continue }
+            
+            // 使用射线法判断点是否在多边形内
+            if isPoint(coordinate, inPolygon: polygon) {
+                polygonView.onPress([
+                    "latitude": coordinate.latitude,
+                    "longitude": coordinate.longitude
+                ])
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
+     * 检查点击位置是否在折线附近
+     */
+    private func checkPolylinePress(at coordinate: CLLocationCoordinate2D) -> Bool {
+        let polylineViews = subviews.compactMap { $0 as? PolylineView }
+        let threshold: Double = 20.0 // 20米容差
+        
+        for polylineView in polylineViews {
+            guard let polyline = polylineView.polyline else { continue }
+            
+            if isPoint(coordinate, nearPolyline: polyline, threshold: threshold) {
+                polylineView.onPress([
+                    "latitude": coordinate.latitude,
+                    "longitude": coordinate.longitude
+                ])
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
+     * 判断点是否在多边形内(射线法)
+     */
+    private func isPoint(_ point: CLLocationCoordinate2D, inPolygon polygon: MAPolygon) -> Bool {
+        let count = Int(polygon.pointCount)
+        guard count >= 3 else { return false }
+        
+        var coords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: count)
+        polygon.getCoordinates(&coords, range: NSRange(location: 0, length: count))
+        
+        var inside = false
+        var j = count - 1
+        
+        for i in 0..<count {
+            let xi = coords[i].longitude
+            let yi = coords[i].latitude
+            let xj = coords[j].longitude
+            let yj = coords[j].latitude
+            
+            if ((yi > point.latitude) != (yj > point.latitude)) {
+                let slope = (xj - xi) * (point.latitude - yi) / (yj - yi)
+                if point.longitude < slope + xi {
+                    inside = !inside
+                }
+            }
+            j = i
+        }
+        return inside
+    }
+    
+    /**
+     * 判断点是否在折线附近
+     */
+    private func isPoint(_ point: CLLocationCoordinate2D, nearPolyline polyline: MAPolyline, threshold: Double) -> Bool {
+        let count = Int(polyline.pointCount)
+        guard count >= 2 else { return false }
+        
+        var coords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: count)
+        polyline.getCoordinates(&coords, range: NSRange(location: 0, length: count))
+        
+        for i in 0..<(count - 1) {
+            let start = coords[i]
+            let end = coords[i + 1]
+            let distance = distanceFromPoint(point, toLineSegment: (start, end))
+            if distance <= threshold {
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
+     * 计算点到线段的距离
+     */
+    private func distanceFromPoint(_ point: CLLocationCoordinate2D, toLineSegment line: (CLLocationCoordinate2D, CLLocationCoordinate2D)) -> Double {
+        let p = CLLocation(latitude: point.latitude, longitude: point.longitude)
+        let a = CLLocation(latitude: line.0.latitude, longitude: line.0.longitude)
+        let b = CLLocation(latitude: line.1.latitude, longitude: line.1.longitude)
+        
+        let ab = a.distance(from: b)
+        let ap = a.distance(from: p)
+        let bp = b.distance(from: p)
+        
+        if ab == 0 { return ap }
+        
+        let t = max(0, min(1, ((p.coordinate.latitude - a.coordinate.latitude) * (b.coordinate.latitude - a.coordinate.latitude) +
+                               (p.coordinate.longitude - a.coordinate.longitude) * (b.coordinate.longitude - a.coordinate.longitude)) /
+                              (ab * ab)))
+        
+        let projection = CLLocationCoordinate2D(
+            latitude: a.coordinate.latitude + t * (b.coordinate.latitude - a.coordinate.latitude),
+            longitude: a.coordinate.longitude + t * (b.coordinate.longitude - a.coordinate.longitude)
+        )
+        
+        return p.distance(from: CLLocation(latitude: projection.latitude, longitude: projection.longitude))
     }
     
     /**

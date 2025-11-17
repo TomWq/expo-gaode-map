@@ -16,8 +16,13 @@ class PolylineView: ExpoView {
     var strokeWidth: Float = 0
     /// 线条颜色
     var strokeColor: Any?
+    /// 是否虚线
+    var isDotted: Bool = false
     /// 纹理图片 URL
     var textureUrl: String?
+    
+    /// 点击事件派发器
+    let onPress = EventDispatcher()
     
     /// 地图视图弱引用
     private var mapView: MAMapView?
@@ -76,6 +81,9 @@ class PolylineView: ExpoView {
         if renderer == nil, let polyline = polyline {
             renderer = MAPolylineRenderer(polyline: polyline)
             renderer?.lineWidth = CGFloat(strokeWidth)
+            
+            // 注意: iOS 高德地图 SDK 不支持简单的虚线设置
+            // 需要使用 MAMultiPolyline 实现虚线,暂不支持
             
             if let url = textureUrl {
                 print("🔷 PolylineView.getRenderer: 加载纹理 \(url)")
@@ -175,6 +183,12 @@ class PolylineView: ExpoView {
     func setTexture(_ url: String?) {
         print("🔷 PolylineView.setTexture: \(String(describing: url))")
         textureUrl = url
+        renderer = nil
+        updatePolyline()
+    }
+    
+    func setDotted(_ dotted: Bool) {
+        isDotted = dotted
         renderer = nil
         updatePolyline()
     }

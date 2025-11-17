@@ -104,6 +104,22 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   }
   
   /**
+   * 检查点击位置是否在圆形内
+   */
+  fun checkPress(latLng: LatLng): Boolean {
+    circle?.let { c ->
+      if (c.contains(latLng)) {
+        onPress(mapOf(
+          "latitude" to latLng.latitude,
+          "longitude" to latLng.longitude
+        ))
+        return true
+      }
+    }
+    return false
+  }
+  
+  /**
    * 移除圆形
    */
   fun removeCircle() {

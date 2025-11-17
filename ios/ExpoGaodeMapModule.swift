@@ -180,6 +180,69 @@ public class ExpoGaodeMapModule: Module {
             self.getLocationManager().stopUpdatingHeading()
         }
         
+        /**
+         * 设置逆地理语言 (iOS 实现)
+         */
+        Function("setGeoLanguage") { (language: Int) in
+            self.getLocationManager().setGeoLanguage(language)
+        }
+        
+        /**
+         * 设置是否单次定位 (Android 专用,iOS 空实现)
+         */
+        Function("setOnceLocation") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置是否使用设备传感器 (Android 专用,iOS 空实现)
+         */
+        Function("setSensorEnable") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置是否允许 WIFI 扫描 (Android 专用,iOS 空实现)
+         */
+        Function("setWifiScan") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置是否 GPS 优先 (Android 专用,iOS 空实现)
+         */
+        Function("setGpsFirst") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置是否等待 WIFI 列表刷新 (Android 专用,iOS 空实现)
+         */
+        Function("setOnceLocationLatest") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置是否使用缓存策略 (Android 专用,iOS 空实现)
+         */
+        Function("setLocationCacheEnable") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置网络请求超时时间 (Android 专用,iOS 空实现)
+         */
+        Function("setHttpTimeOut") { (_: Int) in
+            // iOS 不支持此配置
+        }
+        
+        /**
+         * 设置定位协议 (未实现)
+         */
+        Function("setLocationProtocol") { (_: Int) in
+            // 未实现
+        }
+        
         // ==================== 权限管理 ====================
         
         /**
@@ -204,10 +267,21 @@ public class ExpoGaodeMapModule: Module {
             }
             
             self.permissionManager?.requestPermission { granted, status in
-                promise.resolve([
-                    "granted": granted,
-                    "status": status
-                ])
+                print("🔐 [PermissionManager] 权限回调: granted=\(granted), status=\(status)")
+                
+                // 无论结果如何,都延迟后再次检查最终状态
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    let finalStatus = CLLocationManager.authorizationStatus()
+                    let finalGranted = finalStatus == .authorizedAlways || finalStatus == .authorizedWhenInUse
+                    let finalStatusString = self.getAuthorizationStatusString(finalStatus)
+                    
+                    print("🔐 [PermissionManager] 最终状态: granted=\(finalGranted), status=\(finalStatusString)")
+                    
+                    promise.resolve([
+                        "granted": finalGranted,
+                        "status": finalStatusString
+                    ])
+                }
             }
         }
         
@@ -221,7 +295,7 @@ public class ExpoGaodeMapModule: Module {
         
         View(ExpoGaodeMapView.self) {
             // 事件 - 使用 Expo 的事件命名约定
-            Events("onMapPress", "onMapLongPress", "onLoad", "onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd", "onCirclePress")
+            Events("onMapPress", "onMapLongPress", "onLoad", "onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd", "onCirclePress", "onPolygonPress", "onPolylinePress")
             
             // 地图类型
             Prop("mapType") { (view: ExpoGaodeMapView, type: Int) in
@@ -460,8 +534,16 @@ public class ExpoGaodeMapModule: Module {
                 view.setPoints(points)
             }
             
+            Prop("width") { (view: PolylineView, width: Double) in
+                view.setStrokeWidth(Float(width))
+            }
+            
             Prop("strokeWidth") { (view: PolylineView, width: Double) in
                 view.setStrokeWidth(Float(width))
+            }
+            
+            Prop("color") { (view: PolylineView, color: String) in
+                view.setStrokeColor(color)
             }
             
             Prop("strokeColor") { (view: PolylineView, color: String) in
@@ -470,6 +552,10 @@ public class ExpoGaodeMapModule: Module {
             
             Prop("texture") { (view: PolylineView, url: String?) in
                 view.setTexture(url)
+            }
+            
+            Prop("dotted") { (view: PolylineView, dotted: Bool) in
+                view.setDotted(dotted)
             }
         }
         

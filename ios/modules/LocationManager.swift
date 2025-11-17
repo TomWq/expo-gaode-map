@@ -179,6 +179,9 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         locationManager?.locationTimeout = 1
         locationManager?.reGeocodeTimeout = 1
         locationManager?.locatingWithReGeocode = true
+        
+        // iOS 9 之前:防止后台被系统挂起(默认关闭,用户可通过 setPausesLocationUpdatesAutomatically 配置)
+        locationManager?.pausesLocationUpdatesAutomatically = false
     }
     
     // MARK: - AMapLocationManagerDelegate

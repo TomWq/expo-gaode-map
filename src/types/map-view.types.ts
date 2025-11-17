@@ -225,6 +225,16 @@ export interface MapViewProps {
   onCirclePress?: (event: { circleId: string } & LatLng) => void;
 
   /**
+   * Polygon 点击事件
+   */
+  onPolygonPress?: (event: { polygonId: string } & LatLng) => void;
+
+  /**
+   * Polyline 点击事件
+   */
+  onPolylinePress?: (event: { polylineId: string } & LatLng) => void;
+
+  /**
    * 子组件
    */
   children?: React.ReactNode;
