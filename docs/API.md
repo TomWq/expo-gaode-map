@@ -194,11 +194,35 @@ configure({
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setLocationTimeout` | `number` | 定位超时时间（秒） |
-| `setReGeocodeTimeout` | `number` | 逆地理超时时间（秒） |
-| `setDesiredAccuracy` | `number` | 期望精度（0-5，0: 最适合导航, 1: 最佳, 2: 10米, 3: 100米, 4: 1公里, 5: 3公里） |
-| `setDistanceFilter` | `number` | 距离过滤器（米） |
-| `setPausesLocationUpdatesAutomatically` | `boolean` | 是否自动暂停定位更新 |
+| `setLocationTimeout` | `number` | 定位超时时间（秒，默认 2 秒） |
+| `setReGeocodeTimeout` | `number` | 逆地理超时时间（秒，默认 2 秒） |
+| `setDesiredAccuracy` | `number` | 期望精度（0-5，默认 3: 100米精度） |
+| `setDistanceFilter` | `number` | 距离过滤器（米，默认 10 米） |
+| `setPausesLocationUpdatesAutomatically` | `boolean` | 是否自动暂停定位更新（默认 false） |
+
+**iOS 默认定位配置：**
+
+根据高德官方推荐，本库采用以下默认配置以实现快速定位：
+- **精度**：`kCLLocationAccuracyHundredMeters`（100米精度，级别 3）
+- **定位超时**：2 秒
+- **逆地理超时**：2 秒
+- **距离过滤**：10 米
+
+> **精度说明**：
+> - **百米精度**（推荐）：2-3 秒内获取结果，满足大多数应用场景
+> - **高精度**：使用 `setDesiredAccuracy(1)` 切换到 `kCLLocationAccuracyBest`，需配合 `setLocationTimeout(10)` 和 `setReGeocodeTimeout(10)`，约 10 秒获取 10 米精度
+> - 苹果系统首次定位结果为粗定位，高精度需要更长时间
+
+**精度级别对照表：**
+
+| 级别 | 常量 | 说明 | 推荐超时 |
+|------|------|------|----------|
+| 0 | `kCLLocationAccuracyBestForNavigation` | 最适合导航 | 10 秒 |
+| 1 | `kCLLocationAccuracyBest` | 最佳精度（~10米） | 10 秒 |
+| 2 | `kCLLocationAccuracyNearestTenMeters` | 10米精度 | 5 秒 |
+| 3 | `kCLLocationAccuracyHundredMeters` | 100米精度（默认） | 2-3 秒 |
+| 4 | `kCLLocationAccuracyKilometer` | 1公里精度 | 1 秒 |
+| 5 | `kCLLocationAccuracyThreeKilometers` | 3公里精度 | 1 秒 |
 
 ##### 后台定位配置（全平台支持）
 
