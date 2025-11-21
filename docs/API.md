@@ -326,8 +326,11 @@ configure({
 | `snippet` | `string` | 全平台 | - | 描述信息 |
 | `draggable` | `boolean` | 全平台 | `false` | 是否可拖拽 |
 | `icon` | `string \| ImageSourcePropType` | 全平台 | - | 自定义图标 |
-| `iconWidth` | `number` | 全平台 | `40` | 图标宽度（点/dp） |
-| `iconHeight` | `number` | 全平台 | `40` | 图标高度（点/dp） |
+| `iconWidth` | `number` | 全平台 | `40` | 图标宽度（点/dp），仅在使用 `icon` 时有效 |
+| `iconHeight` | `number` | 全平台 | `40` | 图标高度（点/dp），仅在使用 `icon` 时有效 |
+| `children` | `React.ReactNode` | 全平台 | - | 自定义视图内容 |
+| `customViewWidth` | `number` | 全平台 | `80` | 自定义视图宽度（点/dp），仅在使用 `children` 时有效 |
+| `customViewHeight` | `number` | 全平台 | `30` | 自定义视图高度（点/dp），仅在使用 `children` 时有效 |
 | `opacity` | `number` | 仅 Android | `1.0` | 透明度 [0, 1] |
 | `flat` | `boolean` | 仅 Android | `false` | 是否平贴地图 |
 | `zIndex` | `number` | 仅 Android | `0` | 层级 |
@@ -347,11 +350,56 @@ configure({
 
 > **⚠️ 重要提示**：事件回调仅在**声明式用法**中有效。使用命令式 API（`addMarker`）添加的标记点无法触发这些事件。
 
-#### 图标说明
+#### 使用方式
 
+##### 1. 默认大头针
+不传递任何图标属性，显示默认的红色大头针（iOS）或默认标记（Android）。
+
+##### 2. 自定义图标
+通过 `icon` 属性指定图标图片：
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  icon={require('./assets/custom-icon.png')}
+  iconWidth={40}
+  iconHeight={60}
+  title="自定义图标"
+/>
+```
+
+**自定义图标特点：**
 - **图标格式**：支持网络图片（http/https）、本地文件（使用 `Image.resolveAssetSource()`）
-- **尺寸单位**：`iconWidth` 和 `iconHeight` 使用点(points)作为单位，在不同密度屏幕上会自动缩放
+- **尺寸控制**：使用 `iconWidth` 和 `iconHeight` 设置图标显示尺寸（点/dp）
 - **锚点**：`anchor` 定义图标相对于坐标点的位置，`{x: 0.5, y: 1.0}` 表示图标底部中心对齐坐标点
+
+##### 3. 自定义视图（children）⭐ 推荐
+通过 `children` 属性传递自定义 React Native 组件，可以实现完全自定义的标记外观：
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  customViewWidth={200}
+  customViewHeight={50}
+>
+  <View style={styles.markerContainer}>
+    <Text style={styles.markerText}>自定义内容</Text>
+  </View>
+</Marker>
+```
+
+**自定义视图特点：**
+- ✅ 支持任意 React Native 组件（View、Text、Image 等）
+- ✅ 完全支持样式（backgroundColor、borderRadius、padding、flexbox 等）
+- ✅ 使用 `customViewWidth` 和 `customViewHeight` 控制最终渲染尺寸（默认 80x30）
+- ✅ 自动将 React 组件转换为图片显示在地图上
+- ⚠️ **仅支持声明式用法**（`<Marker>` 组件），不支持命令式 API（`addMarker`）
+
+**尺寸说明：**
+- `customViewWidth` 和 `customViewHeight` 定义最终在地图上显示的尺寸
+- 子视图会被强制调整为该尺寸并渲染为图片
+- 建议明确指定尺寸以确保在不同设备上显示一致
+- **注意**：`iconWidth` 和 `iconHeight` 仅用于自定义图标（`icon` 属性），不影响 `children`
 
 ## 类型定义
 

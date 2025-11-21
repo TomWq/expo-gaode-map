@@ -452,7 +452,7 @@ await mapRef.current?.removeCircle('circle1');
 
 ### Marker
 
-**Declarative usage:**
+**Declarative usage - Basic marker:**
 ```tsx
 <MapView style={{ flex: 1 }}>
   <Marker
@@ -465,6 +465,63 @@ await mapRef.current?.removeCircle('circle1');
   />
 </MapView>
 ```
+
+**Declarative usage - Custom icon:**
+```tsx
+import { Image } from 'react-native';
+
+const iconUri = Image.resolveAssetSource(require('./assets/marker-icon.png')).uri;
+
+<MapView style={{ flex: 1 }}>
+  <Marker
+    position={{ latitude: 39.9, longitude: 116.4 }}
+    title="Custom Icon"
+    icon={iconUri}
+    iconWidth={50}
+    iconHeight={50}
+    onPress={() => console.log('Custom icon marker pressed')}
+  />
+</MapView>
+```
+
+**Declarative usage - Custom view:**
+```tsx
+import { View, Text, StyleSheet } from 'react-native';
+
+<MapView style={{ flex: 1 }}>
+  <Marker
+    position={{ latitude: 39.9, longitude: 116.4 }}
+    customViewWidth={120}
+    customViewHeight={40}
+    onPress={() => console.log('Custom view marker pressed')}
+  >
+    <View style={styles.markerContainer}>
+      <Text style={styles.markerText}>Custom Content</Text>
+    </View>
+  </Marker>
+</MapView>
+
+const styles = StyleSheet.create({
+  markerContainer: {
+    backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  markerText: {
+    color: '#007AFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+});
+```
+
+> **Important Notes**:
+> - **Custom Icon**: Use `icon` property with `iconWidth` and `iconHeight` to control icon size
+> - **Custom View**: Use `children` with `customViewWidth` and `customViewHeight` to control custom view size
+> - `iconWidth/iconHeight` only apply to `icon` property, not `children`
+> - `customViewWidth/customViewHeight` only apply to `children` property, not `icon`
 
 **Imperative usage:**
 ```tsx

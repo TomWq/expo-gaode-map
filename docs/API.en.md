@@ -326,8 +326,10 @@ Based on AMap official recommendations, this library uses the following default 
 | `snippet` | `string` | All | - | Description |
 | `draggable` | `boolean` | All | `false` | Draggable |
 | `icon` | `string \| ImageSourcePropType` | All | - | Custom icon |
-| `iconWidth` | `number` | All | `40` | Icon width (pt/dp) |
-| `iconHeight` | `number` | All | `40` | Icon height (pt/dp) |
+| `iconWidth` | `number` | All | `40` | Icon width (pt/dp), only for `icon` property |
+| `iconHeight` | `number` | All | `40` | Icon height (pt/dp), only for `icon` property |
+| `customViewWidth` | `number` | All | `80` | Custom view width (pt/dp), only for `children` property |
+| `customViewHeight` | `number` | All | `30` | Custom view height (pt/dp), only for `children` property |
 | `opacity` | `number` | Android only | `1.0` | Opacity [0, 1] |
 | `flat` | `boolean` | Android only | `false` | Flat on map |
 | `zIndex` | `number` | Android only | `0` | Z-index |
@@ -347,11 +349,19 @@ Based on AMap official recommendations, this library uses the following default 
 
 > **⚠️ Important**: Event callbacks only work in **declarative usage**. Markers added via imperative API (`addMarker`) cannot trigger these events.
 
-#### Icon Notes
+#### Usage Notes
 
+**Custom Icon (icon property):**
 - **Icon Format**: Supports network images (http/https), local files (use `Image.resolveAssetSource()`)
-- **Size Unit**: `iconWidth` and `iconHeight` use points, auto-scale on different density screens
+- **Size Control**: Use `iconWidth` and `iconHeight` to control icon size
+- **Size Unit**: Uses points (pt/dp), auto-scales on different density screens
 - **Anchor**: `anchor` defines icon position relative to coordinate, `{x: 0.5, y: 1.0}` means bottom-center aligned
+
+**Custom View (children property):**
+- **Size Control**: Use `customViewWidth` and `customViewHeight` to control custom view size
+- **Default Size**: 80x30 pt/dp
+- **Important**: `iconWidth/iconHeight` only apply to `icon` property, not `children`
+- Recommend explicitly setting size to ensure consistent display across devices
 
 ## Type Definitions
 

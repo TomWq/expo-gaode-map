@@ -232,31 +232,40 @@ export default function App() {
         initialCameraPosition={initialPosition}
         minZoom={3}
         maxZoom={20}
+        userLocationRepresentation={{
+          showsAccuracyRing:false
+        }}
         onLoad={() => console.log('地图加载完成')}
         onLocation={(e) => console.log('定位:', e)}
         onMapPress={(e) => console.log('地图点击:', e)}
         onMapLongPress={(e) => console.log('地图长按:', e)}
       >
         {/* 声明式覆盖物 */}
-        <Circle
-          center={{ latitude: 39.9, longitude: 116.4 }}
-          radius={1000}
-          fillColor="#4400FF00"
-          strokeColor="#FF00FF00"
-          strokeWidth={2}
-          onPress={() => Alert.alert('圆形', '点击了声明式圆形')}
-        />
+        {location && (
+          <Circle
+            center={{ latitude: location.latitude, longitude: location.longitude }}
+            radius={300}
+            fillColor="#4400FF00"
+            strokeColor="#FF00FF00"
+            strokeWidth={3}
+            // onPress={() => Alert.alert('圆形', '点击了声明式圆形')}
+          />
+        )}
+      
+        {location && (
+          <Marker
+            position={{ latitude: location.latitude, longitude: location.longitude }}
+            title={location.address}
+            customViewWidth={200}
+            customViewHeight={40}
+            onPress={() => Alert.alert('标记', '点击了当前位置标记')}
+          >
+            <View style={styles.markerContainer}>
+              <Text style={styles.markerText}>{location?.address}</Text>
+            </View>
+          </Marker>
+        )}
         
-        <Marker
-          position={{ latitude: 39.91, longitude: 116.41 }}
-          title="天安门"
-          snippet="北京市中心"
-          onPress={() => Alert.alert('标记', '点击了天安门标记')}
-        >
-          {/* <View style={styles.markerContainer}>
-            <Text style={styles.markerText}>自定义内容</Text>
-          </View> */}
-        </Marker>
         
         <Marker
           position={{ latitude: 39.92, longitude: 116.42 }}
@@ -294,7 +303,7 @@ export default function App() {
             { latitude: 39.88, longitude: 116.42 },
             { latitude: 39.86, longitude: 116.40 },
           ]}
-          fillColor="#880000FF"
+          fillColor="rgba(255, 0, 0, 0.5)"
           strokeColor="#FFFF0000"
           strokeWidth={3}
           zIndex={1}
@@ -442,17 +451,21 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   markerContainer: {
-    backgroundColor: 'rgba(0, 122, 255, 0.8)',
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
+    borderWidth: 1,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: 4,
-    width: 80,
-    height: 30,
+    borderRadius: 10,
+    width: 200,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   markerText: {
-    color: 'white',
+    color: 'black',
     fontSize: 12,
+ 
+
   },
 });

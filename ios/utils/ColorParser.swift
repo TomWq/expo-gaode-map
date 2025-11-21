@@ -29,6 +29,16 @@ class ColorParser {
     private static func parseColorString(_ colorString: String) -> UIColor? {
         let trimmedString = colorString.trimmingCharacters(in: .whitespacesAndNewlines)
         
+        // 处理 rgba() 格式
+        if trimmedString.hasPrefix("rgba(") {
+            return parseRgbaColor(trimmedString)
+        }
+        
+        // 处理 rgb() 格式
+        if trimmedString.hasPrefix("rgb(") {
+            return parseRgbColor(trimmedString)
+        }
+        
         // 处理十六进制格式
         if trimmedString.hasPrefix("#") {
             return parseHexColor(trimmedString)
@@ -45,6 +55,41 @@ class ColorParser {
         }
         
         return nil
+    }
+    
+    /**
+     * 解析 rgba(r, g, b, a) 格式
+     */
+    private static func parseRgbaColor(_ rgbaString: String) -> UIColor? {
+        let content = rgbaString.replacingOccurrences(of: "rgba(", with: "").replacingOccurrences(of: ")", with: "")
+        let components = content.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        guard components.count == 4,
+              let r = Int(components[0]),
+              let g = Int(components[1]),
+              let b = Int(components[2]),
+              let a = Double(components[3]) else {
+            return nil
+        }
+        
+        return UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: CGFloat(a))
+    }
+    
+    /**
+     * 解析 rgb(r, g, b) 格式
+     */
+    private static func parseRgbColor(_ rgbString: String) -> UIColor? {
+        let content = rgbString.replacingOccurrences(of: "rgb(", with: "").replacingOccurrences(of: ")", with: "")
+        let components = content.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        guard components.count == 3,
+              let r = Int(components[0]),
+              let g = Int(components[1]),
+              let b = Int(components[2]) else {
+            return nil
+        }
+        
+        return UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: 1.0)
     }
     
     /**

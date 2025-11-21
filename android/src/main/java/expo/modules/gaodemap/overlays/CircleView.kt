@@ -71,10 +71,12 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   
   /**
    * 设置边框宽度
+   * 将 dp 转换为 px，与 iOS 的 points 对应
    */
   fun setStrokeWidth(width: Float) {
-    strokeWidth = width
-    circle?.strokeWidth = width
+    val density = context.resources.displayMetrics.density
+    strokeWidth = width * density
+    circle?.strokeWidth = strokeWidth
   }
   
   /**
@@ -92,13 +94,14 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
     val centerPoint = center ?: return
     
     if (circle == null) {
+      val density = context.resources.displayMetrics.density
       circle = map.addCircle(
         CircleOptions()
           .center(centerPoint)
           .radius(radius)
           .fillColor(fillColor)
           .strokeColor(strokeColor)
-          .strokeWidth(strokeWidth)
+          .strokeWidth(strokeWidth * density)
       )
     }
   }

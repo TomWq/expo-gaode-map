@@ -484,7 +484,7 @@ await mapRef.current?.updateMarker('marker1', {
 await mapRef.current?.removeMarker('marker1');
 ```
 
-> **⚠️ 限制**：命令式 API 添加的 Marker **不支持事件回调**（onPress, onDragEnd 等）。如需事件处理，请使用声明式 `<Marker>` 组件。
+> **⚠️ 限制**：命令式 API 添加的 Marker **不支持事件回调**（onPress, onDragEnd 等）和**自定义视图**。如需这些功能，请使用声明式 `<Marker>` 组件。
 
 #### 自定义图标
 
@@ -510,6 +510,213 @@ const iconUri = Image.resolveAssetSource(require('./assets/marker-icon.png')).ur
 > - `iconWidth` 和 `iconHeight` 使用点(points)作为单位
 > - 在不同密度屏幕上会自动缩放，保持视觉一致性
 > - 支持网络图片（http/https）和本地图片
+
+#### 自定义视图 ⭐ 推荐
+
+使用 `children` 属性可以完全自定义标记的外观，支持任意 React Native 组件和样式：
+
+**基础自定义视图:**
+```tsx
+import { View, Text, StyleSheet } from 'react-native';
+
+<MapView style={{ flex: 1 }}>
+  <Marker
+    position={{ latitude: 39.9, longitude: 116.4 }}
+    customViewWidth={200}
+    customViewHeight={50}
+    onPress={() => Alert.alert('标记', '点击了自定义标记')}
+  >
+    <View style={styles.markerContainer}>
+      <Text style={styles.markerText}>北京市中心</Text>
+    </View>
+  </Marker>
+</MapView>
+
+const styles = StyleSheet.create({
+  markerContainer: {
+    backgroundColor: '#fff',
+    borderColor: '#2196F3',
+    borderWidth: 2,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  markerText: {
+    color: '#2196F3',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
+```
+
+**带图标的自定义视图:**
+```tsx
+import { View, Text, Image, StyleSheet } from 'react-native';
+
+<MapView style={{ flex: 1 }}>
+  <Marker
+    position={{ latitude: 39.9, longitude: 116.4 }}
+    iconWidth={150}
+    iconHeight={60}
+  >
+    <View style={styles.customMarker}>
+      <Image
+        source={require('./assets/location-pin.png')}
+        style={styles.markerIcon}
+      />
+      <View style={styles.markerContent}>
+        <Text style={styles.markerTitle}>北京</Text>
+        <Text style={styles.markerSubtitle}>中国首都</Text>
+      </View>
+    </View>
+  </Marker>
+</MapView>
+
+const styles = StyleSheet.create({
+  customMarker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  markerIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  markerContent: {
+    flexDirection: 'column',
+  },
+  markerTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  markerSubtitle: {
+    color: '#E8F5E9',
+    fontSize: 11,
+  },
+});
+```
+
+**动态内容标记:**
+```tsx
+import { View, Text, StyleSheet } from 'react-native';
+
+function LocationMarker({ location }: { location: Location }) {
+  return (
+    <Marker
+      position={{
+        latitude: location.latitude,
+        longitude: location.longitude
+      }}
+      customViewWidth={220}
+      customViewHeight={60}
+      onPress={() => Alert.alert('位置', location.address)}
+    >
+      <View style={styles.locationMarker}>
+        <Text style={styles.locationTitle} numberOfLines={1}>
+          {location.address || '当前位置'}
+        </Text>
+        <Text style={styles.locationCoords}>
+          {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+        </Text>
+      </View>
+    </Marker>
+  );
+}
+
+const styles = StyleSheet.create({
+  locationMarker: {
+    backgroundColor: '#FF5722',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#D84315',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  locationTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  locationCoords: {
+    color: '#FFCCBC',
+    fontSize: 10,
+  },
+});
+```
+
+**价格标签样式:**
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  iconWidth={80}
+  iconHeight={40}
+>
+  <View style={styles.priceTag}>
+    <Text style={styles.priceText}>¥1280</Text>
+    <View style={styles.priceArrow} />
+  </View>
+</Marker>
+
+const styles = StyleSheet.create({
+  priceTag: {
+    backgroundColor: '#FF9800',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    position: 'relative',
+  },
+  priceText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  priceArrow: {
+    position: 'absolute',
+    bottom: -6,
+    left: '50%',
+    marginLeft: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderStyle: 'solid',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FF9800',
+  },
+});
+```
+
+> **自定义视图要点**：
+> - ✅ 支持所有 React Native 样式（backgroundColor、borderRadius、flexbox、shadow 等）
+> - ✅ 使用 `iconWidth` 和 `iconHeight` 控制最终显示尺寸
+> - ✅ 子视图会自动转换为图片显示在地图上
+> - ✅ 支持动态内容和复杂布局
+> - ⚠️ 仅支持声明式 `<Marker>` 组件
+> - ⚠️ 建议明确指定 `iconWidth` 和 `iconHeight` 以确保跨设备一致性
+> - ⚠️ iOS 的 shadow 样式可能需要额外配置（shadowColor、shadowOffset 等）
 
 #### Android 特有属性
 

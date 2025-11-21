@@ -4,6 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.BitmapDescriptorFactory
@@ -29,14 +34,45 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   
   private var marker: Marker? = null
   private var aMap: AMap? = null
+  private var pendingPosition: LatLng? = null
+  private var iconWidth: Int = 0  // 用于自定义图标的宽度
+  private var iconHeight: Int = 0  // 用于自定义图标的高度
+  private var customViewWidth: Int = 0  // 用于自定义视图（children）的宽度
+  private var customViewHeight: Int = 0  // 用于自定义视图（children）的高度
+  private val mainHandler = Handler(Looper.getMainLooper())
   
   /**
    * 设置地图实例
    */
   @Suppress("unused")
   fun setMap(map: AMap) {
+    android.util.Log.d("MarkerView", "🗺️ setMap 被调用，pendingPosition = $pendingPosition, childCount = $childCount")
     aMap = map
     createOrUpdateMarker()
+    
+    // 如果之前已经设置了位置但没有 marker，现在设置位置
+    pendingPosition?.let { pos ->
+      android.util.Log.d("MarkerView", "✅ 应用待处理的位置: $pos")
+      marker?.position = pos
+      pendingPosition = null
+    }
+    
+    // 如果已经有子视图，触发多次延迟更新确保内容渲染
+    if (childCount > 0 && marker != null) {
+      android.util.Log.d("MarkerView", "🎨 setMap 后触发延迟更新")
+      
+      // 100ms 后第一次更新
+      mainHandler.postDelayed({
+        android.util.Log.d("MarkerView", "⏰ setMap 第一次延迟更新（100ms）")
+        updateMarkerIcon()
+      }, 100)
+      
+      // 300ms 后第二次更新，确保 Text 内容已加载
+      mainHandler.postDelayed({
+        android.util.Log.d("MarkerView", "⏰ setMap 第二次延迟更新（300ms，确保内容加载）")
+        updateMarkerIcon()
+      }, 300)
+    }
   }
   
   /**
@@ -45,10 +81,25 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setPosition(position: Map<String, Double>) {
     val lat = position["latitude"] ?: return
     val lng = position["longitude"] ?: return
+    val latLng = LatLng(lat, lng)
+    
+    android.util.Log.d("MarkerView", "📍 setPosition 被调用: ($lat, $lng), marker = $marker, aMap = $aMap")
     
     marker?.let {
-      it.position = LatLng(lat, lng)
-    } ?: createOrUpdateMarker()
+      android.util.Log.d("MarkerView", "✅ 更新现有 marker 位置")
+      it.position = latLng
+      pendingPosition = null
+    } ?: run {
+      android.util.Log.d("MarkerView", "❌ marker 为 null")
+      if (aMap != null) {
+        android.util.Log.d("MarkerView", "🔧 aMap 存在，创建新 marker")
+        createOrUpdateMarker()
+        marker?.position = latLng
+      } else {
+        android.util.Log.d("MarkerView", "⏳ aMap 为 null，保存位置等待 setMap")
+        pendingPosition = latLng
+      }
+    }
   }
   
   /**
@@ -140,23 +191,51 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   }
   
   /**
+   * 设置图标宽度（用于自定义图标 icon 属性）
+   */
+  fun setIconWidth(width: Int) {
+    iconWidth = width
+    android.util.Log.d("MarkerView", "📏 设置 iconWidth: $width")
+  }
+  
+  /**
+   * 设置图标高度（用于自定义图标 icon 属性）
+   */
+  fun setIconHeight(height: Int) {
+    iconHeight = height
+    android.util.Log.d("MarkerView", "📏 设置 iconHeight: $height")
+  }
+  
+  /**
+   * 设置自定义视图宽度（用于 children 属性）
+   */
+  fun setCustomViewWidth(width: Int) {
+    customViewWidth = width
+    android.util.Log.d("MarkerView", "📏 设置 customViewWidth: $width")
+  }
+  
+  /**
+   * 设置自定义视图高度（用于 children 属性）
+   */
+  fun setCustomViewHeight(height: Int) {
+    customViewHeight = height
+    android.util.Log.d("MarkerView", "📏 设置 customViewHeight: $height")
+  }
+  
+  /**
    * 创建或更新标记
    */
   private fun createOrUpdateMarker() {
     aMap?.let { map ->
       if (marker == null) {
+        android.util.Log.d("MarkerView", "🔧 创建新的 marker")
         val options = MarkerOptions()
         marker = map.addMarker(options)
         
-        // 延迟处理子视图,等待 React Native 添加完成
-        postDelayed({
-          if (childCount > 0) {
-            val bitmap = createBitmapFromView()
-            bitmap?.let {
-              marker?.setIcon(BitmapDescriptorFactory.fromBitmap(it))
-            }
-          }
-        }, 100)
+        android.util.Log.d("MarkerView", "📌 Marker 已添加到地图，childCount = $childCount")
+        
+        // 不立即更新图标，等待延迟更新（在 addView 和 onLayout 中）
+        android.util.Log.d("MarkerView", "⏳ 等待延迟更新图标")
         
         // 设置点击监听
         map.setOnMarkerClickListener { clickedMarker ->
@@ -211,39 +290,221 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   }
   
   /**
+   * 创建默认 marker 图标 (红色大头针)
+   */
+  private fun createDefaultMarkerBitmap(): Bitmap {
+    val width = 48
+    val height = 72
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    paint.color = Color.parseColor("#FF5252")
+    paint.style = Paint.Style.FILL
+    
+    // 绘制圆形顶部
+    canvas.drawCircle(width / 2f, width / 2f, width / 2f - 2, paint)
+    
+    // 绘制尖端
+    val path = Path()
+    path.moveTo(width / 2f, height.toFloat())
+    path.lineTo(width / 4f, width / 2f + 10f)
+    path.lineTo(3 * width / 4f, width / 2f + 10f)
+    path.close()
+    canvas.drawPath(path, paint)
+    
+    // 绘制白色边框
+    paint.color = Color.WHITE
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 3f
+    canvas.drawCircle(width / 2f, width / 2f, width / 2f - 4, paint)
+    
+    return bitmap
+  }
+  
+  /**
    * 将视图转换为 Bitmap
    */
   private fun createBitmapFromView(): Bitmap? {
-    if (childCount == 0) return null
+    if (childCount == 0) {
+      android.util.Log.w("MarkerView", "❌ childCount = 0")
+      return null
+    }
     
     return try {
-      measure(
-        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
-        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-      )
-      layout(0, 0, measuredWidth, measuredHeight)
+      val childView = getChildAt(0)
+      android.util.Log.d("MarkerView", "📦 子视图: $childView")
       
-      val bitmap = Bitmap.createBitmap(measuredWidth, measuredHeight, Bitmap.Config.ARGB_8888)
+      // 获取视图实际测量的尺寸（React Native 已经布局好的）
+      val measuredWidth = childView.measuredWidth
+      val measuredHeight = childView.measuredHeight
+      
+      android.util.Log.d("MarkerView", "📏 子视图测量尺寸: ${measuredWidth}x${measuredHeight}")
+      
+      // 优先使用已测量的尺寸，其次使用 customViewWidth/customViewHeight（用于 children），最后使用默认值
+      // 注意：iconWidth/iconHeight 是用于自定义图标的，不用于 children
+      val finalWidth = if (measuredWidth > 0) measuredWidth else (if (customViewWidth > 0) customViewWidth else 240)
+      val finalHeight = if (measuredHeight > 0) measuredHeight else (if (customViewHeight > 0) customViewHeight else 80)
+      
+      android.util.Log.d("MarkerView", "📏 最终使用尺寸: ${finalWidth}x${finalHeight} (customViewWidth=$customViewWidth, customViewHeight=$customViewHeight)")
+      
+      // 打印视图层次结构以调试
+      if (childView is android.view.ViewGroup) {
+        android.util.Log.d("MarkerView", "📦 子视图有 ${childView.childCount} 个子视图:")
+        for (i in 0 until childView.childCount) {
+          val child = childView.getChildAt(i)
+          android.util.Log.d("MarkerView", "  └─ 子视图[$i]: ${child.javaClass.simpleName}, 可见性: ${child.visibility}")
+          if (child is android.widget.TextView) {
+            android.util.Log.d("MarkerView", "     文字: '${child.text}', 颜色: ${Integer.toHexString(child.currentTextColor)}, 大小: ${child.textSize}")
+          }
+        }
+      }
+      
+      if (finalWidth <= 0 || finalHeight <= 0) {
+        android.util.Log.w("MarkerView", "❌ 最终尺寸无效: ${finalWidth}x${finalHeight}")
+        return null
+      }
+      
+      // 如果需要重新测量（尺寸改变了）
+      if (measuredWidth != finalWidth || measuredHeight != finalHeight) {
+        childView.measure(
+          MeasureSpec.makeMeasureSpec(finalWidth, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY)
+        )
+        childView.layout(0, 0, finalWidth, finalHeight)
+        android.util.Log.d("MarkerView", "✅ 子视图已重新测量和布局")
+      }
+      
+      // 创建 Bitmap
+      val bitmap = Bitmap.createBitmap(finalWidth, finalHeight, Bitmap.Config.ARGB_8888)
       val canvas = Canvas(bitmap)
-      draw(canvas)
+      
+      // 设置背景为透明
+      canvas.drawColor(android.graphics.Color.TRANSPARENT)
+      
+      // 绘制视图及其所有子视图
+      childView.draw(canvas)
+      android.util.Log.d("MarkerView", "🎨 Bitmap 已绘制，尺寸: ${bitmap.width}x${bitmap.height}")
+      
       bitmap
     } catch (e: Exception) {
+      android.util.Log.e("MarkerView", "❌ 创建 Bitmap 失败", e)
       e.printStackTrace()
       null
     }
   }
   
+  /**
+   * 创建组合 Bitmap：默认 marker + 自定义内容
+   */
+  private fun createCombinedBitmap(): Bitmap? {
+    android.util.Log.d("MarkerView", "🖼️ createCombinedBitmap 开始")
+    val customBitmap = createBitmapFromView()
+    if (customBitmap == null) {
+      android.util.Log.w("MarkerView", "❌ 自定义 Bitmap 为 null")
+      return null
+    }
+    android.util.Log.d("MarkerView", "✅ 自定义 Bitmap: ${customBitmap.width}x${customBitmap.height}")
+    
+    val markerBitmap = createDefaultMarkerBitmap()
+    android.util.Log.d("MarkerView", "✅ 默认 Marker Bitmap: ${markerBitmap.width}x${markerBitmap.height}")
+    
+    // 计算总尺寸：marker 在下，自定义内容在上
+    val totalWidth = maxOf(markerBitmap.width, customBitmap.width)
+    val totalHeight = markerBitmap.height + customBitmap.height + 10 // 10px 间距
+    
+    android.util.Log.d("MarkerView", "📐 组合尺寸: ${totalWidth}x${totalHeight}")
+    
+    val combinedBitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(combinedBitmap)
+    
+    // 绘制自定义内容在上方
+    val customX = (totalWidth - customBitmap.width) / 2f
+    canvas.drawBitmap(customBitmap, customX, 0f, null)
+    android.util.Log.d("MarkerView", "🎨 已绘制自定义内容在 ($customX, 0)")
+    
+    // 绘制 marker 在下方
+    val markerX = (totalWidth - markerBitmap.width) / 2f
+    val markerY = customBitmap.height + 10f
+    canvas.drawBitmap(markerBitmap, markerX, markerY, null)
+    android.util.Log.d("MarkerView", "📍 已绘制 marker 在 ($markerX, $markerY)")
+    
+    return combinedBitmap
+  }
+  
+  /**
+   * 更新 marker 图标
+   */
+  private fun updateMarkerIcon() {
+    android.util.Log.d("MarkerView", "🔄 updateMarkerIcon 被调用，childCount = $childCount")
+
+    if (childCount > 0) {
+        android.util.Log.d("MarkerView", "🎨 开始创建自定义 Bitmap（仅自定义内容）")
+        val customBitmap = createBitmapFromView()
+        customBitmap?.let {
+            android.util.Log.d("MarkerView", "✅ 自定义 Bitmap 创建成功，尺寸: ${it.width}x${it.height}")
+
+            marker?.setIcon(BitmapDescriptorFactory.fromBitmap(it))
+
+            // 设置 anchor 为底部中心，让自定义内容底部对齐地图坐标点
+            val anchorX = 0.5f // 水平居中
+            val anchorY = 1.0f // 垂直底部
+            android.util.Log.d("MarkerView", "🎯 设置 marker anchor: ($anchorX, $anchorY)")
+            marker?.setAnchor(anchorX, anchorY)
+
+            android.util.Log.d("MarkerView", "🎯 图标已设置到 marker")
+        } ?: run {
+            android.util.Log.w("MarkerView", "❌ 自定义 Bitmap 创建失败")
+            marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
+        }
+    } else {
+        android.util.Log.d("MarkerView", "📍 没有子视图，使用默认图标")
+        marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
+        marker?.setAnchor(0.5f, 1.0f) // 默认 anchor
+    }
+}
+
+  
   override fun addView(child: View?, index: Int, params: android.view.ViewGroup.LayoutParams?) {
+    android.util.Log.d("MarkerView", "➕ addView 被调用，child = $child")
     super.addView(child, index, params)
     
-    // 当添加子视图时,手动触发测量和布局
-    post {
-      if (childCount > 0) {
-        val bitmap = createBitmapFromView()
-        bitmap?.let {
-          marker?.setIcon(BitmapDescriptorFactory.fromBitmap(it))
-        }
+    // 延迟更新图标，等待 React Native 样式和内容渲染
+    android.util.Log.d("MarkerView", "✅ 子视图已添加，准备延迟更新，marker=${marker}")
+    mainHandler.postDelayed({
+      android.util.Log.d("MarkerView", "⏰ 第一次延迟更新图标，marker=${marker}")
+      if (marker != null) {
+        updateMarkerIcon()
+      } else {
+        android.util.Log.w("MarkerView", "⚠️ marker 为 null，跳过第一次更新")
       }
+    }, 50)
+    
+    mainHandler.postDelayed({
+      android.util.Log.d("MarkerView", "⏰ 第二次延迟更新图标（确保内容加载），marker=${marker}")
+      if (marker != null) {
+        updateMarkerIcon()
+      } else {
+        android.util.Log.w("MarkerView", "⚠️ marker 为 null，跳过第二次更新")
+      }
+    }, 150)
+  }
+  
+  override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+    super.onLayout(changed, left, top, right, bottom)
+    android.util.Log.d("MarkerView", "📐 onLayout: changed=$changed, bounds=(${left},${top},${right},${bottom}), marker=${marker}")
+    
+    // 布局完成后再次尝试更新图标（确保样式已应用）
+    if (changed && childCount > 0) {
+      android.util.Log.d("MarkerView", "🔄 布局改变，延迟更新图标，marker=${marker}")
+      mainHandler.postDelayed({
+        android.util.Log.d("MarkerView", "⏰ onLayout 延迟更新执行，marker=${marker}")
+        if (marker != null) {
+          updateMarkerIcon()
+        } else {
+          android.util.Log.w("MarkerView", "⚠️ marker 为 null，跳过 onLayout 更新")
+        }
+      }, 200)
     }
   }
   
@@ -260,3 +521,4 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     removeMarker()
   }
 }
+

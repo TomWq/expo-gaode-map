@@ -22,11 +22,13 @@ export interface MarkerProps {
 
   /**
    * 图标宽度（像素）
+   * 仅在使用 icon 属性时有效
    */
   iconWidth?: number;
 
   /**
    * 图标高度（像素）
+   * 仅在使用 icon 属性时有效
    */
   iconHeight?: number;
 
@@ -93,9 +95,23 @@ export interface MarkerProps {
 
   /**
    * 自定义视图
-   * @note 未实现
+   * 当使用 children 时，会将 React Native 组件渲染为图片显示在地图上
    */
   children?: React.ReactNode;
+
+  /**
+   * 自定义视图宽度（像素）
+   * 仅在使用 children 属性时有效 
+   * @default 80
+   */
+  customViewWidth?: number;
+
+  /**
+   * 自定义视图高度（像素）
+   * 仅在使用 children 属性时有效
+   * @default 30
+   */
+  customViewHeight?: number;
 
   /**
    * 点击事件
@@ -253,6 +269,12 @@ export interface CircleProps {
    * 点击事件
    */
   onPress?: () => void;
+
+  /**
+   * 自定义子元素
+   * 暂不支持
+   */
+  children?: React.ReactNode;
 
 }
 

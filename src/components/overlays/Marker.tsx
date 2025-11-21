@@ -19,6 +19,16 @@ function MarkerDeclarative(props: MarkerProps) {
   const eventManager = React.useContext(MarkerEventContext);
   const markerIdRef = React.useRef(`marker_${Date.now()}_${Math.random()}`);
   
+  // 根据是否有 children 来决定使用哪个尺寸属性
+  // 有 children：使用 customViewWidth/customViewHeight（默认 80x30）
+  // 无 children：使用 iconWidth/iconHeight（用于自定义图标）
+  const containerWidth = props.children
+    ? (props.customViewWidth && props.customViewWidth > 0 ? props.customViewWidth : 80)
+    : (props.iconWidth || 0);
+  const containerHeight = props.children
+    ? (props.customViewHeight && props.customViewHeight > 0 ? props.customViewHeight : 30)
+    : (props.iconHeight || 0);
+  
   React.useEffect(() => {
     if (eventManager) {
       eventManager.register(markerIdRef.current, {
@@ -33,21 +43,27 @@ function MarkerDeclarative(props: MarkerProps) {
         eventManager.unregister(markerIdRef.current);
       }
     };
-  }, [props.onPress, props.onDragStart, props.onDrag, props.onDragEnd]);
+  }, [eventManager, props.onPress, props.onDragStart, props.onDrag, props.onDragEnd]);
   
   return (
     <NativeMarkerView
       position={props.position}
       title={props.title}
+      snippet={props.snippet}
       draggable={props.draggable}
+      icon={props.icon}
+      iconWidth={props.iconWidth || 0}  // 传递原始的 iconWidth（用于自定义图标）
+      iconHeight={props.iconHeight || 0} // 传递原始的 iconHeight（用于自定义图标）
+      customViewWidth={containerWidth}  // 新增：自定义视图宽度
+      customViewHeight={containerHeight} // 新增：自定义视图高度
+      pinColor={props.pinColor}
+      animatesDrop={props.animatesDrop}
+      centerOffset={props.centerOffset}
       opacity={props.opacity}
-      anchor={props.anchor}
       flat={props.flat}
       zIndex={props.zIndex}
-      onPress={props.onPress}
-      onDragStart={props.onDragStart}
-      onDrag={props.onDrag}
-      onDragEnd={props.onDragEnd}
+      anchor={props.anchor}
+      style={{ width: containerWidth, height: containerHeight }}
     >
       {props.children}
     </NativeMarkerView>
@@ -115,7 +131,7 @@ function MarkerImperative(props: MarkerProps) {
         onDragEnd: props.onDragEnd,
       });
     }
-  }, [props.onPress, props.onDragStart, props.onDrag, props.onDragEnd]);
+  }, [eventManager, props.onPress, props.onDragStart, props.onDrag, props.onDragEnd]);
 
   React.useEffect(() => {
     if (markerIdRef.current && mapRef?.current) {
@@ -127,6 +143,7 @@ function MarkerImperative(props: MarkerProps) {
       mapRef.current.updateMarker(markerIdRef.current, processedProps);
     }
   }, [
+    mapRef,
     props.position?.latitude,
     props.position?.longitude,
     props.title,
@@ -134,8 +151,11 @@ function MarkerImperative(props: MarkerProps) {
     props.icon,
     props.iconWidth,
     props.iconHeight,
+    props.customViewWidth,
+    props.customViewHeight,
     props.pinColor
   ]);
   
   return null;
 }
+

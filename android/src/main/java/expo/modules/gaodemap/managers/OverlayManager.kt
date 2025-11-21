@@ -65,12 +65,15 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       val lng = center["longitude"] ?: 0.0
       val latLng = LatLng(lat, lng)
       
+      // 将 dp 转换为 px，与 iOS 的 points 对应
+      val density = context.resources.displayMetrics.density
+      
       val options = com.amap.api.maps.model.CircleOptions()
         .center(latLng)
         .radius(radius)
         .fillColor(fillColor)
         .strokeColor(strokeColor)
-        .strokeWidth(strokeWidth)
+        .strokeWidth(strokeWidth * density)
       
       val circle = aMap.addCircle(options)
       circles[id] = circle
@@ -104,7 +107,10 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       radius?.let { circle.radius = it }
       fillColor?.let { circle.fillColor = it }
       strokeColor?.let { circle.strokeColor = it }
-      strokeWidth?.let { circle.strokeWidth = it }
+      strokeWidth?.let {
+        val density = context.resources.displayMetrics.density
+        circle.strokeWidth = it * density
+      }
     }
   }
   
@@ -322,9 +328,12 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
         LatLng(lat, lng)
       }
       
+      // 将 dp 转换为 px，与 iOS 的 points 对应
+      val density = context.resources.displayMetrics.density
+      
       val options = com.amap.api.maps.model.PolylineOptions()
         .addAll(latLngs)
-        .width(width)
+        .width(width * density)
         .color(color)
       
       val polyline = aMap.addPolyline(options)
@@ -381,7 +390,10 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
         polyline.points = latLngs
       }
       
-      width?.let { polyline.width = it }
+      width?.let {
+        val density = context.resources.displayMetrics.density
+        polyline.width = it * density
+      }
       color?.let { polyline.color = it }
     }
   }
@@ -405,11 +417,14 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
         LatLng(lat, lng)
       }
       
+      // 将 dp 转换为 px，与 iOS 的 points 对应
+      val density = context.resources.displayMetrics.density
+      
       val options = com.amap.api.maps.model.PolygonOptions()
         .addAll(latLngs)
         .fillColor(fillColor)
         .strokeColor(strokeColor)
-        .strokeWidth(strokeWidth)
+        .strokeWidth(strokeWidth * density)
         .zIndex(zIndex)
       
       val polygon = aMap.addPolygon(options)
@@ -448,7 +463,10 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       
       fillColor?.let { polygon.fillColor = it }
       strokeColor?.let { polygon.strokeColor = it }
-      strokeWidth?.let { polygon.strokeWidth = it }
+      strokeWidth?.let {
+        val density = context.resources.displayMetrics.density
+        polygon.strokeWidth = it * density
+      }
       zIndex?.let { polygon.zIndex = it }
     }
   }

@@ -33,6 +33,14 @@ public class MarkerViewModule: Module {
                 view.iconHeight = height
             }
             
+            Prop("customViewWidth") { (view: MarkerView, width: Double) in
+                view.customViewWidth = width
+            }
+            
+            Prop("customViewHeight") { (view: MarkerView, height: Double) in
+                view.customViewHeight = height
+            }
+            
             Prop("centerOffset") { (view: MarkerView, offset: [String: Double]) in
                 view.setCenterOffset(offset)
             }

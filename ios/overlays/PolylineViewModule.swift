@@ -5,8 +5,6 @@ public class PolylineViewModule: Module {
         Name("PolylineView")
         
         View(PolylineView.self) {
-            Events("onPress")
-            
             Prop("points") { (view: PolylineView, points: [[String: Double]]) in
                 view.setPoints(points)
             }

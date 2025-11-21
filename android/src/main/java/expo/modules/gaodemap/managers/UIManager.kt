@@ -142,8 +142,12 @@ class UIManager(private val aMap: AMap, private val context: Context) {
     }
     
     // 是否显示精度圈 (showsAccuracyRing)
-    (config["showsAccuracyRing"] as? Boolean)?.let {
-      style.showMyLocation(it)
+    (config["showsAccuracyRing"] as? Boolean)?.let { showRing ->
+      if (!showRing) {
+        // 不显示精度圈，但要显示蓝点
+        style.radiusFillColor(android.graphics.Color.TRANSPARENT)
+        style.strokeColor(android.graphics.Color.TRANSPARENT)
+      }
     }
     
     // 自定义图标 (image)

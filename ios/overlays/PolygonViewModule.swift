@@ -5,8 +5,6 @@ public class PolygonViewModule: Module {
         Name("PolygonView")
         
         View(PolygonView.self) {
-            Events("onPress")
-            
             Prop("points") { (view: PolygonView, points: [[String: Double]]) in
                 view.setPoints(points)
             }

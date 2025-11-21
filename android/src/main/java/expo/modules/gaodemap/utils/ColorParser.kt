@@ -23,11 +23,36 @@ object ColorParser {
         return try {
             when {
                 color.startsWith("#") -> Color.parseColor(color)
+                color.startsWith("rgba(") -> parseRgbaColor(color)
+                color.startsWith("rgb(") -> parseRgbColor(color)
                 else -> getNamedColor(color)
             }
         } catch (e: Exception) {
             Color.BLACK
         }
+    }
+    
+    private fun parseRgbaColor(color: String): Int {
+        val values = color.substringAfter("rgba(").substringBefore(")").split(",").map { it.trim() }
+        if (values.size != 4) return Color.BLACK
+        
+        val r = values[0].toIntOrNull() ?: return Color.BLACK
+        val g = values[1].toIntOrNull() ?: return Color.BLACK
+        val b = values[2].toIntOrNull() ?: return Color.BLACK
+        val a = (values[3].toFloatOrNull()?.times(255))?.toInt() ?: return Color.BLACK
+        
+        return Color.argb(a, r, g, b)
+    }
+    
+    private fun parseRgbColor(color: String): Int {
+        val values = color.substringAfter("rgb(").substringBefore(")").split(",").map { it.trim() }
+        if (values.size != 3) return Color.BLACK
+        
+        val r = values[0].toIntOrNull() ?: return Color.BLACK
+        val g = values[1].toIntOrNull() ?: return Color.BLACK
+        val b = values[2].toIntOrNull() ?: return Color.BLACK
+        
+        return Color.rgb(r, g, b)
     }
     
     private fun getNamedColor(name: String): Int {

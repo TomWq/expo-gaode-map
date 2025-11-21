@@ -44,6 +44,22 @@ class MarkerViewModule : Module() {
       Prop<Map<String, Float>>("anchor") { view: MarkerView, anchor ->
         view.setAnchor(anchor)
       }
+      
+      Prop<Int>("iconWidth") { view: MarkerView, width ->
+        view.setIconWidth(width)
+      }
+      
+      Prop<Int>("iconHeight") { view: MarkerView, height ->
+        view.setIconHeight(height)
+      }
+      
+      Prop<Int>("customViewWidth") { view: MarkerView, width ->
+        view.setCustomViewWidth(width)
+      }
+      
+      Prop<Int>("customViewHeight") { view: MarkerView, height ->
+        view.setCustomViewHeight(height)
+      }
     }
   }
 }

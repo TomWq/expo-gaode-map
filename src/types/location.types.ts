@@ -39,6 +39,11 @@ export interface Coordinates extends LatLng {
    * @platform ios
    */
   isAvailableCoordinate?: boolean;
+
+  /**
+   * 格式化地址（仅在启用逆地理编码时可用）
+   */
+  address?: string;
 }
 
 /**

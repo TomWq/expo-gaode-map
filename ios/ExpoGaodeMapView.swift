@@ -130,6 +130,20 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     override func layoutSubviews() {
         super.layoutSubviews()
         mapView.frame = bounds
+        
+        // 收集并设置 MarkerView
+        collectAndSetupMarkerViews()
+    }
+    
+    /**
+     * 收集所有 MarkerView 子视图并设置地图
+     */
+    private func collectAndSetupMarkerViews() {
+        for subview in subviews {
+            if let markerView = subview as? MarkerView {
+                markerView.setMap(mapView)
+            }
+        }
     }
     
     /**
@@ -200,6 +214,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         uiManager.setShowsTraffic(showsTraffic)
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
+        
+        // 收集并设置所有 MarkerView
+        collectAndSetupMarkerViews()
     }
     
     // MARK: - 缩放控制
