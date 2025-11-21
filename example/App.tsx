@@ -20,7 +20,7 @@ import {
 } from 'expo-gaode-map';
 import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView } from 'react-native';
 
-const iconUri = Image.resolveAssetSource(require('./assets/icon.png')).uri;
+const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
 export default function App() {
   const mapRef = useRef<MapViewRef>(null);
@@ -257,7 +257,13 @@ export default function App() {
       content: `标记 #${markerIdCounter.current}`,
       color: randomColor,
     };
-    
+
+    /**
+ * 将新标记添加到现有标记数组中
+ * @param prev 现有的标记数组
+ * @param newMarker 要添加的新标记
+ * @returns 包含原有标记和新标记的新数组
+ */
     setDynamicMarkers(prev => [...prev, newMarker]);
     Alert.alert('成功', `已添加标记 #${markerIdCounter.current}\n当前共 ${dynamicMarkers.length + 1} 个动态标记`);
   };
@@ -339,7 +345,10 @@ export default function App() {
         minZoom={3}
         maxZoom={20}
         userLocationRepresentation={{
-          showsAccuracyRing:false
+          showsAccuracyRing:false,
+          image: iconUri,
+          imageWidth: 40,
+          imageHeight: 40
         }}
         onLoad={() => console.log('地图加载完成')}
         onLocation={(e) => console.log('定位:', e)}
@@ -364,6 +373,7 @@ export default function App() {
             title={location.address}
             customViewWidth={200}
             customViewHeight={40}
+            
             onPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
             <View style={styles.markerContainer}>
