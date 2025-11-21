@@ -96,24 +96,25 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
           val locationType = if (followUserLocation) {
             MyLocationStyle.LOCATION_TYPE_FOLLOW  // 连续定位并跟随
           } else {
-            MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE  // 连续定位，点会旋转
+            MyLocationStyle.LOCATION_TYPE_SHOW  // 只显示定位点，不跟随
           }
           myLocationType(locationType)
           interval(2000)  // 2秒定位一次
           showMyLocation(true)
         }
-        android.util.Log.d("UIManager", "✨ 创建默认 MyLocationStyle")
+        android.util.Log.d("UIManager", "✨ 创建默认 MyLocationStyle，类型: ${if (followUserLocation) "FOLLOW" else "SHOW"}")
       } else {
         // 更新定位类型
         val locationType = if (followUserLocation) {
           MyLocationStyle.LOCATION_TYPE_FOLLOW
         } else {
-          MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE
+          MyLocationStyle.LOCATION_TYPE_SHOW
         }
         currentLocationStyle?.apply {
           myLocationType(locationType)
           interval(2000)
         }
+        android.util.Log.d("UIManager", "🔄 更新定位类型: ${if (followUserLocation) "FOLLOW" else "SHOW"}")
       }
       
       // 监听定位变化（用于通知 React Native）

@@ -340,6 +340,7 @@ export default function App() {
         indoorViewEnabled={true}
         trafficEnabled={true}
         compassEnabled={true}
+       
         tiltGesturesEnabled={true}
         initialCameraPosition={initialPosition}
         minZoom={3}
@@ -351,7 +352,10 @@ export default function App() {
           imageHeight: 40
         }}
         onLoad={() => console.log('地图加载完成')}
-        onLocation={(e) => console.log('定位:', e)}
+       onLocation={({ nativeEvent }) => {
+        const { latitude, longitude } = nativeEvent;  // 直接从 nativeEvent 获取
+        console.log('地图定位:', latitude, longitude);
+      }}
         onMapPress={(e) => console.log('地图点击:', e)}
         onMapLongPress={(e) => console.log('地图长按:', e)}
       >

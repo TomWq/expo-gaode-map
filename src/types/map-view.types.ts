@@ -3,8 +3,28 @@
  * 基于 Expo Modules API
  */
 
-import type { StyleProp, ViewStyle,NativeSyntheticEvent } from 'react-native';
+import type { StyleProp, ViewStyle, NativeSyntheticEvent } from 'react-native';
 import type { CameraPosition, LatLng, LatLngBounds, MapPoi, MapType, Point } from './common.types';
+
+/**
+ * 定位事件数据
+ */
+export interface LocationEvent {
+  /**
+   * 纬度
+   */
+  latitude: number;
+  
+  /**
+   * 经度
+   */
+  longitude: number;
+  
+  /**
+   * 定位精度（米）
+   */
+  accuracy: number;
+}
 
 
 /**
@@ -198,7 +218,7 @@ export interface MapViewProps {
   /**
    * 地图定位更新事件
    */
-  onLocation?: (event: NativeSyntheticEvent<GeolocationPosition>) => void;
+  onLocation?: (event: NativeSyntheticEvent<LocationEvent>) => void;
 
   /**
    * Marker 点击事件

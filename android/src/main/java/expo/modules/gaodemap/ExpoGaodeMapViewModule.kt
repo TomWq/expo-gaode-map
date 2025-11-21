@@ -35,8 +35,8 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Float>("maxZoom") { view, maxZoom -> view.setMaxZoom(maxZoom) }
       Prop<Float>("minZoom") { view, minZoom -> view.setMinZoom(minZoom) }
 
-      Prop<Boolean>("myLocationEnabled") { view, show -> view.setShowsUserLocation(show) }
       Prop<Boolean>("followUserLocation") { view, follow -> view.setFollowUserLocation(follow) }
+      Prop<Boolean>("myLocationEnabled") { view, show -> view.setShowsUserLocation(show) }
       Prop<Map<String, Any>?>("userLocationRepresentation") { view, representation ->
         representation?.let { view.setUserLocationRepresentation(it) }
       }

@@ -289,7 +289,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
   fun setMinZoom(minZoom: Float) = cameraManager.setMinZoomLevel(minZoom)
   
   /** 设置是否显示用户位置 */
-  fun setShowsUserLocation(show: Boolean) = uiManager.setShowsUserLocation(show, followUserLocation)
+  fun setShowsUserLocation(show: Boolean) {
+    mainHandler.post {
+      uiManager.setShowsUserLocation(show, followUserLocation)
+    }
+  }
   
   /**
    * 设置是否跟随用户位置
@@ -298,7 +302,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
   fun setFollowUserLocation(follow: Boolean) {
     followUserLocation = follow
     // 如果定位已开启，立即应用新设置
-    uiManager.setShowsUserLocation(true, follow)
+    mainHandler.post {
+      if (aMap.isMyLocationEnabled) {
+        uiManager.setShowsUserLocation(true, follow)
+      }
+    }
   }
   
   /**
@@ -476,6 +484,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     // 清理覆盖物
     overlayManager.clear()
     
+    // 清理 MarkerView 列表
+    markerViews.clear()
+    
     // 销毁地图
     mapView.onDestroy()
   }
@@ -487,12 +498,18 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
   }
   
   /**
+   * 存储 MarkerView 引用，因为它们不在视图层级中
+   */
+  private val markerViews = mutableListOf<MarkerView>()
+  
+  /**
    * 添加子视图时自动连接到地图
    */
   override fun addView(child: View?, index: Int) {
     if (child is MarkerView) {
-      // 不添加到视图层级,只调用 setMap
+      // 不添加到视图层级,只调用 setMap 并保存引用
       child.setMap(aMap)
+      markerViews.add(child)
       return
     }
     
@@ -508,6 +525,30 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         is MultiPointView -> it.setMap(aMap)
         is ClusterView -> it.setMap(aMap)
       }
+    }
+  }
+  
+  /**
+   * 移除子视图
+   */
+  override fun removeView(child: View?) {
+    if (child is MarkerView) {
+      // 从 MarkerView 列表中移除
+      markerViews.remove(child)
+      return
+    }
+    super.removeView(child)
+  }
+  
+  /**
+   * 按索引移除视图
+   */
+  override fun removeViewAt(index: Int) {
+    // 检查是否在尝试移除不存在的索引
+    if (index >= 0 && index < childCount) {
+      super.removeViewAt(index)
+    } else {
+      Log.w(TAG, "尝试移除无效的视图索引: $index, 当前子视图数: $childCount")
     }
   }
   
