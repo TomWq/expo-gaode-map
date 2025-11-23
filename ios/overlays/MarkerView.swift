@@ -48,19 +48,43 @@ class MarkerView: ExpoView {
     var pinColor: String = "red"
     /// 是否显示气泡
     var canShowCallout: Bool = true
-    /// 地图视图弱引用
-    private var mapView: MAMapView?
+    /// 地图视图弱引用（避免循环引用）
+    private weak var mapView: MAMapView?
     /// 标记点对象
     var annotation: MAPointAnnotation?
+    /// 标记是否正在被移除（防止重复移除）
+    private var isRemoving: Bool = false
     /// 标记点视图
     private var annotationView: MAAnnotationView?
     /// 待处理的位置（在 setMap 之前设置）
     private var pendingPosition: [String: Double]?
+    /// 延迟添加任务
+    private var pendingAddTask: DispatchWorkItem?
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
-        // 不可交互,通过父视图定位到屏幕外
+        // 完全禁用交互，让触摸事件穿透
         isUserInteractionEnabled = false
+        // 关键：让所有子视图也不接收触摸事件
+        isMultipleTouchEnabled = false
+        isExclusiveTouch = false
+    }
+    
+    /**
+     * 重写 hitTest，让触摸事件完全穿透此视图
+     * 这是解决旧架构下 children 阻挡地图触摸的关键
+     */
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // 始终返回 nil，让触摸事件穿透到地图
+        return nil
+    }
+    
+    /**
+     * 重写 point(inside:with:)，确保此视图不响应任何触摸
+     */
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        // 始终返回 false，表示点击不在此视图内
+        return false
     }
     
     /**
@@ -89,9 +113,14 @@ class MarkerView: ExpoView {
             return
         }
         
-        // 移除旧的标记
+        // 取消之前的延迟任务
+        pendingAddTask?.cancel()
+        
+        // 移除旧的标记（在主线程执行）
         if let oldAnnotation = annotation {
-            mapView.removeAnnotation(oldAnnotation)
+            DispatchQueue.main.async {
+                mapView.removeAnnotation(oldAnnotation)
+            }
         }
         
         // 创建新的标记
@@ -100,51 +129,59 @@ class MarkerView: ExpoView {
         annotation.title = title
         annotation.subtitle = markerDescription
         
-        mapView.addAnnotation(annotation)
         self.annotation = annotation
         
-        // 延迟处理子视图,等待 React Native 添加完成
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self = self else { return }
-            self.updateMarkerImage()
+        // 延迟添加到地图，等待 React Native 渲染 children
+        let task = DispatchWorkItem { [weak self] in
+            guard let self = self, !self.isRemoving else {
+                print("⚠️ [MarkerView] 延迟任务取消，isRemoving: \(self?.isRemoving ?? true)")
+                return
+            }
+            print("✅ [MarkerView] Annotation 延迟添加，当前 subviews: \(self.subviews.count)")
+            mapView.addAnnotation(annotation)
         }
-        
-        // 再次延迟更新，确保内容完全渲染
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
-            self.updateMarkerImage()
-        }
+        pendingAddTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: task)
     }
     
     /**
-     * 更新 marker 图标
+     * 获取 annotation 视图（由 ExpoGaodeMapView 调用）
      */
-    private func updateMarkerImage() {
-        guard let mapView = mapView, let annotation = annotation else {
-            return
-        }
-        guard let view = mapView.view(for: annotation) else {
-            return
+    func getAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
+        print("🎨 [MarkerView] getAnnotationView 被调用")
+        print("🎨 [MarkerView] subviews.count: \(self.subviews.count)")
+        
+        let reuseId = "custom_marker_\(ObjectIdentifier(self).hashValue)"
+        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+        
+        if annotationView == nil {
+            annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            annotationView?.canShowCallout = canShowCallout
+            annotationView?.isDraggable = draggable
         }
         
-        self.annotationView = view
+        annotationView?.annotation = annotation
+        self.annotationView = annotationView
         
+        // 设置图标
         if self.subviews.count > 0 {
-            // 有自定义内容，显示自定义图片
+            print("🎨 [MarkerView] 尝试创建自定义图片...")
             if let image = self.createImageFromSubviews() {
-                view.image = image
-                // 设置 anchor 为底部中心
-                view.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
+                print("✅ [MarkerView] 自定义图片创建成功, size: \(image.size)")
+                annotationView?.image = image
+                annotationView?.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
             } else {
-                // 自定义图片创建失败，使用默认图标
-                view.image = self.createDefaultMarkerImage()
-                view.centerOffset = CGPoint(x: 0, y: -18)
+                print("❌ [MarkerView] 自定义图片创建失败，使用默认图标")
+                annotationView?.image = self.createDefaultMarkerImage()
+                annotationView?.centerOffset = CGPoint(x: 0, y: -18)
             }
         } else {
-            // 没有自定义内容，使用默认图标
-            view.image = self.createDefaultMarkerImage()
-            view.centerOffset = CGPoint(x: 0, y: -18)
+            print("📍 [MarkerView] 没有子视图，使用默认图标")
+            annotationView?.image = self.createDefaultMarkerImage()
+            annotationView?.centerOffset = CGPoint(x: 0, y: -18)
         }
+        
+        return annotationView
     }
     
     /**
@@ -270,22 +307,75 @@ class MarkerView: ExpoView {
         return UIGraphicsGetImageFromCurrentImageContext()
     }
     
+    /**
+     * 当视图即将从父视图移除时调用
+     */
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        // 如果 newSuperview 为 nil，说明视图正在被移除
+        if newSuperview == nil {
+            removeAnnotationFromMap()
+        }
+    }
+    
+    /**
+     * 从地图移除标记点
+     */
+    private func removeAnnotationFromMap() {
+        guard !isRemoving else { return }
+        isRemoving = true
+        
+        print("🗑️ [MarkerView] removeAnnotationFromMap 被调用")
+        
+        // 取消任何待处理的延迟任务
+        pendingAddTask?.cancel()
+        pendingAddTask = nil
+        
+        // 立即保存引用并清空属性，避免在异步块中访问 self
+        guard let mapView = mapView, let annotation = annotation else {
+            print("⚠️ [MarkerView] 没有 annotation 需要移除")
+            return
+        }
+        self.annotation = nil
+        self.annotationView = nil
+        
+        // 同步移除，避免对象在异步块执行时已被释放
+        if Thread.isMainThread {
+            mapView.removeAnnotation(annotation)
+            print("✅ [MarkerView] Annotation 已从地图移除（主线程）")
+        } else {
+            DispatchQueue.main.sync {
+                mapView.removeAnnotation(annotation)
+                print("✅ [MarkerView] Annotation 已从地图移除（同步到主线程）")
+            }
+        }
+    }
+    
     override func willRemoveSubview(_ subview: UIView) {
         super.willRemoveSubview(subview)
         
-        // 子视图即将被移除，延迟检查并更新图标
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            guard let self = self else { return }
-            
-            if self.subviews.isEmpty {
-                // 所有子视图已移除，恢复默认图标
-                if let annotationView = self.annotationView {
-                    annotationView.image = self.createDefaultMarkerImage()
-                    annotationView.centerOffset = CGPoint(x: 0, y: -18)
+        // 如果正在移除，不要执行任何操作
+        guard !isRemoving else {
+            print("⚠️ [MarkerView] willRemoveSubview 被调用但正在移除，忽略")
+            return
+        }
+        
+        print("🎨 [MarkerView] willRemoveSubview 被调用，剩余 subviews.count: \(self.subviews.count - 1)")
+        
+        // 子视图移除后，需要刷新 annotation 视图
+        if self.subviews.count <= 1 {
+            // 所有子视图已移除，刷新以恢复默认图标
+            if let mapView = mapView, let annotation = annotation {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self, !self.isRemoving else {
+                        print("⚠️ [MarkerView] 异步刷新时已被移除，取消操作")
+                        return
+                    }
+                    mapView.removeAnnotation(annotation)
+                    mapView.addAnnotation(annotation)
+                    print("✅ [MarkerView] Annotation 已刷新为默认图标")
                 }
-            } else {
-                // 还有子视图，更新图标
-                self.updateMarkerImage()
             }
         }
     }
@@ -293,14 +383,26 @@ class MarkerView: ExpoView {
     override func didAddSubview(_ subview: UIView) {
         super.didAddSubview(subview)
         
-        // 当添加子视图时,延迟更新标记图标
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.updateMarkerImage()
+        // 如果正在移除，不要执行任何操作
+        guard !isRemoving else {
+            print("⚠️ [MarkerView] didAddSubview 被调用但正在移除，忽略")
+            return
         }
         
-        // 再次延迟更新，确保内容完全渲染
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.updateMarkerImage()
+        print("🎨 [MarkerView] didAddSubview 被调用，subviews.count: \(self.subviews.count)")
+        
+        // 子视图添加后，需要刷新 annotation 视图
+        // 通过移除并重新添加 annotation 来触发 getAnnotationView 调用
+        if let mapView = mapView, let annotation = annotation {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, !self.isRemoving else {
+                    print("⚠️ [MarkerView] 异步刷新时已被移除，取消操作")
+                    return
+                }
+                mapView.removeAnnotation(annotation)
+                mapView.addAnnotation(annotation)
+                print("✅ [MarkerView] Annotation 已刷新")
+            }
         }
     }
     
@@ -415,11 +517,11 @@ class MarkerView: ExpoView {
     }
     
     /**
-     * 析构时移除标记点
+     * 析构函数 - 不执行任何清理
+     * 清理工作已在 willMove(toSuperview:) 中完成
      */
     deinit {
-        if let mapView = mapView, let annotation = annotation {
-            mapView.removeAnnotation(annotation)
-        }
+        // 不执行任何操作，避免访问已释放的对象
+        // 所有清理都应该在 willMove(toSuperview:) 中完成
     }
 }

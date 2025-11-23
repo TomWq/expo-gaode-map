@@ -5,8 +5,6 @@ public class ClusterViewModule: Module {
         Name("ClusterView")
         
         View(ClusterView.self) {
-            Events("onPress", "onClusterPress")
-            
             Prop("points") { (view: ClusterView, points: [[String: Any]]) in
                 view.setPoints(points)
             }

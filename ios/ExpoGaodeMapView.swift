@@ -82,6 +82,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     private var isMapLoaded = false
     /// 是否正在处理 annotation 选择事件
     private var isHandlingAnnotationSelect = false
+    /// MarkerView 的隐藏容器（用于渲染 children）
+    private var markerContainer: UIView!
     
     // MARK: - 初始化
     
@@ -92,11 +94,23 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         MAMapView.updatePrivacyAgree(.didAgree)
         MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)
         
+        // 创建 MAMapView
         mapView = MAMapView(frame: bounds)
+        
         mapView.delegate = self
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         
-        // 先不添加到视图,等设置完初始位置再添加
+        // 创建 MarkerView 隐藏容器
+        markerContainer = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+        markerContainer.isHidden = true
+        markerContainer.isUserInteractionEnabled = false
+        markerContainer.alpha = 0
+        
+        // 先添加隐藏容器（在最底层）
+        addSubview(markerContainer)
+        
+        // 再添加 mapView（在隐藏容器之上，确保地图可以接收触摸）
+        addSubview(mapView)
         
         cameraManager = CameraManager(mapView: mapView)
         uiManager = UIManager(mapView: mapView)
@@ -139,7 +153,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
      * 收集所有 MarkerView 子视图并设置地图
      */
     private func collectAndSetupMarkerViews() {
-        for subview in subviews {
+        // 从隐藏容器中收集 MarkerView
+        for subview in markerContainer.subviews {
             if let markerView = subview as? MarkerView {
                 markerView.setMap(mapView)
             }
@@ -152,11 +167,14 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
      */
     override func addSubview(_ view: UIView) {
         if let markerView = view as? MarkerView {
-            // 不添加到视图层级,只调用 setMap
+            // ✅ 关键修复：将 MarkerView 添加到隐藏容器中，而不是主视图
+            // 这样 MarkerView 完全不会影响地图的触摸事件
+            markerContainer.addSubview(markerView)
             markerView.setMap(mapView)
             return
         }
         
+        // 其他视图正常添加
         super.addSubview(view)
         
         if let circleView = view as? CircleView {
@@ -195,13 +213,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     func applyProps() {
         uiManager.setMapType(mapType)
         
-        // 如果有初始位置且地图还未添加到视图,先设置位置再添加
-        if let position = initialCameraPosition, mapView.superview == nil {
+        // 如果有初始位置，设置相机位置
+        if let position = initialCameraPosition {
             cameraManager.setInitialCameraPosition(position)
-            addSubview(mapView)
-        } else if mapView.superview == nil {
-            // 没有初始位置,直接添加地图
-            addSubview(mapView)
         }
         
         uiManager.setShowsScale(showsScale)
@@ -350,8 +364,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
      * 析构函数 - 清理资源
      */
     deinit {
+        // 先设置 delegate 为 nil，停止接收回调
         mapView?.delegate = nil
-        overlayManager?.clear()
     }
 }
 
@@ -415,20 +429,14 @@ extension ExpoGaodeMapView {
      */
     private func checkCirclePress(at coordinate: CLLocationCoordinate2D) -> Bool {
         let circleViews = subviews.compactMap { $0 as? CircleView }
-        print("🔍 检查圆形点击 - 找到 \(circleViews.count) 个 CircleView")
         
         for circleView in circleViews {
-            guard let circle = circleView.circle else {
-                print("⚠️ CircleView 没有 circle 对象")
-                continue
-            }
+            guard let circle = circleView.circle else { continue }
             
             let circleCenter = circle.coordinate
             let distance = calculateDistance(from: coordinate, to: circleCenter)
-            print("📍 圆心: (\(circleCenter.latitude), \(circleCenter.longitude)), 半径: \(circle.radius)m, 距离: \(distance)m")
             
             if distance <= circle.radius {
-                print("✅ 点击在圆形内，触发 onPress")
                 circleView.onPress([
                     "latitude": coordinate.latitude,
                     "longitude": coordinate.longitude
@@ -436,7 +444,6 @@ extension ExpoGaodeMapView {
                 return true
             }
         }
-        print("❌ 点击不在任何圆形内")
         return false
     }
     
@@ -585,6 +592,15 @@ extension ExpoGaodeMapView {
         }
         
         if annotation.isKind(of: MAPointAnnotation.self) {
+            // 首先检查是否是声明式 MarkerView 的 annotation
+            // 从隐藏容器中查找 MarkerView
+            for subview in markerContainer.subviews {
+                if let markerView = subview as? MarkerView, markerView.annotation === annotation {
+                    return markerView.getAnnotationView(for: mapView, annotation: annotation)
+                }
+            }
+            
+            // 如果不是声明式的，检查是否是命令式 API 的 Marker
             guard let props = overlayManager.getMarkerProps(for: annotation) else {
                 return nil
             }

@@ -5,8 +5,6 @@ public class MultiPointViewModule: Module {
         Name("MultiPointView")
         
         View(MultiPointView.self) {
-            Events("onPress")
-            
             Prop("points") { (view: MultiPointView, points: [[String: Any]]) in
                 view.setPoints(points)
             }

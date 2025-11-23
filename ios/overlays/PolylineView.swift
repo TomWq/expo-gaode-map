@@ -48,29 +48,19 @@ class PolylineView: ExpoView {
      * 更新折线覆盖物
      */
     private func updatePolyline() {
-        guard let mapView = mapView else {
-            print("❌ PolylineView.updatePolyline: mapView 为空")
-            return
-        }
+        guard let mapView = mapView else { return }
         if let old = polyline { mapView.remove(old) }
         
         var coords = points.compactMap { point -> CLLocationCoordinate2D? in
             guard let lat = point["latitude"], let lng = point["longitude"] else { return nil }
             return CLLocationCoordinate2D(latitude: lat, longitude: lng)
         }
-        guard !coords.isEmpty else {
-            print("❌ PolylineView.updatePolyline: 点数组为空")
-            return
-        }
-        
-        print("🔷 PolylineView.updatePolyline: points=\(coords.count)个点")
-        print("🔷 PolylineView.updatePolyline: strokeColor=\(String(describing: strokeColor)), strokeWidth=\(strokeWidth), texture=\(String(describing: textureUrl))")
+        guard !coords.isEmpty else { return }
         
         polyline = MAPolyline(coordinates: &coords, count: UInt(coords.count))
         mapView.add(polyline!)
         
         renderer = nil
-        print("🔷 PolylineView.updatePolyline: renderer 已清空")
     }
     
     /**

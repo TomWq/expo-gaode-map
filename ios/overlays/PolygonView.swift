@@ -45,29 +45,19 @@ class PolygonView: ExpoView {
      * 更新多边形覆盖物
      */
     private func updatePolygon() {
-        guard let mapView = mapView else {
-            print("❌ PolygonView.updatePolygon: mapView 为空")
-            return
-        }
+        guard let mapView = mapView else { return }
         if let old = polygon { mapView.remove(old) }
         
         var coords = points.compactMap { point -> CLLocationCoordinate2D? in
             guard let lat = point["latitude"], let lng = point["longitude"] else { return nil }
             return CLLocationCoordinate2D(latitude: lat, longitude: lng)
         }
-        guard !coords.isEmpty else {
-            print("❌ PolygonView.updatePolygon: 点数组为空")
-            return
-        }
-        
-        print("🔶 PolygonView.updatePolygon: points=\(coords.count)个点")
-        print("🔶 PolygonView.updatePolygon: fillColor=\(String(describing: fillColor)), strokeColor=\(String(describing: strokeColor)), strokeWidth=\(strokeWidth)")
+        guard !coords.isEmpty else { return }
         
         polygon = MAPolygon(coordinates: &coords, count: UInt(coords.count))
         mapView.add(polygon!)
         
         renderer = nil
-        print("🔶 PolygonView.updatePolygon: renderer 已清空")
     }
     
     /**

@@ -91,6 +91,7 @@ export default function App() {
   const handleGetLocation = async () => {
     try {
       const loc = await getCurrentLocation();
+     
       setLocation(loc);
       if (mapRef.current) {
         await mapRef.current.moveCamera({
@@ -407,7 +408,7 @@ export default function App() {
                 <Text style={styles.dynamicMarkerSubText}>不同的样式和文字</Text>
               </View>
             )}
-            {/* markerContent === 'none' 时不渲染任何子视图，应该显示默认图标 */}
+           
           </Marker>
         )}
         

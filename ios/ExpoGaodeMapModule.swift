@@ -266,15 +266,11 @@ public class ExpoGaodeMapModule: Module {
             }
             
             self.permissionManager?.requestPermission { granted, status in
-                print("🔐 [PermissionManager] 权限回调: granted=\(granted), status=\(status)")
-                
                 // 无论结果如何,都延迟后再次检查最终状态
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     let finalStatus = CLLocationManager.authorizationStatus()
                     let finalGranted = finalStatus == .authorizedAlways || finalStatus == .authorizedWhenInUse
                     let finalStatusString = self.getAuthorizationStatusString(finalStatus)
-                    
-                    print("🔐 [PermissionManager] 最终状态: granted=\(finalGranted), status=\(finalStatusString)")
                     
                     promise.resolve([
                         "granted": finalGranted,

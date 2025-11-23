@@ -320,20 +320,16 @@ class OverlayManager {
             
             // 设置纹理或颜色
             if let textureUrl = style?["texture"] as? String, !textureUrl.isEmpty {
-                print("🔷 OverlayManager: 加载纹理 \(textureUrl)")
                 loadPolylineTexture(url: textureUrl, renderer: renderer)
             } else {
                 if let color = style?["color"] {
                     let parsedColor = ColorParser.parseColor(color)
                     renderer.strokeColor = parsedColor ?? .red
-                    print("🔷 OverlayManager: color=\(color) -> \(String(describing: parsedColor))")
                 } else if let strokeColor = style?["strokeColor"] {
                     let parsedColor = ColorParser.parseColor(strokeColor)
                     renderer.strokeColor = parsedColor ?? .red
-                    print("🔷 OverlayManager: strokeColor=\(strokeColor) -> \(String(describing: parsedColor))")
                 } else {
                     renderer.strokeColor = .red
-                    print("🔷 OverlayManager: 使用默认红色")
                 }
             }
             
@@ -342,8 +338,6 @@ class OverlayManager {
             guard let renderer = MAPolygonRenderer(polygon: polygon) else {
                 return nil
             }
-            
-            print("🔶 OverlayManager.getRenderer(Polygon): style=\(String(describing: style))")
             
             // 设置填充颜色
             if let fillColor = style?["fillColor"] {

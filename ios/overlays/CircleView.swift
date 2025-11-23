@@ -119,7 +119,6 @@ class CircleView: ExpoView {
      * @param color 颜色值
      */
     func setFillColor(_ color: Any?) {
-        print("🔵 CircleView.setFillColor: \(String(describing: color))")
         fillColor = color
         renderer = nil
         updateCircle()
@@ -130,7 +129,6 @@ class CircleView: ExpoView {
      * @param color 颜色值
      */
     func setStrokeColor(_ color: Any?) {
-        print("🔵 CircleView.setStrokeColor: \(String(describing: color))")
         strokeColor = color
         renderer = nil
         updateCircle()
@@ -141,7 +139,6 @@ class CircleView: ExpoView {
      * @param width 宽度值
      */
     func setStrokeWidth(_ width: Float) {
-        print("🔵 CircleView.setStrokeWidth: \(width)")
         strokeWidth = width
         renderer = nil
         updateCircle()

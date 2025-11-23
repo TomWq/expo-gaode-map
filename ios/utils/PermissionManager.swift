@@ -20,7 +20,6 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
      * @param callback 权限结果回调 (granted, status)
      */
     func requestPermission(callback: @escaping (Bool, String) -> Void) {
-        print("🔐 [PermissionManager] requestPermission 被调用")
         self.permissionCallback = callback
         
         // 确保在主线程操作
