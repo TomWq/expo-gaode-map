@@ -75,7 +75,7 @@ export default function App() {
         setLocation(loc);
         setInitialPosition({
           target: { latitude: loc.latitude, longitude: loc.longitude },
-          zoom: 18
+          zoom: 15
         });
         
         return () => subscription.remove();
@@ -139,11 +139,19 @@ export default function App() {
     if (!location || !mapRef.current) return;
     
     try {
+      //随机的坐标
+      const randomLatitude = location.latitude + Math.random() * 0.01;
+      const randomLongitude = location.longitude + Math.random() * 0.01;
+      //随机的半径
+      const randomRadius = Math.random() * 1000;
+      //随机的颜色
+      const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+      const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
       await mapRef.current.addCircle('imperative_circle', {
-        center: { latitude: location.latitude + 0.01, longitude: location.longitude + 0.01 },
-        radius: 500,
-        fillColor: '#44FF0000',
-        strokeColor: '#FFFF0000',
+        center: { latitude: randomLatitude, longitude: randomLongitude },
+        radius: randomRadius,
+        fillColor: randomColor,
+        strokeColor: randomStrokeColor,
         strokeWidth: 2,
       });
       Alert.alert('成功', '通过 ref 添加了圆形');

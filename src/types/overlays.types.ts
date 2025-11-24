@@ -270,11 +270,6 @@ export interface CircleProps {
    */
   onPress?: (event: NativeSyntheticEvent<{}>) => void;
 
-  /**
-   * 自定义子元素
-   * 暂不支持
-   */
-  children?: React.ReactNode;
 
 }
 
