@@ -37,7 +37,6 @@ object SDKInitializer {
             AMapLocationClient.setApiKey(androidKey)
             
         } catch (e: Exception) {
-            Log.e(TAG, "SDK 初始化失败", e)
             throw Exception("SDK 初始化失败: ${e.message}")
         }
     }

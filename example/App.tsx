@@ -352,7 +352,7 @@ export default function App() {
           imageWidth: 40,
           imageHeight: 40
         }}
-        onLoad={() => console.log('地图加载完成')}
+       onLoad={() => console.log('地图加载完成')}
        onLocation={({ nativeEvent }) => {
         const { latitude, longitude } = nativeEvent;  // 直接从 nativeEvent 获取
         console.log('地图定位:', latitude, longitude);
@@ -378,7 +378,6 @@ export default function App() {
             title={location.address}
             customViewWidth={200}
             customViewHeight={40}
-            
             onPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
             <View style={styles.markerContainer}>
@@ -388,7 +387,7 @@ export default function App() {
         )}
         
         {/* 动态更新测试 Marker */}
-        {location && (
+        {/* {location && (
           <Marker
             position={{ latitude: location.latitude + 0.005, longitude: location.longitude + 0.005 }}
             title="动态内容测试"
@@ -410,7 +409,7 @@ export default function App() {
             )}
            
           </Marker>
-        )}
+        )} */}
         
         {/* 动态添加/删除的 Marker 列表 */}
         {dynamicMarkers.map((marker) => (

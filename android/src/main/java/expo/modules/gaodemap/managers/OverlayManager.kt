@@ -117,9 +117,6 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
   // ==================== 标记点 ====================
   
   fun addMarker(id: String, props: Map<String, Any>) {
-    Log.d(TAG, "addMarker 调用 - ID: $id")
-    Log.d(TAG, "addMarker props: $props")
-    
     @Suppress("UNCHECKED_CAST")
     val position = props["position"] as? Map<String, Double>
     val title = props["title"] as? String
@@ -219,31 +216,24 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
   private fun loadMarkerIcon(uri: String, width: Int, height: Int, callback: (Bitmap) -> Unit) {
     Thread {
       try {
-        Log.d(TAG, "开始加载图标: $uri")
         val bitmap = when {
           uri.startsWith("http://") || uri.startsWith("https://") -> {
-            Log.d(TAG, "加载网络图片")
             BitmapFactory.decodeStream(URL(uri).openStream())
           }
           uri.startsWith("file://") -> {
-            Log.d(TAG, "加载本地文件")
             BitmapFactory.decodeFile(uri.substring(7))
           }
           else -> {
-            Log.d(TAG, "未知 URI 格式")
             null
           }
         }
         
-        if (bitmap == null) {
-          Log.e(TAG, "图标加载失败: bitmap 为 null")
-        } else {
-          Log.d(TAG, "图标加载成功: ${bitmap.width}x${bitmap.height}")
+        if (bitmap != null) {
           val resized = Bitmap.createScaledBitmap(bitmap, width, height, true)
           callback(resized)
         }
       } catch (e: Exception) {
-        Log.e(TAG, "图标加载异常: ${e.message}", e)
+        // 忽略异常
       }
     }.start()
   }
@@ -353,10 +343,9 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
             bitmap?.let {
               val descriptor = BitmapDescriptorFactory.fromBitmap(it)
               polyline.setCustomTexture(descriptor)
-              Log.d(TAG, "✅ 纹理设置成功")
             }
           } catch (e: Exception) {
-            Log.e(TAG, "纹理加载失败: ${e.message}")
+            // 忽略异常
           }
         }.start()
       }
@@ -430,7 +419,6 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       val polygon = aMap.addPolygon(options)
       polygons[id] = polygon
       polygonIdMap[polygon] = id
-      Log.d(TAG, "✅ 多边形创建成功")
     }
   }
   

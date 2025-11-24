@@ -86,8 +86,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    * 设置是否显示用户位置
    */
   fun setShowsUserLocation(show: Boolean, followUserLocation: Boolean = false) {
-    android.util.Log.d("UIManager", "🔵 setShowsUserLocation: show=$show, follow=$followUserLocation")
-    
     if (show) {
       // 创建默认的定位样式
       if (currentLocationStyle == null) {
@@ -102,7 +100,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
           interval(2000)  // 2秒定位一次
           showMyLocation(true)
         }
-        android.util.Log.d("UIManager", "✨ 创建默认 MyLocationStyle，类型: ${if (followUserLocation) "FOLLOW" else "SHOW"}")
       } else {
         // 更新定位类型
         val locationType = if (followUserLocation) {
@@ -114,7 +111,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
           myLocationType(locationType)
           interval(2000)
         }
-        android.util.Log.d("UIManager", "🔄 更新定位类型: ${if (followUserLocation) "FOLLOW" else "SHOW"}")
       }
       
       // 监听定位变化（用于通知 React Native）
@@ -131,12 +127,10 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
       
       // 启用定位（使用高德地图自己的定位）
       aMap.isMyLocationEnabled = true
-      android.util.Log.d("UIManager", "✅ 定位已启用")
       
     } else {
       aMap.setOnMyLocationChangeListener(null)
       aMap.isMyLocationEnabled = false
-      android.util.Log.d("UIManager", "❌ 定位已禁用")
     }
   }
   
@@ -150,20 +144,15 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
       }
       
       val providers = locationManager?.getProviders(true) ?: emptyList()
-      android.util.Log.d("UIManager", "📡 可用的定位提供者: $providers")
       
-      // 优先使用 GPS，其次是网络定位
       val provider = when {
         providers.contains(AndroidLocationManager.GPS_PROVIDER) -> {
-          android.util.Log.d("UIManager", "✅ 使用 GPS 定位")
           AndroidLocationManager.GPS_PROVIDER
         }
         providers.contains(AndroidLocationManager.NETWORK_PROVIDER) -> {
-          android.util.Log.d("UIManager", "✅ 使用网络定位")
           AndroidLocationManager.NETWORK_PROVIDER
         }
         else -> {
-          android.util.Log.e("UIManager", "❌ 没有可用的定位提供者")
           return
         }
       }
@@ -179,16 +168,13 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
       // 立即获取最后已知位置
       val lastLocation = locationManager?.getLastKnownLocation(provider)
       if (lastLocation != null) {
-        android.util.Log.d("UIManager", "📍 获取到最后已知位置: ${lastLocation.latitude}, ${lastLocation.longitude}")
         onLocationChanged(lastLocation)
-      } else {
-        android.util.Log.d("UIManager", "⏳ 等待首次定位...")
       }
       
     } catch (e: SecurityException) {
-      android.util.Log.e("UIManager", "❌ 定位权限未授予: ${e.message}")
+      // 忽略异常
     } catch (e: Exception) {
-      android.util.Log.e("UIManager", "❌ 启动定位失败: ${e.message}", e)
+      // 忽略异常
     }
   }
   
@@ -198,9 +184,8 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   private fun stopRealLocation() {
     try {
       locationManager?.removeUpdates(this)
-      android.util.Log.d("UIManager", "🛑 已停止系统定位")
     } catch (e: Exception) {
-      android.util.Log.e("UIManager", "停止定位失败: ${e.message}")
+      // 忽略异常
     }
   }
   
@@ -208,9 +193,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    * 位置变化回调
    */
   override fun onLocationChanged(location: Location) {
-    android.util.Log.d("UIManager", "📍📍📍 系统定位回调: lat=${location.latitude}, lng=${location.longitude}, accuracy=${location.accuracy}m")
-    
-    // 通知高德地图
     locationChangedListener?.onLocationChanged(location)
     
     // 通知 React Native
@@ -222,15 +204,12 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   }
   
   override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-    android.util.Log.d("UIManager", "定位状态变化: provider=$provider, status=$status")
   }
   
   override fun onProviderEnabled(provider: String) {
-    android.util.Log.d("UIManager", "✅ 定位提供者已启用: $provider")
   }
   
   override fun onProviderDisabled(provider: String) {
-    android.util.Log.d("UIManager", "❌ 定位提供者已禁用: $provider")
   }
   
   /**
@@ -238,15 +217,12 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    * 统一 iOS 和 Android 的 API
    */
   fun setUserLocationRepresentation(config: Map<String, Any>) {
-    android.util.Log.d("UIManager", "🎨 setUserLocationRepresentation 被调用，配置: $config")
-    
     if (currentLocationStyle == null) {
       currentLocationStyle = MyLocationStyle().apply {
         myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE)
         interval(2000)
         showMyLocation(true)
       }
-      android.util.Log.d("UIManager", "创建新的 MyLocationStyle")
     }
     
     val style = currentLocationStyle!!
@@ -280,16 +256,10 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
     // 自定义图标 (image)
     val imagePath = config["image"] as? String
     if (imagePath != null && imagePath.isNotEmpty()) {
-      android.util.Log.d("UIManager", "开始加载自定义定位图标: $imagePath")
-      
-      // 将 dp 转换为 px (与 iOS points 对应)
       val density = context.resources.displayMetrics.density
       val imageWidth = (config["imageWidth"] as? Number)?.let { (it.toFloat() * density).toInt() }
       val imageHeight = (config["imageHeight"] as? Number)?.let { (it.toFloat() * density).toInt() }
       
-      android.util.Log.d("UIManager", "图标尺寸: width=$imageWidth, height=$imageHeight, density=$density")
-      
-      // 网络图片需要在后台线程加载
       if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
         Thread {
           try {
@@ -300,7 +270,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
                   android.graphics.Bitmap.createScaledBitmap(originalBitmap, imageWidth, imageHeight, true)
                 } else originalBitmap
                 
-                android.util.Log.d("UIManager", "✅ 网络图片加载成功 (${scaledBitmap.width}x${scaledBitmap.height})，应用到定位样式")
                 style.myLocationIcon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
                 
                 // 重新应用样式并确保定位开启
@@ -308,17 +277,12 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
                 
                 // 如果定位没开，重新开启
                 if (!aMap.isMyLocationEnabled) {
-                  android.util.Log.d("UIManager", "⚠️ 定位未启用，重新启用")
                   aMap.isMyLocationEnabled = true
                 }
-                
-                android.util.Log.d("UIManager", "✅ 定位样式重新应用完成，定位状态: ${aMap.isMyLocationEnabled}")
-              } else {
-                android.util.Log.e("UIManager", "❌ 网络图片加载失败: bitmap is null")
               }
             }
           } catch (e: Exception) {
-            android.util.Log.e("UIManager", "❌ 加载网络图片异常: ${e.message}", e)
+            // 忽略异常
           }
         }.start()
         return // 异步加载，提前返回
@@ -328,24 +292,18 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
           try {
             val originalBitmap = when {
               imagePath.startsWith("file://") -> {
-                android.util.Log.d("UIManager", "加载文件路径图片: ${imagePath.substring(7)}")
                 BitmapFactory.decodeFile(imagePath.substring(7))
               }
               else -> {
-                // 尝试从资源加载
                 val fileName = imagePath.substringBeforeLast('.')
-                android.util.Log.d("UIManager", "尝试从资源加载: $fileName")
                 val resId = context.resources.getIdentifier(
                   fileName,
                   "drawable",
                   context.packageName
                 )
-                android.util.Log.d("UIManager", "资源 ID: $resId")
                 if (resId != 0) {
                   BitmapFactory.decodeResource(context.resources, resId)
                 } else {
-                  // 尝试直接作为文件路径
-                  android.util.Log.d("UIManager", "尝试作为文件路径加载: $imagePath")
                   BitmapFactory.decodeFile(imagePath)
                 }
               }
@@ -357,7 +315,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
                   android.graphics.Bitmap.createScaledBitmap(originalBitmap, imageWidth, imageHeight, true)
                 } else originalBitmap
                 
-                android.util.Log.d("UIManager", "✅ 本地图片加载成功 (${scaledBitmap.width}x${scaledBitmap.height})，应用到定位样式")
                 style.myLocationIcon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
                 
                 // 重新应用样式并确保定位开启
@@ -365,24 +322,16 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
                 
                 // 如果定位没开，重新开启
                 if (!aMap.isMyLocationEnabled) {
-                  android.util.Log.d("UIManager", "⚠️ 定位未启用，重新启用")
                   aMap.isMyLocationEnabled = true
                 }
-                
-                android.util.Log.d("UIManager", "✅ 定位样式重新应用完成，定位状态: ${aMap.isMyLocationEnabled}")
-              } else {
-                android.util.Log.e("UIManager", "❌ 本地图片加载失败: bitmap is null, path=$imagePath")
               }
             }
           } catch (e: Exception) {
-            android.util.Log.e("UIManager", "❌ 加载本地图片异常: ${e.message}", e)
+            // 忽略异常
           }
         }.start()
         return // 异步加载，提前返回
       }
-    } else {
-      // 没有自定义图标，使用默认蓝点
-      android.util.Log.d("UIManager", "使用默认定位图标（蓝点）")
     }
     
     // 立即应用样式（针对没有自定义图标的情况）

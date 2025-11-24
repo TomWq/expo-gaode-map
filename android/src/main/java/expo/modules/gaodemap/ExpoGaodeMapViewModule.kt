@@ -15,8 +15,6 @@ class ExpoGaodeMapViewModule : Module() {
       
       // ✅ 关键修复：拦截 React Native 的视图操作异常
       OnViewDestroys { view: ExpoGaodeMapView ->
-        // 在视图销毁时不做任何抛出异常的操作
-        android.util.Log.d("ExpoGaodeMapViewModule", "视图正在销毁，清理资源")
       }
 
       Prop<Int>("mapType") { view, type ->
