@@ -380,8 +380,10 @@ export default function App() {
           />
         )}
       
+        {/* 固定的当前位置 Marker - 放在最前面，确保稳定 */}
         {location && (
           <Marker
+            key="fixed_current_location_marker"
             position={{ latitude: location.latitude, longitude: location.longitude }}
             title={location.address}
             customViewWidth={200}
@@ -394,32 +396,7 @@ export default function App() {
           </Marker>
         )}
         
-        {/* 动态更新测试 Marker */}
-        {/* {location && (
-          <Marker
-            position={{ latitude: location.latitude + 0.005, longitude: location.longitude + 0.005 }}
-            title="动态内容测试"
-            customViewWidth={250}
-            customViewHeight={60}
-            onPress={() => Alert.alert('动态 Marker', `点击了动态内容标记\n更新次数: ${markerUpdateCount}`)}
-          >
-            {markerContent === 'text1' && (
-              <View style={styles.dynamicMarkerContainer1}>
-                <Text style={styles.dynamicMarkerText}>🔵 动态内容 1</Text>
-                <Text style={styles.dynamicMarkerSubText}>点击下方按钮切换</Text>
-              </View>
-            )}
-            {markerContent === 'text2' && (
-              <View style={styles.dynamicMarkerContainer2}>
-                <Text style={styles.dynamicMarkerText}>🟢 动态内容 2</Text>
-                <Text style={styles.dynamicMarkerSubText}>不同的样式和文字</Text>
-              </View>
-            )}
-           
-          </Marker>
-        )} */}
-        
-        {/* 动态添加/删除的 Marker 列表 */}
+        {/* 动态添加/删除的 Marker 列表 - 放在固定 Marker 之后 */}
         {dynamicMarkers.map((marker) => (
           <Marker
             key={marker.id}

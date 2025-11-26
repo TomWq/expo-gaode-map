@@ -497,7 +497,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         overlayManager.clear()
 
         // 清理 MarkerView 列表
+        markerViews.forEach { it.removeMarker() }
         markerViews.clear()
+        markerViewKeys.clear()
 
         // 销毁地图
         mapView.onDestroy()
@@ -511,8 +513,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     /**
      * 存储 MarkerView 引用，因为它们不在视图层级中
+     * 使用 LinkedHashMap 保持插入顺序
      */
     private val markerViews = mutableListOf<MarkerView>()
+    private val markerViewKeys = mutableMapOf<MarkerView, String>()
 
     /**
      * 添加子视图时自动连接到地图
@@ -522,7 +526,25 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     override fun addView(child: View?, index: Int) {
         if (child is MarkerView) {
             child.setMap(aMap)
-            markerViews.add(child)
+            // 记录添加的 MarkerView 及其在 markerViews 中的位置
+            val markerKey = "marker_${System.identityHashCode(child)}"
+            markerViewKeys[child] = markerKey
+            
+            // 如果指定了索引，尝试在对应位置插入
+            val actualChildCount = super.getChildCount()
+            if (index >= actualChildCount) {
+                val markerIndex = index - actualChildCount
+                if (markerIndex >= 0 && markerIndex <= markerViews.size) {
+                    markerViews.add(markerIndex, child)
+                    Log.d(TAG, "在位置 $markerIndex 插入 MarkerView (总索引=$index), 当前共 ${markerViews.size} 个 MarkerView")
+                } else {
+                    markerViews.add(child)
+                    Log.d(TAG, "追加 MarkerView (总索引=$index), 当前共 ${markerViews.size} 个 MarkerView")
+                }
+            } else {
+                markerViews.add(child)
+                Log.d(TAG, "追加 MarkerView (总索引=$index < actualChildCount=$actualChildCount)")
+            }
             return
         }
 
@@ -550,8 +572,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      */
     override fun removeView(child: View?) {
         if (child is MarkerView) {
+            val index = markerViews.indexOf(child)
             markerViews.remove(child)
+            markerViewKeys.remove(child)
             child.removeMarker()
+            Log.d(TAG, "移除 MarkerView at index=$index, 剩余 ${markerViews.size} 个 MarkerView")
             return
         }
 
@@ -571,13 +596,17 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         try {
             val actualChildCount = super.getChildCount()
 
+            // 计算 MarkerView 的起始索引
+            // 实际的子视图包括：MapView(1个) + 其他声明式覆盖物(CircleView等) + MarkerView(虚拟子视图)
             if (index >= actualChildCount) {
                 val markerIndex = index - actualChildCount
                 if (markerIndex >= 0 && markerIndex < markerViews.size) {
                     val markerView = markerViews.removeAt(markerIndex)
                     markerView.removeMarker()
+                    Log.d(TAG, "移除 MarkerView at markerIndex=$markerIndex (总索引=$index)")
                     return
                 } else {
+                    Log.w(TAG, "无效的 MarkerView 索引: markerIndex=$markerIndex, markerViews.size=${markerViews.size}")
                     return
                 }
             }
@@ -594,6 +623,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             }
 
             if (child is MarkerView) {
+                // 这不应该发生，因为 MarkerView 不在实际视图层级中
+                Log.w(TAG, "在实际视图层级中发现 MarkerView，正在移除")
                 removeView(child)
                 return
             }
@@ -601,9 +632,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             super.removeViewAt(index)
 
         } catch (e: IllegalArgumentException) {
-            // 忽略索引异常
+            Log.e(TAG, "removeViewAt IllegalArgumentException", e)
         } catch (e: IndexOutOfBoundsException) {
-            // 忽略越界异常
+            Log.e(TAG, "removeViewAt IndexOutOfBoundsException", e)
         } catch (e: Exception) {
             Log.e(TAG, "移除视图异常", e)
         }
