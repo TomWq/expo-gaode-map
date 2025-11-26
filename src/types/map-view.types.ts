@@ -289,39 +289,55 @@ export interface MapViewRef {
   setCenter(center: LatLng, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   addCircle(id: string, props: import('./overlays.types').CircleProps): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   removeCircle(id: string): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   updateCircle(id: string, props: Partial<import('./overlays.types').CircleProps>): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   addMarker(id: string, props: import('./overlays.types').MarkerProps): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   removeMarker(id: string): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   updateMarker(id: string, props: Partial<import('./overlays.types').MarkerProps>): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   addPolyline(id: string, props: import('./overlays.types').PolylineProps): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<import('./overlays.types').PolylineProps>): Promise<void>;
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
+  updatePolyline(id: string, props: Partial<import('./overlays.types').PolylineProps>): Promise<void>; 
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   addPolygon(id: string, props: import('./overlays.types').PolygonProps): Promise<void>;
+  
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   removePolygon(id: string): Promise<void>;
+  
+  /**
+   * @@deprecated 不推荐使用，请使用声明式添加
+   */
   updatePolygon(id: string, props: Partial<import('./overlays.types').PolygonProps>): Promise<void>;
 }
 
-/**
- * 原生 MapView Ref 接口（所有参数必需）
- */
-export interface NativeMapViewRef {
-  moveCamera(position: CameraPosition, duration: number): Promise<void>;
-  getLatLng(point: Point): Promise<LatLng>;
-  setCenter(center: LatLng, animated: boolean): Promise<void>;
-  setZoom(zoom: number, animated: boolean): Promise<void>;
-  getCameraPosition(): Promise<CameraPosition>;
-  addCircle(id: string, props: import('./overlays.types').CircleProps): Promise<void>;
-  removeCircle(id: string): Promise<void>;
-  updateCircle(id: string, props: Partial<import('./overlays.types').CircleProps>): Promise<void>;
-  addMarker(id: string, props: import('./overlays.types').MarkerProps): Promise<void>;
-  removeMarker(id: string): Promise<void>;
-  updateMarker(id: string, props: Partial<import('./overlays.types').MarkerProps>): Promise<void>;
-  addPolyline(id: string, props: import('./overlays.types').PolylineProps): Promise<void>;
-  removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<import('./overlays.types').PolylineProps>): Promise<void>;
-  addPolygon(id: string, props: import('./overlays.types').PolygonProps): Promise<void>;
-  removePolygon(id: string): Promise<void>;
-  updatePolygon(id: string, props: Partial<import('./overlays.types').PolygonProps>): Promise<void>;
-}

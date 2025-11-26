@@ -134,103 +134,6 @@ export default function App() {
     }
   };
 
-  // 命令式 API: 添加圆形
-  const handleAddCircleByRef = async () => {
-    if (!location || !mapRef.current) return;
-    
-    try {
-      //随机的坐标
-      const randomLatitude = location.latitude + Math.random() * 0.01;
-      const randomLongitude = location.longitude + Math.random() * 0.01;
-      //随机的半径
-      const randomRadius = Math.random() * 1000;
-      //随机的颜色
-      const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-      const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-      await mapRef.current.addCircle('imperative_circle', {
-        center: { latitude: randomLatitude, longitude: randomLongitude },
-        radius: randomRadius,
-        fillColor: randomColor,
-        strokeColor: randomStrokeColor,
-        strokeWidth: 2,
-      });
-      Alert.alert('成功', '通过 ref 添加了圆形');
-    } catch (error) {
-      Alert.alert('错误', '添加圆形失败');
-    }
-  };
-
-  // 命令式 API: 添加标记
-  const handleAddMarkerByRef = async () => {
-    if (!location || !mapRef.current) return;
-    
-    try {
-      await mapRef.current.addMarker('imperative_marker', {
-        position: { latitude: location.latitude + 0.02, longitude: location.longitude + 0.02 },
-        title: '命令式标记',
-        draggable: true,
-      });
-      Alert.alert('成功', '通过 ref 添加了标记');
-    } catch (error) {
-      Alert.alert('错误', '添加标记失败');
-    }
-  };
-
-  // 命令式 API: 添加折线
-  const handleAddPolylineByRef = async () => {
-    if (!location || !mapRef.current) return;
-    
-    try {
-      await mapRef.current.addPolyline('imperative_polyline', {
-        points: [
-          { latitude: location.latitude, longitude: location.longitude },
-          { latitude: location.latitude + 0.01, longitude: location.longitude + 0.01 },
-          { latitude: location.latitude + 0.02, longitude: location.longitude },
-        ],
-        width: 5,
-        color: '#FFFF00FF',
-      });
-      Alert.alert('成功', '通过 ref 添加了折线');
-    } catch (error) {
-      Alert.alert('错误', '添加折线失败');
-    }
-  };
-
-  // 命令式 API: 添加多边形
-  const handleAddPolygonByRef = async () => {
-    if (!location || !mapRef.current) return;
-    
-    try {
-      await mapRef.current.addPolygon('imperative_polygon', {
-        points: [
-          { latitude: location.latitude - 0.01, longitude: location.longitude - 0.01 },
-          { latitude: location.latitude - 0.01, longitude: location.longitude + 0.01 },
-          { latitude: location.latitude - 0.03, longitude: location.longitude },
-        ],
-        fillColor: '#44FFFF00',
-        strokeColor: '#FFFFFF00',
-        strokeWidth: 2,
-      });
-      Alert.alert('成功', '通过 ref 添加了多边形');
-    } catch (error) {
-      Alert.alert('错误', '添加多边形失败');
-    }
-  };
-
-  // 命令式 API: 移除所有命令式覆盖物
-  const handleRemoveImperativeOverlays = async () => {
-    if (!mapRef.current) return;
-    
-    try {
-      await mapRef.current.removeCircle('imperative_circle');
-      await mapRef.current.removeMarker('imperative_marker');
-      await mapRef.current.removePolyline('imperative_polyline');
-      await mapRef.current.removePolygon('imperative_polygon');
-      Alert.alert('成功', '已移除所有命令式覆盖物');
-    } catch (error) {
-      console.log('移除覆盖物时出错(可能不存在):', error);
-    }
-  };
 
   // 测试动态更新 Marker 内容
   const handleToggleMarkerContent = () => {
@@ -532,7 +435,7 @@ export default function App() {
         <View style={styles.buttonSpacer} />
         <Button title="缩小地图" onPress={handleZoomOut} color="#FF9800" />
         
-        <View style={styles.sectionSpacer} />
+        {/* <View style={styles.sectionSpacer} />
         <Text style={styles.sectionTitle}>命令式 API (通过 ref)</Text>
         <Button title="添加圆形" onPress={handleAddCircleByRef} color="#4CAF50" />
         <View style={styles.buttonSpacer} />
@@ -542,7 +445,7 @@ export default function App() {
         <View style={styles.buttonSpacer} />
         <Button title="添加多边形" onPress={handleAddPolygonByRef} color="#FF5722" />
         <View style={styles.buttonSpacer} />
-        <Button title="移除所有命令式覆盖物" onPress={handleRemoveImperativeOverlays} color="#FF6347" />
+        <Button title="移除所有命令式覆盖物" onPress={handleRemoveImperativeOverlays} color="#FF6347" /> */}
         
         <View style={styles.sectionSpacer} />
         <Text style={styles.sectionTitle}>Marker 内容动态更新</Text>

@@ -5,7 +5,6 @@ import { EventManager } from './utils/EventManager';
 import type {
   MapViewProps,
   MapViewRef,
-  NativeMapViewRef,
   CameraPosition,
   LatLng,
   Point,
@@ -17,7 +16,7 @@ import type {
 
 export type { MapViewRef } from './types';
 
-const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<NativeMapViewRef> }> = requireNativeViewManager('ExpoGaodeMapView');
+const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<MapViewRef> }> = requireNativeViewManager('ExpoGaodeMapView');
 
 export const MapContext = React.createContext<React.RefObject<MapViewRef | null> | null>(null);
 
@@ -56,7 +55,7 @@ export const PolylineEventContext = React.createContext<EventManager<OverlayEven
  * 所有API方法都会检查地图是否已初始化，未初始化时抛出错误
  */
 const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref) => {
-  const nativeRef = React.useRef<NativeMapViewRef>(null);
+  const nativeRef = React.useRef<MapViewRef>(null);
   const internalRef = React.useRef<MapViewRef | null>(null);
   const markerEventManager = React.useMemo(() => new EventManager<MarkerEventCallbacks>(), []);
   const circleEventManager = React.useMemo(() => new EventManager<OverlayEventCallbacks>(), []);
@@ -163,6 +162,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props - 圆形覆盖物的属性配置
      * @returns Promise<void> 添加操作的异步结果
      * @throws 如果地图视图未初始化，抛出错误'MapView not initialized'
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     addCircle: async (id: string, props: CircleProps) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -173,6 +173,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param id - 要移除的圆形覆盖物的唯一标识符
      * @throws 如果地图视图未初始化，抛出错误
      * @returns Promise<void> 异步操作完成
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     removeCircle: async (id: string) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -184,6 +185,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props 要更新的圆形属性（部分属性）
      * @throws 如果地图视图未初始化，抛出错误
      * @returns Promise<void> 表示更新操作完成
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     updateCircle: async (id: string, props: Partial<CircleProps>) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -195,6 +197,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props 标记点的配置属性
      * @returns Promise<void> 添加操作完成后的Promise
      * @throws 如果地图视图未初始化则抛出错误
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     addMarker: async (id: string, props: MarkerProps) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -205,6 +208,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param id 要移除的标记点ID
      * @throws 如果地图视图未初始化则抛出错误
      * @returns Promise<void> 异步操作完成
+     *  @deprecated 该方法已被弃用，请使用声明式添加
      */
     removeMarker: async (id: string) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -216,6 +220,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props - 需要更新的标记点属性对象（部分属性）
      * @throws 如果地图视图未初始化则抛出错误
      * @returns Promise对象，表示异步更新操作
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     updateMarker: async (id: string, props: Partial<MarkerProps>) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -227,6 +232,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props - 折线的配置属性
      * @returns Promise<void> 添加操作的异步结果
      * @throws 如果地图视图未初始化则抛出错误
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     addPolyline: async (id: string, props: PolylineProps) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -237,6 +243,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param id - 要移除的折线的唯一标识符
      * @throws 如果地图视图未初始化，抛出错误
      * @returns Promise<void>
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     removePolyline: async (id: string) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -249,6 +256,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props 要更新的折线属性，包含部分PolylineProps属性
      * @returns Promise<void> 异步操作结果
      * @throws 如果地图视图未初始化，抛出错误
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     updatePolyline: async (id: string, props: Partial<PolylineProps>) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -260,6 +268,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props - 多边形的配置属性
      * @returns Promise<void> 添加操作的异步结果
      * @throws 如果地图视图未初始化则抛出错误
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     addPolygon: async (id: string, props: PolygonProps) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -270,6 +279,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param id - 要移除的多边形覆盖物的唯一标识符
      * @throws 如果地图视图未初始化，抛出错误 'MapView not initialized'
      * @returns Promise<void> 异步操作完成
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     removePolygon: async (id: string) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
@@ -282,6 +292,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @param props - 要更新的多边形属性对象，包含需要更新的部分属性
      * @throws {Error} 当地图视图未初始化时抛出错误
      * @returns Promise<void> 异步操作完成后的Promise
+     * @deprecated 该方法已被弃用，请使用声明式添加
      */
     updatePolygon: async (id: string, props: Partial<PolygonProps>) => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
