@@ -15,7 +15,7 @@
 - ✅ 丰富的覆盖物（Circle、Marker、Polyline、Polygon）
 - ✅ 完整的 TypeScript 类型定义（零 any 类型）
 - ✅ 模块化架构设计
-- ✅ 同时支持声明式组件和命令式 API
+- ✅ 同时支持声明式组件和命令式 API(注意：命令式 API 将在未来的版本删除，建议使用声明式组件)
 - ✅ 跨平台支持（Android、iOS）
 - ✅ 支持自定义样式和事件监听
 - ✅ 同时支持 React Native 新旧架构（Paper & Fabric）

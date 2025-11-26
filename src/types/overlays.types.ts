@@ -89,9 +89,9 @@ export interface MarkerProps {
 
   /**
    * 大头针颜色
-   * @platform ios
+   * Android 支持更多颜色，iOS 只支持 red, green, purple
    */
-  pinColor?: 'red' | 'green' | 'purple';
+  pinColor?: 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'magenta' | 'rose' | 'purple';
 
   /**
    * 自定义视图
