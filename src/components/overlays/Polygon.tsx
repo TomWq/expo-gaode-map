@@ -2,6 +2,8 @@ import { useContext, useEffect, useRef } from 'react';
 import type { PolygonProps } from '../../types';
 import { MapContext, PolygonEventContext } from '../../ExpoGaodeMapView';
 
+import { requireNativeViewManager } from 'expo-modules-core';
+const NativePolygonView = requireNativeViewManager('PolygonView');
 
 /**
  * 高德地图多边形覆盖物组件
@@ -21,7 +23,7 @@ import { MapContext, PolygonEventContext } from '../../ExpoGaodeMapView';
  * 注意：points数组长度必须大于等于3才能有效绘制多边形。
  */
 export default function Polygon(props: PolygonProps) {
-  const { points, fillColor, strokeColor, strokeWidth, zIndex } = props;
+
   const nativeRef = useContext(MapContext);
   const eventManager = useContext(PolygonEventContext);
   const polygonIdRef = useRef<string | null>(null);
@@ -47,17 +49,6 @@ export default function Polygon(props: PolygonProps) {
         });
       }
       
-      const { points, fillColor, strokeColor, strokeWidth, zIndex } = propsRef.current;
-      
-      if (points && points.length >= 3) {
-        nativeRef.current.addPolygon(polygonId, {
-          points,
-          fillColor: fillColor ?? '#880000FF',
-          strokeColor: strokeColor ?? '#FFFF0000',
-          strokeWidth: strokeWidth ?? 10,
-          zIndex: zIndex ?? 0,
-        });
-      }
     };
     
     checkAndAdd();
@@ -66,9 +57,6 @@ export default function Polygon(props: PolygonProps) {
       if (polygonIdRef.current) {
         if (eventManager) {
           eventManager.unregister(polygonIdRef.current);
-        }
-        if (nativeRef?.current) {
-          nativeRef.current.removePolygon(polygonIdRef.current);
         }
       }
     };
@@ -82,17 +70,5 @@ export default function Polygon(props: PolygonProps) {
     }
   }, [props.onPress]);
 
-  useEffect(() => {
-    if (polygonIdRef.current && nativeRef?.current) {
-      nativeRef.current.updatePolygon(polygonIdRef.current, {
-        points,
-        fillColor,
-        strokeColor,
-        strokeWidth,
-        zIndex,
-      });
-    }
-  }, [points, fillColor, strokeColor, strokeWidth, zIndex]);
-
-  return null;
+  return <NativePolygonView {...props} />
 }

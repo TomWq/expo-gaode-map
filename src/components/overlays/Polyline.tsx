@@ -3,6 +3,8 @@ import * as React from 'react';
 import { MapContext, PolylineEventContext } from '../../ExpoGaodeMapView';
 import type { PolylineProps } from '../../types';
 
+import { requireNativeViewManager } from 'expo-modules-core';
+const NativePolylineView = requireNativeViewManager('PolylineView');
 
 /**
  * Polyline 组件用于在高德地图上绘制折线
@@ -46,17 +48,7 @@ export default function Polyline(props: PolylineProps) {
         });
       }
       
-      const polylineProps = {
-        points: propsRef.current.points,
-        width: propsRef.current.width,
-        color: propsRef.current.color,
-        ...(propsRef.current.texture && { texture: propsRef.current.texture }),
-        ...(propsRef.current.dotted !== undefined && { dotted: propsRef.current.dotted }),
-        ...(propsRef.current.geodesic !== undefined && { geodesic: propsRef.current.geodesic }),
-        ...(propsRef.current.zIndex !== undefined && { zIndex: propsRef.current.zIndex }),
-      };
-      
-      mapRef.current.addPolyline(polylineId, polylineProps);
+     
     };
     
     checkAndAdd();
@@ -66,9 +58,7 @@ export default function Polyline(props: PolylineProps) {
         if (eventManager) {
           eventManager.unregister(polylineIdRef.current);
         }
-        if (mapRef?.current) {
-          mapRef.current.removePolyline(polylineIdRef.current);
-        }
+       
       }
     };
   }, []);
@@ -81,5 +71,5 @@ export default function Polyline(props: PolylineProps) {
     }
   }, [props.onPress]);
 
-  return null;
+  return <NativePolylineView {...props} />;
 }

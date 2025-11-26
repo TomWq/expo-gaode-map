@@ -111,6 +111,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   private var customViewWidth: Int = 0  // 用于自定义视图（children）的宽度
   private var customViewHeight: Int = 0  // 用于自定义视图（children）的高度
   private val mainHandler = Handler(Looper.getMainLooper())
+  private var isBeingRemoved = false  // 标记是否正在被移除
   
   /**
    * 设置地图实例
@@ -352,6 +353,21 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     aMap?.let { map ->
       if (marker == null) {
         val options = MarkerOptions()
+        // 初始创建时使用自定义图标或默认图标，避免显示SDK的蓝色默认图标
+        if (childCount > 0) {
+          val customBitmap = createBitmapFromView()
+          if (customBitmap != null) {
+            options.icon(BitmapDescriptorFactory.fromBitmap(customBitmap))
+            options.anchor(0.5f, 1.0f)
+          } else {
+            options.icon(BitmapDescriptorFactory.fromBitmap(createDefaultMarkerBitmap()))
+            options.anchor(0.5f, 1.0f)
+          }
+        } else {
+          // 没有子视图时使用自定义的红色大头针
+          options.icon(BitmapDescriptorFactory.fromBitmap(createDefaultMarkerBitmap()))
+          options.anchor(0.5f, 1.0f)
+        }
         marker = map.addMarker(options)
         
         map.setOnMarkerClickListener { clickedMarker ->
@@ -519,12 +535,15 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     try {
       if (child != null && indexOfChild(child) >= 0) {
         super.removeView(child)
-        mainHandler.postDelayed({
-          if (childCount == 0 && marker != null) {
-            marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-            marker?.setAnchor(0.5f, 1.0f)
-          }
-        }, 50)
+        // 只有在没有被移除的情况下才更新图标
+        if (!isBeingRemoved) {
+          mainHandler.postDelayed({
+            if (childCount == 0 && marker != null && !isBeingRemoved) {
+              marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
+              marker?.setAnchor(0.5f, 1.0f)
+            }
+          }, 50)
+        }
       }
     } catch (e: Exception) {
       android.util.Log.e("MarkerView", "removeView 异常", e)
@@ -535,14 +554,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     try {
       if (index >= 0 && index < childCount) {
         super.removeViewAt(index)
-        mainHandler.postDelayed({
-          if (childCount == 0 && marker != null) {
-            marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-            marker?.setAnchor(0.5f, 1.0f)
-          } else if (childCount > 0 && marker != null) {
-            updateMarkerIcon()
-          }
-        }, 50)
+        // 只有在没有被移除的情况下才更新图标
+        if (!isBeingRemoved) {
+          mainHandler.postDelayed({
+            if (!isBeingRemoved && marker != null) {
+              if (childCount == 0) {
+                marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
+                marker?.setAnchor(0.5f, 1.0f)
+              } else if (childCount > 0) {
+                updateMarkerIcon()
+              }
+            }
+          }, 50)
+        }
       }
     } catch (e: Exception) {
       android.util.Log.e("MarkerView", "removeViewAt 异常", e)
@@ -615,6 +639,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
+    
+    // 标记正在被移除，防止子视图移除时重新设置默认图标
+    isBeingRemoved = true
     
     // 清理所有延迟任务
     mainHandler.removeCallbacksAndMessages(null)

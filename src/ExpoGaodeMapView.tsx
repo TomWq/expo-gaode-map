@@ -9,10 +9,6 @@ import type {
   CameraPosition,
   LatLng,
   Point,
-  CircleProps,
-  MarkerProps,
-  PolylineProps,
-  PolygonProps,
 } from './types';
 
 export type { MapViewRef } from './types';
@@ -157,136 +153,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
       if (!nativeRef.current) throw new Error('MapView not initialized');
       return nativeRef.current.getCameraPosition();
     },
-    /**
-     * 在地图上添加圆形覆盖物
-     * @param id - 圆形覆盖物的唯一标识符
-     * @param props - 圆形覆盖物的属性配置
-     * @returns Promise<void> 添加操作的异步结果
-     * @throws 如果地图视图未初始化，抛出错误'MapView not initialized'
-     */
-    addCircle: async (id: string, props: CircleProps) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.addCircle(id, props);
-    },
-    /**
-     * 从地图上移除指定的圆形覆盖物
-     * @param id - 要移除的圆形覆盖物的唯一标识符
-     * @throws 如果地图视图未初始化，抛出错误
-     * @returns Promise<void> 异步操作完成
-     */
-    removeCircle: async (id: string) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.removeCircle(id);
-    },
-    /**
-     * 更新地图上的圆形覆盖物
-     * @param id 要更新的圆形覆盖物的唯一标识符
-     * @param props 要更新的圆形属性（部分属性）
-     * @throws 如果地图视图未初始化，抛出错误
-     * @returns Promise<void> 表示更新操作完成
-     */
-    updateCircle: async (id: string, props: Partial<CircleProps>) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.updateCircle(id, props);
-    },
-    /**
-     * 添加一个标记点到地图上
-     * @param id 标记点的唯一标识符
-     * @param props 标记点的配置属性
-     * @returns Promise<void> 添加操作完成后的Promise
-     * @throws 如果地图视图未初始化则抛出错误
-     */
-    addMarker: async (id: string, props: MarkerProps) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.addMarker(id, props);
-    },
-    /**
-     * 从地图上移除指定ID的标记点
-     * @param id 要移除的标记点ID
-     * @throws 如果地图视图未初始化则抛出错误
-     * @returns Promise<void> 异步操作完成
-     */
-    removeMarker: async (id: string) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.removeMarker(id);
-    },
-    /**
-     * 更新地图上指定ID的标记点属性
-     * @param id - 要更新的标记点唯一标识符
-     * @param props - 需要更新的标记点属性对象（部分属性）
-     * @throws 如果地图视图未初始化则抛出错误
-     * @returns Promise对象，表示异步更新操作
-     */
-    updateMarker: async (id: string, props: Partial<MarkerProps>) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.updateMarker(id, props);
-    },
-    /**
-     * 添加折线覆盖物到地图
-     * @param id - 折线的唯一标识符
-     * @param props - 折线的配置属性
-     * @returns Promise<void> 添加操作的异步结果
-     * @throws 如果地图视图未初始化则抛出错误
-     */
-    addPolyline: async (id: string, props: PolylineProps) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.addPolyline(id, props);
-    },
-    /**
-     * 移除地图上的指定折线
-     * @param id - 要移除的折线的唯一标识符
-     * @throws 如果地图视图未初始化，抛出错误
-     * @returns Promise<void>
-     */
-    removePolyline: async (id: string) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.removePolyline(id);
-    },
-    /**
-     * 更新地图上的折线覆盖物
-     * 
-     * @param id 要更新的折线覆盖物的唯一标识符
-     * @param props 要更新的折线属性，包含部分PolylineProps属性
-     * @returns Promise<void> 异步操作结果
-     * @throws 如果地图视图未初始化，抛出错误
-     */
-    updatePolyline: async (id: string, props: Partial<PolylineProps>) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.updatePolyline(id, props);
-    },
-    /**
-     * 向地图添加多边形覆盖物
-     * @param id - 多边形的唯一标识符
-     * @param props - 多边形的配置属性
-     * @returns Promise<void> 添加操作的异步结果
-     * @throws 如果地图视图未初始化则抛出错误
-     */
-    addPolygon: async (id: string, props: PolygonProps) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.addPolygon(id, props);
-    },
-    /**
-     * 移除地图上的多边形覆盖物
-     * @param id - 要移除的多边形覆盖物的唯一标识符
-     * @throws 如果地图视图未初始化，抛出错误 'MapView not initialized'
-     * @returns Promise<void> 异步操作完成
-     */
-    removePolygon: async (id: string) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.removePolygon(id);
-    },
-    /**
-     * 更新多边形覆盖物的属性
-     * 
-     * @param id - 要更新的多边形覆盖物的唯一标识符
-     * @param props - 要更新的多边形属性对象，包含需要更新的部分属性
-     * @throws {Error} 当地图视图未初始化时抛出错误
-     * @returns Promise<void> 异步操作完成后的Promise
-     */
-    updatePolygon: async (id: string, props: Partial<PolygonProps>) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.updatePolygon(id, props);
-    },
+   
   }), []);
 
   /**

@@ -9,6 +9,7 @@ import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
 import com.amap.api.maps.model.PolylineOptions.LineCapType
 import com.amap.api.maps.model.PolylineOptions.LineJoinType
+import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -67,10 +68,10 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置线条颜色
    */
-  fun setStrokeColor(color: Int) {
-    strokeColor = color
+  fun setStrokeColor(color: Any) {
+    strokeColor = ColorParser.parseColor(color)
     polyline?.let {
-      it.color = color
+      it.color = strokeColor
     } ?: createOrUpdatePolyline()
   }
   

@@ -289,18 +289,7 @@ export interface MapViewRef {
   setCenter(center: LatLng, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
-  addCircle(id: string, props: import('./overlays.types').CircleProps): Promise<void>;
-  removeCircle(id: string): Promise<void>;
-  updateCircle(id: string, props: Partial<import('./overlays.types').CircleProps>): Promise<void>;
-  addMarker(id: string, props: import('./overlays.types').MarkerProps): Promise<void>;
-  removeMarker(id: string): Promise<void>;
-  updateMarker(id: string, props: Partial<import('./overlays.types').MarkerProps>): Promise<void>;
-  addPolyline(id: string, props: import('./overlays.types').PolylineProps): Promise<void>;
-  removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<import('./overlays.types').PolylineProps>): Promise<void>;
-  addPolygon(id: string, props: import('./overlays.types').PolygonProps): Promise<void>;
-  removePolygon(id: string): Promise<void>;
-  updatePolygon(id: string, props: Partial<import('./overlays.types').PolygonProps>): Promise<void>;
+
 }
 
 /**
@@ -312,16 +301,4 @@ export interface NativeMapViewRef {
   setCenter(center: LatLng, animated: boolean): Promise<void>;
   setZoom(zoom: number, animated: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
-  addCircle(id: string, props: import('./overlays.types').CircleProps): Promise<void>;
-  removeCircle(id: string): Promise<void>;
-  updateCircle(id: string, props: Partial<import('./overlays.types').CircleProps>): Promise<void>;
-  addMarker(id: string, props: import('./overlays.types').MarkerProps): Promise<void>;
-  removeMarker(id: string): Promise<void>;
-  updateMarker(id: string, props: Partial<import('./overlays.types').MarkerProps>): Promise<void>;
-  addPolyline(id: string, props: import('./overlays.types').PolylineProps): Promise<void>;
-  removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<import('./overlays.types').PolylineProps>): Promise<void>;
-  addPolygon(id: string, props: import('./overlays.types').PolygonProps): Promise<void>;
-  removePolygon(id: string): Promise<void>;
-  updatePolygon(id: string, props: Partial<import('./overlays.types').PolygonProps>): Promise<void>;
 }

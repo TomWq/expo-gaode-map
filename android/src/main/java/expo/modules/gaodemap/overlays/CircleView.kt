@@ -6,6 +6,7 @@ import com.amap.api.maps.AMap
 import com.amap.api.maps.model.Circle
 import com.amap.api.maps.model.CircleOptions
 import com.amap.api.maps.model.LatLng
+import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -56,17 +57,17 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   /**
    * 设置填充颜色
    */
-  fun setFillColor(color: Int) {
-    fillColor = color
-    circle?.fillColor = color
+  fun setFillColor(color: Any) {
+    fillColor = ColorParser.parseColor(color)
+    circle?.fillColor = fillColor
   }
   
   /**
    * 设置边框颜色
    */
-  fun setStrokeColor(color: Int) {
-    strokeColor = color
-    circle?.strokeColor = color
+  fun setStrokeColor(color: Any) {
+    strokeColor = ColorParser.parseColor(color)
+    circle?.strokeColor = strokeColor
   }
   
   /**

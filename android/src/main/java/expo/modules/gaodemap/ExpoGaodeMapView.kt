@@ -382,91 +382,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         return cameraManager.getCameraPosition()
     }
 
-    // ==================== 覆盖物管理 ====================
 
-    /** 添加圆形覆盖物 */
-    fun addCircle(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addCircle(id, props)
-        }
-    }
 
-    /** 移除圆形覆盖物 */
-    fun removeCircle(id: String) {
-        mainHandler.post {
-            overlayManager.removeCircle(id)
-        }
-    }
-
-    /** 更新圆形覆盖物 */
-    fun updateCircle(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updateCircle(id, props)
-        }
-    }
-
-    /** 添加标记点 */
-    fun addMarker(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addMarker(id, props)
-        }
-    }
-
-    /** 移除标记点 */
-    fun removeMarker(id: String) {
-        mainHandler.post {
-            overlayManager.removeMarker(id)
-        }
-    }
-
-    /** 更新标记点 */
-    fun updateMarker(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updateMarker(id, props)
-        }
-    }
-
-    /** 添加折线 */
-    fun addPolyline(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addPolyline(id, props)
-        }
-    }
-
-    /** 移除折线 */
-    fun removePolyline(id: String) {
-        mainHandler.post {
-            overlayManager.removePolyline(id)
-        }
-    }
-
-    /** 更新折线 */
-    fun updatePolyline(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updatePolyline(id, props)
-        }
-    }
-
-    /** 添加多边形 */
-    fun addPolygon(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addPolygon(id, props)
-        }
-    }
-
-    /** 移除多边形 */
-    fun removePolygon(id: String) {
-        mainHandler.post {
-            overlayManager.removePolygon(id)
-        }
-    }
-
-    /** 更新多边形 */
-    fun updatePolygon(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updatePolygon(id, props)
-        }
-    }
 
     // ==================== 生命周期方法 ====================
 
@@ -531,7 +448,17 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             return
         }
 
-        super.addView(child, index)
+        // 修复索引越界问题：确保索引在有效范围内
+        val actualChildCount = super.getChildCount()
+        val safeIndex = if (index < 0) {
+            0
+        } else if (index > actualChildCount) {
+            actualChildCount
+        } else {
+            index
+        }
+
+        super.addView(child, safeIndex)
 
         child?.let {
             when (it) {

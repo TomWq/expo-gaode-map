@@ -17,11 +17,11 @@ class PolygonViewModule : Module() {
         view.setPoints(points)
       }
       
-      Prop<Int>("fillColor") { view: PolygonView, color ->
+      Prop<Any>("fillColor") { view: PolygonView, color ->
         view.setFillColor(color)
       }
       
-      Prop<Int>("strokeColor") { view: PolygonView, color ->
+      Prop<Any>("strokeColor") { view: PolygonView, color ->
         view.setStrokeColor(color)
       }
       
