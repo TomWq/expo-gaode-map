@@ -23,7 +23,7 @@ export type {
   MapViewProps,
   MapViewMethods,
   MapViewRef,
-  NativeMapViewRef,
+
 } from './map-view.types';
 
 // 定位类型
