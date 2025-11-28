@@ -64,7 +64,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     let onMarkerDragStart = EventDispatcher()
     let onMarkerDrag = EventDispatcher()
     let onMarkerDragEnd = EventDispatcher()
-    let onCirclePress = EventDispatcher()
+    // onCirclePress 已移除 - 使用声明式 Circle 组件的 onPress
     let onPolygonPress = EventDispatcher()
     let onPolylinePress = EventDispatcher()
     
@@ -128,9 +128,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         overlayManager = OverlayManager(mapView: mapView)
         
         // 设置覆盖物点击回调
-        overlayManager.onCirclePress = { [weak self] event in
-            self?.onCirclePress(event)
-        }
+        // onCirclePress 已移除 - 使用声明式 Circle 组件
         overlayManager.onPolygonPress = { [weak self] event in
             self?.onPolygonPress(event)
         }
@@ -167,29 +165,41 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
      */
     override func addSubview(_ view: UIView) {
         if let markerView = view as? MarkerView {
-            // ✅ 关键修复：将 MarkerView 添加到隐藏容器中，而不是主视图
-            // 这样 MarkerView 完全不会影响地图的触摸事件
+            // ✅ 将 MarkerView 添加到隐藏容器中，而不是主视图
             markerContainer.addSubview(markerView)
             markerView.setMap(mapView)
             return
         }
         
-        // 其他视图正常添加
-        super.addSubview(view)
-        
+        // 🔑 关键修复：将所有覆盖物视图添加到隐藏容器，避免阻挡地图触摸
         if let circleView = view as? CircleView {
+            markerContainer.addSubview(circleView)
             circleView.setMap(mapView)
+            return
         } else if let polylineView = view as? PolylineView {
+            markerContainer.addSubview(polylineView)
             polylineView.setMap(mapView)
+            return
         } else if let polygonView = view as? PolygonView {
+            markerContainer.addSubview(polygonView)
             polygonView.setMap(mapView)
+            return
         } else if let heatMapView = view as? HeatMapView {
+            markerContainer.addSubview(heatMapView)
             heatMapView.setMap(mapView)
+            return
         } else if let multiPointView = view as? MultiPointView {
+            markerContainer.addSubview(multiPointView)
             multiPointView.setMap(mapView)
+            return
         } else if let clusterView = view as? ClusterView {
+            markerContainer.addSubview(clusterView)
             clusterView.setMap(mapView)
+            return
         }
+        
+        // 其他视图正常添加到主视图层级
+        super.addSubview(view)
     }
     
     /**
@@ -396,11 +406,6 @@ extension ExpoGaodeMapView {
             return
         }
         
-        // 检查是否点击了圆形 (命令式 API)
-        if overlayManager.checkCirclePress(at: coordinate) {
-            return
-        }
-        
         // 检查是否点击了多边形 (声明式)
         if checkPolygonPress(at: coordinate) {
             return
@@ -428,22 +433,36 @@ extension ExpoGaodeMapView {
      * 检查点击位置是否在圆形内
      */
     private func checkCirclePress(at coordinate: CLLocationCoordinate2D) -> Bool {
-        let circleViews = subviews.compactMap { $0 as? CircleView }
+        // 🔑 从隐藏容器中查找 CircleView
+        let circleViews = markerContainer.subviews.compactMap { $0 as? CircleView }
+        
+        print("🔵 checkCirclePress: 找到 \(circleViews.count) 个 CircleView")
         
         for circleView in circleViews {
-            guard let circle = circleView.circle else { continue }
+            guard let circle = circleView.circle else {
+                print("🔵 checkCirclePress: CircleView 没有 circle 对象")
+                continue
+            }
             
             let circleCenter = circle.coordinate
             let distance = calculateDistance(from: coordinate, to: circleCenter)
             
+            print("🔵 checkCirclePress: 点击距离圆心 \(distance)m, 半径 \(circle.radius)m")
+            
             if distance <= circle.radius {
-                circleView.onPress([
+                print("🔵 checkCirclePress: ✅ 点击在圆形内，触发 onPress 事件")
+                print("🔵 checkCirclePress: 事件数据 - latitude: \(coordinate.latitude), longitude: \(coordinate.longitude)")
+                
+                // 🔑 关键修复：直接调用 circleView 的 onCirclePress，它会自动派发到 React Native
+                circleView.onCirclePress([
                     "latitude": coordinate.latitude,
                     "longitude": coordinate.longitude
                 ])
+                print("🔵 checkCirclePress: circleView.onCirclePress 已调用")
                 return true
             }
         }
+        print("🔵 checkCirclePress: ❌ 点击不在任何圆形内")
         return false
     }
     
@@ -460,20 +479,28 @@ extension ExpoGaodeMapView {
      * 检查点击位置是否在多边形内
      */
     private func checkPolygonPress(at coordinate: CLLocationCoordinate2D) -> Bool {
-        let polygonViews = subviews.compactMap { $0 as? PolygonView }
+        // 🔑 从隐藏容器中查找 PolygonView
+        let polygonViews = markerContainer.subviews.compactMap { $0 as? PolygonView }
+        
+        print("🔶 checkPolygonPress: 找到 \(polygonViews.count) 个 PolygonView")
         
         for polygonView in polygonViews {
-            guard let polygon = polygonView.polygon else { continue }
+            guard let polygon = polygonView.polygon else {
+                print("🔶 checkPolygonPress: PolygonView 没有 polygon 对象")
+                continue
+            }
             
             // 使用射线法判断点是否在多边形内
             if isPoint(coordinate, inPolygon: polygon) {
-                polygonView.onPress([
+                print("🔶 checkPolygonPress: ✅ 点击在多边形内，触发 onPolygonPress 事件")
+                polygonView.onPolygonPress([
                     "latitude": coordinate.latitude,
                     "longitude": coordinate.longitude
                 ])
                 return true
             }
         }
+        print("🔶 checkPolygonPress: ❌ 点击不在任何多边形内")
         return false
     }
     
@@ -481,20 +508,28 @@ extension ExpoGaodeMapView {
      * 检查点击位置是否在折线附近
      */
     private func checkPolylinePress(at coordinate: CLLocationCoordinate2D) -> Bool {
-        let polylineViews = subviews.compactMap { $0 as? PolylineView }
+        // 🔑 从隐藏容器中查找 PolylineView
+        let polylineViews = markerContainer.subviews.compactMap { $0 as? PolylineView }
         let threshold: Double = 20.0 // 20米容差
         
+        print("🔷 checkPolylinePress: 找到 \(polylineViews.count) 个 PolylineView")
+        
         for polylineView in polylineViews {
-            guard let polyline = polylineView.polyline else { continue }
+            guard let polyline = polylineView.polyline else {
+                print("🔷 checkPolylinePress: PolylineView 没有 polyline 对象")
+                continue
+            }
             
             if isPoint(coordinate, nearPolyline: polyline, threshold: threshold) {
-                polylineView.onPress([
+                print("🔷 checkPolylinePress: ✅ 点击在折线附近，触发 onPolylinePress 事件")
+                polylineView.onPolylinePress([
                     "latitude": coordinate.latitude,
                     "longitude": coordinate.longitude
                 ])
                 return true
             }
         }
+        print("🔷 checkPolylinePress: ❌ 点击不在任何折线附近")
         return false
     }
     
@@ -667,7 +702,8 @@ extension ExpoGaodeMapView {
      * 优先使用子视图的渲染器,否则使用 OverlayManager 的渲染器
      */
     public func mapView(_ mapView: MAMapView, rendererFor overlay: MAOverlay) -> MAOverlayRenderer {
-        for subview in subviews {
+        // 🔑 从隐藏容器中查找覆盖物视图
+        for subview in markerContainer.subviews {
             if let circleView = subview as? CircleView, let circle = circleView.circle, circle === overlay {
                 return circleView.getRenderer()
             } else if let polylineView = subview as? PolylineView, polylineView.polyline === overlay {

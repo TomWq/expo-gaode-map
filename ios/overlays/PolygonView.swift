@@ -10,7 +10,7 @@ import MAMapKit
  * - 响应属性变化并更新渲染
  */
 class PolygonView: ExpoView {
-    let onPress = EventDispatcher()
+    let onPolygonPress = EventDispatcher()
     
     /// 多边形点数组
     var points: [[String: Double]] = []
@@ -30,6 +30,23 @@ class PolygonView: ExpoView {
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
+        
+        // 🔑 关键修复：PolygonView 不应该拦截触摸事件
+        self.isUserInteractionEnabled = false
+    }
+    
+    /**
+     * 重写 hitTest，让触摸事件完全穿透此视图
+     */
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        return nil
+    }
+    
+    /**
+     * 重写 point(inside:with:)，确保此视图不响应任何触摸
+     */
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        return false
     }
     
     /**

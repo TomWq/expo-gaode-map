@@ -5,20 +5,14 @@ public class PolylineViewModule: Module {
         Name("PolylineView")
         
         View(PolylineView.self) {
+            Events("onPolylinePress")
+            
             Prop("points") { (view: PolylineView, points: [[String: Double]]) in
                 view.setPoints(points)
             }
             
-            Prop("width") { (view: PolylineView, width: Double) in
-                view.setStrokeWidth(Float(width))
-            }
-            
             Prop("strokeWidth") { (view: PolylineView, width: Double) in
                 view.setStrokeWidth(Float(width))
-            }
-            
-            Prop("color") { (view: PolylineView, color: String) in
-                view.setStrokeColor(color)
             }
             
             Prop("strokeColor") { (view: PolylineView, color: String) in

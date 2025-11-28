@@ -5,6 +5,8 @@ public class CircleViewModule: Module {
         Name("CircleView")
         
         View(CircleView.self) {
+            Events("onCirclePress")
+            
             Prop("center") { (view: CircleView, center: [String: Double]) in
                 view.setCenter(center)
             }

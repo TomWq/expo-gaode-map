@@ -6,6 +6,7 @@ import com.amap.api.maps.AMap
 import com.amap.api.maps.model.Circle
 import com.amap.api.maps.model.CircleOptions
 import com.amap.api.maps.model.LatLng
+import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -13,7 +14,7 @@ import expo.modules.kotlin.views.ExpoView
 class CircleView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
   @Suppress("unused")
-  private val onPress by EventDispatcher()
+  private val onCirclePress by EventDispatcher()
   
   private var circle: Circle? = null
   private var aMap: AMap? = null
@@ -22,6 +23,8 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   private var fillColor: Int = Color.argb(50, 0, 0, 255)
   private var strokeColor: Int = Color.BLUE
   private var strokeWidth: Float = 10f
+
+  private var _zIndex: Float = 0f
   
   /**
    * 设置地图实例
@@ -50,23 +53,31 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
    */
   fun setRadius(radiusValue: Double) {
     radius = radiusValue
-    circle?.radius = radius
+    circle?.let {
+        it.radius = radius
+    } ?: createOrUpdateCircle()
+
   }
   
   /**
    * 设置填充颜色
    */
-  fun setFillColor(color: Int) {
-    fillColor = color
-    circle?.fillColor = color
+  fun setFillColor(color: Any) {
+    fillColor = ColorParser.parseColor(color)
+     circle?.let {
+         it.fillColor = fillColor
+     } ?: createOrUpdateCircle()
+
   }
   
   /**
    * 设置边框颜色
    */
-  fun setStrokeColor(color: Int) {
-    strokeColor = color
-    circle?.strokeColor = color
+  fun setStrokeColor(color: Any) {
+    strokeColor =  ColorParser.parseColor(color)
+    circle?.let {
+        it.strokeColor = strokeColor
+    } ?: createOrUpdateCircle()
   }
   
   /**
@@ -76,14 +87,19 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setStrokeWidth(width: Float) {
     val density = context.resources.displayMetrics.density
     strokeWidth = width * density
-    circle?.strokeWidth = strokeWidth
+    circle?.let {
+        it.strokeWidth = strokeWidth
+    } ?: createOrUpdateCircle()
   }
   
   /**
    * 设置 z-index
    */
   fun setZIndex(zIndex: Float) {
-    circle?.zIndex = zIndex
+    _zIndex = zIndex
+   circle?.let {
+        it.zIndex = _zIndex
+    } ?: createOrUpdateCircle()
   }
   
   /**
@@ -94,14 +110,15 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
     val centerPoint = center ?: return
     
     if (circle == null) {
-      val density = context.resources.displayMetrics.density
+
       circle = map.addCircle(
         CircleOptions()
           .center(centerPoint)
           .radius(radius)
           .fillColor(fillColor)
           .strokeColor(strokeColor)
-          .strokeWidth(strokeWidth * density)
+          .strokeWidth(strokeWidth)
+          .zIndex(_zIndex)
       )
     }
   }
@@ -112,7 +129,7 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun checkPress(latLng: LatLng): Boolean {
     circle?.let { c ->
       if (c.contains(latLng)) {
-        onPress(mapOf(
+        onCirclePress(mapOf(
           "latitude" to latLng.latitude,
           "longitude" to latLng.longitude
         ))
@@ -134,4 +151,5 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
     super.onDetachedFromWindow()
     removeCircle()
   }
+
 }

@@ -10,8 +10,8 @@ import MAMapKit
  * - 响应属性变化并更新渲染
  */
 class CircleView: ExpoView {
-    /// 事件派发器
-    let onPress = EventDispatcher()
+    /// 事件派发器 - 使用 onCirclePress 避免与 MarkerPress 冲突
+    let onCirclePress = EventDispatcher()
     
     /// 圆心坐标
     var circleCenter: [String: Double] = [:]
@@ -33,6 +33,26 @@ class CircleView: ExpoView {
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
+        
+        // 🔑 关键修复：CircleView 不应该拦截触摸事件
+        self.isUserInteractionEnabled = false
+    }
+    
+    /**
+     * 重写 hitTest，让触摸事件完全穿透此视图
+     * 这是解决覆盖物视图阻挡地图触摸的关键
+     */
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // 始终返回 nil，让触摸事件穿透到地图
+        return nil
+    }
+    
+    /**
+     * 重写 point(inside:with:)，确保此视图不响应任何触摸
+     */
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        // 始终返回 false，表示点击不在此视图内
+        return false
     }
     
     /**

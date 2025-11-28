@@ -329,8 +329,8 @@ export default function App() {
         const { latitude, longitude } = nativeEvent;  // 直接从 nativeEvent 获取
         console.log('地图定位:', latitude, longitude);
       }}
-        onMapPress={(e) => console.log('地图点击:', e)}
-        onMapLongPress={(e) => console.log('地图长按:', e)}
+        onMapPress={(e) => console.log('地图点击:', e.nativeEvent)}
+        onMapLongPress={(e) => console.log('地图长按:', e.nativeEvent)}
       >
         {/* 声明式覆盖物 */}
         {location && (
@@ -340,7 +340,8 @@ export default function App() {
             fillColor="#4400FF00"
             strokeColor="#FF00FF00"
             strokeWidth={3}
-            // onPress={() => Alert.alert('圆形', '点击了声明式圆形')}
+            zIndex={99}
+            onCirclePress={() => Alert.alert('圆形', '点击了声明式圆形')}
           />
         )}
         
@@ -353,6 +354,7 @@ export default function App() {
             fillColor={circle.fillColor}
             strokeColor={circle.strokeColor}
             strokeWidth={2}
+            onCirclePress={() => Alert.alert('圆形', `点击了动态圆形 #${circle.id}`)}
           />
         ))}
         
@@ -361,8 +363,8 @@ export default function App() {
           <Polyline
             key={polyline.id}
             points={polyline.points}
-            width={5}
-            color={polyline.color}
+            strokeWidth={5}
+            strokeColor={polyline.color}
           />
         ))}
         
@@ -400,8 +402,14 @@ export default function App() {
             position={{ latitude: marker.latitude, longitude: marker.longitude }}
             title={marker.content}
             pinColor={marker.color}
+            customViewWidth={200}
+            customViewHeight={40}
             onPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
-          />
+          >
+            <View style={styles.markerContainer}>
+              <Text style={styles.markerText}>{marker.content}</Text>
+            </View>
+          </Marker>
         ))}
         
         <Marker
@@ -444,7 +452,7 @@ export default function App() {
           strokeColor="#FFFF0000"
           strokeWidth={3}
           zIndex={1}
-          onPress={() => Alert.alert('多边形', '点击了声明式多边形')}
+          onPolygonPress={() => Alert.alert('多边形', '点击了声明式多边形')}
         />
         
         <Polyline
@@ -453,9 +461,9 @@ export default function App() {
             { latitude: 39.87, longitude: 116.37 },
             { latitude: 39.89, longitude: 116.35 },
           ]}
-          width={5}
-          color="#FFFF0000"
-          onPress={() => Alert.alert('折线', '点击了普通折线')}
+          strokeWidth={5}
+          strokeColor="#FFFF0000"
+          onPolylinePress={() => Alert.alert('折线', '点击了普通折线')}
         />
         
         <Polyline
@@ -464,10 +472,10 @@ export default function App() {
             { latitude: 39.87, longitude: 116.47 },
             { latitude: 39.89, longitude: 116.45 },
           ]}
-          width={5}
-          color="#FF0000FF"
+          strokeWidth={5}
+          strokeColor="#FF0000FF"
           dotted={true}
-          onPress={() => Alert.alert('折线', '点击了虚线折线')}
+          onPolylinePress={() => Alert.alert('折线', '点击了虚线折线')}
         />
         
         <Polyline
@@ -476,10 +484,10 @@ export default function App() {
             { latitude: 39.97, longitude: 116.37 },
             { latitude: 39.99, longitude: 116.35 },
           ]}
-          width={20}
-          color="#FFFF0000"
+          strokeWidth={20}
+          strokeColor="#FFFF0000"
           texture={iconUri}
-          onPress={() => Alert.alert('折线', '点击了纹理折线')}
+          onPolylinePress={() => Alert.alert('折线', '点击了纹理折线')}
         />
         
         <Polyline
@@ -488,10 +496,10 @@ export default function App() {
             { latitude: 39.97, longitude: 116.47 },
             { latitude: 39.99, longitude: 116.45 },
           ]}
-          width={5}
-          color="#FF00FF00"
+          strokeWidth={5}
+          strokeColor="#FF00FF00"
           geodesic={true}
-          onPress={() => Alert.alert('折线', '点击了大地线折线')}
+          onPolylinePress={() => Alert.alert('折线', '点击了大地线折线')}
         />
       </MapView>
 

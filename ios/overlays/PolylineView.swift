@@ -22,7 +22,7 @@ class PolylineView: ExpoView {
     var textureUrl: String?
     
     /// 点击事件派发器
-    let onPress = EventDispatcher()
+    let onPolylinePress = EventDispatcher()
     
     /// 地图视图弱引用
     private var mapView: MAMapView?
@@ -33,6 +33,23 @@ class PolylineView: ExpoView {
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
+        
+        // 🔑 关键修复：PolylineView 不应该拦截触摸事件
+        self.isUserInteractionEnabled = false
+    }
+    
+    /**
+     * 重写 hitTest，让触摸事件完全穿透此视图
+     */
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        return nil
+    }
+    
+    /**
+     * 重写 point(inside:with:)，确保此视图不响应任何触摸
+     */
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        return false
     }
     
     /**
@@ -100,7 +117,7 @@ class PolylineView: ExpoView {
                 return
             }
             URLSession.shared.dataTask(with: imageUrl) { [weak self] data, _, error in
-                if let error = error {
+                if error != nil {
                     return
                 }
                 guard let data = data, let image = UIImage(data: data) else {
