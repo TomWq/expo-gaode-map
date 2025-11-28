@@ -12,11 +12,27 @@ import UIKit
  * - 支持自定义 children 视图
  */
 class MarkerView: ExpoView {
-    // MARK: - 事件派发器
-    let onPress = EventDispatcher()
-    let onDragStart = EventDispatcher()
-    let onDrag = EventDispatcher()
-    let onDragEnd = EventDispatcher()
+    // MARK: - 事件派发器（专属事件名避免冲突）
+    var onMarkerPress = EventDispatcher() {
+        didSet {
+            print("🎯 [MarkerView] onMarkerPress EventDispatcher 已设置")
+        }
+    }
+    var onMarkerDragStart = EventDispatcher() {
+        didSet {
+            print("🎯 [MarkerView] onMarkerDragStart EventDispatcher 已设置")
+        }
+    }
+    var onMarkerDrag = EventDispatcher() {
+        didSet {
+            print("🎯 [MarkerView] onMarkerDrag EventDispatcher 已设置")
+        }
+    }
+    var onMarkerDragEnd = EventDispatcher() {
+        didSet {
+            print("🎯 [MarkerView] onMarkerDragEnd EventDispatcher 已设置")
+        }
+    }
     
     /// 标记点位置
     var position: [String: Double] = [:]
@@ -106,7 +122,7 @@ class MarkerView: ExpoView {
     /**
      * 更新标记点
      */
-    private func updateAnnotation() {
+    func updateAnnotation() {
         guard let mapView = mapView,
               let latitude = position["latitude"],
               let longitude = position["longitude"] else {
@@ -150,75 +166,127 @@ class MarkerView: ExpoView {
     func getAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
         print("🎨 [MarkerView] getAnnotationView 被调用")
         print("🎨 [MarkerView] subviews.count: \(self.subviews.count)")
+        print("🎨 [MarkerView] iconUri: \(String(describing: iconUri))")
         
-        let reuseId = "custom_marker_\(ObjectIdentifier(self).hashValue)"
-        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
-        
-        if annotationView == nil {
-            annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+        // 🔑 如果有 children，使用自定义视图
+        if self.subviews.count > 0 {
+            let reuseId = "custom_marker_children_\(ObjectIdentifier(self).hashValue)"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+            
+            if annotationView == nil {
+                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+            
+            annotationView?.annotation = annotation
             annotationView?.canShowCallout = canShowCallout
             annotationView?.isDraggable = draggable
-        }
-        
-        annotationView?.annotation = annotation
-        self.annotationView = annotationView
-        
-        // 设置图标
-        if self.subviews.count > 0 {
+            self.annotationView = annotationView
+            
             print("🎨 [MarkerView] 尝试创建自定义图片...")
             if let image = self.createImageFromSubviews() {
                 print("✅ [MarkerView] 自定义图片创建成功, size: \(image.size)")
                 annotationView?.image = image
                 annotationView?.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
             } else {
-                print("❌ [MarkerView] 自定义图片创建失败，使用默认图标")
-                annotationView?.image = self.createDefaultMarkerImage()
-                annotationView?.centerOffset = CGPoint(x: 0, y: -18)
+                print("❌ [MarkerView] 自定义图片创建失败，返回 nil 使用系统默认")
+                return nil
             }
-        } else {
-            print("📍 [MarkerView] 没有子视图，使用默认图标")
-            annotationView?.image = self.createDefaultMarkerImage()
-            annotationView?.centerOffset = CGPoint(x: 0, y: -18)
+            
+            return annotationView
         }
         
-        return annotationView
+        // 🔑 如果有 icon 属性，使用自定义图标
+        if let iconUri = iconUri, !iconUri.isEmpty {
+            let reuseId = "custom_marker_icon_\(ObjectIdentifier(self).hashValue)"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+            
+            if annotationView == nil {
+                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+            
+            annotationView?.annotation = annotation
+            annotationView?.canShowCallout = canShowCallout
+            annotationView?.isDraggable = draggable
+            self.annotationView = annotationView
+            
+            // 加载自定义图标
+            loadIcon(iconUri: iconUri) { [weak self] image in
+                guard let self = self, let image = image else {
+                    print("❌ [MarkerView] 图标加载失败")
+                    return
+                }
+                let size = CGSize(width: self.iconWidth, height: self.iconHeight)
+                
+                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+                image.draw(in: CGRect(origin: .zero, size: size))
+                let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                
+                DispatchQueue.main.async {
+                    annotationView?.image = resizedImage
+                    annotationView?.centerOffset = CGPoint(x: 0, y: -self.iconHeight / 2)
+                    print("✅ [MarkerView] 自定义图标已设置, size: \(size)")
+                }
+            }
+            
+            return annotationView
+        }
+        
+        // 🔑 既没有 children 也没有 icon，使用系统默认大头针
+        print("📍 [MarkerView] 使用系统默认大头针")
+        let reuseId = "pin_marker_\(ObjectIdentifier(self).hashValue)"
+        var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MAPinAnnotationView
+        
+        if pinView == nil {
+            pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+        }
+        
+        pinView?.annotation = annotation
+        pinView?.canShowCallout = canShowCallout
+        pinView?.isDraggable = draggable
+        pinView?.animatesDrop = animatesDrop
+        
+        // 设置大头针颜色
+        switch pinColor.lowercased() {
+        case "green":
+            pinView?.pinColor = .green
+        case "purple":
+            pinView?.pinColor = .purple
+        default:
+            pinView?.pinColor = .red
+        }
+        
+        self.annotationView = pinView
+        return pinView
     }
     
     /**
-     * 创建默认 marker 图标（红色大头针）
+     * 加载图标
+     * @param iconUri 图标 URI (支持 http/https/file/本地资源)
+     * @param completion 加载完成回调
      */
-    private func createDefaultMarkerImage() -> UIImage {
-        let width: CGFloat = 48
-        let height: CGFloat = 72
-        let size = CGSize(width: width, height: height)
-        
-        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-        defer { UIGraphicsEndImageContext() }
-        
-        guard let context = UIGraphicsGetCurrentContext() else {
-            return UIImage()
+    private func loadIcon(iconUri: String, completion: @escaping (UIImage?) -> Void) {
+        if iconUri.hasPrefix("http://") || iconUri.hasPrefix("https://") {
+            // 网络图片
+            guard let url = URL(string: iconUri) else {
+                completion(nil)
+                return
+            }
+            URLSession.shared.dataTask(with: url) { data, _, _ in
+                guard let data = data, let image = UIImage(data: data) else {
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+                DispatchQueue.main.async { completion(image) }
+            }.resume()
+        } else if iconUri.hasPrefix("file://") {
+            // 本地文件
+            let path = String(iconUri.dropFirst(7))
+            completion(UIImage(contentsOfFile: path))
+        } else {
+            // 资源文件名
+            completion(UIImage(named: iconUri))
         }
-        
-        // 绘制红色圆形顶部
-        context.setFillColor(UIColor(red: 1.0, green: 0.32, blue: 0.32, alpha: 1.0).cgColor)
-        let circleRect = CGRect(x: 2, y: 2, width: width - 4, height: width - 4)
-        context.fillEllipse(in: circleRect)
-        
-        // 绘制尖端
-        context.beginPath()
-        context.move(to: CGPoint(x: width / 2, y: height))
-        context.addLine(to: CGPoint(x: width / 4, y: width / 2 + 10))
-        context.addLine(to: CGPoint(x: 3 * width / 4, y: width / 2 + 10))
-        context.closePath()
-        context.fillPath()
-        
-        // 绘制白色边框
-        context.setStrokeColor(UIColor.white.cgColor)
-        context.setLineWidth(3)
-        let borderRect = CGRect(x: 4, y: 4, width: width - 8, height: width - 8)
-        context.strokeEllipse(in: borderRect)
-        
-        return UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
     }
     
     /**
@@ -279,33 +347,6 @@ class MarkerView: ExpoView {
         }
     }
     
-    /**
-     * 创建组合图片：默认 marker + 自定义内容
-     */
-    private func createCombinedImage() -> UIImage? {
-        guard let customImage = createImageFromSubviews() else { return nil }
-        let markerImage = createDefaultMarkerImage()
-        
-        // 计算总尺寸：marker 在下，自定义内容在上
-        let totalWidth = max(markerImage.size.width, customImage.size.width)
-        let spacing: CGFloat = 10
-        let totalHeight = markerImage.size.height + customImage.size.height + spacing
-        let totalSize = CGSize(width: totalWidth, height: totalHeight)
-        
-        UIGraphicsBeginImageContextWithOptions(totalSize, false, 0.0)
-        defer { UIGraphicsEndImageContext() }
-        
-        // 绘制自定义内容在上方
-        let customX = (totalWidth - customImage.size.width) / 2
-        customImage.draw(at: CGPoint(x: customX, y: 0))
-        
-        // 绘制 marker 在下方
-        let markerX = (totalWidth - markerImage.size.width) / 2
-        let markerY = customImage.size.height + spacing
-        markerImage.draw(at: CGPoint(x: markerX, y: markerY))
-        
-        return UIGraphicsGetImageFromCurrentImageContext()
-    }
     
     /**
      * 当视图即将从父视图移除时调用
@@ -490,13 +531,8 @@ class MarkerView: ExpoView {
         updateAnnotation()
     }
     
-    func setIcon(_ source: [String: Any]?) {
-        if let dict = source {
-            // 处理 require() 返回的对象
-            if let uri = dict["uri"] as? String {
-                self.iconUri = uri
-            }
-        }
+    func setIconUri(_ uri: String?) {
+        self.iconUri = uri
         updateAnnotation()
     }
     

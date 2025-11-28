@@ -207,7 +207,7 @@ export default function App() {
     };
     
     setDynamicMarkers(prev => [...prev, newMarker]);
-    Alert.alert('成功', `已添加标记\n当前共 ${dynamicMarkers.length + 1} 个动态标记`);
+    // Alert.alert('成功', `已添加标记\n当前共 ${dynamicMarkers.length + 1} 个动态标记`);
   };
 
   // 声明式 API: 添加折线
@@ -387,7 +387,7 @@ export default function App() {
             title={location.address}
             customViewWidth={200}
             customViewHeight={40}
-            onPress={() => Alert.alert('标记', '点击了当前位置标记')}
+            onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
             <View style={styles.markerContainer}>
               <Text style={styles.markerText}>{location?.address}</Text>
@@ -404,7 +404,7 @@ export default function App() {
             pinColor={marker.color}
             customViewWidth={200}
             customViewHeight={40}
-            onPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+            onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
           >
             <View style={styles.markerContainer}>
               <Text style={styles.markerText}>{marker.content}</Text>
@@ -417,8 +417,8 @@ export default function App() {
           title="可拖拽标记"
           draggable={true}
           pinColor="purple"
-          onPress={() => Alert.alert('标记', '点击了可拖拽标记')}
-          onDragEnd={(e) => {
+          onMarkerPress={() => Alert.alert('标记', '点击了可拖拽标记')}
+          onMarkerDragEnd={(e) => {
             Alert.alert('拖拽结束', `新位置: ${e.nativeEvent.latitude.toFixed(6)}, ${e.nativeEvent.longitude.toFixed(6)}`);
           }}
         />
@@ -426,10 +426,11 @@ export default function App() {
         <Marker
           position={{ latitude: 39.93, longitude: 116.43 }}
           title="自定义图标"
+          snippet="自定义图标描述"
           icon={iconUri}
           iconWidth={40}
           iconHeight={40}
-          onPress={() => Alert.alert('标记', '点击了自定义图标标记')}
+          onMarkerPress={() => Alert.alert('标记', '点击了自定义图标标记')}
         />
         
         {Platform.OS === 'ios' && (
@@ -438,7 +439,7 @@ export default function App() {
             title="iOS 动画标记"
             pinColor="green"
             animatesDrop={true}
-            onPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
+            onMarkerPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
           />
         )}
         
@@ -490,7 +491,7 @@ export default function App() {
           onPolylinePress={() => Alert.alert('折线', '点击了纹理折线')}
         />
         
-        <Polyline
+        {/* <Polyline
           points={[
             { latitude: 39.95, longitude: 116.45 },
             { latitude: 39.97, longitude: 116.47 },
@@ -500,7 +501,7 @@ export default function App() {
           strokeColor="#FF00FF00"
           geodesic={true}
           onPolylinePress={() => Alert.alert('折线', '点击了大地线折线')}
-        />
+        /> */}
       </MapView>
 
       {location && (

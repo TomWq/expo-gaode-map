@@ -60,13 +60,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     let onMapLongPress = EventDispatcher()
     let onLoad = EventDispatcher()
     let onLocation = EventDispatcher()
-    let onMarkerPress = EventDispatcher()
-    let onMarkerDragStart = EventDispatcher()
-    let onMarkerDrag = EventDispatcher()
-    let onMarkerDragEnd = EventDispatcher()
-    // onCirclePress 已移除 - 使用声明式 Circle 组件的 onPress
-    let onPolygonPress = EventDispatcher()
-    let onPolylinePress = EventDispatcher()
     
     // MARK: - 私有属性
     
@@ -126,15 +119,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         }
         
         overlayManager = OverlayManager(mapView: mapView)
-        
-        // 设置覆盖物点击回调
-        // onCirclePress 已移除 - 使用声明式 Circle 组件
-        overlayManager.onPolygonPress = { [weak self] event in
-            self?.onPolygonPress(event)
-        }
-        overlayManager.onPolylinePress = { [weak self] event in
-            self?.onPolylinePress(event)
-        }
         
         setupDefaultConfig()
     }
@@ -275,55 +259,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         return cameraManager.getCameraPosition()
     }
     
-    // MARK: - 覆盖物管理
-    
-    func addCircle(id: String, props: [String: Any]) {
-        overlayManager.addCircle(id: id, props: props)
-    }
-    
-    func removeCircle(id: String) {
-        overlayManager.removeCircle(id: id)
-    }
-    
-    func updateCircle(id: String, props: [String: Any]) {
-        overlayManager.updateCircle(id: id, props: props)
-    }
-    
-    func addMarker(id: String, props: [String: Any]) {
-        overlayManager.addMarker(id: id, props: props)
-    }
-    
-    func removeMarker(id: String) {
-        overlayManager.removeMarker(id: id)
-    }
-    
-    func updateMarker(id: String, props: [String: Any]) {
-        overlayManager.updateMarker(id: id, props: props)
-    }
-    
-    func addPolyline(id: String, props: [String: Any]) {
-        overlayManager.addPolyline(id: id, props: props)
-    }
-    
-    func removePolyline(id: String) {
-        overlayManager.removePolyline(id: id)
-    }
-    
-    func updatePolyline(id: String, props: [String: Any]) {
-        overlayManager.updatePolyline(id: id, props: props)
-    }
-    
-    func addPolygon(id: String, props: [String: Any]) {
-        overlayManager.addPolygon(id: id, props: props)
-    }
-    
-    func removePolygon(id: String) {
-        overlayManager.removePolygon(id: id)
-    }
-    
-    func updatePolygon(id: String, props: [String: Any]) {
-        overlayManager.updatePolygon(id: id, props: props)
-    }
     
     // MARK: - 图层控制
     
@@ -401,30 +336,10 @@ extension ExpoGaodeMapView {
             return
         }
         
-        // 检查是否点击了圆形 (声明式 CircleView)
-        if checkCirclePress(at: coordinate) {
-            return
-        }
-        
-        // 检查是否点击了多边形 (声明式)
-        if checkPolygonPress(at: coordinate) {
-            return
-        }
-        
-        // 检查是否点击了多边形 (命令式 API)
-        if overlayManager.checkPolygonPress(at: coordinate) {
-            return
-        }
-        
-        // 检查是否点击了折线 (声明式)
-        if checkPolylinePress(at: coordinate) {
-            return
-        }
-        
-        // 检查是否点击了折线 (命令式 API)
-        if overlayManager.checkPolylinePress(at: coordinate) {
-            return
-        }
+        // 检查声明式覆盖物点击
+        if checkCirclePress(at: coordinate) { return }
+        if checkPolygonPress(at: coordinate) { return }
+        if checkPolylinePress(at: coordinate) { return }
         
         onMapPress(["latitude": coordinate.latitude, "longitude": coordinate.longitude])
     }
@@ -627,72 +542,12 @@ extension ExpoGaodeMapView {
         }
         
         if annotation.isKind(of: MAPointAnnotation.self) {
-            // 首先检查是否是声明式 MarkerView 的 annotation
-            // 从隐藏容器中查找 MarkerView
+            // 检查是否是声明式 MarkerView 的 annotation
             for subview in markerContainer.subviews {
                 if let markerView = subview as? MarkerView, markerView.annotation === annotation {
                     return markerView.getAnnotationView(for: mapView, annotation: annotation)
                 }
             }
-            
-            // 如果不是声明式的，检查是否是命令式 API 的 Marker
-            guard let props = overlayManager.getMarkerProps(for: annotation) else {
-                return nil
-            }
-            
-            let iconUri = props["icon"] as? String
-            let iconWidth = props["iconWidth"] as? Double ?? 40
-            let iconHeight = props["iconHeight"] as? Double ?? 40
-            let pinColor = props["pinColor"] as? String ?? "red"
-            let draggable = props["draggable"] as? Bool ?? false
-            
-            // 如果有自定义图标，使用 MAAnnotationView
-            if let iconUri = iconUri, !iconUri.isEmpty {
-                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: "custom_marker")
-                if annotationView == nil {
-                    annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: "custom_marker")
-                }
-                annotationView?.annotation = annotation
-                annotationView?.canShowCallout = true
-                annotationView?.isDraggable = draggable
-                
-                // 加载图标
-                loadMarkerIcon(iconUri: iconUri) { image in
-                    if let img = image {
-                        // 调整图标大小
-                        let size = CGSize(width: iconWidth, height: iconHeight)
-                        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-                        img.draw(in: CGRect(origin: .zero, size: size))
-                        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
-                        UIGraphicsEndImageContext()
-                        
-                        annotationView?.image = resizedImage
-                        // 设置中心点偏移，使标注底部中间点成为经纬度对应点
-                        annotationView?.centerOffset = CGPoint(x: 0, y: -iconHeight / 2)
-                    }
-                }
-                
-                return annotationView
-            }
-            
-            // 使用大头针样式
-            guard let pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: "pin_marker") else {
-                return nil
-            }
-            pinView.canShowCallout = true
-            pinView.animatesDrop = true
-            pinView.isDraggable = draggable
-            
-            // 设置大头针颜色
-            if pinColor == "green" {
-                pinView.pinColor = .green
-            } else if pinColor == "purple" {
-                pinView.pinColor = .purple
-            } else {
-                pinView.pinColor = .red
-            }
-            
-            return pinView
         }
         return nil
     }
@@ -712,8 +567,10 @@ extension ExpoGaodeMapView {
                 return polygonView.getRenderer()
             }
         }
+
+        return MAOverlayRenderer(overlay: overlay)
         
-        return overlayManager.getRenderer(for: overlay) ?? MAOverlayRenderer(overlay: overlay)
+//        return overlayManager.getRenderer(for: overlay) ?? MAOverlayRenderer(overlay: overlay)
     }
     
     /**
@@ -721,20 +578,37 @@ extension ExpoGaodeMapView {
      */
     public func mapView(_ mapView: MAMapView, didSelect view: MAAnnotationView) {
         guard let annotation = view.annotation, !annotation.isKind(of: MAUserLocation.self) else {
+            print("📍 [didSelect] 跳过：用户位置标记")
             return
         }
+        
+        print("📍 [didSelect] 标记被点击")
+        print("📍 [didSelect] 坐标: \(annotation.coordinate.latitude), \(annotation.coordinate.longitude)")
         
         // 标记正在处理 annotation 选择，阻止地图点击事件
         isHandlingAnnotationSelect = true
         
-        // 查找对应的 markerId
-        if let markerId = overlayManager.getMarkerId(for: annotation) {
-            onMarkerPress([
-                "markerId": markerId,
-                "latitude": annotation.coordinate.latitude,
-                "longitude": annotation.coordinate.longitude
-            ])
+        // 🔑 优先检查声明式 MarkerView
+        print("📍 [didSelect] 检查 markerContainer.subviews 数量: \(markerContainer.subviews.count)")
+        for (index, subview) in markerContainer.subviews.enumerated() {
+            print("📍 [didSelect] subview[\(index)]: \(type(of: subview))")
+            if let markerView = subview as? MarkerView {
+                print("📍 [didSelect] 找到 MarkerView，annotation 匹配: \(markerView.annotation === annotation)")
+                if markerView.annotation === annotation {
+                    print("✅ [didSelect] 触发 onMarkerPress 事件")
+                    let eventData: [String: Any] = [
+                        "latitude": annotation.coordinate.latitude,
+                        "longitude": annotation.coordinate.longitude
+                    ]
+                    print("✅ [didSelect] 事件数据: \(eventData)")
+                    markerView.onMarkerPress(eventData)
+                    print("✅ [didSelect] onMarkerPress() 已调用完成")
+                    return
+                }
+            }
         }
+        
+        print("⚠️ [didSelect] 未找到匹配的声明式 MarkerView")
         
         // 不要立即取消选中，让气泡有机会显示
         // 用户点击地图其他地方时会自动取消选中
@@ -744,55 +618,49 @@ extension ExpoGaodeMapView {
      * 标注拖拽状态变化
      */
     public func mapView(_ mapView: MAMapView, annotationView view: MAAnnotationView, didChange newState: MAAnnotationViewDragState, fromOldState oldState: MAAnnotationViewDragState) {
-        guard let annotation = view.annotation else { return }
-        
-        if let markerId = overlayManager.getMarkerId(for: annotation) {
-            let coord = annotation.coordinate
-            let event: [String: Any] = [
-                "markerId": markerId,
-                "latitude": coord.latitude,
-                "longitude": coord.longitude
-            ]
-            
-            switch newState {
-            case .starting:
-                onMarkerDragStart(event)
-            case .dragging:
-                onMarkerDrag(event)
-            case .ending, .canceling:
-                onMarkerDragEnd(event)
-            default:
-                break
-            }
+        guard let annotation = view.annotation else {
+            print("🔄 [didChange] 没有 annotation")
+            return
         }
-    }
-    
-    /**
-     * 加载标记图标
-     * @param iconUri 图标 URI (支持 http/https/file/本地资源)
-     * @param completion 加载完成回调
-     */
-    private func loadMarkerIcon(iconUri: String, completion: @escaping (UIImage?) -> Void) {
-        if iconUri.hasPrefix("http://") || iconUri.hasPrefix("https://") {
-            // 网络图片
-            guard let url = URL(string: iconUri) else {
-                completion(nil)
-                return
-            }
-            URLSession.shared.dataTask(with: url) { data, _, _ in
-                guard let data = data, let image = UIImage(data: data) else {
-                    DispatchQueue.main.async { completion(nil) }
+        
+        print("🔄 [didChange] 拖拽状态变化: \(oldState.rawValue) -> \(newState.rawValue)")
+        
+        let coord = annotation.coordinate
+        let event: [String: Any] = [
+            "latitude": coord.latitude,
+            "longitude": coord.longitude
+        ]
+        
+        // 🔑 优先检查声明式 MarkerView
+        print("🔄 [didChange] 检查 markerContainer.subviews 数量: \(markerContainer.subviews.count)")
+        for (index, subview) in markerContainer.subviews.enumerated() {
+            print("🔄 [didChange] subview[\(index)]: \(type(of: subview))")
+            if let markerView = subview as? MarkerView {
+                print("🔄 [didChange] 找到 MarkerView，annotation 匹配: \(markerView.annotation === annotation)")
+                if markerView.annotation === annotation {
+                    print("✅ [didChange] 找到匹配的 MarkerView")
+                    switch newState {
+                    case .starting:
+                        print("✅ [didChange] 触发 onMarkerDragStart")
+                        markerView.onMarkerDragStart(event)
+                        print("✅ [didChange] onMarkerDragStart() 已调用完成")
+                    case .dragging:
+                        print("✅ [didChange] 触发 onMarkerDrag")
+                        markerView.onMarkerDrag(event)
+                        print("✅ [didChange] onMarkerDrag() 已调用完成")
+                    case .ending, .canceling:
+                        print("✅ [didChange] 触发 onMarkerDragEnd")
+                        markerView.onMarkerDragEnd(event)
+                        print("✅ [didChange] onMarkerDragEnd() 已调用完成")
+                    default:
+                        print("⚠️ [didChange] 未处理的状态: \(newState.rawValue)")
+                        break
+                    }
                     return
                 }
-                DispatchQueue.main.async { completion(image) }
-            }.resume()
-        } else if iconUri.hasPrefix("file://") {
-            // 本地文件
-            let path = String(iconUri.dropFirst(7))
-            completion(UIImage(contentsOfFile: path))
-        } else {
-            // 资源文件名
-            completion(UIImage(named: iconUri))
+            }
         }
+        
+        print("⚠️ [didChange] 未找到匹配的声明式 MarkerView")
     }
 }

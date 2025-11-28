@@ -6,7 +6,7 @@ import MAMapKit
  * 
  * 负责:
  * - 在地图上绘制折线
- * - 支持纹理贴图
+ * - 支持纹理贴图（仅 3D 地图支持）
  * - 管理折线样式(线宽、颜色)
  */
 class PolylineView: ExpoView {
@@ -89,9 +89,6 @@ class PolylineView: ExpoView {
             renderer = MAPolylineRenderer(polyline: polyline)
             renderer?.lineWidth = CGFloat(strokeWidth)
             
-            // 注意: iOS 高德地图 SDK 不支持简单的虚线设置
-            // 需要使用 MAMultiPolyline 实现虚线,暂不支持
-            
             if let url = textureUrl {
                 print("🔷 PolylineView.getRenderer: 加载纹理 \(url)")
                 loadTexture(url: url, renderer: renderer!)
@@ -117,12 +114,15 @@ class PolylineView: ExpoView {
                 return
             }
             URLSession.shared.dataTask(with: imageUrl) { [weak self] data, _, error in
-                if error != nil {
+                if let error = error {
+                    print("🔷 PolylineView.loadTexture: ❌ 网络图片加载失败: \(error.localizedDescription)")
                     return
                 }
                 guard let data = data, let image = UIImage(data: data) else {
+                    print("🔷 PolylineView.loadTexture: ❌ 无法解析图片数据")
                     return
                 }
+                print("🔷 PolylineView.loadTexture: ✅ 网络图片加载成功, size: \(image.size)")
                 DispatchQueue.main.async {
                     self?.applyTexture(image: image, to: renderer)
                 }
@@ -141,15 +141,48 @@ class PolylineView: ExpoView {
     
     /**
      * 应用纹理到折线渲染器
+     * 
+     * 根据高德地图官方文档：
+     * - 仅 3D 地图支持纹理
+     * - 纹理须是正方形，宽高是2的整数幂（如64x64）
+     * - 若设置了纹理，线颜色、连接类型和端点类型将无效
+     * 
      * @param image 纹理图片
      * @param renderer 折线渲染器
      */
     private func applyTexture(image: UIImage, to renderer: MAPolylineRenderer) {
-        let selector = NSSelectorFromString("loadStrokeTextureImage:")
-        if renderer.responds(to: selector) {
-            renderer.perform(selector, with: image)
-            mapView?.setNeedsDisplay()
+        print("🔷 PolylineView.applyTexture: ✅ 开始应用纹理, image size: \(image.size)")
+        
+        // 检查纹理尺寸是否符合要求（正方形且宽高是 2 的整数幂）
+        let width = Int(image.size.width)
+        let height = Int(image.size.height)
+        let isPowerOfTwo = { (n: Int) -> Bool in
+            return n > 0 && (n & (n - 1)) == 0
         }
+        
+        if width != height {
+            print("🔷 PolylineView.applyTexture: ⚠️ 纹理不是正方形 (\(width)x\(height))，可能无效")
+        } else if !isPowerOfTwo(width) {
+            print("🔷 PolylineView.applyTexture: ⚠️ 纹理尺寸 \(width) 不是 2 的整数幂，可能无效")
+        } else {
+            print("🔷 PolylineView.applyTexture: ✅ 纹理尺寸符合要求 (\(width)x\(height))")
+        }
+        
+        // 检查地图是否为 3D 模式
+        if let mapView = mapView {
+            print("🔷 PolylineView.applyTexture: 地图类型: \(mapView.mapType.rawValue), cameraDegree: \(mapView.cameraDegree)")
+            if mapView.cameraDegree == 0 {
+                print("🔷 PolylineView.applyTexture: ⚠️ 地图当前为 2D 模式（cameraDegree=0），纹理仅在 3D 模式下生效！")
+                print("🔷 PolylineView.applyTexture: 💡 提示：需要设置地图为 3D 模式才能显示纹理")
+            } else {
+                print("🔷 PolylineView.applyTexture: ✅ 地图为 3D 模式（cameraDegree=\(mapView.cameraDegree)）")
+            }
+        }
+        
+        // 🔑 关键修复：使用 strokeImage 属性设置纹理（与命令式 API 一致）
+        renderer.strokeImage = image
+        mapView?.setNeedsDisplay()
+        print("🔷 PolylineView.applyTexture: ✅ 已设置 strokeImage 属性")
     }
     
     /**
@@ -169,7 +202,7 @@ class PolylineView: ExpoView {
         print("🔷 PolylineView.setStrokeWidth: \(width)")
         strokeWidth = width
         renderer = nil
-        updatePolyline()
+        forceRerender()
     }
     
     /**
@@ -180,7 +213,7 @@ class PolylineView: ExpoView {
         print("🔷 PolylineView.setStrokeColor: \(String(describing: color))")
         strokeColor = color
         renderer = nil
-        updatePolyline()
+        forceRerender()
     }
     
     /**
@@ -191,13 +224,32 @@ class PolylineView: ExpoView {
         print("🔷 PolylineView.setTexture: \(String(describing: url))")
         textureUrl = url
         renderer = nil
-        updatePolyline()
+        forceRerender()
+    }
+    
+    /**
+     * 强制重新渲染折线
+     * 通过移除并重新添加 overlay 来触发地图重新请求 renderer
+     */
+    private func forceRerender() {
+        guard let mapView = mapView, let polyline = polyline else {
+            print("🔷 PolylineView.forceRerender: 折线尚未创建，跳过重新渲染")
+            return
+        }
+        
+        // 移除旧的 overlay
+        mapView.remove(polyline)
+        
+        // 重新添加（地图会调用 rendererFor overlay）
+        mapView.add(polyline)
+        
+        print("🔷 PolylineView.forceRerender: ✅ 已强制重新渲染折线")
     }
     
     func setDotted(_ dotted: Bool) {
         isDotted = dotted
         renderer = nil
-        updatePolyline()
+        forceRerender()
     }
     
     /**

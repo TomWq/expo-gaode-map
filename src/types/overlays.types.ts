@@ -116,22 +116,22 @@ export interface MarkerProps {
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{}>) => void;
+  onMarkerPress?: (event: NativeSyntheticEvent<LatLng>) => void;
 
   /**
    * 拖拽开始事件
    */
-  onDragStart?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDragStart?: (event: NativeSyntheticEvent<LatLng>) => void;
 
   /**
    * 拖拽中事件
    */
-  onDrag?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDrag?: (event: NativeSyntheticEvent<LatLng>) => void;
 
   /**
    * 拖拽结束事件
    */
-  onDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
 }
 
 /**

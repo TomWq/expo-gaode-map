@@ -221,41 +221,6 @@ export interface MapViewProps {
   onLocation?: (event: NativeSyntheticEvent<LocationEvent>) => void;
 
   /**
-   * Marker 点击事件
-   */
-  onMarkerPress?: (event: NativeSyntheticEvent<{ markerId: string } & LatLng>) => void;
-
-  /**
-   * Marker 拖拽开始事件
-   */
-  onMarkerDragStart?: (event: NativeSyntheticEvent<{ markerId: string } & LatLng>) => void;
-
-  /**
-   * Marker 拖拽中事件
-   */
-  onMarkerDrag?: (event: NativeSyntheticEvent<{ markerId: string } & LatLng>) => void;
-
-  /**
-   * Marker 拖拽结束事件
-   */
-  onMarkerDragEnd?: (event: NativeSyntheticEvent<{ markerId: string } & LatLng>) => void;
-
-  /**
-   * Circle 点击事件
-   */
-  onCirclePress?: (event: NativeSyntheticEvent<{ circleId: string } & LatLng>) => void;
-
-  /**
-   * Polygon 点击事件
-   */
-  onPolygonPress?: (event: NativeSyntheticEvent<{ polygonId: string } & LatLng>) => void;
-
-  /**
-   * Polyline 点击事件
-   */
-  onPolylinePress?: (event: NativeSyntheticEvent<{ polylineId: string } & LatLng>) => void;
-
-  /**
    * 子组件
    */
   children?: React.ReactNode;
@@ -289,55 +254,7 @@ export interface MapViewRef {
   setCenter(center: LatLng, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  addCircle(id: string, props: import('./overlays.types').CircleProps): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  removeCircle(id: string): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  updateCircle(id: string, props: Partial<import('./overlays.types').CircleProps>): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  addMarker(id: string, props: import('./overlays.types').MarkerProps): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  removeMarker(id: string): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  updateMarker(id: string, props: Partial<import('./overlays.types').MarkerProps>): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  addPolyline(id: string, props: import('./overlays.types').PolylineProps): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  removePolyline(id: string): Promise<void>;
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  updatePolyline(id: string, props: Partial<import('./overlays.types').PolylineProps>): Promise<void>; 
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  addPolygon(id: string, props: import('./overlays.types').PolygonProps): Promise<void>;
-  
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  removePolygon(id: string): Promise<void>;
-  
-  /**
-   * @@deprecated 不推荐使用，请使用声明式添加
-   */
-  updatePolygon(id: string, props: Partial<import('./overlays.types').PolygonProps>): Promise<void>;
+
+
 }
 

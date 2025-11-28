@@ -5,6 +5,9 @@ public class MarkerViewModule: Module {
         Name("MarkerView")
         
         View(MarkerView.self) {
+            // 🔑 声明专属事件（避免与其他组件冲突）
+            Events("onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd")
+            
             // 拆分 position 为两个独立属性以兼容 React Native 旧架构
             Prop("latitude") { (view: MarkerView, lat: Double) in
                 view.setLatitude(lat)
@@ -26,8 +29,8 @@ public class MarkerViewModule: Module {
                 view.setDraggable(draggable)
             }
             
-            Prop("icon") { (view: MarkerView, source: [String: Any]?) in
-                view.setIcon(source)
+            Prop("icon") { (view: MarkerView, source: String?) in
+                view.setIconUri(source)
             }
             
             Prop("iconWidth") { (view: MarkerView, width: Double) in
