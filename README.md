@@ -51,6 +51,7 @@ pnpm add expo-gaode-map@next
 - ✅ 完整的 TypeScript 类型支持
 - ✅ 移除了多余的封装层，直接调用原生模块
 - ✅ 完全移除命令式 API的支持
+- ✅ 添加未实现的一些新的 API（如：onCameraMove、onCameraIdle）
 - ⚠️ **不向后兼容**，需要按照 [迁移指南](docs/MIGRATION.md) 更新代码
 
 **版本对比：**

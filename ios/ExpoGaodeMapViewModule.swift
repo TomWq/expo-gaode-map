@@ -9,7 +9,7 @@ public class ExpoGaodeMapViewModule: Module {
         Name("ExpoGaodeMapView")
         
         View(ExpoGaodeMapView.self) {
-            Events("onMapPress", "onMapLongPress", "onLoad", "onLocation")
+            Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
             
             Prop("mapType") { (view: ExpoGaodeMapView, type: Int) in
                 view.mapType = type

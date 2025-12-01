@@ -11,7 +11,7 @@ class ExpoGaodeMapViewModule : Module() {
     Name("ExpoGaodeMapView")
 
     View(ExpoGaodeMapView::class) {
-      Events("onMapPress", "onMapLongPress", "onLoad", "onLocation")
+      Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
       
       // ✅ 关键修复：拦截 React Native 的视图操作异常
       OnViewDestroys { view: ExpoGaodeMapView ->

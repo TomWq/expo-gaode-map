@@ -20,6 +20,7 @@ export default function App() {
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [initialPosition, setInitialPosition] = useState<CameraPosition | null>(null);
+  const [cameraInfo, setCameraInfo] = useState<string>('');
   
   // 用于测试动态更新 Marker 内容
   const [markerContent, setMarkerContent] = useState<'text1' | 'text2' | 'none'>('text1');
@@ -318,11 +319,28 @@ export default function App() {
         }}
        onLoad={() => console.log('地图加载完成')}
        onLocation={({ nativeEvent }) => {
-        const { latitude, longitude } = nativeEvent;  // 直接从 nativeEvent 获取
+        const { latitude, longitude } = nativeEvent;
         console.log('地图定位:', latitude, longitude);
       }}
         onMapPress={(e) => console.log('地图点击:', e.nativeEvent)}
         onMapLongPress={(e) => console.log('地图长按:', e.nativeEvent)}
+        onCameraMove={({ nativeEvent }) => {
+          const { cameraPosition } = nativeEvent;
+          const zoom = cameraPosition.zoom ?? 0;
+          const bearing = cameraPosition.bearing ?? 0;
+          const info = `移动中 - 缩放: ${zoom.toFixed(2)}, 旋转: ${bearing.toFixed(2)}°`;
+          setCameraInfo(info);
+          console.log('相机移动:', cameraPosition);
+        }}
+        onCameraIdle={({ nativeEvent }) => {
+          const { cameraPosition } = nativeEvent;
+          const lat = cameraPosition.target?.latitude ?? 0;
+          const lng = cameraPosition.target?.longitude ?? 0;
+          const zoom = cameraPosition.zoom ?? 0;
+          const info = `停止 - 中心: ${lat.toFixed(4)}, ${lng.toFixed(4)}, 缩放: ${zoom.toFixed(2)}`;
+          setCameraInfo(info);
+          console.log('相机停止:', cameraPosition);
+        }}
       >
         {/* 声明式覆盖物 */}
         {location && (
@@ -497,6 +515,9 @@ export default function App() {
           {'address' in location && location.address && (
             <Text style={styles.infoText}>地址: {location.address}</Text>
           )}
+          {cameraInfo && (
+            <Text style={[styles.infoText, styles.cameraInfo]}>📷 相机: {cameraInfo}</Text>
+          )}
         </View>
       )}
 
@@ -562,6 +583,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginVertical: 2,
     color: '#333',
+  },
+  cameraInfo: {
+    color: '#2196F3',
+    fontWeight: 'bold',
+    marginTop: 5,
   },
   buttonContainer: {
     padding: 15,

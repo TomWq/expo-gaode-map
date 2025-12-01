@@ -56,6 +56,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     let onMapLongPress = EventDispatcher()
     let onLoad = EventDispatcher()
     let onLocation = EventDispatcher()
+    let onCameraMove = EventDispatcher()
+    let onCameraIdle = EventDispatcher()
     
     // MARK: - 私有属性
     
@@ -528,6 +530,52 @@ extension ExpoGaodeMapView {
         guard !isMapLoaded else { return }
         isMapLoaded = true
         onLoad(["loaded": true])
+    }
+    
+    /**
+     * 地图区域即将改变时触发
+     */
+    public func mapView(_ mapView: MAMapView, regionWillChangeAnimated animated: Bool) {
+        // 相机开始移动
+        let cameraPosition = cameraManager.getCameraPosition()
+        let visibleRegion = mapView.region
+        
+        onCameraMove([
+            "cameraPosition": cameraPosition,
+            "latLngBounds": [
+                "northeast": [
+                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
+                ],
+                "southwest": [
+                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
+                ]
+            ]
+        ])
+    }
+    
+    /**
+     * 地图区域改变完成后触发
+     */
+    public func mapView(_ mapView: MAMapView, regionDidChangeAnimated animated: Bool) {
+        // 相机移动完成
+        let cameraPosition = cameraManager.getCameraPosition()
+        let visibleRegion = mapView.region
+        
+        onCameraIdle([
+            "cameraPosition": cameraPosition,
+            "latLngBounds": [
+                "northeast": [
+                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
+                ],
+                "southwest": [
+                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
+                ]
+            ]
+        ])
     }
     
     /**

@@ -59,6 +59,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     private val onMapLongPress by EventDispatcher()
     private val onLoad by EventDispatcher()
     private val onLocation by EventDispatcher()
+    private val onCameraMove by EventDispatcher()
+    private val onCameraIdle by EventDispatcher()
 
     // 高德地图视图
     private lateinit var mapView: MapView
@@ -129,6 +131,65 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      * 设置地图事件监听
      */
     private fun setupMapListeners() {
+        // 设置相机移动监听器
+        aMap.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
+            override fun onCameraChange(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 相机移动中
+                cameraPosition?.let {
+                    val visibleRegion = aMap.projection.visibleRegion
+                    onCameraMove(mapOf(
+                        "cameraPosition" to mapOf(
+                            "target" to mapOf(
+                                "latitude" to it.target.latitude,
+                                "longitude" to it.target.longitude
+                            ),
+                            "zoom" to it.zoom,
+                            "tilt" to it.tilt,
+                            "bearing" to it.bearing
+                        ),
+                        "latLngBounds" to mapOf(
+                            "northeast" to mapOf(
+                                "latitude" to visibleRegion.farRight.latitude,
+                                "longitude" to visibleRegion.farRight.longitude
+                            ),
+                            "southwest" to mapOf(
+                                "latitude" to visibleRegion.nearLeft.latitude,
+                                "longitude" to visibleRegion.nearLeft.longitude
+                            )
+                        )
+                    ))
+                }
+            }
+
+            override fun onCameraChangeFinish(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 相机移动完成
+                cameraPosition?.let {
+                    val visibleRegion = aMap.projection.visibleRegion
+                    onCameraIdle(mapOf(
+                        "cameraPosition" to mapOf(
+                            "target" to mapOf(
+                                "latitude" to it.target.latitude,
+                                "longitude" to it.target.longitude
+                            ),
+                            "zoom" to it.zoom,
+                            "tilt" to it.tilt,
+                            "bearing" to it.bearing
+                        ),
+                        "latLngBounds" to mapOf(
+                            "northeast" to mapOf(
+                                "latitude" to visibleRegion.farRight.latitude,
+                                "longitude" to visibleRegion.farRight.longitude
+                            ),
+                            "southwest" to mapOf(
+                                "latitude" to visibleRegion.nearLeft.latitude,
+                                "longitude" to visibleRegion.nearLeft.longitude
+                            )
+                        )
+                    ))
+                }
+            }
+        })
+        
         // 设置全局 Marker 点击监听器
         aMap.setOnMarkerClickListener { marker ->
             MarkerView.handleMarkerClick(marker)
