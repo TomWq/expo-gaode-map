@@ -264,12 +264,12 @@ ExpoGaodeMapModule.setDesiredAccuracy(3);           // iOS 精度级别
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // 监听位置更新
-const locationSubscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (location) => {
+const locationSubscription = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (location) => {
   console.log('位置更新:', location);
 });
 
 // 监听方向更新（iOS）
-const headingSubscription = ExpoGaodeMapModule.addListener('onHeadingUpdate', (heading) => {
+const headingSubscription = ExpoGaodeMapModule.onHeadingUpdate('onHeadingUpdate', (heading) => {
   console.log('方向更新:', heading);
 });
 

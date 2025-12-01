@@ -372,7 +372,7 @@ export default function LocationApp() {
     ExpoGaodeMapModule.setInterval(2000);               // 2秒更新一次
 
     // 监听位置更新
-    const subscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (loc) => {
+    const subscription = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (loc) => {
       console.log('位置更新:', loc);
       setLocation(loc);
     });

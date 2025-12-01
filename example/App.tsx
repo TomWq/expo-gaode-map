@@ -311,7 +311,6 @@ export default function App() {
         indoorViewEnabled={true}
         trafficEnabled={true}
         compassEnabled={true}
-       
         tiltGesturesEnabled={true}
         initialCameraPosition={initialPosition}
         minZoom={3}

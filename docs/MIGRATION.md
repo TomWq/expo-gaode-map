@@ -159,7 +159,7 @@ subscription.remove();
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-const subscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (location) => {
+const subscription = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (location) => {
   console.log('位置更新:', location);
 });
 
@@ -304,7 +304,7 @@ export default function App() {
       ExpoGaodeMapModule.setInterval(2000);
       
       // 监听
-      const sub = ExpoGaodeMapModule.addListener('onLocationUpdate', (loc) => {
+      const sub = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (loc) => {
         setLocation(loc);
       });
       
@@ -340,7 +340,7 @@ export default function App() {
 | `checkLocationPermission()` | `ExpoGaodeMapModule.checkLocationPermission()` | 检查权限 |
 | `requestLocationPermission()` | `ExpoGaodeMapModule.requestLocationPermission()` | 请求权限 |
 | `configure(options)` | 使用单独的配置方法 | 见下方详细说明 |
-| `addLocationListener()` | `ExpoGaodeMapModule.addListener('onLocationUpdate', ...)` | 位置监听 |
+| `addLocationListener()` | `ExpoGaodeMapModule.addLocationListener('onLocationUpdate', ...)` | 位置监听 |
 | `coordinateConvert()` | `ExpoGaodeMapModule.coordinateConvert()` | 坐标转换 |
 | `startUpdatingHeading()` | `ExpoGaodeMapModule.startUpdatingHeading()` | 开始方向更新 |
 | `stopUpdatingHeading()` | `ExpoGaodeMapModule.stopUpdatingHeading()` | 停止方向更新 |

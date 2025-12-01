@@ -286,7 +286,7 @@ export default function LocationApp() {
       ExpoGaodeMapModule.setInterval(2000);
 
       // 监听位置更新
-      const subscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (loc) => {
+      const subscription = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (loc) => {
         console.log('位置更新:', loc);
         setLocation(loc);
       });
@@ -914,7 +914,7 @@ ExpoGaodeMapModule.startUpdatingHeading();
 ExpoGaodeMapModule.stopUpdatingHeading();
 
 // 监听方向更新
-const subscription = ExpoGaodeMapModule.addListener('onHeadingUpdate', (heading) => {
+const subscription = ExpoGaodeMapModule.onHeadingUpdate('onHeadingUpdate', (heading) => {
   console.log('方向更新:', heading);
 });
 
