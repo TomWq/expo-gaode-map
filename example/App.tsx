@@ -86,10 +86,7 @@ export default function App() {
         ExpoGaodeMapModule.setDistanceFilter(10);
         ExpoGaodeMapModule.setDesiredAccuracy(3);
         
-        const subscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (loc) => {
-          setLocation(loc);
-        });
-        
+        // 先获取初始位置
         const loc = await ExpoGaodeMapModule.getCurrentLocation();
         setLocation(loc);
         setInitialPosition({
@@ -97,7 +94,15 @@ export default function App() {
           zoom: 15
         });
         
-        return () => subscription.remove();
+        // 使用便捷方法监听连续定位更新
+        const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
+          console.log('收到定位更新:', location);
+          setLocation(location);
+        });
+        
+        return () => {
+          subscription.remove();
+        };
       } catch (error) {
         console.error('初始化失败:', error);
         setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 15 });
@@ -318,10 +323,6 @@ export default function App() {
           imageHeight: 40
         }}
        onLoad={() => console.log('地图加载完成')}
-       onLocation={({ nativeEvent }) => {
-        const { latitude, longitude } = nativeEvent;
-        console.log('地图定位:', latitude, longitude);
-      }}
         onMapPress={(e) => console.log('地图点击:', e.nativeEvent)}
         onMapLongPress={(e) => console.log('地图长按:', e.nativeEvent)}
         onCameraMove={({ nativeEvent }) => {

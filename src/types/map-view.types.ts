@@ -243,6 +243,28 @@ export interface MapViewMethods {
    * @returns 地理坐标
    */
   getLatLng(point: Point): Promise<LatLng>;
+
+  /**
+   * 设置地图中心点
+   * @param center 中心点
+   * @param animated 是否启用动画
+   */
+  setCenter(center: LatLng, animated?: boolean): void;
+
+  /**
+   * 设置地图缩放级别
+   * @param zoom 缩放级别
+   * @param animated 是否启用动画
+   */
+  setZoom(zoom: number, animated?: boolean): void;
+
+  /**
+   * 获取相机位置
+   * @returns 相机位置
+   */
+  getCameraPosition(): Promise<CameraPosition>;
+
+  
 }
 
 /**

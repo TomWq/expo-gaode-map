@@ -12,6 +12,7 @@ import type {
   ReGeocode,
   LocationMode,
   LocationAccuracy,
+  LocationListener,
 } from './types';
 
 /**
@@ -230,6 +231,38 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
    * @returns Promise<PermissionStatus> 请求后的权限状态
    */
   requestLocationPermission(): Promise<PermissionStatus>;
+  
+  // ==================== 便捷方法 ====================
+  
+  /**
+   * 添加定位监听器（便捷方法）
+   * 封装了 addListener，提供更简洁的 API
+   * @param listener 定位回调函数
+   * @returns 订阅对象，调用 remove() 取消监听
+   */
+  addLocationListener(listener: LocationListener): { remove: () => void };
 }
 
-export default requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
+// 获取原生模块实例
+const nativeModule = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
+
+// 扩展原生模块，添加便捷方法
+const ExpoGaodeMapModuleWithHelpers = {
+  ...nativeModule,
+  
+  /**
+   * 添加定位监听器（便捷方法）
+   * 自动订阅 onLocationUpdate 事件，提供容错处理
+   * @param listener 定位回调函数
+   * @returns 订阅对象，调用 remove() 取消监听
+   * @throws 如果底层模块不可用，返回一个空操作的订阅对象
+   */
+  addLocationListener(listener: LocationListener): { remove: () => void } {
+    // 使用可选链和空值合并，确保即使模块不可用也不会崩溃
+    return nativeModule.addListener?.('onLocationUpdate', listener) || {
+      remove: () => {},
+    };
+  },
+};
+
+export default ExpoGaodeMapModuleWithHelpers as ExpoGaodeMapModule;

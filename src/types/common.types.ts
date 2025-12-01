@@ -118,36 +118,6 @@ export enum MapType {
 }
 
 /**
- * 定位信息（基础）
- */
-export interface Location extends LatLng {
-  /**
-   * 精度（米）
-   */
-  accuracy: number;
-
-  /**
-   * 朝向（度）
-   */
-  heading: number;
-
-  /**
-   * 海拔（米）
-   */
-  altitude: number;
-
-  /**
-   * 运动速度（米/秒）
-   */
-  speed: number;
-
-  /**
-   * 时间戳
-   */
-  timestamp: number;
-}
-
-/**
  * 颜色值类型
  * 支持：
  * - 十六进制字符串: '#AARRGGBB' 或 '#RRGGBB'

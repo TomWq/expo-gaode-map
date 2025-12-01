@@ -15,7 +15,6 @@ export type { MapViewRef } from './types';
 const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<MapViewRef> }> = requireNativeViewManager('ExpoGaodeMapView');
 
 
-
 /**
  * 高德地图视图组件，提供地图操作API和覆盖物管理功能
  * 
