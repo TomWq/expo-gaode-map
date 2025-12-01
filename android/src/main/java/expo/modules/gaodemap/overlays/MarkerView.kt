@@ -795,6 +795,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   
   
   override fun addView(child: View?, index: Int, params: android.view.ViewGroup.LayoutParams?) {
+    // 🔑 关键修复：记录添加前的子视图数量
+    val childCountBefore = childCount
+    
     val finalParams = android.widget.LinearLayout.LayoutParams(
       if (customViewWidth > 0) customViewWidth else android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
       if (customViewHeight > 0) customViewHeight else android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
@@ -813,20 +816,32 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       fixChildLayoutParams(it)
     }
     
-    mainHandler.postDelayed({
-      if (marker != null) updateMarkerIcon()
-    }, 50)
-    
-    mainHandler.postDelayed({
-      if (marker != null) updateMarkerIcon()
-    }, 150)
+    // 🔑 关键修复：只有在子视图数量真正变化且 marker 已存在时才更新图标
+    // 避免在其他覆盖物添加时触发不必要的刷新
+    if (!isRemoving && marker != null && childCount > childCountBefore) {
+      android.util.Log.d("MarkerView", "子视图添加，延迟更新图标 (childCount: $childCountBefore -> $childCount)")
+      mainHandler.postDelayed({
+        if (!isRemoving && marker != null) {
+          updateMarkerIcon()
+        }
+      }, 50)
+      
+      mainHandler.postDelayed({
+        if (!isRemoving && marker != null) {
+          updateMarkerIcon()
+        }
+      }, 150)
+    }
   }
   
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
     super.onLayout(changed, left, top, right, bottom)
-    if (changed && childCount > 0) {
+    // 🔑 关键修复：只有在有子视图且 marker 存在时才更新，避免不必要的刷新
+    if (changed && !isRemoving && childCount > 0 && marker != null) {
       mainHandler.postDelayed({
-        if (marker != null) updateMarkerIcon()
+        if (!isRemoving && marker != null) {
+          updateMarkerIcon()
+        }
       }, 200)
     }
   }
