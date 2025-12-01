@@ -22,6 +22,8 @@
 
 ## 📦 安装
 
+### 稳定版本（推荐）
+
 ```bash
 npm install expo-gaode-map
 # 或
@@ -30,18 +32,32 @@ yarn add expo-gaode-map
 pnpm add expo-gaode-map
 ```
 
-### Expo 项目
+### 体验 2.0 测试版本 🚀
 
-如果你使用的是 Expo 管理的项目（使用 `expo prebuild` 或开发构建），安装后需要重新构建原生代码：
+> ⚠️ **重要提示**: 2.0 版本包含破坏性变更，API 调用方式有重大调整。详见 [迁移指南](docs/MIGRATION.md)
+
+如果你想体验最新的 2.0 alpha 版本（包含改进的架构和更好的类型支持）：
 
 ```bash
-# 使用 EAS Build
-eas build --platform android
-
-# 或使用本地构建
-npx expo prebuild
-npx expo run:android
+npm install expo-gaode-map@next
+# 或
+yarn add expo-gaode-map@next
+# 或
+pnpm add expo-gaode-map@next
 ```
+
+**2.0 版本主要变化：**
+- ✅ 统一的 API 调用方式（`ExpoGaodeMapModule`）
+- ✅ 完整的 TypeScript 类型支持
+- ✅ 移除了多余的封装层，直接调用原生模块
+- ✅ 完全移除命令式 API的支持
+- ✅ 添加未实现的一些新的 API（如：onCameraMove、onCameraIdle）
+- ⚠️ **不向后兼容**，需要按照 [迁移指南](docs/MIGRATION.md) 更新代码
+
+**版本对比：**
+- `1.x`（稳定版）：`import { initSDK, start, stop } from 'expo-gaode-map'`
+- `2.0`（测试版）：`import { ExpoGaodeMapModule } from 'expo-gaode-map'`
+
 
 ### 纯 React Native 项目
 
