@@ -26,6 +26,7 @@ public class CircleViewModule: Module {
             Prop("strokeWidth") { (view: CircleView, width: Double) in
                 view.setStrokeWidth(Float(width))
             }
+            
         }
     }
 }

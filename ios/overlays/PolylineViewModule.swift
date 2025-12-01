@@ -26,6 +26,7 @@ public class PolylineViewModule: Module {
             Prop("dotted") { (view: PolylineView, dotted: Bool) in
                 view.setDotted(dotted)
             }
+            
         }
     }
 }

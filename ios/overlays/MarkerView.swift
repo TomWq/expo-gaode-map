@@ -64,8 +64,8 @@ class MarkerView: ExpoView {
     var pinColor: String = "red"
     /// 是否显示气泡
     var canShowCallout: Bool = true
-    /// 地图视图弱引用（避免循环引用）
-    private weak var mapView: MAMapView?
+    /// 地图视图引用
+    private var mapView: MAMapView?
     /// 标记点对象
     var annotation: MAPointAnnotation?
     /// 标记是否正在被移除（防止重复移除）
@@ -104,11 +104,36 @@ class MarkerView: ExpoView {
     }
     
     /**
+     * 查找父地图视图（新架构修复）
+     */
+    func findParentMapView() -> MAMapView? {
+        // 🔑 新架构修复：从全局注册表获取地图
+        return MapRegistry.shared.getMainMap()
+    }
+    
+    /**
+     * 检查地图是否已连接
+     */
+    func isMapConnected() -> Bool {
+        return mapView != nil
+    }
+    
+    /**
      * 设置地图实例
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
+        // 避免重复设置
+        if self.mapView != nil {
+            print("📍 MarkerView.setMap: 地图已连接，跳过重复设置")
+            return
+        }
+        
+        print("📍 MarkerView.setMap: 首次设置地图")
         self.mapView = map
+        
+        // 🔑 新架构修复：注册到全局注册表
+        MapRegistry.shared.registerOverlay(self)
         
         // 如果有待处理的位置，先应用它
         if let pending = pendingPosition {
@@ -350,13 +375,22 @@ class MarkerView: ExpoView {
     
     /**
      * 当视图即将从父视图移除时调用
+     * 🔑 关键修复：只有在真正移除（newSuperview == nil）时才清理
+     * 移动到 markerContainer 时不应该清理
      */
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
         
-        // 如果 newSuperview 为 nil，说明视图正在被移除
+        print("📍 [MarkerView] willMove(toSuperview:), newSuperview = \(String(describing: newSuperview))")
+        print("📍 [MarkerView] newSuperview 类型 = \(newSuperview != nil ? String(describing: type(of: newSuperview!)) : "nil")")
+        
+        // 🔑 只有在 newSuperview 为 nil 时才是真正的移除
+        // 移动到 markerContainer 时 newSuperview 不为 nil
         if newSuperview == nil {
+            print("📍 [MarkerView] 真正移除，清理 annotation")
             removeAnnotationFromMap()
+        } else {
+            print("📍 [MarkerView] 移动到新父视图，不清理 annotation")
         }
     }
     
@@ -368,6 +402,9 @@ class MarkerView: ExpoView {
         isRemoving = true
         
         print("🗑️ [MarkerView] removeAnnotationFromMap 被调用")
+        
+        // 🔑 新架构修复：从全局注册表注销
+        MapRegistry.shared.unregisterOverlay(self)
         
         // 取消任何待处理的延迟任务
         pendingAddTask?.cancel()

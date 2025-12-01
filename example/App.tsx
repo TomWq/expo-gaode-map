@@ -445,7 +445,7 @@ export default function App() {
           />
         )}
         
-        <Polygon
+        {/* <Polygon
           points={[
             { latitude: 39.88, longitude: 116.38 },
             { latitude: 39.88, longitude: 116.42 },
@@ -491,7 +491,7 @@ export default function App() {
           strokeColor="#FFFF0000"
           texture={iconUri}
           onPolylinePress={() => Alert.alert('折线', '点击了纹理折线')}
-        />
+        /> */}
         
        
       </MapView>

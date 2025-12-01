@@ -22,6 +22,7 @@ public class PolygonViewModule: Module {
             Prop("strokeWidth") { (view: PolygonView, width: Double) in
                 view.setStrokeWidth(Float(width))
             }
+            
         }
     }
 }

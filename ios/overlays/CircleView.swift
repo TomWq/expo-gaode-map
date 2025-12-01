@@ -24,7 +24,7 @@ class CircleView: ExpoView {
     /// 边框宽度
     var strokeWidth: Float = 0
     
-    /// 地图视图弱引用
+    /// 地图视图引用
     private var mapView: MAMapView?
     /// 圆形覆盖物对象
     var circle: MACircle?
@@ -56,12 +56,41 @@ class CircleView: ExpoView {
     }
     
     /**
+     * 查找地图视图
+     * 新架构下使用全局注册表
+     * @return MAMapView 实例或 nil
+     */
+    func findParentMapView() -> MAMapView? {
+        print("🔵 findParentMapView: 从全局注册表获取地图")
+        return MapRegistry.shared.getMainMap()
+    }
+    
+    /**
+     * 检查地图是否已连接
+     */
+    func isMapConnected() -> Bool {
+        return mapView != nil
+    }
+    
+    /**
      * 设置地图实例
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
+        // 避免重复设置
+        if self.mapView != nil {
+            print("🔵 CircleView.setMap: 地图已连接，跳过重复设置")
+            return
+        }
+        
+        print("🔵 CircleView.setMap: 首次设置地图")
         self.mapView = map
+        
+        // 🔑 新架构修复：注册到全局注册表
+        MapRegistry.shared.registerOverlay(self)
+        
         updateCircle()
+        print("🔵 CircleView.setMap: 设置完成")
     }
     
     /**
@@ -72,7 +101,7 @@ class CircleView: ExpoView {
               let latitude = circleCenter["latitude"],
               let longitude = circleCenter["longitude"],
               radius > 0 else {
-            print("❌ CircleView.updateCircle: 条件不满足")
+          
             return
         }
         
@@ -168,6 +197,9 @@ class CircleView: ExpoView {
      * 析构时移除圆形
      */
     deinit {
+        // 🔑 新架构修复：从全局注册表注销
+        MapRegistry.shared.unregisterOverlay(self)
+        
         if let mapView = mapView, let circle = circle {
             mapView.remove(circle)
         }

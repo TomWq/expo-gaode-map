@@ -64,6 +64,7 @@ public class MarkerViewModule: Module {
             Prop("canShowCallout") { (view: MarkerView, show: Bool) in
                 view.setCanShowCallout(show)
             }
+            
         }
     }
 }

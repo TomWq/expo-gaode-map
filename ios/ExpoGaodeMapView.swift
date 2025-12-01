@@ -2,6 +2,91 @@ import ExpoModulesCore
 import MAMapKit
 
 /**
+ * 地图注册表
+ * 用于在新架构下管理地图实例和覆盖物视图，让它们能够相互找到对方
+ */
+class MapRegistry {
+    /// 单例实例
+    static let shared = MapRegistry()
+    
+    /// 地图实例存储 [viewTag: MAMapView]
+    private var maps: [Int: MAMapView] = [:]
+    
+    /// 主地图实例（简化版本，假设只有一个地图）
+    private var mainMap: MAMapView?
+    
+    /// 覆盖物视图数组（新架构关键修复）
+    private var overlayViews: [UIView] = []
+    
+    private init() {}
+    
+    /**
+     * 注册地图实例
+     */
+    func register(map: MAMapView, tag: Int) {
+        print("🗺️ MapRegistry: 注册地图，tag = \(tag)")
+        maps[tag] = map
+        if mainMap == nil {
+            mainMap = map
+        }
+    }
+    
+    /**
+     * 获取地图实例
+     */
+    func getMap(tag: Int) -> MAMapView? {
+        return maps[tag]
+    }
+    
+    /**
+     * 获取主地图实例
+     */
+    func getMainMap() -> MAMapView? {
+        print("🗺️ MapRegistry: 获取主地图，mainMap = \(String(describing: mainMap))")
+        return mainMap
+    }
+    
+    /**
+     * 注册覆盖物视图
+     */
+    func registerOverlay(_ view: UIView) {
+        print("🗺️ MapRegistry: 注册覆盖物视图，类型 = \(type(of: view))")
+        overlayViews.append(view)
+    }
+    
+    /**
+     * 注销覆盖物视图
+     */
+    func unregisterOverlay(_ view: UIView) {
+        print("🗺️ MapRegistry: 注销覆盖物视图，类型 = \(type(of: view))")
+        if let index = overlayViews.firstIndex(where: { $0 === view }) {
+            overlayViews.remove(at: index)
+            print("🗺️ MapRegistry: 已注销，剩余覆盖物数量 = \(overlayViews.count)")
+        } else {
+            print("⚠️ MapRegistry: 未找到要注销的覆盖物")
+        }
+    }
+    
+    /**
+     * 获取所有覆盖物视图
+     */
+    func getAllOverlays() -> [UIView] {
+        return overlayViews
+    }
+    
+    /**
+     * 注销地图实例
+     */
+    func unregister(tag: Int) {
+        print("🗺️ MapRegistry: 注销地图，tag = \(tag)")
+        if maps[tag] === mainMap {
+            mainMap = nil
+        }
+        maps.removeValue(forKey: tag)
+    }
+}
+
+/**
  * 高德地图视图组件
  * 
  * 负责:
@@ -64,7 +149,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     // MARK: - 私有属性
     
     /// 高德地图视图实例
-    private var mapView: MAMapView!
+    var mapView: MAMapView!
     /// 相机管理器
     private var cameraManager: CameraManager!
     /// UI 管理器
@@ -92,6 +177,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         
         mapView.delegate = self
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        
+        // 🔑 新架构修复：注册地图到全局注册表
+        MapRegistry.shared.register(map: mapView, tag: self.tag)
+        print("🗺️ ExpoGaodeMapView.init: 地图已注册到全局注册表，tag = \(self.tag)")
         
         // 创建 MarkerView 隐藏容器
         markerContainer = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
@@ -127,63 +216,144 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         super.layoutSubviews()
         mapView.frame = bounds
         
-        // 收集并设置 MarkerView
-        collectAndSetupMarkerViews()
+        // 🔑 关键修复：收集并设置所有覆盖物视图（不仅仅是 MarkerView）
+        collectAndSetupOverlayViews()
     }
     
     /**
-     * 收集所有 MarkerView 子视图并设置地图
+     * 视图被添加到窗口时调用
+     * 新架构下这是一个重要的时机点来收集子视图
      */
-    private func collectAndSetupMarkerViews() {
-        // 从隐藏容器中收集 MarkerView
-        for subview in markerContainer.subviews {
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            print("🗺️ didMoveToWindow: 视图已添加到窗口，收集覆盖物")
+            collectAndSetupOverlayViews()
+        }
+    }
+    
+    /**
+     * 收集所有覆盖物子视图并设置地图
+     * 这对新架构非常重要，确保所有覆盖物都能正确连接到地图
+     */
+    private func collectAndSetupOverlayViews() {
+        print("🗺️ collectAndSetupOverlayViews: 开始收集覆盖物，容器子视图数量 = \(markerContainer.subviews.count)")
+        
+        // 从隐藏容器中收集所有覆盖物视图
+        for (index, subview) in markerContainer.subviews.enumerated() {
+            print("🗺️ collectAndSetupOverlayViews: [\(index)] 类型 = \(type(of: subview))")
+            
             if let markerView = subview as? MarkerView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 MarkerView 地图")
                 markerView.setMap(mapView)
+            } else if let circleView = subview as? CircleView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 CircleView 地图")
+                circleView.setMap(mapView)
+            } else if let polylineView = subview as? PolylineView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 PolylineView 地图")
+                polylineView.setMap(mapView)
+            } else if let polygonView = subview as? PolygonView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 PolygonView 地图")
+                polygonView.setMap(mapView)
+            } else if let heatMapView = subview as? HeatMapView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 HeatMapView 地图")
+                heatMapView.setMap(mapView)
+            } else if let multiPointView = subview as? MultiPointView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 MultiPointView 地图")
+                multiPointView.setMap(mapView)
+            } else if let clusterView = subview as? ClusterView {
+                print("🗺️ collectAndSetupOverlayViews: [\(index)] 设置 ClusterView 地图")
+                clusterView.setMap(mapView)
+            }
+        }
+        
+        print("🗺️ collectAndSetupOverlayViews: 完成收集")
+    }
+    
+    /**
+     * 添加子视图时自动连接到地图
+     * 🔑 新架构修复：不移动覆盖物视图，让它们保留在正常的视图树中
+     * 这样 React Native 可以正常管理它们的 children
+     */
+    override func didAddSubview(_ subview: UIView) {
+        super.didAddSubview(subview)
+        
+        print("🗺️ ExpoGaodeMapView.didAddSubview: 类型 = \(type(of: subview))")
+        
+        // 检查是否是覆盖物视图
+        let isOverlayView = subview is MarkerView || subview is CircleView || subview is PolylineView ||
+                           subview is PolygonView || subview is HeatMapView || subview is MultiPointView ||
+                           subview is ClusterView
+        
+        if isOverlayView {
+            print("🗺️ ExpoGaodeMapView.didAddSubview: 检测到覆盖物视图, tag=\(subview.tag)")
+            
+            // 🔑 新架构修复：将覆盖物视图移动到隐藏容器，避免阻挡地图触摸
+            // 延迟移动，让 React Native 先设置好属性
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                
+                // 先从原父视图移除（不触发 willRemoveSubview，因为用 removeFromSuperview）
+                subview.removeFromSuperview()
+                
+                // 添加到隐藏容器
+                self.markerContainer.addSubview(subview)
+                print("🗺️ ExpoGaodeMapView.didAddSubview: 已移动到 markerContainer")
+                
+                // 连接到地图
+                if let markerView = subview as? MarkerView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 MarkerView 到地图")
+                    markerView.setMap(self.mapView)
+                } else if let circleView = subview as? CircleView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 CircleView 到地图")
+                    circleView.setMap(self.mapView)
+                } else if let polylineView = subview as? PolylineView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 PolylineView 到地图")
+                    polylineView.setMap(self.mapView)
+                } else if let polygonView = subview as? PolygonView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 PolygonView 到地图")
+                    polygonView.setMap(self.mapView)
+                } else if let heatMapView = subview as? HeatMapView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 HeatMapView 到地图")
+                    heatMapView.setMap(self.mapView)
+                } else if let multiPointView = subview as? MultiPointView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 MultiPointView 到地图")
+                    multiPointView.setMap(self.mapView)
+                } else if let clusterView = subview as? ClusterView {
+                    print("🗺️ ExpoGaodeMapView.didAddSubview: 连接 ClusterView 到地图")
+                    clusterView.setMap(self.mapView)
+                }
             }
         }
     }
     
     /**
-     * 添加子视图时自动连接到地图
-     * 将地图实例传递给覆盖物子视图
+     * 子视图即将被移除时调用
+     * 🔑 关键：检查是否在 markerContainer 中，如果在则说明是真正的移除
      */
-    override func addSubview(_ view: UIView) {
-        if let markerView = view as? MarkerView {
-            // ✅ 将 MarkerView 添加到隐藏容器中，而不是主视图
-            markerContainer.addSubview(markerView)
-            markerView.setMap(mapView)
-            return
+    override func willRemoveSubview(_ subview: UIView) {
+        print("🗺️ ExpoGaodeMapView.willRemoveSubview: 类型 = \(type(of: subview)), tag = \(subview.tag)")
+        
+        // 检查子视图是否在 markerContainer 中
+        // 如果在，说明是 React Native 真正要移除它（不是我们移动到 markerContainer）
+        if markerContainer.subviews.contains(where: { $0 === subview }) {
+            print("🗺️ ExpoGaodeMapView.willRemoveSubview: 子视图在 markerContainer 中，这是真正的移除")
+            // 让子视图自己处理清理（通过 willMove(toSuperview: nil)）
+        } else {
+            print("🗺️ ExpoGaodeMapView.willRemoveSubview: 子视图不在 markerContainer 中，可能是内部移动")
         }
         
-        // 🔑 关键修复：将所有覆盖物视图添加到隐藏容器，避免阻挡地图触摸
-        if let circleView = view as? CircleView {
-            markerContainer.addSubview(circleView)
-            circleView.setMap(mapView)
-            return
-        } else if let polylineView = view as? PolylineView {
-            markerContainer.addSubview(polylineView)
-            polylineView.setMap(mapView)
-            return
-        } else if let polygonView = view as? PolygonView {
-            markerContainer.addSubview(polygonView)
-            polygonView.setMap(mapView)
-            return
-        } else if let heatMapView = view as? HeatMapView {
-            markerContainer.addSubview(heatMapView)
-            heatMapView.setMap(mapView)
-            return
-        } else if let multiPointView = view as? MultiPointView {
-            markerContainer.addSubview(multiPointView)
-            multiPointView.setMap(mapView)
-            return
-        } else if let clusterView = view as? ClusterView {
-            markerContainer.addSubview(clusterView)
-            clusterView.setMap(mapView)
-            return
-        }
-        
-        // 其他视图正常添加到主视图层级
-        super.addSubview(view)
+        super.willRemoveSubview(subview)
+    }
+    
+    /**
+     * 处理子视图添加（新架构专用）
+     * 新架构下通过 OnChildViewAdded 回调处理子视图
+     * 🔑 已废弃：现在使用 OnViewDidUpdateProps 来连接地图
+     */
+    func handleChildViewAdded(_ child: UIView) {
+        print("🆕 ExpoGaodeMapView.handleChildViewAdded: 类型 = \(type(of: child))（已废弃）")
+        // 不再需要，由 OnViewDidUpdateProps 处理
     }
     
     /**
@@ -223,8 +393,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
         
-        // 收集并设置所有 MarkerView
-        collectAndSetupMarkerViews()
+        // 🔑 关键修复：收集并设置所有覆盖物视图（新架构下非常重要）
+        collectAndSetupOverlayViews()
     }
     
     // MARK: - 缩放控制
@@ -311,6 +481,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     deinit {
         // 先设置 delegate 为 nil，停止接收回调
         mapView?.delegate = nil
+        
+        // 🔑 新架构修复：从全局注册表注销地图
+        MapRegistry.shared.unregister(tag: self.tag)
+        print("🗺️ ExpoGaodeMapView.deinit: 地图已从全局注册表注销，tag = \(self.tag)")
     }
 }
 
@@ -348,7 +522,7 @@ extension ExpoGaodeMapView {
      * 检查点击位置是否在圆形内
      */
     private func checkCirclePress(at coordinate: CLLocationCoordinate2D) -> Bool {
-        // 🔑 从隐藏容器中查找 CircleView
+        // 🔑 从隐藏容器查找 CircleView
         let circleViews = markerContainer.subviews.compactMap { $0 as? CircleView }
         
         print("🔵 checkCirclePress: 找到 \(circleViews.count) 个 CircleView")
@@ -394,7 +568,7 @@ extension ExpoGaodeMapView {
      * 检查点击位置是否在多边形内
      */
     private func checkPolygonPress(at coordinate: CLLocationCoordinate2D) -> Bool {
-        // 🔑 从隐藏容器中查找 PolygonView
+        // 🔑 从隐藏容器查找 PolygonView
         let polygonViews = markerContainer.subviews.compactMap { $0 as? PolygonView }
         
         print("🔶 checkPolygonPress: 找到 \(polygonViews.count) 个 PolygonView")
@@ -423,7 +597,7 @@ extension ExpoGaodeMapView {
      * 检查点击位置是否在折线附近
      */
     private func checkPolylinePress(at coordinate: CLLocationCoordinate2D) -> Bool {
-        // 🔑 从隐藏容器中查找 PolylineView
+        // 🔑 从隐藏容器查找 PolylineView
         let polylineViews = markerContainer.subviews.compactMap { $0 as? PolylineView }
         let threshold: Double = 20.0 // 20米容差
         
@@ -554,23 +728,32 @@ extension ExpoGaodeMapView {
     
     /**
      * 创建覆盖物渲染器
-     * 优先使用子视图的渲染器,否则使用 OverlayManager 的渲染器
+     * 新架构修复：从全局注册表获取覆盖物视图
      */
     public func mapView(_ mapView: MAMapView, rendererFor overlay: MAOverlay) -> MAOverlayRenderer {
-        // 🔑 从隐藏容器中查找覆盖物视图
-        for subview in markerContainer.subviews {
-            if let circleView = subview as? CircleView, let circle = circleView.circle, circle === overlay {
+        print("🎨 rendererFor 被调用，overlay 类型 = \(type(of: overlay))")
+        
+        // 🔑 新架构修复：从全局注册表中查找覆盖物视图
+        let overlayViews = MapRegistry.shared.getAllOverlays()
+        print("🎨 rendererFor: 全局注册表中有 \(overlayViews.count) 个覆盖物视图")
+        
+        for (index, view) in overlayViews.enumerated() {
+            print("🎨 rendererFor: 检查视图[\(index)]，类型 = \(type(of: view))")
+            
+            if let circleView = view as? CircleView, let circle = circleView.circle, circle === overlay {
+                print("🎨 rendererFor: ✅ 找到匹配的 CircleView，返回 renderer")
                 return circleView.getRenderer()
-            } else if let polylineView = subview as? PolylineView, polylineView.polyline === overlay {
+            } else if let polylineView = view as? PolylineView, let polyline = polylineView.polyline, polyline === overlay {
+                print("🎨 rendererFor: ✅ 找到匹配的 PolylineView，返回 renderer")
                 return polylineView.getRenderer()
-            } else if let polygonView = subview as? PolygonView, polygonView.polygon === overlay {
+            } else if let polygonView = view as? PolygonView, let polygon = polygonView.polygon, polygon === overlay {
+                print("🎨 rendererFor: ✅ 找到匹配的 PolygonView，返回 renderer")
                 return polygonView.getRenderer()
             }
         }
-
-        return MAOverlayRenderer(overlay: overlay)
         
-//        return overlayManager.getRenderer(for: overlay) ?? MAOverlayRenderer(overlay: overlay)
+        print("🎨 rendererFor: ❌ 未找到匹配的覆盖物视图，返回默认 renderer")
+        return MAOverlayRenderer(overlay: overlay)
     }
     
     /**
@@ -660,7 +843,6 @@ extension ExpoGaodeMapView {
                 }
             }
         }
-        
-        print("⚠️ [didChange] 未找到匹配的声明式 MarkerView")
+
     }
 }

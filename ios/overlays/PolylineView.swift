@@ -24,7 +24,7 @@ class PolylineView: ExpoView {
     /// 点击事件派发器
     let onPolylinePress = EventDispatcher()
     
-    /// 地图视图弱引用
+    /// 地图视图引用
     private var mapView: MAMapView?
     /// 折线覆盖物对象
     var polyline: MAPolyline?
@@ -53,12 +53,47 @@ class PolylineView: ExpoView {
     }
     
     /**
+     * 查找地图视图
+     * 新架构下使用全局注册表
+     * @return MAMapView 实例或 nil
+     */
+    func findParentMapView() -> MAMapView? {
+        print("🔷 findParentMapView: 从全局注册表获取地图")
+        return MapRegistry.shared.getMainMap()
+    }
+    
+    /**
+     * 检查地图是否已连接
+     */
+    func isMapConnected() -> Bool {
+        return mapView != nil
+    }
+    
+    /**
      * 设置地图实例
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
+        // 避免重复设置
+        if self.mapView != nil {
+            print("🔷 PolylineView.setMap: 地图已连接，跳过重复设置")
+            return
+        }
+        
+        print("🔷 PolylineView.setMap: 首次设置地图，当前 points 数量 = \(points.count)")
         self.mapView = map
-        updatePolyline()
+        
+        // 🔑 新架构修复：注册到全局注册表
+        MapRegistry.shared.registerOverlay(self)
+        
+        // 如果 points 已经设置，立即更新折线
+        if !points.isEmpty {
+            print("🔷 PolylineView.setMap: points 已存在，立即更新折线")
+            updatePolyline()
+        } else {
+            print("🔷 PolylineView.setMap: points 为空，等待 points 设置")
+        }
+        print("🔷 PolylineView.setMap: 设置完成")
     }
     
     /**
@@ -256,6 +291,9 @@ class PolylineView: ExpoView {
      * 析构时移除折线
      */
     deinit {
+        // 🔑 新架构修复：从全局注册表注销
+        MapRegistry.shared.unregisterOverlay(self)
+        
         if let mapView = mapView, let polyline = polyline {
             mapView.remove(polyline)
         }
