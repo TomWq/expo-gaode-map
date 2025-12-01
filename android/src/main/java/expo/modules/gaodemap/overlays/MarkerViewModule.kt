@@ -11,7 +11,7 @@ class MarkerViewModule : Module() {
     Name("MarkerView")
 
     View(MarkerView::class) {
-      Events("onPress", "onDragStart", "onDrag", "onDragEnd")
+      Events("onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd")
       
       // 拆分 position 为两个独立属性以兼容 React Native 旧架构
       Prop<Double>("latitude") { view, lat ->
@@ -26,12 +26,20 @@ class MarkerViewModule : Module() {
         view.setTitle(title)
       }
       
-      Prop<String>("description") { view, description ->
-        view.setDescription(description)
+      Prop<String>("snippet") { view, snippet ->
+        view.setDescription(snippet)
       }
       
       Prop<Boolean>("draggable") { view, draggable ->
         view.setDraggable(draggable)
+      }
+      
+      Prop<String>("icon") { view, icon ->
+        view.setMarkerIcon(icon)
+      }
+      
+      Prop<String>("pinColor") { view, color ->
+        view.setPinColor(color)
       }
       
       Prop<Float>("opacity") { view, opacity ->

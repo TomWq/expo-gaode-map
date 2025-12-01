@@ -20,14 +20,10 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
     private const val TAG = "OverlayManager"
   }
   
-  // 覆盖物存储
+  // 覆盖物存储（仅保留命令式 API 的 Polygon 和 Polyline）
   private val circles = mutableMapOf<String, com.amap.api.maps.model.Circle>()
-  private val markers = mutableMapOf<String, com.amap.api.maps.model.Marker>()
   private val polylines = mutableMapOf<String, com.amap.api.maps.model.Polyline>()
   private val polygons = mutableMapOf<String, com.amap.api.maps.model.Polygon>()
-  
-  // Marker ID 映射
-  private val markerIdMap = mutableMapOf<com.amap.api.maps.model.Marker, String>()
   
   // Circle ID 映射
   private val circleIdMap = mutableMapOf<com.amap.api.maps.model.Circle, String>()
@@ -38,49 +34,45 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
   // Polyline ID 映射
   private val polylineIdMap = mutableMapOf<com.amap.api.maps.model.Polyline, String>()
   
-  // 事件回调
-  var onMarkerPress: ((String, Double, Double) -> Unit)? = null
-  var onMarkerDragStart: ((String, Double, Double) -> Unit)? = null
-  var onMarkerDrag: ((String, Double, Double) -> Unit)? = null
-  var onMarkerDragEnd: ((String, Double, Double) -> Unit)? = null
+  // 事件回调（仅保留命令式 API）
   var onCirclePress: ((String, Double, Double) -> Unit)? = null
   var onPolygonPress: ((String, Double, Double) -> Unit)? = null
   var onPolylinePress: ((String, Double, Double) -> Unit)? = null
   
   private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-  
+
   // ==================== 圆形覆盖物 ====================
-  
+
   fun addCircle(id: String, props: Map<String, Any>) {
-    
+
     @Suppress("UNCHECKED_CAST")
     val center = props["center"] as? Map<String, Double>
     val radius = (props["radius"] as? Number)?.toDouble() ?: 1000.0
     val fillColor = ColorParser.parseColor(props["fillColor"])
     val strokeColor = ColorParser.parseColor(props["strokeColor"])
     val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat() ?: 10f
-    
+
     if (center != null) {
       val lat = center["latitude"] ?: 0.0
       val lng = center["longitude"] ?: 0.0
       val latLng = LatLng(lat, lng)
-      
+
       // 将 dp 转换为 px，与 iOS 的 points 对应
       val density = context.resources.displayMetrics.density
-      
+
       val options = com.amap.api.maps.model.CircleOptions()
         .center(latLng)
         .radius(radius)
         .fillColor(fillColor)
         .strokeColor(strokeColor)
         .strokeWidth(strokeWidth * density)
-      
+
       val circle = aMap.addCircle(options)
       circles[id] = circle
       circleIdMap[circle] = id
     }
   }
-  
+
   fun removeCircle(id: String) {
     circles[id]?.let { circle ->
       circleIdMap.remove(circle)
@@ -88,7 +80,7 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       circles.remove(id)
     }
   }
-  
+
   fun updateCircle(id: String, props: Map<String, Any>) {
     circles[id]?.let { circle ->
       @Suppress("UNCHECKED_CAST")
@@ -97,13 +89,13 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       val fillColor = props["fillColor"]?.let { ColorParser.parseColor(it) }
       val strokeColor = props["strokeColor"]?.let { ColorParser.parseColor(it) }
       val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat()
-      
+
       center?.let {
         val lat = it["latitude"] ?: 0.0
         val lng = it["longitude"] ?: 0.0
         circle.center = LatLng(lat, lng)
       }
-      
+
       radius?.let { circle.radius = it }
       fillColor?.let { circle.fillColor = it }
       strokeColor?.let { circle.strokeColor = it }
@@ -113,194 +105,12 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       }
     }
   }
-  
-  // ==================== 标记点 ====================
-  
-  fun addMarker(id: String, props: Map<String, Any>) {
-    @Suppress("UNCHECKED_CAST")
-    val position = props["position"] as? Map<String, Double>
-    val title = props["title"] as? String
-    val snippet = props["snippet"] as? String
-    val draggable = props["draggable"] as? Boolean ?: false
-    val icon = props["icon"]
-    // 将 RN 的点(points)转换为 Android 的 dp
-    val iconWidth = dpToPx((props["iconWidth"] as? Number)?.toFloat() ?: 40f)
-    val iconHeight = dpToPx((props["iconHeight"] as? Number)?.toFloat() ?: 40f)
-    val opacity = (props["opacity"] as? Number)?.toFloat() ?: 1.0f
-    val flat = props["flat"] as? Boolean ?: false
-    val zIndex = (props["zIndex"] as? Number)?.toFloat() ?: 0f
-    val anchor = props["anchor"] as? Map<String, Double>
-    
-    if (position != null) {
-      val lat = position["latitude"] ?: 0.0
-      val lng = position["longitude"] ?: 0.0
-      val latLng = LatLng(lat, lng)
-      
-      val options = com.amap.api.maps.model.MarkerOptions()
-        .position(latLng)
-        .draggable(draggable)
-        .setFlat(flat)
-        .zIndex(zIndex)
-      
-      title?.let { options.title(it) }
-      snippet?.let { options.snippet(it) }
-      
-      anchor?.let {
-        val x = (it["x"] as? Number)?.toFloat() ?: 0.5f
-        val y = (it["y"] as? Number)?.toFloat() ?: 1.0f
-        options.anchor(x, y)
-      }
-      
-      val marker = aMap.addMarker(options)
-      marker?.alpha = opacity
-      
-      markers[id] = marker
-      marker?.let { markerIdMap[it] = id }
-      
-      // 加载自定义图标
-      icon?.let {
-        val uri = when (it) {
-          is String -> it
-          is Map<*, *> -> it["uri"] as? String
-          else -> null
-        }
-        uri?.let { iconUri ->
-          loadMarkerIcon(iconUri, iconWidth, iconHeight) { bitmap ->
-            mainHandler.post {
-              marker?.setIcon(BitmapDescriptorFactory.fromBitmap(bitmap))
-            }
-          }
-        }
-      }
-      
-      // 设置事件监听器（只设置一次）
-      setupMarkerListeners()
-    }
-  }
-  
-  private fun setupMarkerListeners() {
-    aMap.setOnMarkerClickListener { marker ->
-      markerIdMap[marker]?.let { id ->
-        onMarkerPress?.invoke(id, marker.position.latitude, marker.position.longitude)
-      }
-      false // 返回 false 允许显示 InfoWindow
-    }
-    
-    aMap.setOnMarkerDragListener(object : AMap.OnMarkerDragListener {
-      override fun onMarkerDragStart(marker: com.amap.api.maps.model.Marker?) {
-        marker?.let { m ->
-          markerIdMap[m]?.let { id ->
-            onMarkerDragStart?.invoke(id, m.position.latitude, m.position.longitude)
-          }
-        }
-      }
-      
-      override fun onMarkerDrag(marker: com.amap.api.maps.model.Marker?) {
-        marker?.let { m ->
-          markerIdMap[m]?.let { id ->
-            onMarkerDrag?.invoke(id, m.position.latitude, m.position.longitude)
-          }
-        }
-      }
-      
-      override fun onMarkerDragEnd(marker: com.amap.api.maps.model.Marker?) {
-        marker?.let { m ->
-          markerIdMap[m]?.let { id ->
-            onMarkerDragEnd?.invoke(id, m.position.latitude, m.position.longitude)
-          }
-        }
-      }
-    })
-  }
-  
-  private fun loadMarkerIcon(uri: String, width: Int, height: Int, callback: (Bitmap) -> Unit) {
-    Thread {
-      try {
-        val bitmap = when {
-          uri.startsWith("http://") || uri.startsWith("https://") -> {
-            BitmapFactory.decodeStream(URL(uri).openStream())
-          }
-          uri.startsWith("file://") -> {
-            BitmapFactory.decodeFile(uri.substring(7))
-          }
-          else -> {
-            null
-          }
-        }
-        
-        if (bitmap != null) {
-          val resized = Bitmap.createScaledBitmap(bitmap, width, height, true)
-          callback(resized)
-        }
-      } catch (e: Exception) {
-        // 忽略异常
-      }
-    }.start()
-  }
-  
-  fun removeMarker(id: String) {
-    markers[id]?.let { marker ->
-      markerIdMap.remove(marker)
-      marker.remove()
-      markers.remove(id)
-    }
-  }
-  
-  fun updateMarker(id: String, props: Map<String, Any>) {
-    markers[id]?.let { marker ->
-      @Suppress("UNCHECKED_CAST")
-      val position = props["position"] as? Map<String, Double>
-      val title = props["title"] as? String
-      val snippet = props["snippet"] as? String
-      val draggable = props["draggable"] as? Boolean
-      val icon = props["icon"]
-      val iconWidth = dpToPx((props["iconWidth"] as? Number)?.toFloat() ?: 40f)
-      val iconHeight = dpToPx((props["iconHeight"] as? Number)?.toFloat() ?: 40f)
-      val opacity = props["opacity"] as? Number
-      val flat = props["flat"] as? Boolean
-      val zIndex = props["zIndex"] as? Number
-      val anchor = props["anchor"] as? Map<String, Double>
-      
-      position?.let {
-        val lat = it["latitude"] ?: 0.0
-        val lng = it["longitude"] ?: 0.0
-        marker.position = LatLng(lat, lng)
-      }
-      
-      title?.let { marker.title = it }
-      snippet?.let { marker.snippet = it }
-      draggable?.let { marker.isDraggable = it }
-      opacity?.let { marker.alpha = it.toFloat() }
-      flat?.let { marker.isFlat = it }
-      zIndex?.let { marker.zIndex = it.toFloat() }
-      
-      anchor?.let {
-        val x = (it["x"] as? Number)?.toFloat() ?: 0.5f
-        val y = (it["y"] as? Number)?.toFloat() ?: 1.0f
-        marker.setAnchor(x, y)
-      }
-      
-      icon?.let {
-        val uri = when (it) {
-          is String -> it
-          is Map<*, *> -> it["uri"] as? String
-          else -> null
-        }
-        uri?.let { iconUri ->
-          loadMarkerIcon(iconUri, iconWidth, iconHeight) { bitmap ->
-            mainHandler.post {
-              marker.setIcon(BitmapDescriptorFactory.fromBitmap(bitmap))
-            }
-          }
-        }
-      }
-    }
-  }
-  
+
+
   // ==================== 折线 ====================
-  
+
   fun addPolyline(id: String, props: Map<String, Any>) {
-    
+
     @Suppress("UNCHECKED_CAST")
     val points = props["points"] as? List<Map<String, Double>>
     val width = (props["width"] as? Number)?.toFloat() ?: (props["strokeWidth"] as? Number)?.toFloat() ?: 10f
@@ -310,24 +120,24 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
     } else {
       ColorParser.parseColor(props["color"] ?: props["strokeColor"])
     }
-    
+
     if (points != null && points.size >= 2) {
       val latLngs = points.map { point ->
         val lat = point["latitude"] ?: 0.0
         val lng = point["longitude"] ?: 0.0
         LatLng(lat, lng)
       }
-      
+
       // 将 dp 转换为 px，与 iOS 的 points 对应
       val density = context.resources.displayMetrics.density
-      
+
       val options = com.amap.api.maps.model.PolylineOptions()
         .addAll(latLngs)
         .width(width * density)
         .color(color)
-      
+
       val polyline = aMap.addPolyline(options)
-      
+
       // 处理纹理
       if (!texture.isNullOrEmpty()) {
         Thread {
@@ -339,7 +149,7 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
             } else {
               null
             }
-            
+
             bitmap?.let {
               val descriptor = BitmapDescriptorFactory.fromBitmap(it)
               polyline.setCustomTexture(descriptor)
@@ -349,12 +159,12 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
           }
         }.start()
       }
-      
+
       polylines[id] = polyline
       polylineIdMap[polyline] = id
     }
   }
-  
+
   fun removePolyline(id: String) {
     polylines[id]?.let { polyline ->
       polylineIdMap.remove(polyline)
@@ -362,14 +172,14 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       polylines.remove(id)
     }
   }
-  
+
   fun updatePolyline(id: String, props: Map<String, Any>) {
     polylines[id]?.let { polyline ->
       @Suppress("UNCHECKED_CAST")
       val points = props["points"] as? List<Map<String, Double>>
       val width = (props["strokeWidth"] as? Number)?.toFloat()
       val color = props["strokeColor"]?.let { ColorParser.parseColor(it) }
-      
+
       points?.let {
         val latLngs = it.map { point ->
           val lat = point["latitude"] ?: 0.0
@@ -378,7 +188,7 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
         }
         polyline.points = latLngs
       }
-      
+
       width?.let {
         val density = context.resources.displayMetrics.density
         polyline.width = it * density
@@ -386,42 +196,42 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       color?.let { polyline.color = it }
     }
   }
-  
+
   // ==================== 多边形 ====================
-  
+
   fun addPolygon(id: String, props: Map<String, Any>) {
-    
+
     @Suppress("UNCHECKED_CAST")
     val points = props["points"] as? List<Map<String, Double>>
     val fillColor = ColorParser.parseColor(props["fillColor"])
     val strokeColor = ColorParser.parseColor(props["strokeColor"])
-    
+
     val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat() ?: 10f
     val zIndex = (props["zIndex"] as? Number)?.toFloat() ?: 0f
-    
+
     if (points != null && points.size >= 3) {
       val latLngs = points.map { point ->
         val lat = point["latitude"] ?: 0.0
         val lng = point["longitude"] ?: 0.0
         LatLng(lat, lng)
       }
-      
+
       // 将 dp 转换为 px，与 iOS 的 points 对应
       val density = context.resources.displayMetrics.density
-      
+
       val options = com.amap.api.maps.model.PolygonOptions()
         .addAll(latLngs)
         .fillColor(fillColor)
         .strokeColor(strokeColor)
         .strokeWidth(strokeWidth * density)
         .zIndex(zIndex)
-      
+
       val polygon = aMap.addPolygon(options)
       polygons[id] = polygon
       polygonIdMap[polygon] = id
     }
   }
-  
+
   fun removePolygon(id: String) {
     polygons[id]?.let { polygon ->
       polygonIdMap.remove(polygon)
@@ -429,17 +239,17 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       polygons.remove(id)
     }
   }
-  
+
   fun updatePolygon(id: String, props: Map<String, Any>) {
     polygons[id]?.let { polygon ->
       @Suppress("UNCHECKED_CAST")
       val points = props["points"] as? List<Map<String, Double>>
       val fillColor = props["fillColor"]?.let { ColorParser.parseColor(it) }
       val strokeColor = props["strokeColor"]?.let { ColorParser.parseColor(it) }
-      
+
       val strokeWidth = (props["strokeWidth"] as? Number)?.toFloat()
       val zIndex = (props["zIndex"] as? Number)?.toFloat()
-      
+
       points?.let {
         val latLngs = it.map { point ->
           val lat = point["latitude"] ?: 0.0
@@ -448,7 +258,7 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
         }
         polygon.points = latLngs
       }
-      
+
       fillColor?.let { polygon.fillColor = it }
       strokeColor?.let { polygon.strokeColor = it }
       strokeWidth?.let {
@@ -458,7 +268,7 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
       zIndex?.let { polygon.zIndex = it }
     }
   }
-  
+
   /**
    * 清理所有覆盖物
    */
@@ -551,9 +361,6 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
     circles.clear()
     circleIdMap.clear()
     
-    markers.values.forEach { it.remove() }
-    markers.clear()
-    
     polylines.values.forEach { it.remove() }
     polylines.clear()
     
@@ -563,7 +370,7 @@ class OverlayManager(private val aMap: AMap, private val context: Context) {
     
     polylineIdMap.clear()
   }
-  
+
   /**
    * 将 dp 转换为 px
    */

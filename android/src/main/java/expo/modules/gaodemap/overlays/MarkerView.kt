@@ -3,6 +3,7 @@ package expo.modules.gaodemap.overlays
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -18,6 +19,11 @@ import com.amap.api.maps.model.MarkerOptions
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
+import java.io.File
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
@@ -96,12 +102,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
   }
   
-  private val onPress by EventDispatcher()
-  private val onDragStart by EventDispatcher()
-  private val onDrag by EventDispatcher()
-  private val onDragEnd by EventDispatcher()
+  private val onMarkerPress by EventDispatcher()
+  private val onMarkerDragStart by EventDispatcher()
+  private val onMarkerDrag by EventDispatcher()
+  private val onMarkerDragEnd by EventDispatcher()
   
-  private var marker: Marker? = null
+  internal var marker: Marker? = null
   private var aMap: AMap? = null
   private var pendingPosition: LatLng? = null
   private var pendingLatitude: Double? = null  // 临时存储纬度
@@ -111,6 +117,18 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   private var customViewWidth: Int = 0  // 用于自定义视图（children）的宽度
   private var customViewHeight: Int = 0  // 用于自定义视图（children）的高度
   private val mainHandler = Handler(Looper.getMainLooper())
+  private var isRemoving = false  // 标记是否正在被移除
+  
+  // 缓存属性，在 marker 创建前保存
+  private var pendingTitle: String? = null
+  private var pendingSnippet: String? = null
+  private var pendingDraggable: Boolean? = null
+  private var pendingOpacity: Float? = null
+  private var pendingFlat: Boolean? = null
+  private var pendingZIndex: Float? = null
+  private var pendingAnchor: Pair<Float, Float>? = null
+  private var pendingIconUri: String? = null
+  private var pendingPinColor: String? = null
   
   /**
    * 设置地图实例
@@ -229,20 +247,35 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 设置标题
    */
   fun setTitle(title: String) {
-    marker?.let { it.title = title }
+    pendingTitle = title
+    marker?.let {
+      it.title = title
+      // 如果信息窗口正在显示，刷新它
+      if (it.isInfoWindowShown) {
+        it.showInfoWindow()
+      }
+    }
   }
   
   /**
    * 设置描述
    */
   fun setDescription(description: String) {
-    marker?.let { it.snippet = description }
+    pendingSnippet = description
+    marker?.let {
+      it.snippet = description
+      // 如果信息窗口正在显示，刷新它
+      if (it.isInfoWindowShown) {
+        it.showInfoWindow()
+      }
+    }
   }
   
   /**
    * 设置是否可拖拽
    */
   fun setDraggable(draggable: Boolean) {
+    pendingDraggable = draggable
     marker?.let { it.isDraggable = draggable }
   }
   
@@ -263,6 +296,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 设置透明度
    */
   fun setOpacity(opacity: Float) {
+    pendingOpacity = opacity
     marker?.let { it.alpha = opacity }
   }
   
@@ -280,13 +314,15 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setAnchor(anchor: Map<String, Float>) {
     val x = anchor["x"] ?: 0.5f
     val y = anchor["y"] ?: 1.0f
-      marker?.setAnchor(x, y)
+    pendingAnchor = Pair(x, y)
+    marker?.setAnchor(x, y)
   }
   
   /**
    * 设置是否平贴地图
    */
   fun setFlat(flat: Boolean) {
+    pendingFlat = flat
     marker?.let { it.isFlat = flat }
   }
   
@@ -294,15 +330,165 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 设置图标
    */
   fun setMarkerIcon(iconUri: String?) {
+    pendingIconUri = iconUri
     iconUri?.let {
-      // 这里需要根据 URI 加载图片
-      // 可以支持本地资源、网络图片等
-      try {
-        // 简化处理，实际需要实现图片加载逻辑
-        marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-      } catch (e: Exception) {
-        e.printStackTrace()
+      marker?.let { m ->
+        loadAndSetIcon(it, m)
       }
+    }
+  }
+  
+  /**
+   * 加载并设置图标
+   * 支持: http/https 网络图片, file:// 本地文件, 本地资源名
+   */
+  private fun loadAndSetIcon(iconUri: String, marker: Marker) {
+    try {
+      when {
+        // 网络图片
+        iconUri.startsWith("http://") || iconUri.startsWith("https://") -> {
+          loadImageFromUrl(iconUri) { bitmap ->
+            bitmap?.let {
+              val resized = resizeBitmap(it, iconWidth, iconHeight)
+              mainHandler.post {
+                marker.setIcon(BitmapDescriptorFactory.fromBitmap(resized))
+                marker.setAnchor(0.5f, 1.0f)
+                android.util.Log.d("MarkerView", "网络图标加载成功: $iconUri")
+              }
+            } ?: run {
+              mainHandler.post {
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+                android.util.Log.e("MarkerView", "网络图标加载失败: $iconUri")
+              }
+            }
+          }
+        }
+        // 本地文件
+        iconUri.startsWith("file://") -> {
+          val path = iconUri.substring(7) // 移除 "file://" 前缀
+          val bitmap = BitmapFactory.decodeFile(path)
+          if (bitmap != null) {
+            val resized = resizeBitmap(bitmap, iconWidth, iconHeight)
+            marker.setIcon(BitmapDescriptorFactory.fromBitmap(resized))
+            marker.setAnchor(0.5f, 1.0f)
+            android.util.Log.d("MarkerView", "本地文件图标加载成功: $path")
+          } else {
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+            android.util.Log.e("MarkerView", "本地文件图标加载失败: $path")
+          }
+        }
+        // 本地资源名
+        else -> {
+          val resourceId = context.resources.getIdentifier(
+            iconUri,
+            "drawable",
+            context.packageName
+          )
+          if (resourceId != 0) {
+            val bitmap = BitmapFactory.decodeResource(context.resources, resourceId)
+            val resized = resizeBitmap(bitmap, iconWidth, iconHeight)
+            marker.setIcon(BitmapDescriptorFactory.fromBitmap(resized))
+            marker.setAnchor(0.5f, 1.0f)
+            android.util.Log.d("MarkerView", "本地资源图标加载成功: $iconUri")
+          } else {
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+            android.util.Log.e("MarkerView", "本地资源图标未找到: $iconUri")
+          }
+        }
+      }
+    } catch (e: Exception) {
+      android.util.Log.e("MarkerView", "加载图标失败: $iconUri", e)
+      marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+    }
+  }
+  
+  /**
+   * 从网络加载图片
+   */
+  private fun loadImageFromUrl(url: String, callback: (Bitmap?) -> Unit) {
+    thread {
+      var connection: HttpURLConnection? = null
+      var inputStream: InputStream? = null
+      try {
+        val urlConnection = URL(url)
+        connection = urlConnection.openConnection() as HttpURLConnection
+        connection.connectTimeout = 10000
+        connection.readTimeout = 10000
+        connection.doInput = true
+        connection.connect()
+        
+        if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+          inputStream = connection.inputStream
+          val bitmap = BitmapFactory.decodeStream(inputStream)
+          callback(bitmap)
+        } else {
+          android.util.Log.e("MarkerView", "网络请求失败: ${connection.responseCode}")
+          callback(null)
+        }
+      } catch (e: Exception) {
+        android.util.Log.e("MarkerView", "网络加载图片异常", e)
+        callback(null)
+      } finally {
+        inputStream?.close()
+        connection?.disconnect()
+      }
+    }
+  }
+  
+  /**
+   * 调整图片尺寸
+   */
+  private fun resizeBitmap(bitmap: Bitmap, width: Int, height: Int): Bitmap {
+    // 如果没有指定尺寸，使用原图尺寸或默认值
+    val finalWidth = if (width > 0) width else bitmap.width
+    val finalHeight = if (height > 0) height else bitmap.height
+    
+    return if (bitmap.width == finalWidth && bitmap.height == finalHeight) {
+      bitmap
+    } else {
+      Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, true)
+    }
+  }
+  
+  /**
+   * 设置大头针颜色
+   */
+  fun setPinColor(color: String?) {
+    pendingPinColor = color
+    // 颜色变化时需要重新创建 marker
+    aMap?.let { map ->
+      marker?.let { oldMarker ->
+        val position = oldMarker.position
+        oldMarker.remove()
+        marker = null
+        
+        createOrUpdateMarker()
+        marker?.position = position
+      }
+    }
+  }
+  
+  /**
+   * 应用大头针颜色
+   */
+  private fun applyPinColor(color: String, marker: Marker) {
+    try {
+      val hue = when (color.lowercase()) {
+        "red" -> BitmapDescriptorFactory.HUE_RED
+        "orange" -> BitmapDescriptorFactory.HUE_ORANGE
+        "yellow" -> BitmapDescriptorFactory.HUE_YELLOW
+        "green" -> BitmapDescriptorFactory.HUE_GREEN
+        "cyan" -> BitmapDescriptorFactory.HUE_CYAN
+        "blue" -> BitmapDescriptorFactory.HUE_BLUE
+        "violet" -> BitmapDescriptorFactory.HUE_VIOLET
+        "magenta" -> BitmapDescriptorFactory.HUE_MAGENTA
+        "rose" -> BitmapDescriptorFactory.HUE_ROSE
+        "purple" -> BitmapDescriptorFactory.HUE_VIOLET
+        else -> BitmapDescriptorFactory.HUE_RED
+      }
+      marker.setIcon(BitmapDescriptorFactory.defaultMarker(hue))
+    } catch (e: Exception) {
+      android.util.Log.e("MarkerView", "设置大头针颜色失败", e)
     }
   }
   
@@ -310,21 +496,28 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 设置 z-index
    */
   fun setZIndex(zIndex: Float) {
+    pendingZIndex = zIndex
     marker?.let { it.zIndex = zIndex }
   }
   
   /**
    * 设置图标宽度（用于自定义图标 icon 属性）
+   * 注意：React Native 传入的是 DP 值，需要转换为 PX
    */
   fun setIconWidth(width: Int) {
-    iconWidth = width
+    val density = context.resources.displayMetrics.density
+    iconWidth = (width * density).toInt()
+    android.util.Log.d("MarkerView", "setIconWidth: $width dp -> $iconWidth px")
   }
   
   /**
    * 设置图标高度（用于自定义图标 icon 属性）
+   * 注意：React Native 传入的是 DP 值，需要转换为 PX
    */
   fun setIconHeight(height: Int) {
-    iconHeight = height
+    val density = context.resources.displayMetrics.density
+    iconHeight = (height * density).toInt()
+    android.util.Log.d("MarkerView", "setIconHeight: $height dp -> $iconHeight px")
   }
   
   /**
@@ -346,6 +539,64 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   }
   
   /**
+   * 全局的 Marker 点击监听器
+   * 必须在 ExpoGaodeMapView 中设置，不能在每个 MarkerView 中重复设置
+   */
+  companion object {
+    private val markerViewMap = mutableMapOf<Marker, MarkerView>()
+    
+    fun registerMarker(marker: Marker, view: MarkerView) {
+      markerViewMap[marker] = view
+    }
+    
+    fun unregisterMarker(marker: Marker) {
+      markerViewMap.remove(marker)
+    }
+    
+    fun handleMarkerClick(marker: Marker): Boolean {
+      markerViewMap[marker]?.let { view ->
+        view.onMarkerPress(mapOf(
+          "latitude" to marker.position.latitude,
+          "longitude" to marker.position.longitude
+        ))
+        // 显示信息窗口（如果有 title 或 snippet）
+        if (!marker.title.isNullOrEmpty() || !marker.snippet.isNullOrEmpty()) {
+          marker.showInfoWindow()
+        }
+        return true
+      }
+      return false
+    }
+    
+    fun handleMarkerDragStart(marker: Marker) {
+      markerViewMap[marker]?.let { view ->
+        view.onMarkerDragStart(mapOf(
+          "latitude" to marker.position.latitude,
+          "longitude" to marker.position.longitude
+        ))
+      }
+    }
+    
+    fun handleMarkerDrag(marker: Marker) {
+      markerViewMap[marker]?.let { view ->
+        view.onMarkerDrag(mapOf(
+          "latitude" to marker.position.latitude,
+          "longitude" to marker.position.longitude
+        ))
+      }
+    }
+    
+    fun handleMarkerDragEnd(marker: Marker) {
+      markerViewMap[marker]?.let { view ->
+        view.onMarkerDragEnd(mapOf(
+          "latitude" to marker.position.latitude,
+          "longitude" to marker.position.longitude
+        ))
+      }
+    }
+  }
+  
+  /**
    * 创建或更新标记
    */
   private fun createOrUpdateMarker() {
@@ -354,52 +605,28 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val options = MarkerOptions()
         marker = map.addMarker(options)
         
-        map.setOnMarkerClickListener { clickedMarker ->
-          if (clickedMarker == marker) {
-            onPress(mapOf(
-              "latitude" to clickedMarker.position.latitude,
-              "longitude" to clickedMarker.position.longitude
-            ))
-            true
-          } else {
-            false
+        // 注册到全局 map
+        marker?.let { m ->
+          registerMarker(m, this)
+          
+          // 应用缓存的属性
+          pendingTitle?.let { m.title = it }
+          pendingSnippet?.let { m.snippet = it }
+          pendingDraggable?.let { m.isDraggable = it }
+          pendingOpacity?.let { m.alpha = it }
+          pendingFlat?.let { m.isFlat = it }
+          pendingZIndex?.let { m.zIndex = it }
+          pendingAnchor?.let { m.setAnchor(it.first, it.second) }
+          
+          // 优先级：children > icon > pinColor
+          if (childCount == 0) {
+            if (pendingIconUri != null) {
+              loadAndSetIcon(pendingIconUri!!, m)
+            } else if (pendingPinColor != null) {
+              applyPinColor(pendingPinColor!!, m)
+            }
           }
         }
-        
-        map.setOnMarkerDragListener(object : AMap.OnMarkerDragListener {
-          override fun onMarkerDragStart(draggedMarker: Marker?) {
-            if (draggedMarker == marker) {
-              draggedMarker?.let {
-                onDragStart(mapOf(
-                  "latitude" to it.position.latitude,
-                  "longitude" to it.position.longitude
-                ))
-              }
-            }
-          }
-          
-          override fun onMarkerDrag(draggedMarker: Marker?) {
-            if (draggedMarker == marker) {
-              draggedMarker?.let {
-                onDrag(mapOf(
-                  "latitude" to it.position.latitude,
-                  "longitude" to it.position.longitude
-                ))
-              }
-            }
-          }
-          
-          override fun onMarkerDragEnd(draggedMarker: Marker?) {
-            if (draggedMarker == marker) {
-              draggedMarker?.let {
-                onDragEnd(mapOf(
-                  "latitude" to it.position.latitude,
-                  "longitude" to it.position.longitude
-                ))
-              }
-            }
-          }
-        })
       }
     }
   }
@@ -519,12 +746,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     try {
       if (child != null && indexOfChild(child) >= 0) {
         super.removeView(child)
-        mainHandler.postDelayed({
-          if (childCount == 0 && marker != null) {
-            marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-            marker?.setAnchor(0.5f, 1.0f)
-          }
-        }, 50)
+        // 不要在这里恢复默认图标
+        // 如果 MarkerView 整体要被移除，onDetachedFromWindow 会处理
+        // 如果只是移除 children 并保留 Marker，应该由外部重新设置 children
       }
     } catch (e: Exception) {
       android.util.Log.e("MarkerView", "removeView 异常", e)
@@ -535,14 +759,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     try {
       if (index >= 0 && index < childCount) {
         super.removeViewAt(index)
-        mainHandler.postDelayed({
-          if (childCount == 0 && marker != null) {
-            marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-            marker?.setAnchor(0.5f, 1.0f)
-          } else if (childCount > 0 && marker != null) {
-            updateMarkerIcon()
-          }
-        }, 50)
+        // 只在还有子视图时更新图标
+        if (!isRemoving && childCount > 1 && marker != null) {
+          mainHandler.postDelayed({
+            if (!isRemoving && marker != null && childCount > 0) {
+              updateMarkerIcon()
+            }
+          }, 50)
+        }
+        // 如果最后一个子视图被移除，什么都不做
+        // 让 onDetachedFromWindow 处理完整的清理
       }
     } catch (e: Exception) {
       android.util.Log.e("MarkerView", "removeViewAt 异常", e)
@@ -609,12 +835,31 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 移除标记
    */
   fun removeMarker() {
-    marker?.remove()
+    android.util.Log.d("MarkerView", "==================== removeMarker 开始 ====================")
+    android.util.Log.d("MarkerView", "MarkerView hashCode: ${System.identityHashCode(this)}")
+    android.util.Log.d("MarkerView", "marker 是否存在: ${marker != null}")
+    
+    marker?.let {
+      android.util.Log.d("MarkerView", "marker 位置: ${it.position}")
+      android.util.Log.d("MarkerView", "marker 标题: ${it.title}")
+      android.util.Log.d("MarkerView", "正在从全局 map 注销 marker...")
+      unregisterMarker(it)
+      android.util.Log.d("MarkerView", "正在调用 marker.remove()...")
+      it.remove()
+      android.util.Log.d("MarkerView", "✅ marker.remove() 调用完成")
+    } ?: run {
+      android.util.Log.w("MarkerView", "⚠️ marker 为 null，无需移除")
+    }
+    
     marker = null
+    android.util.Log.d("MarkerView", "==================== removeMarker 结束 ====================")
   }
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
+    
+    // 标记正在移除
+    isRemoving = true
     
     // 清理所有延迟任务
     mainHandler.removeCallbacksAndMessages(null)

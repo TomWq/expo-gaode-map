@@ -203,6 +203,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
     )
   }
   
+  @Deprecated("Deprecated in Java")
   override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
   }
   

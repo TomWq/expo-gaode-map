@@ -25,15 +25,18 @@ export default function Marker(props: MarkerProps) {
     ? (props.customViewHeight && props.customViewHeight > 0 ? props.customViewHeight : 40)
     : (props.iconHeight && props.iconHeight > 0 ? props.iconHeight : 40);
   
+  // 从 props 中排除 position 属性，避免传递到原生层
+  const { position, ...restProps } = props;
+  
   return (
     <NativeMarkerView
-      latitude={props.position.latitude}
-      longitude={props.position.longitude}
+      latitude={position.latitude}
+      longitude={position.longitude}
       iconWidth={containerWidth}
       iconHeight={containerHeight}
       customViewWidth={containerWidth}
       customViewHeight={containerHeight}
-      {...props}
+      {...restProps}
     >
       {props.children}
     </NativeMarkerView>

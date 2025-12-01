@@ -184,7 +184,7 @@ export default function App() {
     };
     
     setDynamicCircles(prev => [...prev, newCircle]);
-    Alert.alert('成功', `已添加圆形\n当前共 ${dynamicCircles.length + 1} 个动态圆形`);
+    // Alert.alert('成功', `已添加圆形\n当前共 ${dynamicCircles.length + 1} 个动态圆形`);
   };
 
   // 声明式 API: 添加标记
@@ -232,7 +232,7 @@ export default function App() {
     };
     
     setDynamicPolylines(prev => [...prev, newPolyline]);
-    Alert.alert('成功', `已添加折线\n当前共 ${dynamicPolylines.length + 1} 个动态折线`);
+    // Alert.alert('成功', `已添加折线\n当前共 ${dynamicPolylines.length + 1} 个动态折线`);
   };
 
   // 声明式 API: 添加多边形
@@ -259,7 +259,7 @@ export default function App() {
     };
     
     setDynamicPolygons(prev => [...prev, newPolygon]);
-    Alert.alert('成功', `已添加多边形\n当前共 ${dynamicPolygons.length + 1} 个动态多边形`);
+    // Alert.alert('成功', `已添加多边形\n当前共 ${dynamicPolygons.length + 1} 个动态多边形`);
   };
 
   // 移除所有动态覆盖物
@@ -379,23 +379,7 @@ export default function App() {
           />
         ))}
       
-        {/* 固定的当前位置 Marker */}
-        {location && (
-          <Marker
-            key="fixed_current_location_marker"
-            position={{ latitude: location.latitude, longitude: location.longitude }}
-            title={location.address}
-            customViewWidth={200}
-            customViewHeight={40}
-            onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
-          >
-            <View style={styles.markerContainer}>
-              <Text style={styles.markerText}>{location?.address}</Text>
-            </View>
-          </Marker>
-        )}
-        
-        {/* 动态添加的 Marker 列表 */}
+        {/* 动态添加的 Marker 列表 - 移到最前面 */}
         {dynamicMarkers.map((marker) => (
           <Marker
             key={marker.id}
@@ -412,7 +396,24 @@ export default function App() {
           </Marker>
         ))}
         
+        {/* 固定的当前位置 Marker */}
+        {location && (
+          <Marker
+            key="fixed_current_location_marker"
+            position={{ latitude: location.latitude, longitude: location.longitude }}
+            title={location.address}
+            customViewWidth={200}
+            customViewHeight={40}
+            onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
+          >
+            <View style={styles.markerContainer}>
+              <Text style={styles.markerText}>{location?.address}</Text>
+            </View>
+          </Marker>
+        )}
+        
         <Marker
+          key="draggable_marker"
           position={{ latitude: 39.92, longitude: 116.42 }}
           title="可拖拽标记"
           draggable={true}
@@ -424,13 +425,14 @@ export default function App() {
         />
         
         <Marker
+          key="custom_icon_marker"
           position={{ latitude: 39.93, longitude: 116.43 }}
           title="自定义图标"
           snippet="自定义图标描述"
           icon={iconUri}
           iconWidth={40}
           iconHeight={40}
-          onMarkerPress={() => Alert.alert('标记', '点击了自定义图标标记')}
+          // onMarkerPress={() => Alert.alert('标记', '点击了自定义图标标记')}
         />
         
         {Platform.OS === 'ios' && (
@@ -491,17 +493,7 @@ export default function App() {
           onPolylinePress={() => Alert.alert('折线', '点击了纹理折线')}
         />
         
-        {/* <Polyline
-          points={[
-            { latitude: 39.95, longitude: 116.45 },
-            { latitude: 39.97, longitude: 116.47 },
-            { latitude: 39.99, longitude: 116.45 },
-          ]}
-          strokeWidth={5}
-          strokeColor="#FF00FF00"
-          geodesic={true}
-          onPolylinePress={() => Alert.alert('折线', '点击了大地线折线')}
-        /> */}
+       
       </MapView>
 
       {location && (
