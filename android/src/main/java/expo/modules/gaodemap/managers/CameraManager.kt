@@ -20,14 +20,16 @@ class CameraManager(private val aMap: AMap) {
    * 设置最大缩放级别
    */
   fun setMaxZoomLevel(maxZoom: Float) {
-    aMap.maxZoomLevel = maxZoom
+    val validZoom = maxZoom.coerceIn(3f, 20f)
+    aMap.maxZoomLevel = validZoom
   }
   
   /**
    * 设置最小缩放级别
    */
   fun setMinZoomLevel(minZoom: Float) {
-    aMap.minZoomLevel = minZoom
+    val validZoom = minZoom.coerceIn(3f, 20f)
+    aMap.minZoomLevel = validZoom
   }
   
   /**
@@ -43,12 +45,20 @@ class CameraManager(private val aMap: AMap) {
     if (target != null) {
       val lat = target["latitude"] ?: 0.0
       val lng = target["longitude"] ?: 0.0
+      
+      // 坐标验证
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return
+      }
+      
       val latLng = LatLng(lat, lng)
+      val validZoom = zoom.coerceIn(3f, 20f)
+      val validTilt = tilt.coerceIn(0f, 60f)
       
       val cameraPosition = CameraPosition.Builder()
         .target(latLng)
-        .zoom(zoom)
-        .tilt(tilt)
+        .zoom(validZoom)
+        .tilt(validTilt)
         .bearing(bearing)
         .build()
       
@@ -70,11 +80,17 @@ class CameraManager(private val aMap: AMap) {
       if (target != null) {
         val lat = target["latitude"] ?: 0.0
         val lng = target["longitude"] ?: 0.0
+        
+        // 坐标验证
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          return@post
+        }
+        
         val latLng = LatLng(lat, lng)
         
         val builder = CameraPosition.Builder().target(latLng)
-        zoom?.let { builder.zoom(it) }
-        tilt?.let { builder.tilt(it) }
+        zoom?.let { builder.zoom(it.coerceIn(3f, 20f)) }
+        tilt?.let { builder.tilt(it.coerceIn(0f, 60f)) }
         bearing?.let { builder.bearing(it) }
         
         val cameraUpdate = CameraUpdateFactory.newCameraPosition(builder.build())
@@ -94,6 +110,12 @@ class CameraManager(private val aMap: AMap) {
   fun setCenter(center: Map<String, Double>, animated: Boolean) {
     val lat = center["latitude"] ?: 0.0
     val lng = center["longitude"] ?: 0.0
+    
+    // 坐标验证
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return
+    }
+    
     val latLng = LatLng(lat, lng)
     val cameraUpdate = CameraUpdateFactory.newLatLng(latLng)
     
@@ -108,7 +130,8 @@ class CameraManager(private val aMap: AMap) {
    * 设置地图缩放级别
    */
   fun setZoomLevel(zoom: Float, animated: Boolean) {
-    val cameraUpdate = CameraUpdateFactory.zoomTo(zoom)
+    val validZoom = zoom.coerceIn(3f, 20f)
+    val cameraUpdate = CameraUpdateFactory.zoomTo(validZoom)
     
     if (animated) {
       aMap.animateCamera(cameraUpdate)

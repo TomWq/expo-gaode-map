@@ -34,7 +34,8 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
     data.forEach { point ->
       val lat = (point["latitude"] as? Number)?.toDouble()
       val lng = (point["longitude"] as? Number)?.toDouble()
-      if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         dataList.add(LatLng(lat, lng))
       }
     }
@@ -88,10 +89,12 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun removeHeatMap() {
     heatmapOverlay?.remove()
     heatmapOverlay = null
+    dataList.clear()
   }
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     removeHeatMap()
+    aMap = null
   }
 }

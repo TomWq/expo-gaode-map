@@ -102,6 +102,7 @@ public class ExpoGaodeMapViewModule: Module {
             AsyncFunction("getCameraPosition") { (view: ExpoGaodeMapView) -> [String: Any] in
                 return view.getCameraPosition()
             }
+          
         }
     }
 }

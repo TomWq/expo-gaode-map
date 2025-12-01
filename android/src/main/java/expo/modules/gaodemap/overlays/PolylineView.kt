@@ -46,7 +46,8 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
     points = pointsList.mapNotNull { point ->
       val lat = point["latitude"]
       val lng = point["longitude"]
-      if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         LatLng(lat, lng)
       } else null
     }
@@ -261,5 +262,6 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     removePolyline()
+    aMap = null
   }
 }

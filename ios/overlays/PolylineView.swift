@@ -30,6 +30,8 @@ class PolylineView: ExpoView {
     var polyline: MAPolyline?
     /// 折线渲染器
     private var renderer: MAPolylineRenderer?
+    /// 上次设置的地图引用（防止重复调用）
+    private weak var lastSetMapView: MAMapView?
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -53,16 +55,6 @@ class PolylineView: ExpoView {
     }
     
     /**
-     * 查找地图视图
-     * 新架构下使用全局注册表
-     * @return MAMapView 实例或 nil
-     */
-    func findParentMapView() -> MAMapView? {
-        print("🔷 findParentMapView: 从全局注册表获取地图")
-        return MapRegistry.shared.getMainMap()
-    }
-    
-    /**
      * 检查地图是否已连接
      */
     func isMapConnected() -> Bool {
@@ -74,26 +66,14 @@ class PolylineView: ExpoView {
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
-        // 避免重复设置
-        if self.mapView != nil {
-            print("🔷 PolylineView.setMap: 地图已连接，跳过重复设置")
+        // 🔑 关键优化：如果是同一个地图引用，跳过重复设置
+        if lastSetMapView === map {
             return
         }
         
-        print("🔷 PolylineView.setMap: 首次设置地图，当前 points 数量 = \(points.count)")
+        lastSetMapView = map
         self.mapView = map
-        
-        // 🔑 新架构修复：注册到全局注册表
-        MapRegistry.shared.registerOverlay(self)
-        
-        // 如果 points 已经设置，立即更新折线
-        if !points.isEmpty {
-            print("🔷 PolylineView.setMap: points 已存在，立即更新折线")
-            updatePolyline()
-        } else {
-            print("🔷 PolylineView.setMap: points 为空，等待 points 设置")
-        }
-        print("🔷 PolylineView.setMap: 设置完成")
+        updatePolyline()
     }
     
     /**
@@ -103,11 +83,19 @@ class PolylineView: ExpoView {
         guard let mapView = mapView else { return }
         if let old = polyline { mapView.remove(old) }
         
+        // 🔑 坐标验证和过滤
         var coords = points.compactMap { point -> CLLocationCoordinate2D? in
-            guard let lat = point["latitude"], let lng = point["longitude"] else { return nil }
+            guard let lat = point["latitude"],
+                  let lng = point["longitude"],
+                  lat >= -90 && lat <= 90,
+                  lng >= -180 && lng <= 180 else {
+                return nil
+            }
             return CLLocationCoordinate2D(latitude: lat, longitude: lng)
         }
-        guard !coords.isEmpty else { return }
+        
+        // 🔑 至少需要2个点才能绘制折线
+        guard coords.count >= 2 else { return }
         
         polyline = MAPolyline(coordinates: &coords, count: UInt(coords.count))
         mapView.add(polyline!)
@@ -125,15 +113,11 @@ class PolylineView: ExpoView {
             renderer?.lineWidth = CGFloat(strokeWidth)
             
             if let url = textureUrl {
-                print("🔷 PolylineView.getRenderer: 加载纹理 \(url)")
                 loadTexture(url: url, renderer: renderer!)
             } else {
                 let parsedColor = ColorParser.parseColor(strokeColor)
                 renderer?.strokeColor = parsedColor ?? UIColor.clear
-                print("🔷 PolylineView.getRenderer: 创建新 renderer, strokeColor=\(String(describing: parsedColor)), lineWidth=\(strokeWidth)")
             }
-        } else {
-            print("🔷 PolylineView.getRenderer: 使用缓存的 renderer")
         }
         return renderer!
     }
@@ -150,14 +134,11 @@ class PolylineView: ExpoView {
             }
             URLSession.shared.dataTask(with: imageUrl) { [weak self] data, _, error in
                 if let error = error {
-                    print("🔷 PolylineView.loadTexture: ❌ 网络图片加载失败: \(error.localizedDescription)")
                     return
                 }
                 guard let data = data, let image = UIImage(data: data) else {
-                    print("🔷 PolylineView.loadTexture: ❌ 无法解析图片数据")
                     return
                 }
-                print("🔷 PolylineView.loadTexture: ✅ 网络图片加载成功, size: \(image.size)")
                 DispatchQueue.main.async {
                     self?.applyTexture(image: image, to: renderer)
                 }
@@ -186,38 +167,9 @@ class PolylineView: ExpoView {
      * @param renderer 折线渲染器
      */
     private func applyTexture(image: UIImage, to renderer: MAPolylineRenderer) {
-        print("🔷 PolylineView.applyTexture: ✅ 开始应用纹理, image size: \(image.size)")
-        
-        // 检查纹理尺寸是否符合要求（正方形且宽高是 2 的整数幂）
-        let width = Int(image.size.width)
-        let height = Int(image.size.height)
-        let isPowerOfTwo = { (n: Int) -> Bool in
-            return n > 0 && (n & (n - 1)) == 0
-        }
-        
-        if width != height {
-            print("🔷 PolylineView.applyTexture: ⚠️ 纹理不是正方形 (\(width)x\(height))，可能无效")
-        } else if !isPowerOfTwo(width) {
-            print("🔷 PolylineView.applyTexture: ⚠️ 纹理尺寸 \(width) 不是 2 的整数幂，可能无效")
-        } else {
-            print("🔷 PolylineView.applyTexture: ✅ 纹理尺寸符合要求 (\(width)x\(height))")
-        }
-        
-        // 检查地图是否为 3D 模式
-        if let mapView = mapView {
-            print("🔷 PolylineView.applyTexture: 地图类型: \(mapView.mapType.rawValue), cameraDegree: \(mapView.cameraDegree)")
-            if mapView.cameraDegree == 0 {
-                print("🔷 PolylineView.applyTexture: ⚠️ 地图当前为 2D 模式（cameraDegree=0），纹理仅在 3D 模式下生效！")
-                print("🔷 PolylineView.applyTexture: 💡 提示：需要设置地图为 3D 模式才能显示纹理")
-            } else {
-                print("🔷 PolylineView.applyTexture: ✅ 地图为 3D 模式（cameraDegree=\(mapView.cameraDegree)）")
-            }
-        }
-        
         // 🔑 关键修复：使用 strokeImage 属性设置纹理（与命令式 API 一致）
         renderer.strokeImage = image
         mapView?.setNeedsDisplay()
-        print("🔷 PolylineView.applyTexture: ✅ 已设置 strokeImage 属性")
     }
     
     /**
@@ -234,7 +186,6 @@ class PolylineView: ExpoView {
      * @param width 线宽值
      */
     func setStrokeWidth(_ width: Float) {
-        print("🔷 PolylineView.setStrokeWidth: \(width)")
         strokeWidth = width
         renderer = nil
         forceRerender()
@@ -245,7 +196,6 @@ class PolylineView: ExpoView {
      * @param color 颜色值
      */
     func setStrokeColor(_ color: Any?) {
-        print("🔷 PolylineView.setStrokeColor: \(String(describing: color))")
         strokeColor = color
         renderer = nil
         forceRerender()
@@ -256,7 +206,6 @@ class PolylineView: ExpoView {
      * @param url 图片 URL
      */
     func setTexture(_ url: String?) {
-        print("🔷 PolylineView.setTexture: \(String(describing: url))")
         textureUrl = url
         renderer = nil
         forceRerender()
@@ -268,7 +217,6 @@ class PolylineView: ExpoView {
      */
     private func forceRerender() {
         guard let mapView = mapView, let polyline = polyline else {
-            print("🔷 PolylineView.forceRerender: 折线尚未创建，跳过重新渲染")
             return
         }
         
@@ -277,8 +225,6 @@ class PolylineView: ExpoView {
         
         // 重新添加（地图会调用 rendererFor overlay）
         mapView.add(polyline)
-        
-        print("🔷 PolylineView.forceRerender: ✅ 已强制重新渲染折线")
     }
     
     func setDotted(_ dotted: Bool) {
@@ -288,14 +234,31 @@ class PolylineView: ExpoView {
     }
     
     /**
-     * 析构时移除折线
+     * 视图即将从父视图移除时调用
+     * 🔑 关键修复：旧架构下，React Native 移除视图时不一定立即调用 deinit
+     * 需要在 willMove(toSuperview:) 中立即清理地图覆盖物
+     */
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        // 当 newSuperview 为 nil 时，表示视图正在从父视图移除
+        if newSuperview == nil {
+            if let mapView = mapView, let polyline = polyline {
+                mapView.remove(polyline)
+                self.polyline = nil
+            }
+        }
+    }
+    
+    /**
+     * 析构时移除折线（双重保险）
      */
     deinit {
-        // 🔑 新架构修复：从全局注册表注销
-        MapRegistry.shared.unregisterOverlay(self)
-        
         if let mapView = mapView, let polyline = polyline {
             mapView.remove(polyline)
         }
+        mapView = nil
+        polyline = nil
+        renderer = nil
     }
 }

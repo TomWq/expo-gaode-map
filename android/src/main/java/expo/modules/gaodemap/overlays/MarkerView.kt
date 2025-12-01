@@ -97,7 +97,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     try {
       super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "onMeasure 失败", e)
       throw e
     }
   }
@@ -160,7 +159,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setLatitude(lat: Double) {
     try {
       if (lat < -90 || lat > 90) {
-        android.util.Log.e("MarkerView", "纬度超出有效范围: $lat")
         return
       }
       
@@ -169,7 +167,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         updatePosition(lat, lng)
       }
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "setLatitude 异常", e)
+      // 忽略异常
     }
   }
   
@@ -179,7 +177,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setLongitude(lng: Double) {
     try {
       if (lng < -180 || lng > 180) {
-        android.util.Log.e("MarkerView", "经度超出有效范围: $lng")
         return
       }
       
@@ -188,7 +185,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         updatePosition(lat, lng)
       }
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "setLongitude 异常", e)
+      // 忽略异常
     }
   }
   
@@ -215,7 +212,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
       }
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "updatePosition 异常", e)
+      // 忽略异常
     }
   }
   
@@ -228,18 +225,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       val lng = position["longitude"]
       
       if (lat == null || lng == null) {
-        android.util.Log.e("MarkerView", "无效的位置数据")
         return
       }
       
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        android.util.Log.e("MarkerView", "坐标超出有效范围")
         return
       }
       
       updatePosition(lat, lng)
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "setPosition 异常", e)
+      // 忽略异常
     }
   }
   
@@ -353,12 +348,10 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
               mainHandler.post {
                 marker.setIcon(BitmapDescriptorFactory.fromBitmap(resized))
                 marker.setAnchor(0.5f, 1.0f)
-                android.util.Log.d("MarkerView", "网络图标加载成功: $iconUri")
               }
             } ?: run {
               mainHandler.post {
                 marker.setIcon(BitmapDescriptorFactory.defaultMarker())
-                android.util.Log.e("MarkerView", "网络图标加载失败: $iconUri")
               }
             }
           }
@@ -371,10 +364,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             val resized = resizeBitmap(bitmap, iconWidth, iconHeight)
             marker.setIcon(BitmapDescriptorFactory.fromBitmap(resized))
             marker.setAnchor(0.5f, 1.0f)
-            android.util.Log.d("MarkerView", "本地文件图标加载成功: $path")
           } else {
             marker.setIcon(BitmapDescriptorFactory.defaultMarker())
-            android.util.Log.e("MarkerView", "本地文件图标加载失败: $path")
           }
         }
         // 本地资源名
@@ -389,15 +380,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             val resized = resizeBitmap(bitmap, iconWidth, iconHeight)
             marker.setIcon(BitmapDescriptorFactory.fromBitmap(resized))
             marker.setAnchor(0.5f, 1.0f)
-            android.util.Log.d("MarkerView", "本地资源图标加载成功: $iconUri")
           } else {
             marker.setIcon(BitmapDescriptorFactory.defaultMarker())
-            android.util.Log.e("MarkerView", "本地资源图标未找到: $iconUri")
           }
         }
       }
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "加载图标失败: $iconUri", e)
       marker.setIcon(BitmapDescriptorFactory.defaultMarker())
     }
   }
@@ -422,11 +410,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
           val bitmap = BitmapFactory.decodeStream(inputStream)
           callback(bitmap)
         } else {
-          android.util.Log.e("MarkerView", "网络请求失败: ${connection.responseCode}")
           callback(null)
         }
       } catch (e: Exception) {
-        android.util.Log.e("MarkerView", "网络加载图片异常", e)
         callback(null)
       } finally {
         inputStream?.close()
@@ -488,7 +474,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       }
       marker.setIcon(BitmapDescriptorFactory.defaultMarker(hue))
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "设置大头针颜色失败", e)
+      // 忽略异常
     }
   }
   
@@ -507,7 +493,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setIconWidth(width: Int) {
     val density = context.resources.displayMetrics.density
     iconWidth = (width * density).toInt()
-    android.util.Log.d("MarkerView", "setIconWidth: $width dp -> $iconWidth px")
   }
   
   /**
@@ -517,7 +502,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setIconHeight(height: Int) {
     val density = context.resources.displayMetrics.density
     iconHeight = (height * density).toInt()
-    android.util.Log.d("MarkerView", "setIconHeight: $height dp -> $iconHeight px")
   }
   
   /**
@@ -695,7 +679,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       
       bitmap
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "创建 Bitmap 失败", e)
       null
     }
   }
@@ -751,7 +734,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         // 如果只是移除 children 并保留 Marker，应该由外部重新设置 children
       }
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "removeView 异常", e)
+      // 忽略异常
     }
   }
   
@@ -771,7 +754,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         // 让 onDetachedFromWindow 处理完整的清理
       }
     } catch (e: Exception) {
-      android.util.Log.e("MarkerView", "removeViewAt 异常", e)
+      // 忽略异常
     }
   }
   /**
@@ -819,7 +802,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     // 🔑 关键修复：只有在子视图数量真正变化且 marker 已存在时才更新图标
     // 避免在其他覆盖物添加时触发不必要的刷新
     if (!isRemoving && marker != null && childCount > childCountBefore) {
-      android.util.Log.d("MarkerView", "子视图添加，延迟更新图标 (childCount: $childCountBefore -> $childCount)")
       mainHandler.postDelayed({
         if (!isRemoving && marker != null) {
           updateMarkerIcon()
@@ -850,24 +832,11 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 移除标记
    */
   fun removeMarker() {
-    android.util.Log.d("MarkerView", "==================== removeMarker 开始 ====================")
-    android.util.Log.d("MarkerView", "MarkerView hashCode: ${System.identityHashCode(this)}")
-    android.util.Log.d("MarkerView", "marker 是否存在: ${marker != null}")
-    
     marker?.let {
-      android.util.Log.d("MarkerView", "marker 位置: ${it.position}")
-      android.util.Log.d("MarkerView", "marker 标题: ${it.title}")
-      android.util.Log.d("MarkerView", "正在从全局 map 注销 marker...")
       unregisterMarker(it)
-      android.util.Log.d("MarkerView", "正在调用 marker.remove()...")
       it.remove()
-      android.util.Log.d("MarkerView", "✅ marker.remove() 调用完成")
-    } ?: run {
-      android.util.Log.w("MarkerView", "⚠️ marker 为 null，无需移除")
     }
-    
     marker = null
-    android.util.Log.d("MarkerView", "==================== removeMarker 结束 ====================")
   }
   
   override fun onDetachedFromWindow() {

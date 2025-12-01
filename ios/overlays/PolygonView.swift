@@ -27,6 +27,8 @@ class PolygonView: ExpoView {
     var polygon: MAPolygon?
     /// 多边形渲染器
     private var renderer: MAPolygonRenderer?
+    /// 上次设置的地图引用（防止重复调用）
+    private weak var lastSetMapView: MAMapView?
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -50,16 +52,6 @@ class PolygonView: ExpoView {
     }
     
     /**
-     * 查找地图视图
-     * 新架构下使用全局注册表
-     * @return MAMapView 实例或 nil
-     */
-    func findParentMapView() -> MAMapView? {
-        print("🔶 findParentMapView: 从全局注册表获取地图")
-        return MapRegistry.shared.getMainMap()
-    }
-    
-    /**
      * 检查地图是否已连接
      */
     func isMapConnected() -> Bool {
@@ -71,26 +63,12 @@ class PolygonView: ExpoView {
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
-        // 避免重复设置
-        if self.mapView != nil {
-            print("🔶 PolygonView.setMap: 地图已连接，跳过重复设置")
-            return
-        }
-        
-        print("🔶 PolygonView.setMap: 首次设置地图，当前 points 数量 = \(points.count)")
+        let isNewMap = self.mapView == nil
         self.mapView = map
         
-        // 🔑 新架构修复：注册到全局注册表
-        MapRegistry.shared.registerOverlay(self)
-        
-        // 如果 points 已经设置，立即更新多边形
-        if !points.isEmpty {
-            print("🔶 PolygonView.setMap: points 已存在，立即更新多边形")
-            updatePolygon()
-        } else {
-            print("🔶 PolygonView.setMap: points 为空，等待 points 设置")
-        }
-        print("🔶 PolygonView.setMap: 设置完成")
+        // 无论是否是新地图，都调用 updatePolygon
+        // 这确保了即使在 setMap 之前设置了 props，覆盖物也能被正确创建
+        updatePolygon()
     }
     
     /**
@@ -100,11 +78,19 @@ class PolygonView: ExpoView {
         guard let mapView = mapView else { return }
         if let old = polygon { mapView.remove(old) }
         
+        // 🔑 坐标验证和过滤
         var coords = points.compactMap { point -> CLLocationCoordinate2D? in
-            guard let lat = point["latitude"], let lng = point["longitude"] else { return nil }
+            guard let lat = point["latitude"],
+                  let lng = point["longitude"],
+                  lat >= -90 && lat <= 90,
+                  lng >= -180 && lng <= 180 else {
+                return nil
+            }
             return CLLocationCoordinate2D(latitude: lat, longitude: lng)
         }
-        guard !coords.isEmpty else { return }
+        
+        // 🔑 至少需要3个点才能绘制多边形
+        guard coords.count >= 3 else { return }
         
         polygon = MAPolygon(coordinates: &coords, count: UInt(coords.count))
         mapView.add(polygon!)
@@ -124,10 +110,6 @@ class PolygonView: ExpoView {
             renderer?.fillColor = parsedFillColor ?? UIColor.clear
             renderer?.strokeColor = parsedStrokeColor ?? UIColor.clear
             renderer?.lineWidth = CGFloat(strokeWidth)
-            print("🔶 PolygonView.getRenderer: 创建新 renderer")
-            print("🔶 PolygonView.getRenderer: fillColor=\(String(describing: parsedFillColor)), strokeColor=\(String(describing: parsedStrokeColor)), lineWidth=\(strokeWidth)")
-        } else {
-            print("🔶 PolygonView.getRenderer: 使用缓存的 renderer")
         }
         return renderer!
     }
@@ -146,7 +128,6 @@ class PolygonView: ExpoView {
      * @param color 颜色值
      */
     func setFillColor(_ color: Any?) {
-        print("🔶 PolygonView.setFillColor: \(String(describing: color))")
         fillColor = color
         renderer = nil
         updatePolygon()
@@ -157,7 +138,6 @@ class PolygonView: ExpoView {
      * @param color 颜色值
      */
     func setStrokeColor(_ color: Any?) {
-        print("🔶 PolygonView.setStrokeColor: \(String(describing: color))")
         strokeColor = color
         renderer = nil
         updatePolygon()
@@ -168,21 +148,37 @@ class PolygonView: ExpoView {
      * @param width 宽度值
      */
     func setStrokeWidth(_ width: Float) {
-        print("🔶 PolygonView.setStrokeWidth: \(width)")
         strokeWidth = width
         renderer = nil
         updatePolygon()
     }
     
     /**
-     * 析构时移除多边形
+     * 视图即将从父视图移除时调用
+     * 🔑 关键修复：旧架构下，React Native 移除视图时不一定立即调用 deinit
+     * 需要在 willMove(toSuperview:) 中立即清理地图覆盖物
+     */
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        // 当 newSuperview 为 nil 时，表示视图正在从父视图移除
+        if newSuperview == nil {
+            if let mapView = mapView, let polygon = polygon {
+                mapView.remove(polygon)
+                self.polygon = nil
+            }
+        }
+    }
+    
+    /**
+     * 析构时移除多边形（双重保险）
      */
     deinit {
-        // 🔑 新架构修复：从全局注册表注销
-        MapRegistry.shared.unregisterOverlay(self)
-        
         if let mapView = mapView, let polygon = polygon {
             mapView.remove(polygon)
         }
+        mapView = nil
+        polygon = nil
+        renderer = nil
     }
 }

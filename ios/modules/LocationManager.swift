@@ -165,7 +165,11 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
      */
     func destroy() {
         locationManager?.stopUpdatingLocation()
+        locationManager?.stopUpdatingHeading()
+        locationManager?.delegate = nil
         locationManager = nil
+        onLocationUpdate = nil
+        onHeadingUpdate = nil
     }
     
     /**
@@ -194,6 +198,12 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
      * @param reGeocode 逆地理信息
      */
     func amapLocationManager(_ manager: AMapLocationManager!, didUpdate location: CLLocation!, reGeocode: AMapLocationReGeocode!) {
+        // 🔑 坐标验证：防止无效坐标
+        guard location.coordinate.latitude >= -90 && location.coordinate.latitude <= 90,
+              location.coordinate.longitude >= -180 && location.coordinate.longitude <= 180 else {
+            return
+        }
+        
         var locationData: [String: Any] = [
             "latitude": location.coordinate.latitude,
             "longitude": location.coordinate.longitude,

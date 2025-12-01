@@ -43,6 +43,10 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
     val lat = centerMap["latitude"]
     val lng = centerMap["longitude"]
     if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return
+      }
       center = LatLng(lat, lng)
       circle?.center = center
     }
@@ -52,11 +56,12 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 设置半径
    */
   fun setRadius(radiusValue: Double) {
-    radius = radiusValue
+    // 半径验证（必须大于0）
+    val validRadius = if (radiusValue > 0) radiusValue else 1000.0
+    radius = validRadius
     circle?.let {
         it.radius = radius
     } ?: createOrUpdateCircle()
-
   }
   
   /**
@@ -150,6 +155,7 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     removeCircle()
+    aMap = null
   }
 
 }

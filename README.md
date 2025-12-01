@@ -22,6 +22,8 @@
 
 ## 📦 安装
 
+### 稳定版本（推荐）
+
 ```bash
 npm install expo-gaode-map
 # 或
@@ -29,6 +31,31 @@ yarn add expo-gaode-map
 # 或
 pnpm add expo-gaode-map
 ```
+
+### 体验 2.0 测试版本 🚀
+
+> ⚠️ **重要提示**: 2.0 版本包含破坏性变更，API 调用方式有重大调整。详见 [迁移指南](docs/MIGRATION.md)
+
+如果你想体验最新的 2.0 alpha 版本（包含改进的架构和更好的类型支持）：
+
+```bash
+npm install expo-gaode-map@next
+# 或
+yarn add expo-gaode-map@next
+# 或
+pnpm add expo-gaode-map@next
+```
+
+**2.0 版本主要变化：**
+- ✅ 统一的 API 调用方式（`ExpoGaodeMapModule`）
+- ✅ 完整的 TypeScript 类型支持
+- ✅ 移除了多余的封装层，直接调用原生模块
+- ✅ 完全移除命令式 API的支持
+- ⚠️ **不向后兼容**，需要按照 [迁移指南](docs/MIGRATION.md) 更新代码
+
+**版本对比：**
+- `1.x`（稳定版）：`import { initSDK, start, stop } from 'expo-gaode-map'`
+- `2.0`（测试版）：`import { ExpoGaodeMapModule } from 'expo-gaode-map'`
 
 ### Expo 项目
 
@@ -87,10 +114,7 @@ npx react-native run-android
 import { useEffect, useState } from 'react';
 import {
   MapView,
-  initSDK,
-  checkLocationPermission,
-  requestLocationPermission,
-  getCurrentLocation,
+  ExpoGaodeMapModule,
 } from 'expo-gaode-map';
 
 export default function App() {
@@ -99,20 +123,20 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       // 1. 初始化 SDK
-      initSDK({
+      ExpoGaodeMapModule.initSDK({
         androidKey: 'your-android-api-key',
         iosKey: 'your-ios-api-key',
       });
       
       // 2. 检查并请求权限
-      const status = await checkLocationPermission();
+      const status = await ExpoGaodeMapModule.checkLocationPermission();
       if (!status.granted) {
-        await requestLocationPermission();
+        await ExpoGaodeMapModule.requestLocationPermission();
       }
       
       // 3. 获取位置并设置地图
       try {
-        const location = await getCurrentLocation();
+        const location = await ExpoGaodeMapModule.getCurrentLocation();
         setInitialPosition({
           target: { latitude: location.latitude, longitude: location.longitude },
           zoom: 15
@@ -202,6 +226,7 @@ export default function MapScreen() {
 - [使用示例](docs/EXAMPLES.md) - 详细的代码示例
 - [初始化指南](docs/INITIALIZATION.md) - SDK 初始化和权限管理
 - [架构文档](docs/ARCHITECTURE.md) - 项目结构和文件说明
+- [迁移指南](docs/MIGRATION.md) - v1.x 到 v2.0 的迁移指南
 
 ## ⚠️ 注意事项
 
@@ -210,22 +235,23 @@ export default function MapScreen() {
 ```tsx
 import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Button } from 'react-native';
-import { 
-  MapView, 
-  initSDK,
+import {
+  MapView,
+  ExpoGaodeMapModule,
   Circle,
   Marker,
   Polyline,
   Polygon,
-  type MapViewRef 
+  type MapViewRef
 } from 'expo-gaode-map';
 
 export default function App() {
   const mapRef = useRef<MapViewRef>(null);
 
   useEffect(() => {
-    initSDK({
+    ExpoGaodeMapModule.initSDK({
       androidKey: 'your-android-api-key',
+      iosKey: 'your-ios-api-key',
     });
   }, []);
 
@@ -322,16 +348,9 @@ const styles = StyleSheet.create({
 ```tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { 
+import {
   MapView,
-  initSDK,
-  start,
-  stop,
-  getCurrentLocation,
-  addLocationListener,
-  setLocatingWithReGeocode,
-  setLocationMode,
-  setInterval,
+  ExpoGaodeMapModule,
   type Location,
 } from 'expo-gaode-map';
 
@@ -341,17 +360,18 @@ export default function LocationApp() {
 
   useEffect(() => {
     // 初始化 SDK
-    initSDK({
+    ExpoGaodeMapModule.initSDK({
       androidKey: 'your-android-api-key',
+      iosKey: 'your-ios-api-key',
     });
 
     // 配置定位参数
-    setLocatingWithReGeocode(true);  // 返回地址信息
-    setLocationMode(0);              // 高精度模式
-    setInterval(2000);               // 2秒更新一次
+    ExpoGaodeMapModule.setLocatingWithReGeocode(true);  // 返回地址信息
+    ExpoGaodeMapModule.setLocationMode(0);              // 高精度模式
+    ExpoGaodeMapModule.setInterval(2000);               // 2秒更新一次
 
     // 监听位置更新
-    const subscription = addLocationListener((loc) => {
+    const subscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (loc) => {
       console.log('位置更新:', loc);
       setLocation(loc);
     });
@@ -360,18 +380,18 @@ export default function LocationApp() {
   }, []);
 
   const handleStartTracking = () => {
-    start();
+    ExpoGaodeMapModule.start();
     setIsTracking(true);
   };
 
   const handleStopTracking = () => {
-    stop();
+    ExpoGaodeMapModule.stop();
     setIsTracking(false);
   };
 
   const handleGetLocation = async () => {
     try {
-      const loc = await getCurrentLocation();
+      const loc = await ExpoGaodeMapModule.getCurrentLocation();
       setLocation(loc);
     } catch (error) {
       console.error('获取位置失败:', error);
@@ -493,40 +513,6 @@ const styles = StyleSheet.create({
 
 详细说明请参考：[docs/followUserLocation.md](docs/followUserLocation.md)
 
-### 命令式 API 批量操作
-
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-// 批量添加覆盖物
-const addMultipleOverlays = async () => {
-  // 添加多个圆形
-  await mapRef.current?.addCircle('circle1', {
-    center: { latitude: 39.9, longitude: 116.4 },
-    radius: 1000,
-    fillColor: 0x8800FF00,
-  });
-  
-  await mapRef.current?.addCircle('circle2', {
-    center: { latitude: 40.0, longitude: 116.5 },
-    radius: 500,
-    fillColor: 0x880000FF,
-  });
-  
-  // 添加标记
-  await mapRef.current?.addMarker('marker1', {
-    position: { latitude: 39.95, longitude: 116.45 },
-    title: '北京',
-  });
-};
-
-// 批量清除
-const clearAll = async () => {
-  await mapRef.current?.removeCircle('circle1');
-  await mapRef.current?.removeCircle('circle2');
-  await mapRef.current?.removeMarker('marker1');
-};
-```
 
 
 ### 颜色格式
@@ -537,12 +523,6 @@ const clearAll = async () => {
    ```tsx
    <Circle fillColor="#8800FF00" />  // 50% 透明绿色
    ```
-
-2. **数字格式**（命令式 API）：`0xAARRGGBB`
-   ```tsx
-   await mapRef.current?.addCircle('circle1', {
-     fillColor: 0x8800FF00,  // 50% 透明绿色
-   });
    ```
 
 ### 性能优化

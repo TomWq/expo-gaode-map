@@ -38,7 +38,8 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
       val lng = (point["longitude"] as? Number)?.toDouble()
       val id = point["id"] as? String ?: ""
       
-      if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         val multiPointItem = MultiPointItem(LatLng(lat, lng))
         multiPointItem.customerId = id
         points.add(multiPointItem)
@@ -94,10 +95,12 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
   fun removeMultiPoint() {
     multiPointOverlay?.remove()
     multiPointOverlay = null
+    points.clear()
   }
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     removeMultiPoint()
+    aMap = null
   }
 }

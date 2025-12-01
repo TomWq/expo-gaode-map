@@ -22,6 +22,8 @@ A full-featured AMap (Gaode Map) React Native component library, **built with Ex
 
 ## 📦 Installation
 
+### Stable Version (Recommended)
+
 ```bash
 npm install expo-gaode-map
 # or
@@ -29,6 +31,30 @@ yarn add expo-gaode-map
 # or
 pnpm add expo-gaode-map
 ```
+
+### Try 2.0 Beta Version 🚀
+
+> ⚠️ **Important**: Version 2.0 contains breaking changes with significant API adjustments. See [Migration Guide](docs/MIGRATION.md)
+
+If you want to try the latest 2.0 alpha version (with improved architecture and better type support):
+
+```bash
+npm install expo-gaode-map@next
+# or
+yarn add expo-gaode-map@next
+# or
+pnpm add expo-gaode-map@next
+```
+
+**Major Changes in 2.0:**
+- ✅ Unified API calling method (`ExpoGaodeMapModule`)
+- ✅ Complete TypeScript type support
+- ✅ Removed unnecessary wrapper layers, direct native module calls
+- ⚠️ **Not backward compatible**, code updates required per [Migration Guide](docs/MIGRATION.md)
+
+**Version Comparison:**
+- `1.x` (Stable): `import { initSDK, start, stop } from 'expo-gaode-map'`
+- `2.0` (Beta): `import { ExpoGaodeMapModule } from 'expo-gaode-map'`
 
 ### Expo Projects
 
@@ -87,10 +113,7 @@ Visit [AMap Open Platform](https://lbs.amap.com/) to register and create an appl
 import { useEffect, useState } from 'react';
 import {
   MapView,
-  initSDK,
-  checkLocationPermission,
-  requestLocationPermission,
-  getCurrentLocation,
+  ExpoGaodeMapModule,
 } from 'expo-gaode-map';
 
 export default function App() {
@@ -99,20 +122,20 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       // 1. Initialize SDK
-      initSDK({
+      ExpoGaodeMapModule.initSDK({
         androidKey: 'your-android-api-key',
         iosKey: 'your-ios-api-key',
       });
       
       // 2. Check and request permission
-      const status = await checkLocationPermission();
+      const status = await ExpoGaodeMapModule.checkLocationPermission();
       if (!status.granted) {
-        await requestLocationPermission();
+        await ExpoGaodeMapModule.requestLocationPermission();
       }
       
       // 3. Get location and set map
       try {
-        const location = await getCurrentLocation();
+        const location = await ExpoGaodeMapModule.getCurrentLocation();
         setInitialPosition({
           target: { latitude: location.latitude, longitude: location.longitude },
           zoom: 15
@@ -202,6 +225,7 @@ Includes:
 - [Usage Examples](docs/EXAMPLES.en.md) - Detailed code examples
 - [Initialization Guide](docs/INITIALIZATION.en.md) - SDK initialization and permission management
 - [Architecture Documentation](docs/ARCHITECTURE.en.md) - Project structure and file descriptions
+- [Migration Guide](docs/MIGRATION.md) - Migration guide from v1.x to v2.0
 
 ## 🎨 Advanced Usage
 
@@ -231,38 +255,6 @@ Includes:
 - ✅ Map auto-follows user movement
 - ⚠️ Suitable for navigation scenarios
 
-### Imperative API Batch Operations
-
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-// Add multiple overlays
-const addMultipleOverlays = async () => {
-  await mapRef.current?.addCircle('circle1', {
-    center: { latitude: 39.9, longitude: 116.4 },
-    radius: 1000,
-    fillColor: 0x8800FF00,
-  });
-  
-  await mapRef.current?.addCircle('circle2', {
-    center: { latitude: 40.0, longitude: 116.5 },
-    radius: 500,
-    fillColor: 0x880000FF,
-  });
-  
-  await mapRef.current?.addMarker('marker1', {
-    position: { latitude: 39.95, longitude: 116.45 },
-    title: 'Beijing',
-  });
-};
-
-// Batch clear
-const clearAll = async () => {
-  await mapRef.current?.removeCircle('circle1');
-  await mapRef.current?.removeCircle('circle2');
-  await mapRef.current?.removeMarker('marker1');
-};
-```
 
 ### Color Format
 
@@ -272,12 +264,6 @@ Overlay colors support two formats:
    ```tsx
    <Circle fillColor="#8800FF00" />  // 50% transparent green
    ```
-
-2. **Number format** (imperative API): `0xAARRGGBB`
-   ```tsx
-   await mapRef.current?.addCircle('circle1', {
-     fillColor: 0x8800FF00,  // 50% transparent green
-   });
    ```
 
 ### Performance Optimization

@@ -89,7 +89,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     getCameraPosition: async () => {
       if (!nativeRef.current) throw new Error('MapView not initialized');
       return nativeRef.current.getCameraPosition();
-    },
+    }
 
   }), []);
 

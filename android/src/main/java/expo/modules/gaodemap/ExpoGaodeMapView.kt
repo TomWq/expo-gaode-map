@@ -13,7 +13,6 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import expo.modules.gaodemap.managers.CameraManager
 import expo.modules.gaodemap.managers.UIManager
-import expo.modules.gaodemap.managers.OverlayManager
 import expo.modules.gaodemap.overlays.*
 
 /**
@@ -36,7 +35,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         try {
             super.requestLayout()
         } catch (e: Exception) {
-            Log.e(TAG, "requestLayout 异常被捕获", e)
+            // 忽略异常
         }
     }
 
@@ -122,7 +121,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 onLoad(mapOf("loaded" to true))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "ExpoGaodeMapView 初始化失败", e)
+            // 初始化失败，静默处理
         }
     }
 
@@ -375,7 +374,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             child.translationX = -10000f  // 移到屏幕外
             child.translationY = -10000f
             super.addView(child, index)
-            Log.d(TAG, "添加 MarkerView at index=$index (移到屏幕外)")
             return
         }
 
@@ -403,17 +401,15 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      */
     override fun removeView(child: View?) {
         if (child is MarkerView) {
-            Log.d(TAG, "准备移除 MarkerView: marker存在=${child.marker != null}")
             child.removeMarker()
             super.removeView(child)
-            Log.d(TAG, "✅ 已移除 MarkerView")
             return
         }
 
         try {
             super.removeView(child)
         } catch (e: Exception) {
-            Log.e(TAG, "removeView 异常", e)
+            // 忽略异常
         }
     }
 
@@ -425,19 +421,17 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             val child = super.getChildAt(index)
 
             if (child is com.amap.api.maps.MapView) {
-                Log.e(TAG, "⚠️ 阻止移除 MapView (index=$index)")
                 return
             }
 
             if (child is MarkerView) {
-                Log.d(TAG, "准备移除 MarkerView at index=$index")
                 child.removeMarker()
             }
 
             super.removeViewAt(index)
 
         } catch (e: Exception) {
-            Log.e(TAG, "移除视图异常: index=$index", e)
+            // 忽略异常
         }
     }
 

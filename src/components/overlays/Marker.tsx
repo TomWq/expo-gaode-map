@@ -14,8 +14,6 @@ const NativeMarkerView = requireNativeViewManager('MarkerView');
  * - 大头针样式（pinColor）
  * - 拖拽功能
  * - 所有事件回调
- *
- * 🔑 使用 React.memo 优化性能，避免不必要的重新渲染
  */
 function Marker(props: MarkerProps) {
   // 根据是否有 children 来决定使用哪个尺寸属性

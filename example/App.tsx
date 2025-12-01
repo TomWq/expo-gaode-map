@@ -6,14 +6,7 @@ import {
   Circle,
   Polyline,
   Polygon,
-  initSDK,
-  start,
-  stop,
-  getCurrentLocation,
-  checkLocationPermission,
-  requestLocationPermission,
-  configure,
-  addLocationListener,
+  ExpoGaodeMapModule,
   type Coordinates,
   type ReGeocode,
   type CameraPosition,
@@ -71,33 +64,32 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       try {
-        initSDK({
+        ExpoGaodeMapModule.initSDK({
           androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
           iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
         });
         
-        const status = await checkLocationPermission();
+        const status = await ExpoGaodeMapModule.checkLocationPermission();
         if (!status.granted) {
-          const result = await requestLocationPermission();
+          const result = await ExpoGaodeMapModule.requestLocationPermission();
           if (!result.granted) {
             setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 15 });
             return;
           }
         }
         
-        configure({
-          withReGeocode: true,
-          interval: 5000,
-          allowsBackgroundLocationUpdates: true,
-          distanceFilter: 10,
-          accuracy:3
-        });
+        // 配置定位选项
+        ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+        ExpoGaodeMapModule.setInterval(5000);
+        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+        ExpoGaodeMapModule.setDistanceFilter(10);
+        ExpoGaodeMapModule.setDesiredAccuracy(3);
         
-        const subscription = addLocationListener((loc) => {
+        const subscription = ExpoGaodeMapModule.addListener('onLocationUpdate', (loc) => {
           setLocation(loc);
         });
         
-        const loc = await getCurrentLocation();
+        const loc = await ExpoGaodeMapModule.getCurrentLocation();
         setLocation(loc);
         setInitialPosition({
           target: { latitude: loc.latitude, longitude: loc.longitude },
@@ -116,7 +108,7 @@ export default function App() {
 
   const handleGetLocation = async () => {
     try {
-      const loc = await getCurrentLocation();
+      const loc = await ExpoGaodeMapModule.getCurrentLocation();
      
       setLocation(loc);
       if (mapRef.current) {
@@ -131,13 +123,13 @@ export default function App() {
   };
 
   const handleStartLocation = () => {
-    start();
+    ExpoGaodeMapModule.start();
     setIsLocating(true);
     Alert.alert('成功', '开始连续定位');
   };
 
   const handleStopLocation = () => {
-    stop();
+    ExpoGaodeMapModule.stop();
     setIsLocating(false);
     Alert.alert('成功', '停止定位');
   };
@@ -437,6 +429,7 @@ export default function App() {
         
         {Platform.OS === 'ios' && (
           <Marker
+            key="ios_animated_marker"
             position={{ latitude: 39.94, longitude: 116.44 }}
             title="iOS 动画标记"
             pinColor="green"
@@ -445,7 +438,7 @@ export default function App() {
           />
         )}
         
-        {/* <Polygon
+        <Polygon
           points={[
             { latitude: 39.88, longitude: 116.38 },
             { latitude: 39.88, longitude: 116.42 },
@@ -491,7 +484,7 @@ export default function App() {
           strokeColor="#FFFF0000"
           texture={iconUri}
           onPolylinePress={() => Alert.alert('折线', '点击了纹理折线')}
-        /> */}
+        />
         
        
       </MapView>

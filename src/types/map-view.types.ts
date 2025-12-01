@@ -255,6 +255,5 @@ export interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
 
-
 }
 

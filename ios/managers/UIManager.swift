@@ -126,11 +126,16 @@ class UIManager: NSObject, MAMapViewDelegate {
      */
     public func mapView(_ mapView: MAMapView, didUpdate userLocation: MAUserLocation, updatingLocation: Bool) {
         guard updatingLocation, let location = userLocation.location else { return }
-        onLocationChanged?(
-            location.coordinate.latitude,
-            location.coordinate.longitude,
-            location.horizontalAccuracy
-        )
+        
+        // 🔑 坐标验证
+        let latitude = location.coordinate.latitude
+        let longitude = location.coordinate.longitude
+        guard latitude >= -90 && latitude <= 90,
+              longitude >= -180 && longitude <= 180 else {
+            return
+        }
+        
+        onLocationChanged?(latitude, longitude, location.horizontalAccuracy)
     }
     
     /**

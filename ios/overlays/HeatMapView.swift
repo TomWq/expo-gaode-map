@@ -71,19 +71,30 @@ class HeatMapView: ExpoView {
         // 移除旧的热力图
         if let oldHeatmap = heatmapOverlay {
             mapView.remove(oldHeatmap)
+            heatmapOverlay = nil
         }
+        
+        // 验证数据有效性
+        guard !data.isEmpty else { return }
         
         // 创建热力图数据
         var heatmapData: [MAHeatMapNode] = []
         for point in data {
             guard let latitude = point["latitude"] as? Double,
-                  let longitude = point["longitude"] as? Double else {
+                  let longitude = point["longitude"] as? Double,
+                  latitude >= -90 && latitude <= 90,
+                  longitude >= -180 && longitude <= 180 else {
                 continue
             }
             
             let node = MAHeatMapNode()
             node.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            node.intensity = 1.0 // 默认强度
+            // 支持自定义强度，默认为 1.0
+            if let intensity = point["intensity"] as? Double {
+                node.intensity = Float(max(0, min(1, intensity)))
+            } else {
+                node.intensity = 1.0
+            }
             heatmapData.append(node)
         }
         
@@ -92,8 +103,8 @@ class HeatMapView: ExpoView {
         // 创建热力图图层
         let heatmap = MAHeatMapTileOverlay()
         heatmap.data = heatmapData
-        heatmap.radius = radius
-        heatmap.opacity = CGFloat(opacity)
+        heatmap.radius = max(1, radius) // 确保半径至少为 1
+        heatmap.opacity = CGFloat(max(0, min(1, opacity))) // 限制透明度范围
         
         mapView.add(heatmap)
         heatmapOverlay = heatmap
@@ -121,5 +132,6 @@ class HeatMapView: ExpoView {
      */
     deinit {
         removeHeatMap()
+        mapView = nil
     }
 }
