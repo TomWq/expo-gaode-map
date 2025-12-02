@@ -1,6 +1,7 @@
 package expo.modules.gaodemap.utils
 
 import android.graphics.Color
+import androidx.core.graphics.toColorInt
 
 object ColorParser {
     /**
@@ -22,12 +23,12 @@ object ColorParser {
     private fun parseColorString(color: String): Int {
         return try {
             when {
-                color.startsWith("#") -> Color.parseColor(color)
+                color.startsWith("#") -> color.toColorInt()
                 color.startsWith("rgba(") -> parseRgbaColor(color)
                 color.startsWith("rgb(") -> parseRgbColor(color)
                 else -> getNamedColor(color)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Color.BLACK
         }
     }

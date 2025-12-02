@@ -9,13 +9,12 @@ import com.amap.api.maps.model.MultiPointItem
 import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
 import expo.modules.kotlin.AppContext
-import expo.modules.kotlin.viewevent.EventDispatcher
+
 import expo.modules.kotlin.views.ExpoView
 
 class MultiPointView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
-  private val onPress by EventDispatcher()
-  
+
   private var multiPointOverlay: MultiPointOverlay? = null
   private var aMap: AMap? = null
   private var points: MutableList<MultiPointItem> = mutableListOf()
@@ -52,6 +51,7 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
    * 设置图标
    */
   fun setIcon(iconUri: String?) {
+
     // 简化处理，实际需要实现图片加载
     createOrUpdateMultiPoint()
   }
@@ -100,7 +100,12 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removeMultiPoint()
-    aMap = null
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removeMultiPoint()
+        aMap = null
+      }
+    }
   }
 }

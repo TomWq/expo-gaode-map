@@ -400,7 +400,9 @@ export default function App() {
             customViewHeight={40}
             onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
           >
-            <View style={styles.markerContainer}>
+            <View style={[styles.markerContainer,{
+              backgroundColor: marker.color
+            }]}>
               <Text style={styles.markerText}>{marker.content}</Text>
             </View>
           </Marker>
@@ -417,7 +419,7 @@ export default function App() {
             onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
             <View style={styles.markerContainer}>
-              <Text style={styles.markerText}>{location?.address}</Text>
+              <Text style={[styles.markerText, { color: '#2196F3' }]}>{location?.address}</Text>
             </View>
           </Marker>
         )}
@@ -624,7 +626,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerText: {
-    color: 'black',
+    color: 'white',
     fontSize: 12,
   },
   dynamicMarkerContainer1: {

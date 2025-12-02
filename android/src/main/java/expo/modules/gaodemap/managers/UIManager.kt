@@ -4,15 +4,14 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.location.Location
 import android.location.LocationListener
-import android.location.LocationManager as AndroidLocationManager
 import android.os.Bundle
 import com.amap.api.maps.AMap
 import com.amap.api.maps.LocationSource
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.MyLocationStyle
 import expo.modules.gaodemap.utils.ColorParser
-import java.io.File
 import java.net.URL
+import androidx.core.graphics.scale
 
 /**
  * UI 和手势管理器
@@ -22,7 +21,6 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   
   var onLocationChanged: ((latitude: Double, longitude: Double, accuracy: Float) -> Unit)? = null
   
-  private var locationManager: AndroidLocationManager? = null
   private var locationChangedListener: LocationSource.OnLocationChangedListener? = null
   
   // ==================== 控件显示 ====================
@@ -134,61 +132,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
     }
   }
   
-  /**
-   * 启动真实的系统定位
-   */
-  private fun startRealLocation() {
-    try {
-      if (locationManager == null) {
-        locationManager = context.getSystemService(Context.LOCATION_SERVICE) as AndroidLocationManager
-      }
-      
-      val providers = locationManager?.getProviders(true) ?: emptyList()
-      
-      val provider = when {
-        providers.contains(AndroidLocationManager.GPS_PROVIDER) -> {
-          AndroidLocationManager.GPS_PROVIDER
-        }
-        providers.contains(AndroidLocationManager.NETWORK_PROVIDER) -> {
-          AndroidLocationManager.NETWORK_PROVIDER
-        }
-        else -> {
-          return
-        }
-      }
-      
-      // 请求位置更新
-      locationManager?.requestLocationUpdates(
-        provider,
-        2000L,  // 最小时间间隔 2秒
-        10f,    // 最小距离变化 10米
-        this
-      )
-      
-      // 立即获取最后已知位置
-      val lastLocation = locationManager?.getLastKnownLocation(provider)
-      if (lastLocation != null) {
-        onLocationChanged(lastLocation)
-      }
-      
-    } catch (e: SecurityException) {
-      // 忽略异常
-    } catch (e: Exception) {
-      // 忽略异常
-    }
-  }
-  
-  /**
-   * 停止系统定位
-   */
-  private fun stopRealLocation() {
-    try {
-      locationManager?.removeUpdates(this)
-    } catch (e: Exception) {
-      // 忽略异常
-    }
-  }
-  
+
   /**
    * 位置变化回调
    */
@@ -268,7 +212,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
             android.os.Handler(android.os.Looper.getMainLooper()).post {
               if (originalBitmap != null) {
                 val scaledBitmap = if (imageWidth != null && imageHeight != null) {
-                  android.graphics.Bitmap.createScaledBitmap(originalBitmap, imageWidth, imageHeight, true)
+                    originalBitmap.scale(imageWidth, imageHeight)
                 } else originalBitmap
                 
                 style.myLocationIcon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
@@ -282,7 +226,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
                 }
               }
             }
-          } catch (e: Exception) {
+          } catch (_: Exception) {
             // 忽略异常
           }
         }.start()
@@ -313,7 +257,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
             android.os.Handler(android.os.Looper.getMainLooper()).post {
               if (originalBitmap != null) {
                 val scaledBitmap = if (imageWidth != null && imageHeight != null) {
-                  android.graphics.Bitmap.createScaledBitmap(originalBitmap, imageWidth, imageHeight, true)
+                    originalBitmap.scale(imageWidth, imageHeight)
                 } else originalBitmap
                 
                 style.myLocationIcon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
@@ -327,7 +271,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
                 }
               }
             }
-          } catch (e: Exception) {
+          } catch (_: Exception) {
             // 忽略异常
           }
         }.start()

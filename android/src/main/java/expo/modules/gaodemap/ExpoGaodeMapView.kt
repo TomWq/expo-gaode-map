@@ -2,7 +2,6 @@ package expo.modules.gaodemap
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import android.view.View
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
@@ -34,13 +33,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     override fun requestLayout() {
         try {
             super.requestLayout()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // 忽略异常
         }
-    }
-
-    companion object {
-        private const val TAG = "ExpoGaodeMapView"
     }
 
     // Props 存储
@@ -122,7 +117,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
                 onLoad(mapOf("loaded" to true))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // 初始化失败，静默处理
         }
     }
@@ -438,7 +433,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             return
         }
 
-        if (child is com.amap.api.maps.MapView) {
+        if (child is MapView) {
             super.addView(child, index)
             return
         }
@@ -469,7 +464,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
         try {
             super.removeView(child)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // 忽略异常
         }
     }
@@ -481,7 +476,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         try {
             val child = super.getChildAt(index)
 
-            if (child is com.amap.api.maps.MapView) {
+            if (child is MapView) {
                 return
             }
 
@@ -491,7 +486,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
             super.removeViewAt(index)
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // 忽略异常
         }
     }

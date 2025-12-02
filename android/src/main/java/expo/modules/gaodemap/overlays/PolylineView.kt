@@ -261,7 +261,12 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removePolyline()
-    aMap = null
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removePolyline()
+        aMap = null
+      }
+    }
   }
 }

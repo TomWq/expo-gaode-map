@@ -19,11 +19,16 @@ import com.amap.api.maps.model.MarkerOptions
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
-import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
+import androidx.core.view.isNotEmpty
+import androidx.core.view.contains
+import androidx.core.graphics.createBitmap
+import androidx.core.view.isEmpty
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.scale
 
 class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
@@ -35,24 +40,24 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     orientation = HORIZONTAL
   }
   
-  override fun generateDefaultLayoutParams(): android.widget.LinearLayout.LayoutParams {
-    return android.widget.LinearLayout.LayoutParams(
-      android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-      android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+  override fun generateDefaultLayoutParams(): LayoutParams {
+    return LayoutParams(
+      LayoutParams.WRAP_CONTENT,
+      LayoutParams.WRAP_CONTENT
     )
   }
   
-  override fun generateLayoutParams(attrs: android.util.AttributeSet?): android.widget.LinearLayout.LayoutParams {
-    return android.widget.LinearLayout.LayoutParams(context, attrs)
+  override fun generateLayoutParams(attrs: android.util.AttributeSet?): LayoutParams {
+    return LayoutParams(context, attrs)
   }
   
-  override fun generateLayoutParams(lp: android.view.ViewGroup.LayoutParams?): android.widget.LinearLayout.LayoutParams {
+  override fun generateLayoutParams(lp: android.view.ViewGroup.LayoutParams?): LayoutParams {
     return when (lp) {
-      is android.widget.LinearLayout.LayoutParams -> lp
-      is android.view.ViewGroup.MarginLayoutParams -> android.widget.LinearLayout.LayoutParams(lp)
-      else -> android.widget.LinearLayout.LayoutParams(
-        lp?.width ?: android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-        lp?.height ?: android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+      is LayoutParams -> lp
+      is MarginLayoutParams -> android.widget.LinearLayout.LayoutParams(lp)
+      else -> LayoutParams(
+        lp?.width ?: LayoutParams.WRAP_CONTENT,
+        lp?.height ?: LayoutParams.WRAP_CONTENT
       )
     }
   }
@@ -61,15 +66,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     return p is android.widget.LinearLayout.LayoutParams
   }
   
+  @SuppressLint("DrawAllocation")
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     val selfParams = this.layoutParams
-    if (selfParams == null || selfParams !is android.widget.LinearLayout.LayoutParams) {
+    if (selfParams == null || selfParams !is LayoutParams) {
       val width = if (customViewWidth > 0) {
         customViewWidth
       } else if (selfParams != null && selfParams.width > 0) {
         selfParams.width
       } else {
-        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        LayoutParams.WRAP_CONTENT
       }
       
       val height = if (customViewHeight > 0) {
@@ -77,19 +83,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       } else if (selfParams != null && selfParams.height > 0) {
         selfParams.height
       } else {
-        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        LayoutParams.WRAP_CONTENT
       }
       
-      this.layoutParams = android.widget.LinearLayout.LayoutParams(width, height)
+      this.layoutParams = LayoutParams(width, height)
     }
     
     for (i in 0 until childCount) {
       val child = getChildAt(i)
       val params = child.layoutParams
-      if (params == null || params !is android.widget.LinearLayout.LayoutParams) {
-        child.layoutParams = android.widget.LinearLayout.LayoutParams(
-          params?.width ?: android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-          params?.height ?: android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+      if (params == null || params !is LayoutParams) {
+        child.layoutParams = LayoutParams(
+          params?.width ?: LayoutParams.WRAP_CONTENT,
+          params?.height ?: LayoutParams.WRAP_CONTENT
         )
       }
     }
@@ -142,7 +148,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       pendingPosition = null
     }
     
-    if (childCount > 0 && marker != null) {
+    if (isNotEmpty() && marker != null) {
       mainHandler.postDelayed({
         updateMarkerIcon()
       }, 100)
@@ -166,7 +172,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       pendingLongitude?.let { lng ->
         updatePosition(lat, lng)
       }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       // 忽略异常
     }
   }
@@ -184,7 +190,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       pendingLatitude?.let { lat ->
         updatePosition(lat, lng)
       }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       // 忽略异常
     }
   }
@@ -211,33 +217,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
           pendingPosition = latLng
         }
       }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       // 忽略异常
     }
   }
   
-  /**
-   * 设置标记位置（兼容旧的 API）
-   */
-  fun setPosition(position: Map<String, Double>) {
-    try {
-      val lat = position["latitude"]
-      val lng = position["longitude"]
-      
-      if (lat == null || lng == null) {
-        return
-      }
-      
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        return
-      }
-      
-      updatePosition(lat, lng)
-    } catch (e: Exception) {
-      // 忽略异常
-    }
-  }
-  
+
   /**
    * 设置标题
    */
@@ -274,19 +259,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     marker?.let { it.isDraggable = draggable }
   }
   
-  /**
-   * 设置是否显示信息窗口
-   */
-  fun setShowsInfoWindow(show: Boolean) {
-    marker?.let {
-      if (show) {
-        it.showInfoWindow()
-      } else {
-        it.hideInfoWindow()
-      }
-    }
-  }
-  
+
   /**
    * 设置透明度
    */
@@ -294,14 +267,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     pendingOpacity = opacity
     marker?.let { it.alpha = opacity }
   }
-  
-  /**
-   * 设置旋转角度
-   */
-  fun setMarkerRotation(rotation: Float) {
-    marker?.let { it.rotateAngle = rotation }
-  }
-  
+
   /**
    * 设置锚点
    */
@@ -385,7 +351,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
           }
         }
       }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       marker.setIcon(BitmapDescriptorFactory.defaultMarker())
     }
   }
@@ -412,7 +378,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         } else {
           callback(null)
         }
-      } catch (e: Exception) {
+      } catch (_: Exception) {
         callback(null)
       } finally {
         inputStream?.close()
@@ -432,7 +398,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     return if (bitmap.width == finalWidth && bitmap.height == finalHeight) {
       bitmap
     } else {
-      Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, true)
+        bitmap.scale(finalWidth, finalHeight)
     }
   }
   
@@ -442,7 +408,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   fun setPinColor(color: String?) {
     pendingPinColor = color
     // 颜色变化时需要重新创建 marker
-    aMap?.let { map ->
+    aMap?.let { _ ->
       marker?.let { oldMarker ->
         val position = oldMarker.position
         oldMarker.remove()
@@ -473,7 +439,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         else -> BitmapDescriptorFactory.HUE_RED
       }
       marker.setIcon(BitmapDescriptorFactory.defaultMarker(hue))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       // 忽略异常
     }
   }
@@ -543,8 +509,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
           "latitude" to marker.position.latitude,
           "longitude" to marker.position.longitude
         ))
-        // 显示信息窗口（如果有 title 或 snippet）
-        if (!marker.title.isNullOrEmpty() || !marker.snippet.isNullOrEmpty()) {
+        // 只有在没有自定义内容（children）且有 title 或 snippet 时才显示信息窗口
+        // 如果有自定义内容，说明用户已经自定义了显示内容，不需要默认信息窗口
+        if (view.isEmpty() && (!marker.title.isNullOrEmpty() || !marker.snippet.isNullOrEmpty())) {
           marker.showInfoWindow()
         }
         return true
@@ -553,30 +520,24 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
     
     fun handleMarkerDragStart(marker: Marker) {
-      markerViewMap[marker]?.let { view ->
-        view.onMarkerDragStart(mapOf(
-          "latitude" to marker.position.latitude,
-          "longitude" to marker.position.longitude
+        markerViewMap[marker]?.onMarkerDragStart(mapOf(
+            "latitude" to marker.position.latitude,
+            "longitude" to marker.position.longitude
         ))
-      }
     }
     
     fun handleMarkerDrag(marker: Marker) {
-      markerViewMap[marker]?.let { view ->
-        view.onMarkerDrag(mapOf(
-          "latitude" to marker.position.latitude,
-          "longitude" to marker.position.longitude
+        markerViewMap[marker]?.onMarkerDrag(mapOf(
+            "latitude" to marker.position.latitude,
+            "longitude" to marker.position.longitude
         ))
-      }
     }
     
     fun handleMarkerDragEnd(marker: Marker) {
-      markerViewMap[marker]?.let { view ->
-        view.onMarkerDragEnd(mapOf(
-          "latitude" to marker.position.latitude,
-          "longitude" to marker.position.longitude
+        markerViewMap[marker]?.onMarkerDragEnd(mapOf(
+            "latitude" to marker.position.latitude,
+            "longitude" to marker.position.longitude
         ))
-      }
     }
   }
   
@@ -603,7 +564,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
           pendingAnchor?.let { m.setAnchor(it.first, it.second) }
           
           // 优先级：children > icon > pinColor
-          if (childCount == 0) {
+          if (isEmpty()) {
             if (pendingIconUri != null) {
               loadAndSetIcon(pendingIconUri!!, m)
             } else if (pendingPinColor != null) {
@@ -621,11 +582,11 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   private fun createDefaultMarkerBitmap(): Bitmap {
     val width = 48
     val height = 72
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
     
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    paint.color = Color.parseColor("#FF5252")
+    paint.color = "#FF5252".toColorInt()
     paint.style = Paint.Style.FILL
     
     // 绘制圆形顶部
@@ -652,7 +613,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 将视图转换为 Bitmap
    */
   private fun createBitmapFromView(): Bitmap? {
-    if (childCount == 0) return null
+    if (isEmpty()) return null
     
     return try {
       val childView = getChildAt(0)
@@ -661,10 +622,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       
       val finalWidth = if (measuredWidth > 0) measuredWidth else (if (customViewWidth > 0) customViewWidth else 240)
       val finalHeight = if (measuredHeight > 0) measuredHeight else (if (customViewHeight > 0) customViewHeight else 80)
-      
-      if (finalWidth <= 0 || finalHeight <= 0) return null
-      
-      if (measuredWidth != finalWidth || measuredHeight != finalHeight) {
+
+        if (measuredWidth != finalWidth || measuredHeight != finalHeight) {
         childView.measure(
           MeasureSpec.makeMeasureSpec(finalWidth, MeasureSpec.EXACTLY),
           MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY)
@@ -672,13 +631,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         childView.layout(0, 0, finalWidth, finalHeight)
       }
       
-      val bitmap = Bitmap.createBitmap(finalWidth, finalHeight, Bitmap.Config.ARGB_8888)
+      val bitmap = createBitmap(finalWidth, finalHeight)
       val canvas = Canvas(bitmap)
-      canvas.drawColor(android.graphics.Color.TRANSPARENT)
+      canvas.drawColor(Color.TRANSPARENT)
       childView.draw(canvas)
       
       bitmap
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       null
     }
   }
@@ -710,7 +669,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
    * 更新 marker 图标
    */
   private fun updateMarkerIcon() {
-    if (childCount > 0) {
+    if (isNotEmpty()) {
       val customBitmap = createBitmapFromView()
       customBitmap?.let {
         marker?.setIcon(BitmapDescriptorFactory.fromBitmap(it))
@@ -727,25 +686,25 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   
   override fun removeView(child: View?) {
     try {
-      if (child != null && indexOfChild(child) >= 0) {
+      if (child != null && contains(child)) {
         super.removeView(child)
         // 不要在这里恢复默认图标
         // 如果 MarkerView 整体要被移除，onDetachedFromWindow 会处理
         // 如果只是移除 children 并保留 Marker，应该由外部重新设置 children
       }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       // 忽略异常
     }
   }
   
   override fun removeViewAt(index: Int) {
     try {
-      if (index >= 0 && index < childCount) {
+      if (index in 0..<childCount) {
         super.removeViewAt(index)
         // 只在还有子视图时更新图标
         if (!isRemoving && childCount > 1 && marker != null) {
           mainHandler.postDelayed({
-            if (!isRemoving && marker != null && childCount > 0) {
+            if (!isRemoving && marker != null && isNotEmpty()) {
               updateMarkerIcon()
             }
           }, 50)
@@ -753,7 +712,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         // 如果最后一个子视图被移除，什么都不做
         // 让 onDetachedFromWindow 处理完整的清理
       }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       // 忽略异常
     }
   }
@@ -765,8 +724,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       for (i in 0 until view.childCount) {
         val child = view.getChildAt(i)
         val currentParams = child.layoutParams
-        if (currentParams != null && currentParams !is android.widget.LinearLayout.LayoutParams) {
-          child.layoutParams = android.widget.LinearLayout.LayoutParams(
+        if (currentParams != null && currentParams !is LayoutParams) {
+          child.layoutParams = LayoutParams(
             currentParams.width,
             currentParams.height
           )
@@ -781,19 +740,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     // 🔑 关键修复：记录添加前的子视图数量
     val childCountBefore = childCount
     
-    val finalParams = android.widget.LinearLayout.LayoutParams(
-      if (customViewWidth > 0) customViewWidth else android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-      if (customViewHeight > 0) customViewHeight else android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+    val finalParams = LayoutParams(
+      if (customViewWidth > 0) customViewWidth else LayoutParams.WRAP_CONTENT,
+      if (customViewHeight > 0) customViewHeight else LayoutParams.WRAP_CONTENT
     )
     
     super.addView(child, index, finalParams)
     
     child?.let {
       val childParams = it.layoutParams
-      if (childParams !is android.widget.LinearLayout.LayoutParams) {
-        it.layoutParams = android.widget.LinearLayout.LayoutParams(
-          childParams?.width ?: android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-          childParams?.height ?: android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+      if (childParams !is LayoutParams) {
+        it.layoutParams = LayoutParams(
+          childParams?.width ?: LayoutParams.WRAP_CONTENT,
+          childParams?.height ?: LayoutParams.WRAP_CONTENT
         )
       }
       fixChildLayoutParams(it)
@@ -819,7 +778,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
     super.onLayout(changed, left, top, right, bottom)
     // 🔑 关键修复：只有在有子视图且 marker 存在时才更新，避免不必要的刷新
-    if (changed && !isRemoving && childCount > 0 && marker != null) {
+    if (changed && !isRemoving && isNotEmpty() && marker != null) {
       mainHandler.postDelayed({
         if (!isRemoving && marker != null) {
           updateMarkerIcon()
@@ -842,14 +801,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     
-    // 标记正在移除
-    isRemoving = true
-    
+    // 🔑 关键修复：使用 post 延迟检查
     // 清理所有延迟任务
     mainHandler.removeCallbacksAndMessages(null)
     
-    // 移除 marker
-    removeMarker()
+    // 延迟检查 parent 状态
+    mainHandler.post {
+      if (parent == null) {
+        // 标记正在移除
+        isRemoving = true
+        // 移除 marker
+        removeMarker()
+      }
+    }
   }
 }
 

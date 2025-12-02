@@ -154,8 +154,16 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removeCircle()
-    aMap = null
+    // 🔑 关键修复：使用 post 延迟检查，避免 TabView 切换时误删
+    // 如果是真正的移除，parent 会保持为 null
+    // 如果只是 TabView 切换，parent 会在短时间内恢复
+    post {
+      // 延迟后再次检查 parent，如果仍然为 null，说明是真正的移除
+      if (parent == null) {
+        removeCircle()
+        aMap = null
+      }
+    }
   }
 
 }

@@ -142,7 +142,12 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removePolygon()
-    aMap = null
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removePolygon()
+        aMap = null
+      }
+    }
   }
 }

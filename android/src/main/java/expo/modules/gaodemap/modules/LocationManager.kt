@@ -18,9 +18,7 @@ import expo.modules.gaodemap.services.LocationForegroundService
  * - 定位结果回调
  */
 class LocationManager(context: Context) {
-    companion object {
-        private const val TAG = "LocationManager"
-    }
+
 
     /** 应用上下文(避免 Activity 泄露) */
     private val appContext: Context = context.applicationContext

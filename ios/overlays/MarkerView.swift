@@ -192,7 +192,8 @@ class MarkerView: ExpoView {
             }
             
             annotationView?.annotation = annotation
-            annotationView?.canShowCallout = canShowCallout
+            // 🔑 关键修复：有自定义内容时不显示默认 callout（信息窗口）
+            annotationView?.canShowCallout = false
             annotationView?.isDraggable = draggable
             self.annotationView = annotationView
             
@@ -231,6 +232,7 @@ class MarkerView: ExpoView {
             }
             
             annotationView?.annotation = annotation
+            // 只有在没有自定义内容时才使用 canShowCallout 设置
             annotationView?.canShowCallout = canShowCallout
             annotationView?.isDraggable = draggable
             self.annotationView = annotationView
