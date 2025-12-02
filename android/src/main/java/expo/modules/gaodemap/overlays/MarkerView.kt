@@ -505,7 +505,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     
     fun handleMarkerClick(marker: Marker): Boolean {
       markerViewMap[marker]?.let { view ->
-        view.onMarkerPress(mapOf(
+        view.onMarkerPress?.invoke(mapOf(
           "latitude" to marker.position.latitude,
           "longitude" to marker.position.longitude
         ))
@@ -520,21 +520,21 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
     
     fun handleMarkerDragStart(marker: Marker) {
-        markerViewMap[marker]?.onMarkerDragStart(mapOf(
+        markerViewMap[marker]?.onMarkerDragStart?.invoke(mapOf(
             "latitude" to marker.position.latitude,
             "longitude" to marker.position.longitude
         ))
     }
     
     fun handleMarkerDrag(marker: Marker) {
-        markerViewMap[marker]?.onMarkerDrag(mapOf(
+        markerViewMap[marker]?.onMarkerDrag?.invoke(mapOf(
             "latitude" to marker.position.latitude,
             "longitude" to marker.position.longitude
         ))
     }
     
     fun handleMarkerDragEnd(marker: Marker) {
-        markerViewMap[marker]?.onMarkerDragEnd(mapOf(
+        markerViewMap[marker]?.onMarkerDragEnd?.invoke(mapOf(
             "latitude" to marker.position.latitude,
             "longitude" to marker.position.longitude
         ))
