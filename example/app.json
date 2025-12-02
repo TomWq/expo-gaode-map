@@ -27,6 +27,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "../app.plugin.js",
+        {
+          "iosApiKey": "b07b626eb2ce321df3ff0e9e9371f389",
+          "androidApiKey": "8ac9e5983e34398473ecc23fec1d4adc",
+          "enableLocation": true,
+          "locationDescription": "我们需要访问您的位置信息以提供地图服务"
+        }
+      ]
+    ]
   }
 }
