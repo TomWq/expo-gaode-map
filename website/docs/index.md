@@ -5,6 +5,9 @@ hero:
   name: "expo-gaode-map"
   text: "高德地图 React Native 组件"
   tagline: 基于 Expo Modules 开发的完整高德地图解决方案
+  image:
+    src: /logo.svg
+    alt: expo-gaode-map
   actions:
     - theme: brand
       text: 快速开始

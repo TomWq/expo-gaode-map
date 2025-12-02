@@ -5,6 +5,9 @@ hero:
   name: "expo-gaode-map"
   text: "AMap React Native Component"
   tagline: Complete AMap solution built with Expo Modules
+  image:
+    src: /logo.svg
+    alt: expo-gaode-map
   actions:
     - theme: brand
       text: Get Started

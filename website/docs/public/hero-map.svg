@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <!-- 渐变定义 -->
+    <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#B3D9F2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A5CEE8;stop-opacity:1" />
+    </linearGradient>
+    
+    <pattern id="parkPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect width="20" height="20" fill="#C8E6C9"/>
+      <circle cx="5" cy="5" r="1.5" fill="#81C784" opacity="0.5"/>
+      <circle cx="15" cy="10" r="1.5" fill="#81C784" opacity="0.5"/>
+      <circle cx="10" cy="15" r="1.5" fill="#81C784" opacity="0.5"/>
+    </pattern>
+  </defs>
+  
+  <!-- 地图底色 -->
+  <rect width="800" height="500" fill="#F2F2F2"/>
+  
+  <!-- 河流/水域 -->
+  <path d="M 0 320 Q 150 310, 300 320 T 600 330 L 800 335 L 800 500 L 0 500 Z" 
+        fill="url(#waterGradient)"/>
+  
+  <!-- 公园绿地 -->
+  <ellipse cx="650" cy="150" rx="120" ry="90" fill="url(#parkPattern)"/>
+  <path d="M 80 120 L 180 100 L 200 180 L 100 200 Z" fill="url(#parkPattern)"/>
+  
+  <!-- 主要道路网格 - 真实的道路系统 -->
+  <!-- 横向主干道 -->
+  <rect x="0" y="195" width="800" height="18" fill="#FFF"/>
+  <rect x="0" y="197" width="800" height="14" fill="#FFD54F"/>
+  <line x1="0" y1="204" x2="800" y2="204" stroke="#FFF" stroke-width="1.5" stroke-dasharray="30,20"/>
+  
+  <rect x="0" y="365" width="800" height="14" fill="#FFF"/>
+  <rect x="0" y="367" width="800" height="10" fill="#FFE082"/>
+  
+  <!-- 纵向主干道 -->
+  <rect x="247" y="0" width="18" height="500" fill="#FFF"/>
+  <rect x="249" y="0" width="14" height="500" fill="#FFD54F"/>
+  <line x1="256" y1="0" x2="256" y2="500" stroke="#FFF" stroke-width="1.5" stroke-dasharray="30,20"/>
+  
+  <rect x="497" y="0" width="14" height="500" fill="#FFF"/>
+  <rect x="499" y="0" width="10" height="500" fill="#FFE082"/>
+  
+  <!-- 次要道路 -->
+  <rect x="0" y="115" width="800" height="8" fill="#FFF"/>
+  <rect x="0" y="116" width="800" height="6" fill="#FAFAFA"/>
+  
+  <rect x="0" y="285" width="800" height="8" fill="#FFF"/>
+  <rect x="0" y="286" width="800" height="6" fill="#FAFAFA"/>
+  
+  <rect x="120" y="0" width="8" height="500" fill="#FFF"/>
+  <rect x="121" y="0" width="6" height="500" fill="#FAFAFA"/>
+  
+  <rect x="380" y="0" width="8" height="500" fill="#FFF"/>
+  <rect x="381" y="0" width="6" height="500" fill="#FAFAFA"/>
+  
+  <rect x="620" y="0" width="8" height="500" fill="#FFF"/>
+  <rect x="621" y="0" width="6" height="500" fill="#FAFAFA"/>
+  
+  <!-- 建筑物群 - 真实的城市布局 -->
+  <!-- 左上区域 -->
+  <rect x="25" y="25" width="80" height="60" fill="#E0E0E0" stroke="#BDBDBD" stroke-width="1"/>
+  <rect x="25" y="25" width="80" height="8" fill="#BDBDBD"/>
+  
+  <rect x="130" y="35" width="60" height="50" fill="#D6D6D6" stroke="#BDBDBD" stroke-width="1"/>
+  <rect x="130" y="35" width="60" height="7" fill="#BDBDBD"/>
+  
+  <rect x="35" y="130" width="70" height="55" fill="#E8E8E8" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <!-- 左下区域 -->
+  <rect x="30" y="230" width="85" height="70" fill="#DCDCDC" stroke="#BDBDBD" stroke-width="1"/>
+  <rect x="30" y="230" width="85" height="9" fill="#BDBDBD"/>
+  
+  <rect x="135" y="240" width="95" height="60" fill="#E5E5E5" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <!-- 中上区域 -->
+  <rect x="275" y="30" width="90" height="70" fill="#D9D9D9" stroke="#BDBDBD" stroke-width="1"/>
+  <rect x="275" y="30" width="90" height="9" fill="#BDBDBD"/>
+  
+  <rect x="390" y="25" width="85" height="65" fill="#E3E3E3" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <rect x="280" y="125" width="80" height="60" fill="#DFDFDF" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <rect x="390" y="135" width="75" height="50" fill="#E6E6E6" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <!-- 中下区域 -->
+  <rect x="275" y="225" width="100" height="75" fill="#DADADA" stroke="#BDBDBD" stroke-width="1"/>
+  <rect x="275" y="225" width="100" height="10" fill="#BDBDBD"/>
+  
+  <rect x="395" y="235" width="95" height="65" fill="#E1E1E1" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <!-- 右上区域 -->
+  <rect x="520" y="40" width="75" height="55" fill="#E4E4E4" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <rect x="525" y="240" width="80" height="70" fill="#D8D8D8" stroke="#BDBDBD" stroke-width="1"/>
+  <rect x="525" y="240" width="80" height="9" fill="#BDBDBD"/>
+  
+  <!-- 右下区域 - 靠近河流 -->
+  <rect x="630" y="260" width="70" height="50" fill="#DDDDDD" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <rect x="720" y="245" width="65" height="60" fill="#E2E2E2" stroke="#BDBDBD" stroke-width="1"/>
+  
+  <!-- 导航路线 - 真实的导航效果 -->
+  <path d="M 150 50 L 260 100 L 400 120 L 500 150 L 580 200 L 650 280" 
+        fill="none" stroke="#4285F4" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+  <path d="M 150 50 L 260 100 L 400 120 L 500 150 L 580 200 L 650 280" 
+        fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="5,10" opacity="0.9"/>
+  
+  <!-- 路线节点 -->
+  <circle cx="150" cy="50" r="8" fill="#4285F4" stroke="#FFF" stroke-width="2"/>
+  <circle cx="400" cy="120" r="8" fill="#4285F4" stroke="#FFF" stroke-width="2"/>
+  <circle cx="650" cy="280" r="8" fill="#4285F4" stroke="#FFF" stroke-width="2"/>
+  
+  <!-- 起点标记 (A) -->
+  <g transform="translate(150, 50)">
+    <ellipse cx="0" cy="28" rx="18" ry="5" fill="#000" opacity="0.15"/>
+    <path d="M 0 -30 C -12 -30 -22 -20 -22 -8 C -22 8 0 30 0 30 C 0 30 22 8 22 -8 C 22 -20 12 -30 0 -30 Z" 
+          fill="#EA4335" stroke="#C5221F" stroke-width="2"/>
+    <circle cx="0" cy="-8" r="12" fill="#FFF"/>
+    <text x="0" y="-3" text-anchor="middle" font-size="14" font-weight="bold" fill="#EA4335">A</text>
+  </g>
+  
+  <!-- 终点标记 (B) -->
+  <g transform="translate(650, 280)">
+    <ellipse cx="0" cy="28" rx="18" ry="5" fill="#000" opacity="0.15"/>
+    <path d="M 0 -30 C -12 -30 -22 -20 -22 -8 C -22 8 0 30 0 30 C 0 30 22 8 22 -8 C 22 -20 12 -30 0 -30 Z" 
+          fill="#34A853" stroke="#0F9D58" stroke-width="2"/>
+    <circle cx="0" cy="-8" r="12" fill="#FFF"/>
+    <text x="0" y="-3" text-anchor="middle" font-size="14" font-weight="bold" fill="#34A853">B</text>
+  </g>
+  
+  <!-- 中途标记点 -->
+  <g transform="translate(400, 120)">
+    <circle cx="0" cy="0" r="10" fill="#4285F4" stroke="#FFF" stroke-width="2"/>
+    <circle cx="0" cy="0" r="4" fill="#FFF"/>
+  </g>
+  
+  <!-- 当前位置脉冲圈 -->
+  <g transform="translate(500, 150)">
+    <circle cx="0" cy="0" r="35" fill="#4285F4" opacity="0.1">
+      <animate attributeName="r" from="20" to="45" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="20" fill="#4285F4" opacity="0.2"/>
+    <circle cx="0" cy="0" r="12" fill="#4285F4"/>
+    <circle cx="0" cy="0" r="5" fill="#FFF"/>
+  </g>
+  
+  <!-- 小型POI标记 -->
+  <g transform="translate(320, 80)">
+    <circle cx="0" cy="0" r="6" fill="#FBBC04" stroke="#FFF" stroke-width="1.5"/>
+  </g>
+  
+  <g transform="translate(560, 120)">
+    <circle cx="0" cy="0" r="6" fill="#FBBC04" stroke="#FFF" stroke-width="1.5"/>
+  </g>
+  
+  <g transform="translate(450, 260)">
+    <circle cx="0" cy="0" r="6" fill="#FBBC04" stroke="#FFF" stroke-width="1.5"/>
+  </g>
+  
+  <!-- 比例尺 -->
+  <g transform="translate(30, 450)">
+    <rect x="0" y="0" width="150" height="35" rx="5" fill="#FFF" opacity="0.95" stroke="#DDD" stroke-width="1"/>
+    <line x1="15" y1="23" x2="135" y2="23" stroke="#333" stroke-width="2"/>
+    <line x1="15" y1="18" x2="15" y2="28" stroke="#333" stroke-width="2"/>
+    <line x1="75" y1="20" x2="75" y2="26" stroke="#333" stroke-width="1"/>
+    <line x1="135" y1="18" x2="135" y2="28" stroke="#333" stroke-width="2"/>
+    <text x="75" y="15" text-anchor="middle" font-size="11" fill="#666">1 km</text>
+  </g>
+  
+  <!-- 指南针 -->
+  <g transform="translate(750, 50)">
+    <circle cx="0" cy="0" r="28" fill="#FFF" opacity="0.95" stroke="#DDD" stroke-width="2"/>
+    
+    <!-- 方向指针 -->
+    <path d="M 0 -20 L 5 0 L 0 -3 L -5 0 Z" fill="#EA4335"/>
+    <path d="M 0 20 L 5 0 L 0 3 L -5 0 Z" fill="#999"/>
+    
+    <!-- 方向标记 -->
+    <text x="0" y="-25" text-anchor="middle" font-size="12" font-weight="bold" fill="#EA4335">N</text>
+    <text x="0" y="32" text-anchor="middle" font-size="10" fill="#999">S</text>
+    <text x="25" y="5" text-anchor="middle" font-size="10" fill="#999">E</text>
+    <text x="-25" y="5" text-anchor="middle" font-size="10" fill="#999">W</text>
+  </g>
+  
+  <!-- 距离和时间信息卡片 -->
+  <g transform="translate(250, 420)">
+    <rect x="0" y="0" width="300" height="60" rx="8" fill="#FFF" opacity="0.96" stroke="#E0E0E0" stroke-width="2"/>
+    
+    <circle cx="20" cy="20" r="6" fill="#4285F4"/>
+    <text x="35" y="25" font-size="14" font-weight="600" fill="#202124">预计 18 分钟</text>
+    
+    <line x1="35" y1="32" x2="280" y2="32" stroke="#E0E0E0" stroke-width="1"/>
+    
+    <text x="20" y="50" font-size="13" fill="#5F6368">
+      <tspan>距离: 8.6 km</tspan>
+      <tspan x="150">·</tspan>
+      <tspan x="170">途经主干道</tspan>
+    </text>
+  </g>
+</svg>

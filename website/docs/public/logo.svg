@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="95" fill="#4A90E2" opacity="0.1"/>
+  
+  <!-- 地图外框 -->
+  <rect x="40" y="50" width="120" height="100" rx="8" fill="#fff" stroke="#4A90E2" stroke-width="4"/>
+  
+  <!-- 地图折线（路径） -->
+  <path d="M 50 80 L 70 100 L 90 85 L 110 110 L 130 90 L 150 120" 
+        fill="none" stroke="#E74C3C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- 地图标记点（大） -->
+  <g transform="translate(90, 85)">
+    <path d="M 0 -20 C -8 -20 -15 -13 -15 -5 C -15 5 0 20 0 20 C 0 20 15 5 15 -5 C 15 -13 8 -20 0 -20 Z" 
+          fill="#E74C3C" stroke="#fff" stroke-width="2"/>
+    <circle cx="0" cy="-5" r="4" fill="#fff"/>
+  </g>
+  
+  <!-- 地图标记点（小） -->
+  <g transform="translate(130, 90)">
+    <path d="M 0 -12 C -5 -12 -9 -8 -9 -3 C -9 3 0 12 0 12 C 0 12 9 3 9 -3 C 9 -8 5 -12 0 -12 Z" 
+          fill="#4A90E2" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="0" cy="-3" r="2.5" fill="#fff"/>
+  </g>
+  
+  <!-- 位置圆圈（表示定位） -->
+  <g transform="translate(70, 100)">
+    <circle cx="0" cy="0" r="8" fill="#4A90E2" opacity="0.3"/>
+    <circle cx="0" cy="0" r="4" fill="#4A90E2"/>
+    <circle cx="0" cy="0" r="2" fill="#fff"/>
+  </g>
+  
+  <!-- 指南针装饰 -->
+  <g transform="translate(145, 65)">
+    <circle cx="0" cy="0" r="10" fill="#fff" stroke="#4A90E2" stroke-width="2"/>
+    <path d="M 0 -7 L 3 0 L 0 7 L -3 0 Z" fill="#E74C3C"/>
+    <path d="M 0 -7 L -3 0 L 0 7" fill="#4A90E2"/>
+  </g>
+</svg>
