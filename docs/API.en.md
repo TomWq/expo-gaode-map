@@ -111,26 +111,7 @@ interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   getLatLng(point: Point): Promise<LatLng>;
-  
-  // Circle operations
-  addCircle(id: string, props: CircleProps): Promise<void>;
-  removeCircle(id: string): Promise<void>;
-  updateCircle(id: string, props: Partial<CircleProps>): Promise<void>;
-  
-  // Marker operations
-  addMarker(id: string, props: MarkerProps): Promise<void>;
-  removeMarker(id: string): Promise<void>;
-  updateMarker(id: string, props: Partial<MarkerProps>): Promise<void>;
-  
-  // Polyline operations
-  addPolyline(id: string, props: PolylineProps): Promise<void>;
-  removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<PolylineProps>): Promise<void>;
-  
-  // Polygon operations
-  addPolygon(id: string, props: PolygonProps): Promise<void>;
-  removePolygon(id: string): Promise<void>;
-  updatePolygon(id: string, props: Partial<PolygonProps>): Promise<void>;
+
 }
 ```
 
@@ -252,7 +233,6 @@ Based on AMap official recommendations, this library uses the following default 
 
 ## Overlay Components
 
-> **Event Callback Note**: Event callbacks (e.g., `onPress`) for all overlays only work in **declarative usage**. Overlays added via imperative APIs (e.g., `addCircle`, `addMarker`) cannot trigger these events.
 
 ### Circle
 

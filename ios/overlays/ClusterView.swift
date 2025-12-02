@@ -36,10 +36,11 @@ class ClusterView: ExpoView {
     private func updateCluster() {
         guard let mapView = mapView else { return }
         
-        for annotation in annotations {
-            mapView.removeAnnotation(annotation)
-        }
-        annotations.removeAll()
+        // 先移除旧的注释
+        removeAllAnnotations()
+        
+        // 验证数据有效性
+        guard !points.isEmpty else { return }
         
         for point in points {
             guard let latitude = point["latitude"] as? Double,
@@ -52,5 +53,33 @@ class ClusterView: ExpoView {
             mapView.addAnnotation(annotation)
             annotations.append(annotation)
         }
+    }
+    
+    /**
+     * 移除所有标注
+     */
+    private func removeAllAnnotations() {
+        guard let mapView = mapView else { return }
+        
+        for annotation in annotations {
+            mapView.removeAnnotation(annotation)
+        }
+        annotations.removeAll()
+    }
+    
+    /**
+     * 从父视图移除时清理标注
+     */
+    override func removeFromSuperview() {
+        super.removeFromSuperview()
+        removeAllAnnotations()
+    }
+    
+    /**
+     * 析构时移除标注
+     */
+    deinit {
+        removeAllAnnotations()
+        mapView = nil
     }
 }

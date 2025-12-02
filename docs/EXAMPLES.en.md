@@ -431,24 +431,6 @@ const styles = StyleSheet.create({
 </MapView>
 ```
 
-**Imperative usage:**
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-await mapRef.current?.addCircle('circle1', {
-  center: { latitude: 39.9, longitude: 116.4 },
-  radius: 1000,
-  fillColor: 0x8800FF00,
-  strokeColor: 0xFFFF0000,
-  strokeWidth: 2,
-});
-
-await mapRef.current?.updateCircle('circle1', {
-  radius: 2000,
-});
-
-await mapRef.current?.removeCircle('circle1');
-```
 
 ### Marker
 
@@ -643,36 +625,6 @@ const iconUri = Image.resolveAssetSource(require('./assets/location-icon.png')).
 />
 ```
 
-### Batch Overlay Operations
-
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-const addMultipleOverlays = async () => {
-  await mapRef.current?.addCircle('circle1', {
-    center: { latitude: 39.9, longitude: 116.4 },
-    radius: 1000,
-    fillColor: 0x8800FF00,
-  });
-  
-  await mapRef.current?.addCircle('circle2', {
-    center: { latitude: 40.0, longitude: 116.5 },
-    radius: 500,
-    fillColor: 0x880000FF,
-  });
-  
-  await mapRef.current?.addMarker('marker1', {
-    position: { latitude: 39.95, longitude: 116.45 },
-    title: 'Beijing',
-  });
-};
-
-const clearAll = async () => {
-  await mapRef.current?.removeCircle('circle1');
-  await mapRef.current?.removeCircle('circle2');
-  await mapRef.current?.removeMarker('marker1');
-};
-```
 
 ### Zoom Level Limits
 

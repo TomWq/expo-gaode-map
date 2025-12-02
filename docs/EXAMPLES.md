@@ -23,10 +23,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, Alert, Linking, Platform } from 'react-native';
 import {
   MapView,
-  initSDK,
-  checkLocationPermission,
-  requestLocationPermission,
-  getCurrentLocation,
+  ExpoGaodeMapModule,
   type LatLng,
 } from 'expo-gaode-map';
 
@@ -41,17 +38,17 @@ export default function App() {
     const initialize = async () => {
       try {
         // 1. 初始化 SDK
-        initSDK({
+        ExpoGaodeMapModule.initSDK({
           androidKey: 'your-android-api-key',
           iosKey: 'your-ios-api-key',
         });
         
         // 2. 检查权限
-        const status = await checkLocationPermission();
+        const status = await ExpoGaodeMapModule.checkLocationPermission();
         
         // 3. 请求权限（如果需要）
         if (!status.granted) {
-          const result = await requestLocationPermission();
+          const result = await ExpoGaodeMapModule.requestLocationPermission();
           
           if (!result.granted) {
             // 权限被拒绝
@@ -61,28 +58,26 @@ export default function App() {
             });
             
             // 引导用户到设置
-            if (!result.canAskAgain) {
-              Alert.alert(
-                '需要定位权限',
-                '请在设置中开启定位权限',
-                [
-                  { text: '取消' },
-                  { text: '去设置', onPress: () => {
-                    if (Platform.OS === 'ios') {
-                      Linking.openURL('app-settings:');
-                    } else {
-                      Linking.openSettings();
-                    }
-                  }}
-                ]
-              );
-            }
+            Alert.alert(
+              '需要定位权限',
+              '请在设置中开启定位权限',
+              [
+                { text: '取消' },
+                { text: '去设置', onPress: () => {
+                  if (Platform.OS === 'ios') {
+                    Linking.openURL('app-settings:');
+                  } else {
+                    Linking.openSettings();
+                  }
+                }}
+              ]
+            );
             return;
           }
         }
         
         // 4. 获取位置
-        const location = await getCurrentLocation();
+        const location = await ExpoGaodeMapModule.getCurrentLocation();
         setInitialPosition({
           target: {
             latitude: location.latitude,
@@ -138,14 +133,14 @@ export default function App() {
 ```tsx
 import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Button } from 'react-native';
-import { 
-  MapView, 
-  initSDK,
+import {
+  MapView,
+  ExpoGaodeMapModule,
   Circle,
   Marker,
   Polyline,
   Polygon,
-  type MapViewRef 
+  type MapViewRef
 } from 'expo-gaode-map';
 
 export default function App() {
@@ -153,15 +148,15 @@ export default function App() {
 
   useEffect(() => {
     const initialize = async () => {
-      initSDK({
+      ExpoGaodeMapModule.initSDK({
         androidKey: 'your-android-api-key',
         iosKey: 'your-ios-api-key',
       });
       
       // 检查并请求权限
-      const status = await checkLocationPermission();
+      const status = await ExpoGaodeMapModule.checkLocationPermission();
       if (!status.granted) {
-        await requestLocationPermission();
+        await ExpoGaodeMapModule.requestLocationPermission();
       }
     };
     
@@ -261,14 +256,9 @@ const styles = StyleSheet.create({
 ```tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { 
+import {
   MapView,
-  initSDK,
-  configure,
-  start,
-  stop,
-  getCurrentLocation,
-  addLocationListener,
+  ExpoGaodeMapModule,
   type Location,
 } from 'expo-gaode-map';
 
@@ -279,26 +269,24 @@ export default function LocationApp() {
   useEffect(() => {
     const initialize = async () => {
       // 初始化 SDK
-      initSDK({
+      ExpoGaodeMapModule.initSDK({
         androidKey: 'your-android-api-key',
         iosKey: 'your-ios-api-key',
       });
 
       // 检查并请求权限
-      const status = await checkLocationPermission();
+      const status = await ExpoGaodeMapModule.checkLocationPermission();
       if (!status.granted) {
-        await requestLocationPermission();
+        await ExpoGaodeMapModule.requestLocationPermission();
       }
 
       // 配置定位参数
-      configure({
-        withReGeocode: true,
-        mode: 0,
-        interval: 2000,
-      });
+      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+      ExpoGaodeMapModule.setLocationMode(0);
+      ExpoGaodeMapModule.setInterval(2000);
 
       // 监听位置更新
-      const subscription = addLocationListener((loc) => {
+      const subscription = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (loc) => {
         console.log('位置更新:', loc);
         setLocation(loc);
       });
@@ -310,18 +298,18 @@ export default function LocationApp() {
   }, []);
 
   const handleStartTracking = () => {
-    start();
+    ExpoGaodeMapModule.start();
     setIsTracking(true);
   };
 
   const handleStopTracking = () => {
-    stop();
+    ExpoGaodeMapModule.stop();
     setIsTracking(false);
   };
 
   const handleGetLocation = async () => {
     try {
-      const loc = await getCurrentLocation();
+      const loc = await ExpoGaodeMapModule.getCurrentLocation();
       setLocation(loc);
     } catch (error) {
       console.error('获取位置失败:', error);
@@ -431,24 +419,6 @@ const styles = StyleSheet.create({
 </MapView>
 ```
 
-**命令式用法:**
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-await mapRef.current?.addCircle('circle1', {
-  center: { latitude: 39.9, longitude: 116.4 },
-  radius: 1000,
-  fillColor: 0x8800FF00,
-  strokeColor: 0xFFFF0000,
-  strokeWidth: 2,
-});
-
-await mapRef.current?.updateCircle('circle1', {
-  radius: 2000,
-});
-
-await mapRef.current?.removeCircle('circle1');
-```
 
 ### Marker (标记点)
 
@@ -919,37 +889,6 @@ const iconUri = Image.resolveAssetSource(require('./assets/location-icon.png')).
 />
 ```
 
-### 批量操作覆盖物
-
-```tsx
-const mapRef = useRef<MapViewRef>(null);
-
-const addMultipleOverlays = async () => {
-  await mapRef.current?.addCircle('circle1', {
-    center: { latitude: 39.9, longitude: 116.4 },
-    radius: 1000,
-    fillColor: 0x8800FF00,
-  });
-  
-  await mapRef.current?.addCircle('circle2', {
-    center: { latitude: 40.0, longitude: 116.5 },
-    radius: 500,
-    fillColor: 0x880000FF,
-  });
-  
-  await mapRef.current?.addMarker('marker1', {
-    position: { latitude: 39.95, longitude: 116.45 },
-    title: '北京',
-  });
-};
-
-const clearAll = async () => {
-  await mapRef.current?.removeCircle('circle1');
-  await mapRef.current?.removeCircle('circle2');
-  await mapRef.current?.removeMarker('marker1');
-};
-```
-
 ### 缩放级别限制
 
 ```tsx
@@ -966,10 +905,18 @@ const clearAll = async () => {
 ### 方向更新 (iOS)
 
 ```tsx
-import { startUpdatingHeading, stopUpdatingHeading } from 'expo-gaode-map';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // 开始方向更新
-startUpdatingHeading();
+ExpoGaodeMapModule.startUpdatingHeading();
 
 // 停止方向更新
-stopUpdatingHeading();
+ExpoGaodeMapModule.stopUpdatingHeading();
+
+// 监听方向更新
+const subscription = ExpoGaodeMapModule.onHeadingUpdate('onHeadingUpdate', (heading) => {
+  console.log('方向更新:', heading);
+});
+
+// 取消监听
+subscription.remove();

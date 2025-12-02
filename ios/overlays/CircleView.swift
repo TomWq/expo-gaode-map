@@ -10,8 +10,8 @@ import MAMapKit
  * - 响应属性变化并更新渲染
  */
 class CircleView: ExpoView {
-    /// 事件派发器
-    let onPress = EventDispatcher()
+    /// 事件派发器 - 使用 onCirclePress 避免与 MarkerPress 冲突
+    let onCirclePress = EventDispatcher()
     
     /// 圆心坐标
     var circleCenter: [String: Double] = [:]
@@ -23,16 +23,47 @@ class CircleView: ExpoView {
     var strokeColor: Any?
     /// 边框宽度
     var strokeWidth: Float = 0
+    /// z-index 图层顺序
+    var zIndex: Double = 0
     
-    /// 地图视图弱引用
+    /// 地图视图引用
     private var mapView: MAMapView?
     /// 圆形覆盖物对象
     var circle: MACircle?
     /// 圆形渲染器
     private var renderer: MACircleRenderer?
+    /// 上次设置的地图引用（防止重复调用）
+    private weak var lastSetMapView: MAMapView?
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
+        
+        // 🔑 关键修复：CircleView 不应该拦截触摸事件
+        self.isUserInteractionEnabled = false
+    }
+    
+    /**
+     * 重写 hitTest，让触摸事件完全穿透此视图
+     * 这是解决覆盖物视图阻挡地图触摸的关键
+     */
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // 始终返回 nil，让触摸事件穿透到地图
+        return nil
+    }
+    
+    /**
+     * 重写 point(inside:with:)，确保此视图不响应任何触摸
+     */
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        // 始终返回 false，表示点击不在此视图内
+        return false
+    }
+    
+    /**
+     * 检查地图是否已连接
+     */
+    func isMapConnected() -> Bool {
+        return mapView != nil
     }
     
     /**
@@ -40,6 +71,12 @@ class CircleView: ExpoView {
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
+        // 🔑 关键优化：如果是同一个地图引用，跳过重复设置
+        if lastSetMapView === map {
+            return
+        }
+        
+        lastSetMapView = map
         self.mapView = map
         updateCircle()
     }
@@ -48,32 +85,40 @@ class CircleView: ExpoView {
      * 更新圆形覆盖物
      */
     private func updateCircle() {
-        guard let mapView = mapView,
-              let latitude = circleCenter["latitude"],
-              let longitude = circleCenter["longitude"],
-              radius > 0 else {
-            print("❌ CircleView.updateCircle: 条件不满足")
+        guard let mapView = mapView else {
             return
         }
         
-        print("🔵 CircleView.updateCircle: center=(\(latitude),\(longitude)), radius=\(radius)")
-        print("🔵 CircleView.updateCircle: fillColor=\(String(describing: fillColor)), strokeColor=\(String(describing: strokeColor)), strokeWidth=\(strokeWidth)")
+        guard let latitude = circleCenter["latitude"],
+              let longitude = circleCenter["longitude"],
+              radius > 0 else {
+            return
+        }
+        
+        // 🔑 坐标验证：防止无效坐标导致崩溃
+        guard latitude >= -90 && latitude <= 90,
+              longitude >= -180 && longitude <= 180 else {
+            return
+        }
+        
+        // 🔑 半径验证：防止负数或过大的半径
+        let validRadius = max(0.1, min(radius, 1000000))
         
         if circle == nil {
             let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            circle = MACircle(center: coordinate, radius: radius)
+            circle = MACircle(center: coordinate, radius: validRadius)
             mapView.add(circle!)
-            print("🔵 CircleView.updateCircle: 创建新圆形")
         } else {
-            circle?.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            circle?.radius = radius
+            // 先移除旧的
             mapView.remove(circle!)
+            // 更新属性
+            circle?.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            circle?.radius = validRadius
+            // 重新添加
             mapView.add(circle!)
-            print("🔵 CircleView.updateCircle: 更新现有圆形")
         }
         
         renderer = nil
-        print("🔵 CircleView.updateCircle: renderer 已清空")
     }
     
     /**
@@ -88,10 +133,10 @@ class CircleView: ExpoView {
             renderer?.fillColor = parsedFillColor ?? UIColor.clear
             renderer?.strokeColor = parsedStrokeColor ?? UIColor.clear
             renderer?.lineWidth = CGFloat(strokeWidth)
-            print("🔵 CircleView.getRenderer: 创建新 renderer")
-            print("🔵 CircleView.getRenderer: fillColor=\(String(describing: parsedFillColor)), strokeColor=\(String(describing: parsedStrokeColor)), lineWidth=\(strokeWidth)")
-        } else {
-            print("🔵 CircleView.getRenderer: 使用缓存的 renderer")
+        }
+        // 确保即使 renderer 存在，它也与当前的 circle 实例关联
+        if renderer?.circle !== circle {
+            renderer = MACircleRenderer(circle: circle)
         }
         return renderer!
     }
@@ -145,11 +190,45 @@ class CircleView: ExpoView {
     }
     
     /**
-     * 析构时移除圆形
+     * 设置 z-index
+     * @param zIndex z-index 值，数值越大越在上层
+     *
+     * 注意：iOS 高德地图的 MACircle 不直接支持 zIndex 属性
+     * overlay 的渲染顺序由添加顺序决定，后添加的在上层
+     * 这里通过重新添加来尝试改变顺序
+     */
+    func setZIndex(_ zIndex: Double) {
+        self.zIndex = zIndex
+        renderer = nil
+        updateCircle()
+    }
+    
+    /**
+     * 视图即将从父视图移除时调用
+     * 🔑 关键修复：旧架构下，React Native 移除视图时不一定立即调用 deinit
+     * 需要在 willMove(toSuperview:) 中立即清理地图覆盖物
+     */
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        // 当 newSuperview 为 nil 时，表示视图正在从父视图移除
+        if newSuperview == nil {
+            if let mapView = mapView, let circle = circle {
+                mapView.remove(circle)
+                self.circle = nil
+            }
+        }
+    }
+    
+    /**
+     * 析构时移除圆形（双重保险）
      */
     deinit {
         if let mapView = mapView, let circle = circle {
             mapView.remove(circle)
         }
+        mapView = nil
+        circle = nil
+        renderer = nil
     }
 }

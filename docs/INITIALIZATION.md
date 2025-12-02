@@ -18,10 +18,10 @@
 在应用启动时初始化 SDK（通常在 App 组件的 useEffect 中）:
 
 ```tsx
-import { initSDK } from 'expo-gaode-map';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 useEffect(() => {
-  initSDK({
+  ExpoGaodeMapModule.initSDK({
     androidKey: 'your-android-api-key',
     iosKey: 'your-ios-api-key',
   });
@@ -33,19 +33,16 @@ useEffect(() => {
 在使用定位功能前,必须先检查和请求权限:
 
 ```tsx
-import { 
-  checkLocationPermission, 
-  requestLocationPermission 
-} from 'expo-gaode-map';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // 检查权限状态
-const status = await checkLocationPermission();
+const status = await ExpoGaodeMapModule.checkLocationPermission();
 console.log('权限状态:', status);
-// { granted: boolean, canAskAgain: boolean }
+// { granted: boolean, status: string }
 
 // 请求权限
 if (!status.granted) {
-  const result = await requestLocationPermission();
+  const result = await ExpoGaodeMapModule.requestLocationPermission();
   if (result.granted) {
     console.log('权限已授予');
   } else {
@@ -59,10 +56,10 @@ if (!status.granted) {
 权限授予后,可以获取当前位置:
 
 ```tsx
-import { getCurrentLocation } from 'expo-gaode-map';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 try {
-  const location = await getCurrentLocation();
+  const location = await ExpoGaodeMapModule.getCurrentLocation();
   console.log('当前位置:', location);
 } catch (error) {
   console.error('获取位置失败:', error);
@@ -75,23 +72,23 @@ try {
 
 | API | 说明 | 返回值 |
 |-----|------|--------|
-| `checkLocationPermission()` | 检查定位权限状态 | `Promise<PermissionStatus>` |
-| `requestLocationPermission()` | 请求定位权限 | `Promise<PermissionStatus>` |
+| `ExpoGaodeMapModule.checkLocationPermission()` | 检查定位权限状态 | `Promise<PermissionStatus>` |
+| `ExpoGaodeMapModule.requestLocationPermission()` | 请求定位权限 | `Promise<PermissionStatus>` |
 
 ### PermissionStatus 类型
 
 ```typescript
 interface PermissionStatus {
-  granted: boolean;      // 是否已授予权限
-  canAskAgain: boolean;  // 是否可以再次请求
+  granted: boolean;  // 是否已授予权限
+  status: string;    // 权限状态字符串
 }
 ```
 
 ### 权限状态说明
 
 - **granted: true** - 用户已授予权限,可以使用定位功能
-- **granted: false, canAskAgain: true** - 用户拒绝了权限,但可以再次请求
-- **granted: false, canAskAgain: false** - 用户永久拒绝了权限,需要引导用户到设置中手动开启
+- **granted: false** - 用户未授予权限
+- **status** - 权限状态字符串（notDetermined, denied, authorizedWhenInUse, authorizedAlways 等）
 
 ## 完整示例
 
@@ -99,13 +96,10 @@ interface PermissionStatus {
 
 ```tsx
 import { useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
-import { 
+import { Alert, Platform, Linking } from 'react-native';
+import {
   MapView,
-  initSDK,
-  checkLocationPermission,
-  requestLocationPermission,
-  getCurrentLocation,
+  ExpoGaodeMapModule,
   type LatLng,
 } from 'expo-gaode-map';
 
@@ -120,17 +114,17 @@ export default function App() {
       try {
         // 1. 初始化 SDK
         console.log('正在初始化高德地图 SDK...');
-        initSDK({
+        ExpoGaodeMapModule.initSDK({
           androidKey: 'your-android-api-key',
           iosKey: 'your-ios-api-key',
         });
         
         // 2. 检查权限
-        const status = await checkLocationPermission();
+        const status = await ExpoGaodeMapModule.checkLocationPermission();
         
         // 3. 如果没有权限,请求权限
         if (!status.granted) {
-          const result = await requestLocationPermission();
+          const result = await ExpoGaodeMapModule.requestLocationPermission();
           
           if (!result.granted) {
             // 权限被拒绝,使用默认位置
@@ -140,30 +134,28 @@ export default function App() {
               zoom: 10
             });
             
-            // 如果不能再次请求,引导用户到设置
-            if (!result.canAskAgain) {
-              Alert.alert(
-                '需要定位权限',
-                '请在设置中开启定位权限以使用完整功能',
-                [
-                  { text: '取消', style: 'cancel' },
-                  { text: '去设置', onPress: () => {
-                    // 打开应用设置
-                    if (Platform.OS === 'ios') {
-                      Linking.openURL('app-settings:');
-                    } else {
-                      Linking.openSettings();
-                    }
-                  }}
-                ]
-              );
-            }
+            // 引导用户到设置
+            Alert.alert(
+              '需要定位权限',
+              '请在设置中开启定位权限以使用完整功能',
+              [
+                { text: '取消', style: 'cancel' },
+                { text: '去设置', onPress: () => {
+                  // 打开应用设置
+                  if (Platform.OS === 'ios') {
+                    Linking.openURL('app-settings:');
+                  } else {
+                    Linking.openSettings();
+                  }
+                }}
+              ]
+            );
             return;
           }
         }
         
         // 4. 获取当前位置
-        const location = await getCurrentLocation();
+        const location = await ExpoGaodeMapModule.getCurrentLocation();
         console.log('当前位置:', location);
         
         // 5. 设置地图初始位置
@@ -208,7 +200,7 @@ export default function App() {
 
 1. **初始化顺序**:
    ```
-   initSDK → checkPermission → requestPermission → getCurrentLocation → 渲染地图
+   ExpoGaodeMapModule.initSDK → checkLocationPermission → requestLocationPermission → getCurrentLocation → 渲染地图
    ```
 
 2. **权限处理**:
@@ -237,17 +229,15 @@ if (!result.granted) {
     zoom: 10
   });
   
-  // 如果不能再次请求,引导到设置
-  if (!result.canAskAgain) {
-    Alert.alert(
-      '需要定位权限',
-      '请在设置中开启定位权限',
-      [
-        { text: '取消' },
-        { text: '去设置', onPress: () => Linking.openSettings() }
-      ]
-    );
-  }
+  // 引导到设置
+  Alert.alert(
+    '需要定位权限',
+    '请在设置中开启定位权限',
+    [
+      { text: '取消' },
+      { text: '去设置', onPress: () => Linking.openSettings() }
+    ]
+  );
 }
 ```
 
@@ -267,26 +257,24 @@ await mapRef.current?.moveCamera({
 
 ### Q: 如何配置定位参数?
 
-**A:** 使用 `configure` 函数,**必须在 `initSDK` 之后调用**:
+**A:** 使用配置方法,**必须在 `initSDK` 之后调用**:
 
 ```tsx
-import { initSDK, configure } from 'expo-gaode-map';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // 1. 先初始化 SDK
-initSDK({
+ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
 });
 
 // 2. 再配置定位参数
-configure({
-  withReGeocode: true,  // 返回地址信息
-  mode: 0,              // 高精度模式
-  interval: 2000,       // 2秒更新一次
-});
+ExpoGaodeMapModule.setLocatingWithReGeocode(true);  // 返回地址信息
+ExpoGaodeMapModule.setLocationMode(0);              // 高精度模式
+ExpoGaodeMapModule.setInterval(2000);               // 2秒更新一次
 ```
 
-> ⚠️ **重要**: `configure` 必须在 `initSDK` 之后调用,否则配置可能不生效。
+> ⚠️ **重要**: 配置方法必须在 `initSDK` 之后调用,否则配置可能不生效。
 
 ### Q: Android 和 iOS 的初始化有区别吗?
 
@@ -307,13 +295,13 @@ configure({
 1. **总是处理权限**:
    ```tsx
    // ✅ 好的做法
-   const status = await checkLocationPermission();
+   const status = await ExpoGaodeMapModule.checkLocationPermission();
    if (!status.granted) {
-     await requestLocationPermission();
+     await ExpoGaodeMapModule.requestLocationPermission();
    }
    
    // ❌ 不好的做法
-   await getCurrentLocation(); // 可能因为没有权限而失败
+   await ExpoGaodeMapModule.getCurrentLocation(); // 可能因为没有权限而失败
    ```
 
 2. **提供加载状态**:
@@ -326,7 +314,7 @@ configure({
 3. **错误处理**:
    ```tsx
    try {
-     const location = await getCurrentLocation();
+     const location = await ExpoGaodeMapModule.getCurrentLocation();
    } catch (error) {
      console.error('获取位置失败:', error);
      // 使用默认位置
@@ -336,7 +324,7 @@ configure({
 4. **避免重复初始化**:
    ```tsx
    useEffect(() => {
-     initSDK({ ... });
+     ExpoGaodeMapModule.initSDK({ ... });
    }, []); // 空依赖数组,只初始化一次
    ```
 

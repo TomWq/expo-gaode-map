@@ -5,7 +5,6 @@ import type { ClusterProps } from '../../types';
 
 const NativeCluster = requireNativeViewManager('ClusterView');
 
-
 /**
  * 高德地图点聚合组件
  * 

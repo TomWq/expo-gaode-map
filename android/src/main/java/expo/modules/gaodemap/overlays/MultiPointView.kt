@@ -9,13 +9,12 @@ import com.amap.api.maps.model.MultiPointItem
 import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
 import expo.modules.kotlin.AppContext
-import expo.modules.kotlin.viewevent.EventDispatcher
+
 import expo.modules.kotlin.views.ExpoView
 
 class MultiPointView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
-  private val onPress by EventDispatcher()
-  
+
   private var multiPointOverlay: MultiPointOverlay? = null
   private var aMap: AMap? = null
   private var points: MutableList<MultiPointItem> = mutableListOf()
@@ -38,7 +37,8 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
       val lng = (point["longitude"] as? Number)?.toDouble()
       val id = point["id"] as? String ?: ""
       
-      if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         val multiPointItem = MultiPointItem(LatLng(lat, lng))
         multiPointItem.customerId = id
         points.add(multiPointItem)
@@ -51,6 +51,7 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
    * 设置图标
    */
   fun setIcon(iconUri: String?) {
+
     // 简化处理，实际需要实现图片加载
     createOrUpdateMultiPoint()
   }
@@ -94,10 +95,17 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
   fun removeMultiPoint() {
     multiPointOverlay?.remove()
     multiPointOverlay = null
+    points.clear()
   }
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removeMultiPoint()
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removeMultiPoint()
+        aMap = null
+      }
+    }
   }
 }

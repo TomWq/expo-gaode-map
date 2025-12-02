@@ -12,3 +12,17 @@ __tests__
 /android/src/test/
 /android/build/
 /example/
+/website/
+/docs/
+
+# Plugin source (only include compiled plugin)
+/plugin/src/
+/plugin/tsconfig.json
+
+# Keep these files for publishing
+# - build/ (compiled module code)
+# - plugin/build/ (compiled plugin code)
+# - app.plugin.js (plugin entry)
+# - src/ (TypeScript source)
+# - ios/ (native iOS code)
+# - android/ (native Android code - except test/build dirs)

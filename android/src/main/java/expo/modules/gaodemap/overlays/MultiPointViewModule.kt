@@ -16,6 +16,14 @@ class MultiPointViewModule : Module() {
       Prop<List<Map<String, Any>>>("points") { view: MultiPointView, points ->
         view.setPoints(points)
       }
+
+        Prop<String>("icon") { view: MultiPointView, icon ->
+        view.setIcon(icon)
+      }
+
+        Prop<Map<String, Float>>("anchor"){ view: MultiPointView, anchor ->
+            view.setAnchor(anchor)
+        }
     }
   }
 }

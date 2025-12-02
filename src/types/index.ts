@@ -1,4 +1,3 @@
-
 /**
  * 高德地图 Expo Module 类型定义统一导出
  * 基于 Expo Modules API 重新设计
@@ -11,7 +10,6 @@ export type {
   MapPoi,
   LatLngBounds,
   CameraPosition,
-  Location,
   ColorValue,
 } from './common.types';
 
@@ -19,11 +17,11 @@ export { MapType } from './common.types';
 
 // 地图视图类型
 export type {
+  LocationEvent,
   CameraEvent,
   MapViewProps,
   MapViewMethods,
   MapViewRef,
-
 } from './map-view.types';
 
 // 定位类型
@@ -55,11 +53,3 @@ export type {
   ClusterPoint,
   ClusterProps,
 } from './overlays.types';
-
-// SDK 模块类型
-export type {
-  SDKConfig,
-  AMapSDKModule,
-  AMapLocationModule,
-  ModuleEvents,
-} from './sdk.types';

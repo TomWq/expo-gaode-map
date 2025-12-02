@@ -151,6 +151,10 @@ public class ExpoGaodeMapModule: Module {
             self.getLocationManager().setDistanceFilter(Double(interval))
         }
         
+        Function("setDistanceFilter") { (distance: Double) in
+            self.getLocationManager().setDistanceFilter(distance)
+        }
+        
         Function("setLocationTimeout") { (timeout: Int) in
             self.getLocationManager().setLocationTimeout(timeout)
         }

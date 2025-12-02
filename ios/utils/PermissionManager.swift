@@ -27,18 +27,14 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
             guard let self = self else { return }
             
             if self.locationManager == nil {
-                print("🔐 [PermissionManager] 创建 CLLocationManager")
                 self.locationManager = CLLocationManager()
                 self.locationManager?.delegate = self
-                print("🔐 [PermissionManager] delegate 已设置: \(self.locationManager?.delegate != nil)")
             }
             
             let currentStatus = CLLocationManager.authorizationStatus()
-            print("🔐 [PermissionManager] 当前权限状态: \(self.getAuthorizationStatusString(currentStatus))")
             
             // 如果已经有权限,直接返回
             if currentStatus == .authorizedAlways || currentStatus == .authorizedWhenInUse {
-                print("🔐 [PermissionManager] 已有权限,直接返回")
                 self.permissionCallback?(true, self.getAuthorizationStatusString(currentStatus))
                 self.permissionCallback = nil
                 return
@@ -46,15 +42,12 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
             
             // 如果已经被拒绝,直接返回
             if currentStatus == .denied || currentStatus == .restricted {
-                print("🔐 [PermissionManager] 权限已被拒绝")
                 self.permissionCallback?(false, self.getAuthorizationStatusString(currentStatus))
                 self.permissionCallback = nil
                 return
             }
             
-            print("🔐 [PermissionManager] 调用 requestWhenInUseAuthorization()")
             self.locationManager?.requestWhenInUseAuthorization()
-            print("🔐 [PermissionManager] requestWhenInUseAuthorization() 调用完成")
         }
     }
     
@@ -62,7 +55,6 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
      * 权限状态变化回调 (iOS 14+)
      */
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        print("🔐 [PermissionManager] locationManagerDidChangeAuthorization 被调用")
         handleAuthorizationChange(manager.authorizationStatus)
     }
     
@@ -70,7 +62,6 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
      * 权限状态变化回调 (iOS 13 及以下,兼容旧版本)
      */
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        print("🔐 [PermissionManager] didChangeAuthorization 被调用")
         handleAuthorizationChange(status)
     }
     
@@ -78,19 +69,14 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
      * 处理权限状态变化
      */
     private func handleAuthorizationChange(_ status: CLAuthorizationStatus) {
-        print("🔐 [PermissionManager] 当前状态: \(getAuthorizationStatusString(status))")
-        
         // 如果状态仍是 notDetermined,说明用户还没有做出选择,忽略这次回调
         if status == .notDetermined {
-            print("🔐 [PermissionManager] 状态仍为 notDetermined,等待用户选择")
             return
         }
         
         // 状态已确定(授予或拒绝),返回结果
         let granted = status == .authorizedAlways || status == .authorizedWhenInUse
         let statusString = getAuthorizationStatusString(status)
-        
-        print("🔐 [PermissionManager] 返回结果: granted=\(granted), status=\(statusString)")
         
         permissionCallback?(granted, statusString)
         permissionCallback = nil
@@ -108,5 +94,14 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         case .authorizedWhenInUse: return "authorizedWhenInUse"
         @unknown default: return "unknown"
         }
+    }
+    
+    /**
+     * 析构函数 - 清理资源
+     */
+    deinit {
+        locationManager?.delegate = nil
+        locationManager = nil
+        permissionCallback = nil
     }
 }

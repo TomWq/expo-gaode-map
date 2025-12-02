@@ -165,7 +165,11 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
      */
     func destroy() {
         locationManager?.stopUpdatingLocation()
+        locationManager?.stopUpdatingHeading()
+        locationManager?.delegate = nil
         locationManager = nil
+        onLocationUpdate = nil
+        onHeadingUpdate = nil
     }
     
     /**
@@ -174,11 +178,12 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     private func initLocationManager() {
         locationManager = AMapLocationManager()
         locationManager?.delegate = self
-        // 推荐配置：百米精度，快速定位（2-3秒）
+        // 推荐配置：百米精度，快速定位
         locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
         locationManager?.distanceFilter = 10
-        locationManager?.locationTimeout = 2  // 2秒超时
-        locationManager?.reGeocodeTimeout = 2  // 2秒超时
+        // 增加超时时间，避免首次授权时超时(首次定位建议10秒以上)
+        locationManager?.locationTimeout = 10  // 10秒超时
+        locationManager?.reGeocodeTimeout = 5   // 5秒超时
         locationManager?.locatingWithReGeocode = true
         
         // iOS 9 之前:防止后台被系统挂起(默认关闭,用户可通过 setPausesLocationUpdatesAutomatically 配置)
@@ -194,6 +199,12 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
      * @param reGeocode 逆地理信息
      */
     func amapLocationManager(_ manager: AMapLocationManager!, didUpdate location: CLLocation!, reGeocode: AMapLocationReGeocode!) {
+        // 🔑 坐标验证：防止无效坐标
+        guard location.coordinate.latitude >= -90 && location.coordinate.latitude <= 90,
+              location.coordinate.longitude >= -180 && location.coordinate.longitude <= 180 else {
+            return
+        }
+        
         var locationData: [String: Any] = [
             "latitude": location.coordinate.latitude,
             "longitude": location.coordinate.longitude,

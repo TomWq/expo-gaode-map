@@ -42,7 +42,12 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置聚合点数据
    */
   fun setPoints(pointsList: List<Map<String, Any>>) {
-    points = pointsList
+    // 过滤无效坐标
+    points = pointsList.filter { point ->
+      val lat = (point["latitude"] as? Number)?.toDouble()
+      val lng = (point["longitude"] as? Number)?.toDouble()
+      lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+    }
     createOrUpdateCluster()
   }
   
@@ -118,10 +123,17 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun removeCluster() {
     markers.forEach { it.remove() }
     markers.clear()
+    points = emptyList()
   }
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removeCluster()
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removeCluster()
+        aMap = null
+      }
+    }
   }
 }

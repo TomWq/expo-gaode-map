@@ -1,7 +1,6 @@
 package expo.modules.gaodemap.modules
 
 import android.content.Context
-import android.util.Log
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
 
@@ -15,7 +14,7 @@ import com.amap.api.maps.MapsInitializer
  * - 获取 SDK 版本信息
  */
 object SDKInitializer {
-    private const val TAG = "SDKInitializer"
+
 
     /**
      * 初始化高德地图和定位 SDK

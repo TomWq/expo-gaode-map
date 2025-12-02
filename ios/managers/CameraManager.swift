@@ -49,11 +49,18 @@ class CameraManager {
         if let target = position["target"] as? [String: Double],
            let latitude = target["latitude"],
            let longitude = target["longitude"] {
+            // 🔑 坐标验证
+            guard latitude >= -90 && latitude <= 90,
+                  longitude >= -180 && longitude <= 180 else {
+                return
+            }
             status.centerCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         }
         
         if let zoom = position["zoom"] as? Double {
-            status.zoomLevel = CGFloat(zoom)
+            // 🔑 缩放级别范围限制 (3-20)
+            let validZoom = max(3, min(20, zoom))
+            status.zoomLevel = CGFloat(validZoom)
         }
         
         if let bearing = position["bearing"] as? Double {
@@ -82,6 +89,11 @@ class CameraManager {
         if let target = position["target"] as? [String: Double],
            let latitude = target["latitude"],
            let longitude = target["longitude"] {
+            // 🔑 坐标验证
+            guard latitude >= -90 && latitude <= 90,
+                  longitude >= -180 && longitude <= 180 else {
+                return
+            }
             status.centerCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         } else {
             status.centerCoordinate = mapView.centerCoordinate
@@ -120,6 +132,13 @@ class CameraManager {
         guard let mapView = mapView,
               let latitude = center["latitude"],
               let longitude = center["longitude"] else { return }
+        
+        // 🔑 坐标验证
+        guard latitude >= -90 && latitude <= 90,
+              longitude >= -180 && longitude <= 180 else {
+            return
+        }
+        
         mapView.setCenter(CLLocationCoordinate2D(latitude: latitude, longitude: longitude), animated: animated)
     }
     
@@ -129,7 +148,9 @@ class CameraManager {
      * @param animated 是否使用动画
      */
     func setZoomLevel(zoom: CGFloat, animated: Bool) {
-        mapView?.setZoomLevel(zoom, animated: animated)
+        // 🔑 缩放级别范围限制 (3-20)
+        let validZoom = max(3, min(20, zoom))
+        mapView?.setZoomLevel(validZoom, animated: animated)
     }
     
     // MARK: - 相机信息获取

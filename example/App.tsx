@@ -6,27 +6,23 @@ import {
   Circle,
   Polyline,
   Polygon,
-  initSDK,
-  start,
-  stop,
-  getCurrentLocation,
-  checkLocationPermission,
-  requestLocationPermission,
-  configure,
-  addLocationListener,
+  ExpoGaodeMapModule,
   type Coordinates,
   type ReGeocode,
   type CameraPosition,
 } from 'expo-gaode-map';
-import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView } from 'react-native';
+import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import RandomMarkersExample from './RandomMarkersExample';
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
 export default function App() {
+  const [showRandomMarkers, setShowRandomMarkers] = useState(false);
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [initialPosition, setInitialPosition] = useState<CameraPosition | null>(null);
+  const [cameraInfo, setCameraInfo] = useState<string>('');
   
   // 用于测试动态更新 Marker 内容
   const [markerContent, setMarkerContent] = useState<'text1' | 'text2' | 'none'>('text1');
@@ -71,40 +67,44 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       try {
-        initSDK({
+        ExpoGaodeMapModule.initSDK({
           androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
           iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
         });
         
-        const status = await checkLocationPermission();
+        const status = await ExpoGaodeMapModule.checkLocationPermission();
         if (!status.granted) {
-          const result = await requestLocationPermission();
+          const result = await ExpoGaodeMapModule.requestLocationPermission();
           if (!result.granted) {
             setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 15 });
             return;
           }
         }
         
-        configure({
-          withReGeocode: true,
-          interval: 5000,
-          allowsBackgroundLocationUpdates: true,
-          distanceFilter: 10,
-          accuracy:3
-        });
+        // 配置定位选项
+        ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+        ExpoGaodeMapModule.setInterval(5000);
+        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+        ExpoGaodeMapModule.setDistanceFilter(10);
+        ExpoGaodeMapModule.setDesiredAccuracy(3);
         
-        const subscription = addLocationListener((loc) => {
-          setLocation(loc);
-        });
-        
-        const loc = await getCurrentLocation();
+        // 先获取初始位置
+        const loc = await ExpoGaodeMapModule.getCurrentLocation();
         setLocation(loc);
         setInitialPosition({
           target: { latitude: loc.latitude, longitude: loc.longitude },
           zoom: 15
         });
         
-        return () => subscription.remove();
+        // 使用便捷方法监听连续定位更新
+        const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
+          console.log('收到定位更新:', location);
+          setLocation(location);
+        });
+        
+        return () => {
+          subscription.remove();
+        };
       } catch (error) {
         console.error('初始化失败:', error);
         setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 15 });
@@ -116,7 +116,7 @@ export default function App() {
 
   const handleGetLocation = async () => {
     try {
-      const loc = await getCurrentLocation();
+      const loc = await ExpoGaodeMapModule.getCurrentLocation();
      
       setLocation(loc);
       if (mapRef.current) {
@@ -131,13 +131,13 @@ export default function App() {
   };
 
   const handleStartLocation = () => {
-    start();
+    ExpoGaodeMapModule.start();
     setIsLocating(true);
     Alert.alert('成功', '开始连续定位');
   };
 
   const handleStopLocation = () => {
-    stop();
+    ExpoGaodeMapModule.stop();
     setIsLocating(false);
     Alert.alert('成功', '停止定位');
   };
@@ -184,7 +184,7 @@ export default function App() {
     };
     
     setDynamicCircles(prev => [...prev, newCircle]);
-    Alert.alert('成功', `已添加圆形\n当前共 ${dynamicCircles.length + 1} 个动态圆形`);
+    // Alert.alert('成功', `已添加圆形\n当前共 ${dynamicCircles.length + 1} 个动态圆形`);
   };
 
   // 声明式 API: 添加标记
@@ -207,7 +207,7 @@ export default function App() {
     };
     
     setDynamicMarkers(prev => [...prev, newMarker]);
-    Alert.alert('成功', `已添加标记\n当前共 ${dynamicMarkers.length + 1} 个动态标记`);
+    // Alert.alert('成功', `已添加标记\n当前共 ${dynamicMarkers.length + 1} 个动态标记`);
   };
 
   // 声明式 API: 添加折线
@@ -232,7 +232,7 @@ export default function App() {
     };
     
     setDynamicPolylines(prev => [...prev, newPolyline]);
-    Alert.alert('成功', `已添加折线\n当前共 ${dynamicPolylines.length + 1} 个动态折线`);
+    // Alert.alert('成功', `已添加折线\n当前共 ${dynamicPolylines.length + 1} 个动态折线`);
   };
 
   // 声明式 API: 添加多边形
@@ -259,7 +259,7 @@ export default function App() {
     };
     
     setDynamicPolygons(prev => [...prev, newPolygon]);
-    Alert.alert('成功', `已添加多边形\n当前共 ${dynamicPolygons.length + 1} 个动态多边形`);
+    // Alert.alert('成功', `已添加多边形\n当前共 ${dynamicPolygons.length + 1} 个动态多边形`);
   };
 
   // 移除所有动态覆盖物
@@ -302,9 +302,32 @@ export default function App() {
     );
   }
 
+  // 如果显示随机标记示例,则渲染该组件
+  if (showRandomMarkers) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowRandomMarkers(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <RandomMarkersExample />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>高德地图完整示例</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>高德地图完整示例</Text>
+        <TouchableOpacity
+          style={styles.exampleButton}
+          onPress={() => setShowRandomMarkers(true)}
+        >
+          <Text style={styles.exampleButtonText}>随机标记示例 →</Text>
+        </TouchableOpacity>
+      </View>
       
       <MapView
         ref={mapRef}
@@ -313,7 +336,6 @@ export default function App() {
         indoorViewEnabled={true}
         trafficEnabled={true}
         compassEnabled={true}
-       
         tiltGesturesEnabled={true}
         initialCameraPosition={initialPosition}
         minZoom={3}
@@ -325,12 +347,25 @@ export default function App() {
           imageHeight: 40
         }}
        onLoad={() => console.log('地图加载完成')}
-       onLocation={({ nativeEvent }) => {
-        const { latitude, longitude } = nativeEvent;  // 直接从 nativeEvent 获取
-        console.log('地图定位:', latitude, longitude);
-      }}
-        onMapPress={(e) => console.log('地图点击:', e)}
-        onMapLongPress={(e) => console.log('地图长按:', e)}
+        onMapPress={(e) => console.log('地图点击:', e.nativeEvent)}
+        onMapLongPress={(e) => console.log('地图长按:', e.nativeEvent)}
+        onCameraMove={({ nativeEvent }) => {
+          const { cameraPosition } = nativeEvent;
+          const zoom = cameraPosition.zoom ?? 0;
+          const bearing = cameraPosition.bearing ?? 0;
+          const info = `移动中 - 缩放: ${zoom.toFixed(2)}, 旋转: ${bearing.toFixed(2)}°`;
+          setCameraInfo(info);
+          console.log('相机移动:', cameraPosition);
+        }}
+        onCameraIdle={({ nativeEvent }) => {
+          const { cameraPosition } = nativeEvent;
+          const lat = cameraPosition.target?.latitude ?? 0;
+          const lng = cameraPosition.target?.longitude ?? 0;
+          const zoom = cameraPosition.zoom ?? 0;
+          const info = `停止 - 中心: ${lat.toFixed(4)}, ${lng.toFixed(4)}, 缩放: ${zoom.toFixed(2)}`;
+          setCameraInfo(info);
+          console.log('相机停止:', cameraPosition);
+        }}
       >
         {/* 声明式覆盖物 */}
         {location && (
@@ -340,7 +375,8 @@ export default function App() {
             fillColor="#4400FF00"
             strokeColor="#FF00FF00"
             strokeWidth={3}
-            // onPress={() => Alert.alert('圆形', '点击了声明式圆形')}
+            zIndex={99}
+            onCirclePress={() => Alert.alert('圆形', '点击了声明式圆形')}
           />
         )}
         
@@ -353,6 +389,7 @@ export default function App() {
             fillColor={circle.fillColor}
             strokeColor={circle.strokeColor}
             strokeWidth={2}
+            onCirclePress={() => Alert.alert('圆形', `点击了动态圆形 #${circle.id}`)}
           />
         ))}
         
@@ -361,8 +398,8 @@ export default function App() {
           <Polyline
             key={polyline.id}
             points={polyline.points}
-            width={5}
-            color={polyline.color}
+            strokeWidth={5}
+            strokeColor={polyline.color}
           />
         ))}
         
@@ -377,60 +414,68 @@ export default function App() {
           />
         ))}
       
-        {/* 固定的当前位置 Marker */}
-        {location && (
-          <Marker
-            key="fixed_current_location_marker"
-            position={{ latitude: location.latitude, longitude: location.longitude }}
-            title={location.address}
-            customViewWidth={200}
-            customViewHeight={40}
-            onPress={() => Alert.alert('标记', '点击了当前位置标记')}
-          >
-            <View style={styles.markerContainer}>
-              <Text style={styles.markerText}>{location?.address}</Text>
-            </View>
-          </Marker>
-        )}
-        
-        {/* 动态添加的 Marker 列表 */}
+        {/* 动态添加的 Marker 列表 - 移到最前面 */}
         {dynamicMarkers.map((marker) => (
           <Marker
             key={marker.id}
             position={{ latitude: marker.latitude, longitude: marker.longitude }}
             title={marker.content}
             pinColor={marker.color}
-            onPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
-          />
+            zIndex={99}
+            onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+          >
+            <View style={[styles.markerContainer,{
+              backgroundColor: marker.color}]}>
+              <Text style={styles.markerText}>{marker.content}</Text>
+            </View>
+          </Marker>
         ))}
         
+        {/* 固定的当前位置 Marker */}
+        {location && (
+          <Marker
+            key="fixed_current_location_marker"
+            position={{ latitude: location.latitude, longitude: location.longitude }}
+            title={location.address}
+            onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
+          >
+            <View style={styles.markerContainer}>
+              <Text style={[styles.markerText, { color: '#2196F3' }]}>{location?.address}</Text>
+            </View>
+          </Marker>
+        )}
+        
         <Marker
+          key="draggable_marker"
           position={{ latitude: 39.92, longitude: 116.42 }}
           title="可拖拽标记"
           draggable={true}
           pinColor="purple"
-          onPress={() => Alert.alert('标记', '点击了可拖拽标记')}
-          onDragEnd={(e) => {
+          onMarkerPress={() => Alert.alert('标记', '点击了可拖拽标记')}
+          onMarkerDragEnd={(e) => {
             Alert.alert('拖拽结束', `新位置: ${e.nativeEvent.latitude.toFixed(6)}, ${e.nativeEvent.longitude.toFixed(6)}`);
           }}
         />
         
         <Marker
+          key="custom_icon_marker"
           position={{ latitude: 39.93, longitude: 116.43 }}
           title="自定义图标"
+          snippet="自定义图标描述"
           icon={iconUri}
           iconWidth={40}
           iconHeight={40}
-          onPress={() => Alert.alert('标记', '点击了自定义图标标记')}
+          // onMarkerPress={() => Alert.alert('标记', '点击了自定义图标标记')}
         />
         
         {Platform.OS === 'ios' && (
           <Marker
+            key="ios_animated_marker"
             position={{ latitude: 39.94, longitude: 116.44 }}
             title="iOS 动画标记"
             pinColor="green"
             animatesDrop={true}
-            onPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
+            onMarkerPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
           />
         )}
         
@@ -444,7 +489,7 @@ export default function App() {
           strokeColor="#FFFF0000"
           strokeWidth={3}
           zIndex={1}
-          onPress={() => Alert.alert('多边形', '点击了声明式多边形')}
+          onPolygonPress={() => Alert.alert('多边形', '点击了声明式多边形')}
         />
         
         <Polyline
@@ -453,9 +498,9 @@ export default function App() {
             { latitude: 39.87, longitude: 116.37 },
             { latitude: 39.89, longitude: 116.35 },
           ]}
-          width={5}
-          color="#FFFF0000"
-          onPress={() => Alert.alert('折线', '点击了普通折线')}
+          strokeWidth={5}
+          strokeColor="#FFFF0000"
+          onPolylinePress={() => Alert.alert('折线', '点击了普通折线')}
         />
         
         <Polyline
@@ -464,10 +509,10 @@ export default function App() {
             { latitude: 39.87, longitude: 116.47 },
             { latitude: 39.89, longitude: 116.45 },
           ]}
-          width={5}
-          color="#FF0000FF"
+          strokeWidth={5}
+          strokeColor="#FF0000FF"
           dotted={true}
-          onPress={() => Alert.alert('折线', '点击了虚线折线')}
+          onPolylinePress={() => Alert.alert('折线', '点击了虚线折线')}
         />
         
         <Polyline
@@ -476,23 +521,13 @@ export default function App() {
             { latitude: 39.97, longitude: 116.37 },
             { latitude: 39.99, longitude: 116.35 },
           ]}
-          width={20}
-          color="#FFFF0000"
+          strokeWidth={20}
+          strokeColor="#FFFF0000"
           texture={iconUri}
-          onPress={() => Alert.alert('折线', '点击了纹理折线')}
+          onPolylinePress={() => Alert.alert('折线', '点击了纹理折线')}
         />
         
-        <Polyline
-          points={[
-            { latitude: 39.95, longitude: 116.45 },
-            { latitude: 39.97, longitude: 116.47 },
-            { latitude: 39.99, longitude: 116.45 },
-          ]}
-          width={5}
-          color="#FF00FF00"
-          geodesic={true}
-          onPress={() => Alert.alert('折线', '点击了大地线折线')}
-        />
+       
       </MapView>
 
       {location && (
@@ -502,6 +537,9 @@ export default function App() {
           <Text style={styles.infoText}>精度: {location.accuracy.toFixed(2)}m</Text>
           {'address' in location && location.address && (
             <Text style={styles.infoText}>地址: {location.address}</Text>
+          )}
+          {cameraInfo && (
+            <Text style={[styles.infoText, styles.cameraInfo]}>📷 相机: {cameraInfo}</Text>
           )}
         </View>
       )}
@@ -547,12 +585,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerContainer: {
+    backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 10,
+    paddingHorizontal: 15,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: Platform.OS === 'ios' ? 50 : 40,
     marginBottom: 10,
+  },
+  switchButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 15,
+    zIndex: 1000,
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  switchButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  exampleButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  exampleButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   map: {
     flex: 1,
@@ -568,6 +648,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginVertical: 2,
     color: '#333',
+  },
+  cameraInfo: {
+    color: '#2196F3',
+    fontWeight: 'bold',
+    marginTop: 5,
   },
   buttonContainer: {
     padding: 15,
@@ -604,7 +689,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerText: {
-    color: 'black',
+    color: 'white',
     fontSize: 12,
   },
   dynamicMarkerContainer1: {

@@ -116,22 +116,22 @@ export interface MarkerProps {
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{}>) => void;
+  onMarkerPress?: (event: NativeSyntheticEvent<LatLng>) => void;
 
   /**
    * 拖拽开始事件
    */
-  onDragStart?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDragStart?: (event: NativeSyntheticEvent<LatLng>) => void;
 
   /**
    * 拖拽中事件
    */
-  onDrag?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDrag?: (event: NativeSyntheticEvent<LatLng>) => void;
 
   /**
    * 拖拽结束事件
    */
-  onDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
 }
 
 /**
@@ -146,12 +146,12 @@ export interface PolylineProps {
   /**
    * 线宽
    */
-  width?: number;
+  strokeWidth?: number;
 
   /**
    * 线条颜色
    */
-  color?: ColorValue;
+  strokeColor?: ColorValue;
 
   /**
    * 层级
@@ -193,7 +193,7 @@ export interface PolylineProps {
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{}>) => void;
+  onPolylinePress?: (event: NativeSyntheticEvent<{}>) => void;
 }
 
 /**
@@ -228,7 +228,7 @@ export interface PolygonProps {
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{}>) => void;
+  onPolygonPress?: (event: NativeSyntheticEvent<{}>) => void;
 }
 
 /**
@@ -268,7 +268,7 @@ export interface CircleProps {
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{}>) => void;
+  onCirclePress?: (event: NativeSyntheticEvent<{}>) => void;
 
 
 }

@@ -12,11 +12,11 @@ import UIKit
  * - 支持自定义 children 视图
  */
 class MarkerView: ExpoView {
-    // MARK: - 事件派发器
-    let onPress = EventDispatcher()
-    let onDragStart = EventDispatcher()
-    let onDrag = EventDispatcher()
-    let onDragEnd = EventDispatcher()
+    // MARK: - 事件派发器（专属事件名避免冲突）
+    var onMarkerPress = EventDispatcher()
+    var onMarkerDragStart = EventDispatcher()
+    var onMarkerDrag = EventDispatcher()
+    var onMarkerDragEnd = EventDispatcher()
     
     /// 标记点位置
     var position: [String: Double] = [:]
@@ -48,8 +48,8 @@ class MarkerView: ExpoView {
     var pinColor: String = "red"
     /// 是否显示气泡
     var canShowCallout: Bool = true
-    /// 地图视图弱引用（避免循环引用）
-    private weak var mapView: MAMapView?
+    /// 地图视图引用
+    private var mapView: MAMapView?
     /// 标记点对象
     var annotation: MAPointAnnotation?
     /// 标记是否正在被移除（防止重复移除）
@@ -60,6 +60,10 @@ class MarkerView: ExpoView {
     private var pendingPosition: [String: Double]?
     /// 延迟添加任务
     private var pendingAddTask: DispatchWorkItem?
+    /// 延迟更新任务（批量处理 props 更新）
+    private var pendingUpdateTask: DispatchWorkItem?
+    /// 上次设置的地图引用（防止重复调用）
+    private weak var lastSetMapView: MAMapView?
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -88,11 +92,25 @@ class MarkerView: ExpoView {
     }
     
     /**
+     * 检查地图是否已连接
+     */
+    func isMapConnected() -> Bool {
+        return mapView != nil
+    }
+    
+    /**
      * 设置地图实例
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
+        // 🔑 关键修复：检查是否是同一个地图实例，避免重复设置
+        if lastSetMapView === map {
+            return
+        }
+        
+        let isNewMap = self.mapView == nil
         self.mapView = map
+        lastSetMapView = map
         
         // 如果有待处理的位置，先应用它
         if let pending = pendingPosition {
@@ -100,27 +118,50 @@ class MarkerView: ExpoView {
             pendingPosition = nil
         }
         
+        // 总是调用 updateAnnotation，确保幂等性
         updateAnnotation()
+        
     }
     
     /**
-     * 更新标记点
+     * 更新标记点（批量处理，避免频繁更新）
      */
-    private func updateAnnotation() {
+    func updateAnnotation() {
+        // 取消之前的延迟更新
+        pendingUpdateTask?.cancel()
+        
+        // 延迟 16ms（一帧）批量更新
+        let task = DispatchWorkItem { [weak self] in
+            self?.performUpdateAnnotation()
+        }
+        pendingUpdateTask = task
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.016, execute: task)
+    }
+    
+    /**
+     * 实际执行标记点更新
+     */
+    private func performUpdateAnnotation() {
         guard let mapView = mapView,
               let latitude = position["latitude"],
               let longitude = position["longitude"] else {
             return
         }
         
+        // 🔑 坐标验证：防止无效坐标导致崩溃
+        guard latitude >= -90 && latitude <= 90,
+              longitude >= -180 && longitude <= 180 else {
+            return
+        }
+        
         // 取消之前的延迟任务
         pendingAddTask?.cancel()
+        pendingAddTask = nil
         
-        // 移除旧的标记（在主线程执行）
+        // 移除旧的标记
         if let oldAnnotation = annotation {
-            DispatchQueue.main.async {
-                mapView.removeAnnotation(oldAnnotation)
-            }
+            mapView.removeAnnotation(oldAnnotation)
         }
         
         // 创建新的标记
@@ -131,101 +172,155 @@ class MarkerView: ExpoView {
         
         self.annotation = annotation
         
-        // 延迟添加到地图，等待 React Native 渲染 children
-        let task = DispatchWorkItem { [weak self] in
-            guard let self = self, !self.isRemoving else {
-                print("⚠️ [MarkerView] 延迟任务取消，isRemoving: \(self?.isRemoving ?? true)")
-                return
-            }
-            print("✅ [MarkerView] Annotation 延迟添加，当前 subviews: \(self.subviews.count)")
-            mapView.addAnnotation(annotation)
-        }
-        pendingAddTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: task)
+        // 🔑 关键修复：立即添加到地图（与 CircleView 等保持一致）
+        // 不再使用延迟添加，避免新架构下的时序问题
+        mapView.addAnnotation(annotation)
     }
     
     /**
      * 获取 annotation 视图（由 ExpoGaodeMapView 调用）
      */
     func getAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
-        print("🎨 [MarkerView] getAnnotationView 被调用")
-        print("🎨 [MarkerView] subviews.count: \(self.subviews.count)")
         
-        let reuseId = "custom_marker_\(ObjectIdentifier(self).hashValue)"
-        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
-        
-        if annotationView == nil {
-            annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
-            annotationView?.canShowCallout = canShowCallout
-            annotationView?.isDraggable = draggable
-        }
-        
-        annotationView?.annotation = annotation
-        self.annotationView = annotationView
-        
-        // 设置图标
+        // 🔑 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
-            print("🎨 [MarkerView] 尝试创建自定义图片...")
+            let reuseId = "custom_marker_children_\(ObjectIdentifier(self).hashValue)"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+            
+            if annotationView == nil {
+                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+            
+            annotationView?.annotation = annotation
+            // 🔑 关键修复：有自定义内容时不显示默认 callout（信息窗口）
+            annotationView?.canShowCallout = false
+            annotationView?.isDraggable = draggable
+            self.annotationView = annotationView
+            
             if let image = self.createImageFromSubviews() {
-                print("✅ [MarkerView] 自定义图片创建成功, size: \(image.size)")
                 annotationView?.image = image
                 annotationView?.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
             } else {
-                print("❌ [MarkerView] 自定义图片创建失败，使用默认图标")
-                annotationView?.image = self.createDefaultMarkerImage()
-                annotationView?.centerOffset = CGPoint(x: 0, y: -18)
+                // 🔑 关键修复：不返回 nil，而是设置透明图片，然后延迟重试
+                let size = CGSize(width: CGFloat(customViewWidth > 0 ? customViewWidth : 200),
+                                  height: CGFloat(customViewHeight > 0 ? customViewHeight : 40))
+                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+                let transparentImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                annotationView?.image = transparentImage
+                
+                // 延迟重试创建图片
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
+                    guard let self = self, let annotationView = annotationView else { return }
+                    if let image = self.createImageFromSubviews() {
+                        annotationView.image = image
+                        annotationView.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
+                    }
+                }
             }
-        } else {
-            print("📍 [MarkerView] 没有子视图，使用默认图标")
-            annotationView?.image = self.createDefaultMarkerImage()
-            annotationView?.centerOffset = CGPoint(x: 0, y: -18)
+            
+            return annotationView
         }
         
-        return annotationView
+        // 🔑 如果有 icon 属性，使用自定义图标
+        if let iconUri = iconUri, !iconUri.isEmpty {
+            let reuseId = "custom_marker_icon_\(ObjectIdentifier(self).hashValue)"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+            
+            if annotationView == nil {
+                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+            
+            annotationView?.annotation = annotation
+            // 只有在没有自定义内容时才使用 canShowCallout 设置
+            annotationView?.canShowCallout = canShowCallout
+            annotationView?.isDraggable = draggable
+            self.annotationView = annotationView
+            
+            // 加载自定义图标
+            loadIcon(iconUri: iconUri) { [weak self] image in
+                guard let self = self, let image = image else {
+                    return
+                }
+                let size = CGSize(width: self.iconWidth, height: self.iconHeight)
+                
+                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+                image.draw(in: CGRect(origin: .zero, size: size))
+                let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                
+                DispatchQueue.main.async {
+                    annotationView?.image = resizedImage
+                    annotationView?.centerOffset = CGPoint(x: 0, y: -self.iconHeight / 2)
+                }
+            }
+            
+            return annotationView
+        }
+        
+        // 🔑 既没有 children 也没有 icon，使用系统默认大头针
+        let reuseId = "pin_marker_\(ObjectIdentifier(self).hashValue)"
+        var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MAPinAnnotationView
+        
+        if pinView == nil {
+            pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+        }
+        
+        pinView?.annotation = annotation
+        pinView?.canShowCallout = canShowCallout
+        pinView?.isDraggable = draggable
+        pinView?.animatesDrop = animatesDrop
+        
+        // 设置大头针颜色
+        switch pinColor.lowercased() {
+        case "green":
+            pinView?.pinColor = .green
+        case "purple":
+            pinView?.pinColor = .purple
+        default:
+            pinView?.pinColor = .red
+        }
+        
+        self.annotationView = pinView
+        return pinView
     }
     
     /**
-     * 创建默认 marker 图标（红色大头针）
+     * 加载图标
+     * @param iconUri 图标 URI (支持 http/https/file/本地资源)
+     * @param completion 加载完成回调
      */
-    private func createDefaultMarkerImage() -> UIImage {
-        let width: CGFloat = 48
-        let height: CGFloat = 72
-        let size = CGSize(width: width, height: height)
-        
-        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-        defer { UIGraphicsEndImageContext() }
-        
-        guard let context = UIGraphicsGetCurrentContext() else {
-            return UIImage()
+    private func loadIcon(iconUri: String, completion: @escaping (UIImage?) -> Void) {
+        if iconUri.hasPrefix("http://") || iconUri.hasPrefix("https://") {
+            // 网络图片
+            guard let url = URL(string: iconUri) else {
+                completion(nil)
+                return
+            }
+            URLSession.shared.dataTask(with: url) { data, _, _ in
+                guard let data = data, let image = UIImage(data: data) else {
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+                DispatchQueue.main.async { completion(image) }
+            }.resume()
+        } else if iconUri.hasPrefix("file://") {
+            // 本地文件
+            let path = String(iconUri.dropFirst(7))
+            completion(UIImage(contentsOfFile: path))
+        } else {
+            // 资源文件名
+            completion(UIImage(named: iconUri))
         }
-        
-        // 绘制红色圆形顶部
-        context.setFillColor(UIColor(red: 1.0, green: 0.32, blue: 0.32, alpha: 1.0).cgColor)
-        let circleRect = CGRect(x: 2, y: 2, width: width - 4, height: width - 4)
-        context.fillEllipse(in: circleRect)
-        
-        // 绘制尖端
-        context.beginPath()
-        context.move(to: CGPoint(x: width / 2, y: height))
-        context.addLine(to: CGPoint(x: width / 4, y: width / 2 + 10))
-        context.addLine(to: CGPoint(x: 3 * width / 4, y: width / 2 + 10))
-        context.closePath()
-        context.fillPath()
-        
-        // 绘制白色边框
-        context.setStrokeColor(UIColor.white.cgColor)
-        context.setLineWidth(3)
-        let borderRect = CGRect(x: 4, y: 4, width: width - 8, height: width - 8)
-        context.strokeEllipse(in: borderRect)
-        
-        return UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
     }
     
     /**
      * 将子视图转换为图片
      */
     private func createImageFromSubviews() -> UIImage? {
-        guard let firstSubview = subviews.first else { return nil }
+        guard let firstSubview = subviews.first else {
+            return nil
+        }
         
         // 优先使用 customViewWidth/customViewHeight（用于 children），其次使用子视图尺寸，最后使用默认值
         // 注意：iconWidth/iconHeight 是用于自定义图标的，不用于 children
@@ -253,18 +348,54 @@ class MarkerView: ExpoView {
         // 强制子视图使用指定尺寸布局
         firstSubview.frame = CGRect(origin: .zero, size: size)
         
-        // 递归强制布局所有子视图
-        forceLayoutRecursively(view: firstSubview)
+        // 🔑 关键修复：多次强制布局，确保 React Native Text 完全渲染
+        for _ in 0..<3 {
+            forceLayoutRecursively(view: firstSubview)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
         
         UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
         defer { UIGraphicsEndImageContext() }
         
-        guard let context = UIGraphicsGetCurrentContext() else { return nil }
+        guard let context = UIGraphicsGetCurrentContext() else {
+            return nil
+        }
         
         // 使用 drawHierarchy 而不是 layer.render，这样能正确渲染 Text
-        firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        let success = firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
         
-        return UIGraphicsGetImageFromCurrentImageContext()
+        guard let image = UIGraphicsGetImageFromCurrentImageContext() else {
+            return nil
+        }
+        
+        // 🔑 关键：检查图片是否真的有内容（不是空白图片）
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+        
+        // 检查图片数据是否为空白
+        let dataProvider = cgImage.dataProvider
+        let data = dataProvider?.data
+        let buffer = CFDataGetBytePtr(data)
+        
+        var isBlank = true
+        if let buffer = buffer {
+            let length = CFDataGetLength(data)
+            // 检查前 100 个字节是否都是 0（空白）
+            let checkLength = min(100, length)
+            for i in 0..<checkLength {
+                if buffer[i] != 0 {
+                    isBlank = false
+                    break
+                }
+            }
+        }
+        
+        if isBlank {
+            return nil
+        }
+        
+        return image
     }
     
     /**
@@ -279,33 +410,6 @@ class MarkerView: ExpoView {
         }
     }
     
-    /**
-     * 创建组合图片：默认 marker + 自定义内容
-     */
-    private func createCombinedImage() -> UIImage? {
-        guard let customImage = createImageFromSubviews() else { return nil }
-        let markerImage = createDefaultMarkerImage()
-        
-        // 计算总尺寸：marker 在下，自定义内容在上
-        let totalWidth = max(markerImage.size.width, customImage.size.width)
-        let spacing: CGFloat = 10
-        let totalHeight = markerImage.size.height + customImage.size.height + spacing
-        let totalSize = CGSize(width: totalWidth, height: totalHeight)
-        
-        UIGraphicsBeginImageContextWithOptions(totalSize, false, 0.0)
-        defer { UIGraphicsEndImageContext() }
-        
-        // 绘制自定义内容在上方
-        let customX = (totalWidth - customImage.size.width) / 2
-        customImage.draw(at: CGPoint(x: customX, y: 0))
-        
-        // 绘制 marker 在下方
-        let markerX = (totalWidth - markerImage.size.width) / 2
-        let markerY = customImage.size.height + spacing
-        markerImage.draw(at: CGPoint(x: markerX, y: markerY))
-        
-        return UIGraphicsGetImageFromCurrentImageContext()
-    }
     
     /**
      * 当视图即将从父视图移除时调用
@@ -326,15 +430,14 @@ class MarkerView: ExpoView {
         guard !isRemoving else { return }
         isRemoving = true
         
-        print("🗑️ [MarkerView] removeAnnotationFromMap 被调用")
-        
         // 取消任何待处理的延迟任务
         pendingAddTask?.cancel()
         pendingAddTask = nil
+        pendingUpdateTask?.cancel()
+        pendingUpdateTask = nil
         
         // 立即保存引用并清空属性，避免在异步块中访问 self
         guard let mapView = mapView, let annotation = annotation else {
-            print("⚠️ [MarkerView] 没有 annotation 需要移除")
             return
         }
         self.annotation = nil
@@ -343,11 +446,9 @@ class MarkerView: ExpoView {
         // 同步移除，避免对象在异步块执行时已被释放
         if Thread.isMainThread {
             mapView.removeAnnotation(annotation)
-            print("✅ [MarkerView] Annotation 已从地图移除（主线程）")
         } else {
             DispatchQueue.main.sync {
                 mapView.removeAnnotation(annotation)
-                print("✅ [MarkerView] Annotation 已从地图移除（同步到主线程）")
             }
         }
     }
@@ -357,11 +458,8 @@ class MarkerView: ExpoView {
         
         // 如果正在移除，不要执行任何操作
         guard !isRemoving else {
-            print("⚠️ [MarkerView] willRemoveSubview 被调用但正在移除，忽略")
             return
         }
-        
-        print("🎨 [MarkerView] willRemoveSubview 被调用，剩余 subviews.count: \(self.subviews.count - 1)")
         
         // 子视图移除后，需要刷新 annotation 视图
         if self.subviews.count <= 1 {
@@ -369,12 +467,10 @@ class MarkerView: ExpoView {
             if let mapView = mapView, let annotation = annotation {
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self, !self.isRemoving else {
-                        print("⚠️ [MarkerView] 异步刷新时已被移除，取消操作")
                         return
                     }
                     mapView.removeAnnotation(annotation)
                     mapView.addAnnotation(annotation)
-                    print("✅ [MarkerView] Annotation 已刷新为默认图标")
                 }
             }
         }
@@ -385,24 +481,17 @@ class MarkerView: ExpoView {
         
         // 如果正在移除，不要执行任何操作
         guard !isRemoving else {
-            print("⚠️ [MarkerView] didAddSubview 被调用但正在移除，忽略")
             return
         }
         
-        print("🎨 [MarkerView] didAddSubview 被调用，subviews.count: \(self.subviews.count)")
-        
-        // 子视图添加后，需要刷新 annotation 视图
-        // 通过移除并重新添加 annotation 来触发 getAnnotationView 调用
+        // 🔑 关键修复：刷新 annotation
         if let mapView = mapView, let annotation = annotation {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self, !self.isRemoving else {
-                    print("⚠️ [MarkerView] 异步刷新时已被移除，取消操作")
-                    return
-                }
-                mapView.removeAnnotation(annotation)
-                mapView.addAnnotation(annotation)
-                print("✅ [MarkerView] Annotation 已刷新")
-            }
+            // annotation 已存在，立即刷新
+            mapView.removeAnnotation(annotation)
+            mapView.addAnnotation(annotation)
+        } else if mapView != nil && annotation == nil {
+            // annotation 还未创建，children 先添加了，触发创建
+            updateAnnotation()
         }
     }
     
@@ -490,13 +579,8 @@ class MarkerView: ExpoView {
         updateAnnotation()
     }
     
-    func setIcon(_ source: [String: Any]?) {
-        if let dict = source {
-            // 处理 require() 返回的对象
-            if let uri = dict["uri"] as? String {
-                self.iconUri = uri
-            }
-        }
+    func setIconUri(_ uri: String?) {
+        self.iconUri = uri
         updateAnnotation()
     }
     
@@ -521,7 +605,14 @@ class MarkerView: ExpoView {
      * 清理工作已在 willMove(toSuperview:) 中完成
      */
     deinit {
-        // 不执行任何操作，避免访问已释放的对象
-        // 所有清理都应该在 willMove(toSuperview:) 中完成
+        // 取消待处理的任务
+        pendingAddTask?.cancel()
+        pendingUpdateTask?.cancel()
+        
+        // 清理引用，防止内存泄漏
+        mapView = nil
+        annotation = nil
+        annotationView = nil
+        lastSetMapView = nil
     }
 }

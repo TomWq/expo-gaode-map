@@ -7,8 +7,8 @@ import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
-import com.amap.api.maps.model.PolylineOptions.LineCapType
-import com.amap.api.maps.model.PolylineOptions.LineJoinType
+
+import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -16,7 +16,7 @@ import java.net.URL
 
 class PolylineView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
-  private val onPress by EventDispatcher()
+  private val onPolylinePress by EventDispatcher()
   
   private var polyline: Polyline? = null
   private var aMap: AMap? = null
@@ -33,7 +33,10 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   @Suppress("unused")
   fun setMap(map: AMap) {
     aMap = map
-    createOrUpdatePolyline()
+    post {
+      createOrUpdatePolyline()
+    }
+
   }
   
   /**
@@ -43,7 +46,8 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
     points = pointsList.mapNotNull { point ->
       val lat = point["latitude"]
       val lng = point["longitude"]
-      if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         LatLng(lat, lng)
       } else null
     }
@@ -67,10 +71,10 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置线条颜色
    */
-  fun setStrokeColor(color: Int) {
-    strokeColor = color
+  fun setStrokeColor(color: Any) {
+    strokeColor = ColorParser.parseColor(color)
     polyline?.let {
-      it.color = color
+      it.color = strokeColor
     } ?: createOrUpdatePolyline()
   }
   
@@ -98,7 +102,11 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
       it.zIndex = zIndex
     } ?: createOrUpdatePolyline()
   }
-  
+
+    fun setGradient(gradient: Boolean){
+
+    }
+
   /**
    * 设置透明度
    */
@@ -133,6 +141,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
           .width(strokeWidth)
           .color(strokeColor)
           .geodesic(isGeodesic)
+
         
         // 设置虚线样式
         if (isDotted) {
@@ -196,7 +205,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
       for (i in 0 until linePoints.size - 1) {
         val distance = distanceToSegment(latLng, linePoints[i], linePoints[i + 1])
         if (distance <= threshold) {
-          onPress(mapOf(
+          onPolylinePress(mapOf(
             "latitude" to latLng.latitude,
             "longitude" to latLng.longitude
           ))
@@ -252,6 +261,12 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removePolyline()
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removePolyline()
+        aMap = null
+      }
+    }
   }
 }

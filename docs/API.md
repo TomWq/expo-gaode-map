@@ -111,26 +111,7 @@ interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   getLatLng(point: Point): Promise<LatLng>;
-  
-  // Circle 操作
-  addCircle(id: string, props: CircleProps): Promise<void>;
-  removeCircle(id: string): Promise<void>;
-  updateCircle(id: string, props: Partial<CircleProps>): Promise<void>;
-  
-  // Marker 操作
-  addMarker(id: string, props: MarkerProps): Promise<void>;
-  removeMarker(id: string): Promise<void>;
-  updateMarker(id: string, props: Partial<MarkerProps>): Promise<void>;
-  
-  // Polyline 操作
-  addPolyline(id: string, props: PolylineProps): Promise<void>;
-  removePolyline(id: string): Promise<void>;
-  updatePolyline(id: string, props: Partial<PolylineProps>): Promise<void>;
-  
-  // Polygon 操作
-  addPolygon(id: string, props: PolygonProps): Promise<void>;
-  removePolygon(id: string): Promise<void>;
-  updatePolygon(id: string, props: Partial<PolygonProps>): Promise<void>;
+
 }
 ```
 
@@ -138,36 +119,61 @@ interface MapViewRef {
 
 > ⚠️ **权限要求**：所有定位 API 都需要定位权限
 >
-> 使用前请先调用 `checkLocationPermission()` 和 `requestLocationPermission()`
+> 使用前请先调用 `ExpoGaodeMapModule.checkLocationPermission()` 和 `ExpoGaodeMapModule.requestLocationPermission()`
 >
 > 详细说明: [INITIALIZATION.md](./INITIALIZATION.md)
 
 ### 定位控制
 
+所有定位 API 通过 `ExpoGaodeMapModule` 调用：
+
+```tsx
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+// 初始化 SDK
+ExpoGaodeMapModule.initSDK({
+  androidKey: 'your-android-api-key',
+  iosKey: 'your-ios-api-key',
+});
+
+// 开始连续定位
+ExpoGaodeMapModule.start();
+
+// 停止定位
+ExpoGaodeMapModule.stop();
+
+// 检查是否正在定位
+const isStarted = await ExpoGaodeMapModule.isStarted();
+
+// 获取当前位置
+const location = await ExpoGaodeMapModule.getCurrentLocation();
+```
+
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| `initSDK` | `{androidKey, iosKey}` | `void` | 初始化 SDK |
-| `start` | - | `void` | 开始连续定位 |
-| `stop` | - | `void` | 停止定位 |
-| `isStarted` | - | `Promise<boolean>` | 检查是否正在定位 |
-| `getCurrentLocation` | - | `Promise<Location>` | 获取当前位置 |
+| `ExpoGaodeMapModule.initSDK` | `{androidKey, iosKey}` | `void` | 初始化 SDK |
+| `ExpoGaodeMapModule.start` | - | `void` | 开始连续定位 |
+| `ExpoGaodeMapModule.stop` | - | `void` | 停止定位 |
+| `ExpoGaodeMapModule.isStarted` | - | `Promise<boolean>` | 检查是否正在定位 |
+| `ExpoGaodeMapModule.getCurrentLocation` | - | `Promise<Location>` | 获取当前位置 |
 
 ### 定位配置
 
-#### configure() 统一配置
+#### 配置方法
+
+所有配置方法通过 `ExpoGaodeMapModule` 调用：
 
 ```tsx
-import { configure } from 'expo-gaode-map';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-configure({
-  withReGeocode: true,
-  mode: 0,
-  interval: 2000,
-  // ... 更多配置
-});
+// 配置定位参数
+ExpoGaodeMapModule.setLocatingWithReGeocode(true);  // 返回地址信息
+ExpoGaodeMapModule.setLocationMode(0);              // 高精度模式
+ExpoGaodeMapModule.setInterval(2000);               // 2秒更新一次
+ExpoGaodeMapModule.setDesiredAccuracy(3);           // iOS 精度级别
 ```
 
-#### 单独配置方法
+#### 单独配置方法列表
 
 > **平台支持说明**：部分配置方法仅在特定平台有效，其他平台会静默忽略
 
@@ -175,32 +181,32 @@ configure({
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setLocatingWithReGeocode` | `boolean` | 是否返回逆地理信息 |
-| `setInterval` | `number` | 定位间隔（毫秒）/ 距离过滤（米） |
-| `setGeoLanguage` | `string` | 逆地理语言 |
+| `ExpoGaodeMapModule.setLocatingWithReGeocode` | `boolean` | 是否返回逆地理信息 |
+| `ExpoGaodeMapModule.setInterval` | `number` | 定位间隔（毫秒）/ 距离过滤（米） |
+| `ExpoGaodeMapModule.setGeoLanguage` | `number` | 逆地理语言 |
 
 ##### Android 专用配置
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setLocationMode` | `0 \| 1 \| 2` | 定位模式（0: 高精度, 1: 省电, 2: 仅设备） |
-| `setOnceLocation` | `boolean` | 是否单次定位 |
-| `setSensorEnable` | `boolean` | 是否使用设备传感器 |
-| `setWifiScan` | `boolean` | 是否允许 WiFi 扫描 |
-| `setGpsFirst` | `boolean` | 是否 GPS 优先 |
-| `setOnceLocationLatest` | `boolean` | 是否等待 WiFi 列表刷新 |
-| `setLocationCacheEnable` | `boolean` | 是否使用缓存策略 |
-| `setHttpTimeOut` | `number` | 网络请求超时（毫秒） |
+| `ExpoGaodeMapModule.setLocationMode` | `0 \| 1 \| 2` | 定位模式（0: 高精度, 1: 省电, 2: 仅设备） |
+| `ExpoGaodeMapModule.setOnceLocation` | `boolean` | 是否单次定位 |
+| `ExpoGaodeMapModule.setSensorEnable` | `boolean` | 是否使用设备传感器 |
+| `ExpoGaodeMapModule.setWifiScan` | `boolean` | 是否允许 WiFi 扫描 |
+| `ExpoGaodeMapModule.setGpsFirst` | `boolean` | 是否 GPS 优先 |
+| `ExpoGaodeMapModule.setOnceLocationLatest` | `boolean` | 是否等待 WiFi 列表刷新 |
+| `ExpoGaodeMapModule.setLocationCacheEnable` | `boolean` | 是否使用缓存策略 |
+| `ExpoGaodeMapModule.setHttpTimeOut` | `number` | 网络请求超时（毫秒） |
 
 ##### iOS 专用配置
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setLocationTimeout` | `number` | 定位超时时间（秒，默认 2 秒） |
-| `setReGeocodeTimeout` | `number` | 逆地理超时时间（秒，默认 2 秒） |
-| `setDesiredAccuracy` | `number` | 期望精度（0-5，默认 3: 100米精度） |
-| `setDistanceFilter` | `number` | 距离过滤器（米，默认 10 米） |
-| `setPausesLocationUpdatesAutomatically` | `boolean` | 是否自动暂停定位更新（默认 false） |
+| `ExpoGaodeMapModule.setLocationTimeout` | `number` | 定位超时时间（秒，默认 2 秒） |
+| `ExpoGaodeMapModule.setReGeocodeTimeout` | `number` | 逆地理超时时间（秒，默认 2 秒） |
+| `ExpoGaodeMapModule.setDesiredAccuracy` | `number` | 期望精度（0-5，默认 3: 100米精度） |
+| `ExpoGaodeMapModule.setDistanceFilter` | `number` | 距离过滤器（米，默认 10 米） |
+| `ExpoGaodeMapModule.setPausesLocationUpdatesAutomatically` | `boolean` | 是否自动暂停定位更新（默认 false） |
 
 **iOS 默认定位配置：**
 
@@ -230,7 +236,7 @@ configure({
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setAllowsBackgroundLocationUpdates` | `boolean` | 是否允许后台定位 |
+| `ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates` | `boolean` | 是否允许后台定位 |
 
 > **后台定位说明**:
 > - **iOS**: 需要在 Info.plist 中配置 `NSLocationAlwaysAndWhenInUseUsageDescription` 和 `UIBackgroundModes` (包含 `location`)
@@ -241,18 +247,40 @@ configure({
 
 | 方法 | 说明 |
 |------|------|
-| `startUpdatingHeading` | 开始方向更新 |
-| `stopUpdatingHeading` | 停止方向更新 |
+| `ExpoGaodeMapModule.startUpdatingHeading` | 开始方向更新 |
+| `ExpoGaodeMapModule.stopUpdatingHeading` | 停止方向更新 |
 
 ### 坐标转换
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| `coordinateConvert` | `coordinate, type` | `Promise<LatLng>` | 坐标转换为高德坐标 |
+| `ExpoGaodeMapModule.coordinateConvert` | `coordinate, type` | `Promise<LatLng>` | 坐标转换为高德坐标 |
+
+### 事件监听
+
+使用 `addListener` 方法监听定位和方向更新事件：
+
+```tsx
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+// 监听位置更新
+const locationSubscription = ExpoGaodeMapModule.addLocationListener('onLocationUpdate', (location) => {
+  console.log('位置更新:', location);
+});
+
+// 监听方向更新（iOS）
+const headingSubscription = ExpoGaodeMapModule.onHeadingUpdate('onHeadingUpdate', (heading) => {
+  console.log('方向更新:', heading);
+});
+
+// 取消监听
+locationSubscription.remove();
+headingSubscription.remove();
+```
 
 ## 覆盖物组件
 
-> **事件回调说明**：所有覆盖物的事件回调（如 `onPress`）仅在**声明式用法**中有效。使用命令式 API（如 `addCircle`、`addMarker` 等）添加的覆盖物无法触发这些事件。
+
 
 ### Circle (圆形)
 

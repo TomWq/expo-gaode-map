@@ -11,7 +11,7 @@ class PolylineViewModule : Module() {
     Name("PolylineView")
 
     View(PolylineView::class) {
-      Events("onPress")
+      Events("onPolylinePress")
       
       Prop<List<Map<String, Double>>>("points") { view: PolylineView, points ->
         view.setPoints(points)
@@ -21,7 +21,7 @@ class PolylineViewModule : Module() {
         view.setStrokeWidth(width)
       }
       
-      Prop<Int>("strokeColor") { view: PolylineView, color ->
+      Prop<Any>("strokeColor") { view: PolylineView, color ->
         view.setStrokeColor(color)
       }
       
@@ -39,6 +39,10 @@ class PolylineViewModule : Module() {
       
       Prop<Float>("zIndex") { view: PolylineView, zIndex ->
         view.setZIndex(zIndex)
+      }
+
+      Prop<Boolean>("gradient")  { view: PolylineView, gradient ->
+          view.setGradient(gradient)
       }
     }
   }

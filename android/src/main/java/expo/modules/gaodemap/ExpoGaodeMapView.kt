@@ -1,7 +1,7 @@
 package expo.modules.gaodemap
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import android.view.View
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
@@ -12,7 +12,6 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import expo.modules.gaodemap.managers.CameraManager
 import expo.modules.gaodemap.managers.UIManager
-import expo.modules.gaodemap.managers.OverlayManager
 import expo.modules.gaodemap.overlays.*
 
 /**
@@ -34,13 +33,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     override fun requestLayout() {
         try {
             super.requestLayout()
-        } catch (e: Exception) {
-            Log.e(TAG, "requestLayout 异常被捕获", e)
+        } catch (_: Exception) {
+            // 忽略异常
         }
-    }
-
-    companion object {
-        private const val TAG = "ExpoGaodeMapView"
     }
 
     // Props 存储
@@ -59,13 +54,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     private val onMapLongPress by EventDispatcher()
     private val onLoad by EventDispatcher()
     private val onLocation by EventDispatcher()
-    private val onMarkerPress by EventDispatcher()
-    private val onMarkerDragStart by EventDispatcher()
-    private val onMarkerDrag by EventDispatcher()
-    private val onMarkerDragEnd by EventDispatcher()
-    private val onCirclePress by EventDispatcher()
-    private val onPolygonPress by EventDispatcher()
-    private val onPolylinePress by EventDispatcher()
+    private val onCameraMove by EventDispatcher()
+    private val onCameraIdle by EventDispatcher()
 
     // 高德地图视图
     private lateinit var mapView: MapView
@@ -74,7 +64,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     // 管理器
     private lateinit var cameraManager: CameraManager
     private lateinit var uiManager: UIManager
-    private lateinit var overlayManager: OverlayManager
 
     // 缓存初始相机位置，等待地图加载完成后设置
     private var pendingCameraPosition: Map<String, Any?>? = null
@@ -104,57 +93,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                     ))
                 }
             }
-            overlayManager = OverlayManager(aMap, context).apply {
-                onMarkerPress = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onMarkerPress(mapOf(
-                        "markerId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-                onMarkerDragStart = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onMarkerDragStart(mapOf(
-                        "markerId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-                onMarkerDrag = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onMarkerDrag(mapOf(
-                        "markerId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-                onMarkerDragEnd = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onMarkerDragEnd(mapOf(
-                        "markerId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-                onCirclePress = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onCirclePress(mapOf(
-                        "circleId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-                onPolygonPress = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onPolygonPress(mapOf(
-                        "polygonId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-                onPolylinePress = { id, lat, lng ->
-                    this@ExpoGaodeMapView.onPolylinePress(mapOf(
-                        "polylineId" to id,
-                        "latitude" to lat,
-                        "longitude" to lng
-                    ))
-                }
-            }
 
             // 添加地图视图到布局
             addView(mapView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -179,8 +117,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
                 onLoad(mapOf("loaded" to true))
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "ExpoGaodeMapView 初始化失败", e)
+        } catch (_: Exception) {
+            // 初始化失败，静默处理
         }
     }
 
@@ -188,6 +126,85 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      * 设置地图事件监听
      */
     private fun setupMapListeners() {
+        // 设置相机移动监听器
+        aMap.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
+            override fun onCameraChange(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 相机移动中
+                cameraPosition?.let {
+                    val visibleRegion = aMap.projection.visibleRegion
+                    onCameraMove(mapOf(
+                        "cameraPosition" to mapOf(
+                            "target" to mapOf(
+                                "latitude" to it.target.latitude,
+                                "longitude" to it.target.longitude
+                            ),
+                            "zoom" to it.zoom,
+                            "tilt" to it.tilt,
+                            "bearing" to it.bearing
+                        ),
+                        "latLngBounds" to mapOf(
+                            "northeast" to mapOf(
+                                "latitude" to visibleRegion.farRight.latitude,
+                                "longitude" to visibleRegion.farRight.longitude
+                            ),
+                            "southwest" to mapOf(
+                                "latitude" to visibleRegion.nearLeft.latitude,
+                                "longitude" to visibleRegion.nearLeft.longitude
+                            )
+                        )
+                    ))
+                }
+            }
+
+            override fun onCameraChangeFinish(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 相机移动完成
+                cameraPosition?.let {
+                    val visibleRegion = aMap.projection.visibleRegion
+                    onCameraIdle(mapOf(
+                        "cameraPosition" to mapOf(
+                            "target" to mapOf(
+                                "latitude" to it.target.latitude,
+                                "longitude" to it.target.longitude
+                            ),
+                            "zoom" to it.zoom,
+                            "tilt" to it.tilt,
+                            "bearing" to it.bearing
+                        ),
+                        "latLngBounds" to mapOf(
+                            "northeast" to mapOf(
+                                "latitude" to visibleRegion.farRight.latitude,
+                                "longitude" to visibleRegion.farRight.longitude
+                            ),
+                            "southwest" to mapOf(
+                                "latitude" to visibleRegion.nearLeft.latitude,
+                                "longitude" to visibleRegion.nearLeft.longitude
+                            )
+                        )
+                    ))
+                }
+            }
+        })
+        
+        // 设置全局 Marker 点击监听器
+        aMap.setOnMarkerClickListener { marker ->
+            MarkerView.handleMarkerClick(marker)
+        }
+
+        // 设置全局 Marker 拖拽监听器
+        aMap.setOnMarkerDragListener(object : AMap.OnMarkerDragListener {
+            override fun onMarkerDragStart(marker: com.amap.api.maps.model.Marker) {
+                MarkerView.handleMarkerDragStart(marker)
+            }
+
+            override fun onMarkerDrag(marker: com.amap.api.maps.model.Marker) {
+                MarkerView.handleMarkerDrag(marker)
+            }
+
+            override fun onMarkerDragEnd(marker: com.amap.api.maps.model.Marker) {
+                MarkerView.handleMarkerDragEnd(marker)
+            }
+        })
+
         aMap.setOnMapClickListener { latLng ->
             // 检查声明式 PolylineView
             if (checkDeclarativePolylinePress(latLng)) {
@@ -204,28 +221,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 return@setOnMapClickListener
             }
 
-            // 检查命令式圆形
-            val circleId = overlayManager.checkCirclePress(latLng)
-            if (circleId != null) {
-                overlayManager.onCirclePress?.invoke(circleId, latLng.latitude, latLng.longitude)
-                return@setOnMapClickListener
-            }
-
-            // 检查命令式多边形
-            val polygonId = overlayManager.checkPolygonPress(latLng)
-            if (polygonId != null) {
-                overlayManager.onPolygonPress?.invoke(polygonId, latLng.latitude, latLng.longitude)
-                return@setOnMapClickListener
-            }
-
-            // 检查命令式折线
-            val polylineId = overlayManager.checkPolylinePress(latLng)
-            if (polylineId != null) {
-                overlayManager.onPolylinePress?.invoke(polylineId, latLng.latitude, latLng.longitude)
-                return@setOnMapClickListener
-            }
-
-            // 如果都没点击,触发地图点击事件
+            // 触发地图点击事件
             onMapPress(mapOf(
                 "latitude" to latLng.latitude,
                 "longitude" to latLng.longitude
@@ -382,91 +378,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         return cameraManager.getCameraPosition()
     }
 
-    // ==================== 覆盖物管理 ====================
-
-    /** 添加圆形覆盖物 */
-    fun addCircle(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addCircle(id, props)
-        }
-    }
-
-    /** 移除圆形覆盖物 */
-    fun removeCircle(id: String) {
-        mainHandler.post {
-            overlayManager.removeCircle(id)
-        }
-    }
-
-    /** 更新圆形覆盖物 */
-    fun updateCircle(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updateCircle(id, props)
-        }
-    }
-
-    /** 添加标记点 */
-    fun addMarker(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addMarker(id, props)
-        }
-    }
-
-    /** 移除标记点 */
-    fun removeMarker(id: String) {
-        mainHandler.post {
-            overlayManager.removeMarker(id)
-        }
-    }
-
-    /** 更新标记点 */
-    fun updateMarker(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updateMarker(id, props)
-        }
-    }
-
-    /** 添加折线 */
-    fun addPolyline(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addPolyline(id, props)
-        }
-    }
-
-    /** 移除折线 */
-    fun removePolyline(id: String) {
-        mainHandler.post {
-            overlayManager.removePolyline(id)
-        }
-    }
-
-    /** 更新折线 */
-    fun updatePolyline(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updatePolyline(id, props)
-        }
-    }
-
-    /** 添加多边形 */
-    fun addPolygon(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.addPolygon(id, props)
-        }
-    }
-
-    /** 移除多边形 */
-    fun removePolygon(id: String) {
-        mainHandler.post {
-            overlayManager.removePolygon(id)
-        }
-    }
-
-    /** 更新多边形 */
-    fun updatePolygon(id: String, props: Map<String, Any>) {
-        mainHandler.post {
-            overlayManager.updatePolygon(id, props)
-        }
-    }
 
     // ==================== 生命周期方法 ====================
 
@@ -493,14 +404,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         aMap.setOnMapLongClickListener(null)
         aMap.setOnMapLoadedListener(null)
 
-        // 清理覆盖物
-        overlayManager.clear()
-
-        // 清理 MarkerView 列表
-        markerViews.forEach { it.removeMarker() }
-        markerViews.clear()
-        markerViewKeys.clear()
-
         // 销毁地图
         mapView.onDestroy()
     }
@@ -512,43 +415,25 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     }
 
     /**
-     * 存储 MarkerView 引用，因为它们不在视图层级中
-     * 使用 LinkedHashMap 保持插入顺序
-     */
-    private val markerViews = mutableListOf<MarkerView>()
-    private val markerViewKeys = mutableMapOf<MarkerView, String>()
-
-    /**
      * 添加子视图时自动连接到地图
      *
-     * 关键修复：MarkerView 不进入视图层级，但要确保 React Native 追踪正确
+     * 新策略：MarkerView 也加入实际视图层级，但移到屏幕外不可见
      */
+    @SuppressLint("UseKtx")
     override fun addView(child: View?, index: Int) {
         if (child is MarkerView) {
             child.setMap(aMap)
-            // 记录添加的 MarkerView 及其在 markerViews 中的位置
-            val markerKey = "marker_${System.identityHashCode(child)}"
-            markerViewKeys[child] = markerKey
-            
-            // 如果指定了索引，尝试在对应位置插入
-            val actualChildCount = super.getChildCount()
-            if (index >= actualChildCount) {
-                val markerIndex = index - actualChildCount
-                if (markerIndex >= 0 && markerIndex <= markerViews.size) {
-                    markerViews.add(markerIndex, child)
-                    Log.d(TAG, "在位置 $markerIndex 插入 MarkerView (总索引=$index), 当前共 ${markerViews.size} 个 MarkerView")
-                } else {
-                    markerViews.add(child)
-                    Log.d(TAG, "追加 MarkerView (总索引=$index), 当前共 ${markerViews.size} 个 MarkerView")
-                }
-            } else {
-                markerViews.add(child)
-                Log.d(TAG, "追加 MarkerView (总索引=$index < actualChildCount=$actualChildCount)")
-            }
+            // MarkerView 也加入实际视图层级，但设置为 0x0 大小并移到屏幕外
+            // 不使用 View.GONE，避免在新架构下出现渲染问题
+            val params = LayoutParams(0, 0)
+            child.layoutParams = params
+            child.translationX = -10000f  // 移到屏幕外
+            child.translationY = -10000f
+            super.addView(child, index)
             return
         }
 
-        if (child is com.amap.api.maps.MapView) {
+        if (child is MapView) {
             super.addView(child, index)
             return
         }
@@ -572,71 +457,37 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      */
     override fun removeView(child: View?) {
         if (child is MarkerView) {
-            val index = markerViews.indexOf(child)
-            markerViews.remove(child)
-            markerViewKeys.remove(child)
             child.removeMarker()
-            Log.d(TAG, "移除 MarkerView at index=$index, 剩余 ${markerViews.size} 个 MarkerView")
+            super.removeView(child)
             return
         }
 
         try {
             super.removeView(child)
-        } catch (e: Exception) {
-            Log.e(TAG, "removeView 异常", e)
+        } catch (_: Exception) {
+            // 忽略异常
         }
     }
 
     /**
      * 按索引移除视图
-     *
-     * 终极修复：完全忽略所有无效的移除请求
      */
     override fun removeViewAt(index: Int) {
         try {
-            val actualChildCount = super.getChildCount()
-
-            // 计算 MarkerView 的起始索引
-            // 实际的子视图包括：MapView(1个) + 其他声明式覆盖物(CircleView等) + MarkerView(虚拟子视图)
-            if (index >= actualChildCount) {
-                val markerIndex = index - actualChildCount
-                if (markerIndex >= 0 && markerIndex < markerViews.size) {
-                    val markerView = markerViews.removeAt(markerIndex)
-                    markerView.removeMarker()
-                    Log.d(TAG, "移除 MarkerView at markerIndex=$markerIndex (总索引=$index)")
-                    return
-                } else {
-                    Log.w(TAG, "无效的 MarkerView 索引: markerIndex=$markerIndex, markerViews.size=${markerViews.size}")
-                    return
-                }
-            }
-
-            if (actualChildCount == 0) {
-                return
-            }
-
             val child = super.getChildAt(index)
 
-            if (child is com.amap.api.maps.MapView) {
-                Log.e(TAG, "阻止移除 MapView")
+            if (child is MapView) {
                 return
             }
 
             if (child is MarkerView) {
-                // 这不应该发生，因为 MarkerView 不在实际视图层级中
-                Log.w(TAG, "在实际视图层级中发现 MarkerView，正在移除")
-                removeView(child)
-                return
+                child.removeMarker()
             }
 
             super.removeViewAt(index)
 
-        } catch (e: IllegalArgumentException) {
-            Log.e(TAG, "removeViewAt IllegalArgumentException", e)
-        } catch (e: IndexOutOfBoundsException) {
-            Log.e(TAG, "removeViewAt IndexOutOfBoundsException", e)
-        } catch (e: Exception) {
-            Log.e(TAG, "移除视图异常", e)
+        } catch (_: Exception) {
+            // 忽略异常
         }
     }
 
@@ -680,30 +531,4 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         super.onLayout(changed, left, top, right, bottom)
     }
 
-    /**
-     * 重写 getChildCount，返回 React Native 期望的子视图数量
-     * 包括实际视图层级中的子视图 + MarkerView 数量
-     */
-    override fun getChildCount(): Int {
-        return super.getChildCount() + markerViews.size
-    }
-
-    /**
-     * 重写 getChildAt，处理 MarkerView 的索引映射
-     * 当索引超出实际子视图数量时，返回对应的 MarkerView
-     */
-    override fun getChildAt(index: Int): View? {
-        val actualCount = super.getChildCount()
-
-        if (index < actualCount) {
-            return super.getChildAt(index)
-        }
-
-        val markerIndex = index - actualCount
-        if (markerIndex >= 0 && markerIndex < markerViews.size) {
-            return markerViews[markerIndex]
-        }
-
-        return null
-    }
 }

@@ -1,7 +1,6 @@
 package expo.modules.gaodemap.modules
 
 import android.content.Context
-import android.util.Log
 import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
@@ -19,9 +18,7 @@ import expo.modules.gaodemap.services.LocationForegroundService
  * - 定位结果回调
  */
 class LocationManager(context: Context) {
-    companion object {
-        private const val TAG = "LocationManager"
-    }
+
 
     /** 应用上下文(避免 Activity 泄露) */
     private val appContext: Context = context.applicationContext
@@ -125,6 +122,16 @@ class LocationManager(context: Context) {
     ) {
         val lat = coordinate["latitude"] ?: 0.0
         val lng = coordinate["longitude"] ?: 0.0
+
+        // 坐标验证
+        if (lat < -90 || lat > 90) {
+            promise.reject("INVALID_COORDINATE", "纬度必须在 -90 到 90 之间", null)
+            return
+        }
+        if (lng < -180 || lng > 180) {
+            promise.reject("INVALID_COORDINATE", "经度必须在 -180 到 180 之间", null)
+            return
+        }
 
         try {
             val sourceLatLng = LatLng(lat, lng)

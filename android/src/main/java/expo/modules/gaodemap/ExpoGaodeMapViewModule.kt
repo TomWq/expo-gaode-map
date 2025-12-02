@@ -11,10 +11,10 @@ class ExpoGaodeMapViewModule : Module() {
     Name("ExpoGaodeMapView")
 
     View(ExpoGaodeMapView::class) {
-      Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd", "onCirclePress", "onPolygonPress", "onPolylinePress")
+      Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
       
       // ✅ 关键修复：拦截 React Native 的视图操作异常
-      OnViewDestroys { view: ExpoGaodeMapView ->
+      OnViewDestroys { _: ExpoGaodeMapView ->
       }
 
       Prop<Int>("mapType") { view, type ->
@@ -76,54 +76,6 @@ class ExpoGaodeMapViewModule : Module() {
 
       AsyncFunction("getCameraPosition") { view: ExpoGaodeMapView ->
         view.getCameraPosition()
-      }
-      
-      AsyncFunction("addCircle") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.addCircle(id, props)
-      }
-      
-      AsyncFunction("removeCircle") { view: ExpoGaodeMapView, id: String ->
-        view.removeCircle(id)
-      }
-      
-      AsyncFunction("updateCircle") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.updateCircle(id, props)
-      }
-      
-      AsyncFunction("addMarker") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.addMarker(id, props)
-      }
-      
-      AsyncFunction("removeMarker") { view: ExpoGaodeMapView, id: String ->
-        view.removeMarker(id)
-      }
-      
-      AsyncFunction("updateMarker") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.updateMarker(id, props)
-      }
-      
-      AsyncFunction("addPolyline") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.addPolyline(id, props)
-      }
-      
-      AsyncFunction("removePolyline") { view: ExpoGaodeMapView, id: String ->
-        view.removePolyline(id)
-      }
-      
-      AsyncFunction("updatePolyline") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.updatePolyline(id, props)
-      }
-      
-      AsyncFunction("addPolygon") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.addPolygon(id, props)
-      }
-      
-      AsyncFunction("removePolygon") { view: ExpoGaodeMapView, id: String ->
-        view.removePolygon(id)
-      }
-      
-      AsyncFunction("updatePolygon") { view: ExpoGaodeMapView, id: String, props: Map<String, Any> ->
-        view.updatePolygon(id, props)
       }
     }
   }

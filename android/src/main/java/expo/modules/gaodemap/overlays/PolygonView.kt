@@ -6,18 +6,25 @@ import com.amap.api.maps.AMap
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polygon
 import com.amap.api.maps.model.PolygonOptions
+import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 
 class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
-  private val onPress by EventDispatcher()
+  private val onPolygonPress by EventDispatcher()
   
   private var polygon: Polygon? = null
   private var aMap: AMap? = null
   private var points: List<LatLng> = emptyList()
   private var strokeWidth: Float = 10f
+
+  private var fillColor: Int = Color.argb(50, 0, 0, 255)
+
+  private var strokeColor: Int = Color.BLUE
+
+  private var _zIndex: Float = 0f
   
   /**
    * 设置地图实例
@@ -25,7 +32,8 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   @Suppress("unused")
   fun setMap(map: AMap) {
     aMap = map
-    createOrUpdatePolygon()
+    post { createOrUpdatePolygon() }
+
   }
   
   /**
@@ -35,7 +43,8 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
     points = pointsList.mapNotNull { point ->
       val lat = point["latitude"]
       val lng = point["longitude"]
-      if (lat != null && lng != null) {
+      // 坐标验证
+      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         LatLng(lat, lng)
       } else null
     }
@@ -47,18 +56,20 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   /**
    * 设置填充颜色
    */
-  fun setFillColor(color: Int) {
+  fun setFillColor(color: Any) {
+    fillColor = ColorParser.parseColor(color)
     polygon?.let {
-      it.fillColor = color
+      it.fillColor = fillColor
     } ?: createOrUpdatePolygon()
   }
   
   /**
    * 设置边框颜色
    */
-  fun setStrokeColor(color: Int) {
+  fun setStrokeColor(color: Any) {
+   strokeColor = ColorParser.parseColor(color)
     polygon?.let {
-      it.strokeColor = color
+      it.strokeColor = strokeColor
     } ?: createOrUpdatePolygon()
   }
   
@@ -78,8 +89,9 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置 z-index
    */
   fun setZIndex(zIndex: Float) {
+      _zIndex = zIndex
     polygon?.let {
-      it.zIndex = zIndex
+      it.zIndex = _zIndex
     } ?: createOrUpdatePolygon()
   }
   
@@ -91,9 +103,10 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
       if (polygon == null && points.isNotEmpty()) {
         val options = PolygonOptions()
           .addAll(points)
-          .fillColor(Color.argb(50, 0, 0, 255))
-          .strokeColor(Color.BLUE)
+          .fillColor(fillColor)
+          .strokeColor(strokeColor)
           .strokeWidth(strokeWidth)
+          .zIndex(_zIndex)
         
         polygon = map.addPolygon(options)
         
@@ -109,7 +122,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun checkPress(latLng: LatLng): Boolean {
     polygon?.let { poly ->
       if (poly.contains(latLng)) {
-        onPress(mapOf(
+        onPolygonPress(mapOf(
           "latitude" to latLng.latitude,
           "longitude" to latLng.longitude
         ))
@@ -129,6 +142,12 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
-    removePolygon()
+    // 🔑 关键修复：使用 post 延迟检查
+    post {
+      if (parent == null) {
+        removePolygon()
+        aMap = null
+      }
+    }
   }
 }
