@@ -6,8 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -54,7 +52,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
   override fun generateLayoutParams(lp: android.view.ViewGroup.LayoutParams?): LayoutParams {
     return when (lp) {
       is LayoutParams -> lp
-      is MarginLayoutParams -> android.widget.LinearLayout.LayoutParams(lp)
+      is android.widget.FrameLayout.LayoutParams -> LayoutParams(lp.width, lp.height)
+      is MarginLayoutParams -> LayoutParams(lp.width, lp.height)
       else -> LayoutParams(
         lp?.width ?: LayoutParams.WRAP_CONTENT,
         lp?.height ?: LayoutParams.WRAP_CONTENT
@@ -505,9 +504,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     
     fun handleMarkerClick(marker: Marker): Boolean {
       markerViewMap[marker]?.let { view ->
-        view.onMarkerPress?.invoke(mapOf(
-          "latitude" to marker.position.latitude,
-          "longitude" to marker.position.longitude
+        view.onMarkerPress.invoke(mapOf(
+            "latitude" to marker.position.latitude,
+            "longitude" to marker.position.longitude
         ))
         // 只有在没有自定义内容（children）且有 title 或 snippet 时才显示信息窗口
         // 如果有自定义内容，说明用户已经自定义了显示内容，不需要默认信息窗口
@@ -576,39 +575,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
   }
   
-  /**
-   * 创建默认 marker 图标 (红色大头针)
-   */
-  private fun createDefaultMarkerBitmap(): Bitmap {
-    val width = 48
-    val height = 72
-    val bitmap = createBitmap(width, height)
-    val canvas = Canvas(bitmap)
-    
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    paint.color = "#FF5252".toColorInt()
-    paint.style = Paint.Style.FILL
-    
-    // 绘制圆形顶部
-    canvas.drawCircle(width / 2f, width / 2f, width / 2f - 2, paint)
-    
-    // 绘制尖端
-    val path = Path()
-    path.moveTo(width / 2f, height.toFloat())
-    path.lineTo(width / 4f, width / 2f + 10f)
-    path.lineTo(3 * width / 4f, width / 2f + 10f)
-    path.close()
-    canvas.drawPath(path, paint)
-    
-    // 绘制白色边框
-    paint.color = Color.WHITE
-    paint.style = Paint.Style.STROKE
-    paint.strokeWidth = 3f
-    canvas.drawCircle(width / 2f, width / 2f, width / 2f - 4, paint)
-    
-    return bitmap
-  }
-  
+
   /**
    * 将视图转换为 Bitmap
    */
@@ -642,29 +609,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
   }
   
-  /**
-   * 创建组合 Bitmap：默认 marker + 自定义内容
-   */
-  private fun createCombinedBitmap(): Bitmap? {
-    val customBitmap = createBitmapFromView() ?: return null
-    val markerBitmap = createDefaultMarkerBitmap()
-    
-    val totalWidth = maxOf(markerBitmap.width, customBitmap.width)
-    val totalHeight = markerBitmap.height + customBitmap.height + 10
-    
-    val combinedBitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(combinedBitmap)
-    
-    val customX = (totalWidth - customBitmap.width) / 2f
-    canvas.drawBitmap(customBitmap, customX, 0f, null)
-    
-    val markerX = (totalWidth - markerBitmap.width) / 2f
-    val markerY = customBitmap.height + 10f
-    canvas.drawBitmap(markerBitmap, markerX, markerY, null)
-    
-    return combinedBitmap
-  }
-  
+
   /**
    * 更新 marker 图标
    */

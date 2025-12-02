@@ -11,11 +11,13 @@ import {
   type ReGeocode,
   type CameraPosition,
 } from 'expo-gaode-map';
-import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView } from 'react-native';
+import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import RandomMarkersExample from './RandomMarkersExample';
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
 export default function App() {
+  const [showRandomMarkers, setShowRandomMarkers] = useState(false);
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -300,9 +302,32 @@ export default function App() {
     );
   }
 
+  // 如果显示随机标记示例,则渲染该组件
+  if (showRandomMarkers) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowRandomMarkers(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <RandomMarkersExample />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>高德地图完整示例</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>高德地图完整示例</Text>
+        <TouchableOpacity
+          style={styles.exampleButton}
+          onPress={() => setShowRandomMarkers(true)}
+        >
+          <Text style={styles.exampleButtonText}>随机标记示例 →</Text>
+        </TouchableOpacity>
+      </View>
       
       <MapView
         ref={mapRef}
@@ -396,13 +421,11 @@ export default function App() {
             position={{ latitude: marker.latitude, longitude: marker.longitude }}
             title={marker.content}
             pinColor={marker.color}
-            customViewWidth={200}
-            customViewHeight={40}
+            zIndex={99}
             onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
           >
             <View style={[styles.markerContainer,{
-              backgroundColor: marker.color
-            }]}>
+              backgroundColor: marker.color}]}>
               <Text style={styles.markerText}>{marker.content}</Text>
             </View>
           </Marker>
@@ -414,8 +437,6 @@ export default function App() {
             key="fixed_current_location_marker"
             position={{ latitude: location.latitude, longitude: location.longitude }}
             title={location.address}
-            customViewWidth={200}
-            customViewHeight={40}
             onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
             <View style={styles.markerContainer}>
@@ -564,12 +585,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  headerContainer: {
+    backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 10,
+    paddingHorizontal: 15,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: Platform.OS === 'ios' ? 50 : 40,
     marginBottom: 10,
+  },
+  switchButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 15,
+    zIndex: 1000,
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  switchButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  exampleButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  exampleButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   map: {
     flex: 1,
