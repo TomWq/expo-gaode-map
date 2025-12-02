@@ -243,12 +243,23 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
   addLocationListener(listener: LocationListener): { remove: () => void };
 }
 
-// 获取原生模块实例
-const nativeModule = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
+// 获取原生模块实例 - 添加容错处理
+let nativeModule: ExpoGaodeMapModule | null = null;
+
+try {
+  nativeModule = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
+} catch (error) {
+  console.warn('ExpoGaodeMap 原生模块加载失败:', error);
+}
+
+// 如果模块加载失败，创建一个空的代理对象防止崩溃
+if (!nativeModule) {
+  console.error('ExpoGaodeMap: 原生模块不可用，请检查配置');
+}
 
 // 扩展原生模块，添加便捷方法
 const ExpoGaodeMapModuleWithHelpers = {
-  ...nativeModule,
+  ...(nativeModule || {}),
   
   /**
    * 添加定位监听器（便捷方法）
@@ -259,7 +270,7 @@ const ExpoGaodeMapModuleWithHelpers = {
    */
   addLocationListener(listener: LocationListener): { remove: () => void } {
     // 使用可选链和空值合并，确保即使模块不可用也不会崩溃
-    return nativeModule.addListener?.('onLocationUpdate', listener) || {
+    return nativeModule?.addListener?.('onLocationUpdate', listener) || {
       remove: () => {},
     };
   },
