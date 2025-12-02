@@ -20,6 +20,8 @@ export type GaodeMapPluginProps = {
   enableLocation?: boolean;
   /** iOS 定位权限描述 */
   locationDescription?: string;
+  /** 是否启用后台定位（Android & iOS） */
+  enableBackgroundLocation?: boolean;
 };
 
 /**
@@ -36,18 +38,21 @@ const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props)
     if (props.enableLocation !== false) {
       const description = props.locationDescription || '需要访问您的位置信息以提供地图服务';
       
+      // 使用时定位权限（必需）
       config.modResults.NSLocationWhenInUseUsageDescription = description;
-      config.modResults.NSLocationAlwaysUsageDescription = description;
-      config.modResults.NSLocationAlwaysAndWhenInUseUsageDescription = description;
-    }
-
-    // 添加后台定位模式（如果需要）
-    if (props.enableLocation !== false) {
-      if (!config.modResults.UIBackgroundModes) {
-        config.modResults.UIBackgroundModes = [];
-      }
-      if (!config.modResults.UIBackgroundModes.includes('location')) {
-        config.modResults.UIBackgroundModes.push('location');
+      
+      // 后台定位权限（可选）
+      if (props.enableBackgroundLocation) {
+        config.modResults.NSLocationAlwaysUsageDescription = description;
+        config.modResults.NSLocationAlwaysAndWhenInUseUsageDescription = description;
+        
+        // 添加后台定位模式
+        if (!config.modResults.UIBackgroundModes) {
+          config.modResults.UIBackgroundModes = [];
+        }
+        if (!config.modResults.UIBackgroundModes.includes('location')) {
+          config.modResults.UIBackgroundModes.push('location');
+        }
       }
     }
 
@@ -98,25 +103,23 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
   return withAndroidManifest(config, (config) => {
     const androidManifest = config.modResults.manifest;
 
-    // 添加权限
-    if (props.enableLocation !== false) {
-      const permissions = [
-        'android.permission.ACCESS_COARSE_LOCATION',
-        'android.permission.ACCESS_FINE_LOCATION',
-        'android.permission.ACCESS_WIFI_STATE',
-        'android.permission.ACCESS_NETWORK_STATE',
-        'android.permission.CHANGE_WIFI_STATE',
-        'android.permission.INTERNET',
-        'android.permission.WRITE_EXTERNAL_STORAGE',
-        'android.permission.READ_EXTERNAL_STORAGE',
-        'android.permission.ACCESS_LOCATION_EXTRA_COMMANDS',
+    // 基础权限（库中已包含，这里不重复添加）
+    // INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE
+    // ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
+
+    // 后台定位权限（可选）
+    if (props.enableBackgroundLocation) {
+      const backgroundPermissions = [
+        'android.permission.ACCESS_BACKGROUND_LOCATION',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_LOCATION',
       ];
 
       if (!androidManifest['uses-permission']) {
         androidManifest['uses-permission'] = [];
       }
 
-      permissions.forEach((permission) => {
+      backgroundPermissions.forEach((permission) => {
         const hasPermission = androidManifest['uses-permission']?.some(
           (item) => item.$?.['android:name'] === permission
         );
@@ -129,8 +132,31 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       });
     }
 
-    // 添加 API Key 到 application 标签
+    // 添加前台服务（如果启用后台定位）
     const mainApplication = androidManifest.application?.[0];
+    if (mainApplication && props.enableBackgroundLocation) {
+      if (!mainApplication['service']) {
+        mainApplication['service'] = [];
+      }
+
+      // 检查是否已存在 LocationForegroundService
+      const hasService = mainApplication['service'].some(
+        (item) => item.$?.['android:name'] === 'expo.modules.gaodemap.services.LocationForegroundService'
+      );
+
+      if (!hasService) {
+        mainApplication['service'].push({
+          $: {
+            'android:name': 'expo.modules.gaodemap.services.LocationForegroundService',
+            'android:enabled': 'true',
+            'android:exported': 'false',
+            'android:foregroundServiceType': 'location',
+          },
+        });
+      }
+    }
+
+    // 添加 API Key 到 application 标签
     if (mainApplication && props.androidApiKey) {
       if (!mainApplication['meta-data']) {
         mainApplication['meta-data'] = [];

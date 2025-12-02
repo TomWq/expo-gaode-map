@@ -29,12 +29,14 @@ yarn add expo-gaode-map
           "iosApiKey": "你的iOS高德地图API Key",
           "androidApiKey": "你的Android高德地图API Key",
           "enableLocation": true,
+          "enableBackgroundLocation": false,
           "locationDescription": "我们需要访问您的位置信息以提供地图服务"
         }
       ]
     ]
   }
 }
+
 ```
 
 ### 3. 运行预构建
@@ -60,6 +62,7 @@ npx expo run:android
 | `iosApiKey` | string | 否 | - | iOS 平台的高德地图 API Key |
 | `androidApiKey` | string | 否 | - | Android 平台的高德地图 API Key |
 | `enableLocation` | boolean | 否 | true | 是否启用定位功能 |
+| `enableBackgroundLocation` | boolean | 否 | false | 是否启用后台定位（Android & iOS） |
 | `locationDescription` | string | 否 | "需要访问您的位置信息以提供地图服务" | iOS 定位权限描述 |
 
 ## 自动配置内容
@@ -74,14 +77,18 @@ Config Plugin 会自动完成以下配置:
 <key>AMapApiKey</key>
 <string>你的API Key</string>
 
-<!-- 定位权限 -->
+<!-- 使用时定位权限（始终添加） -->
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>需要访问您的位置信息以提供地图服务</string>
 
+<!-- 以下仅在 enableBackgroundLocation=true 时添加 -->
 <key>NSLocationAlwaysUsageDescription</key>
 <string>需要访问您的位置信息以提供地图服务</string>
 
-<!-- 后台定位 -->
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>需要访问您的位置信息以提供地图服务</string>
+
+<!-- 后台定位模式 -->
 <key>UIBackgroundModes</key>
 <array>
   <string>location</string>
@@ -103,20 +110,87 @@ Config Plugin 会自动完成以下配置:
 ### Android 平台
 
 #### AndroidManifest.xml
+
+**基础权限（始终添加）：**
 ```xml
-<!-- 权限 -->
+<!-- 网络权限 -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+<!-- 定位权限 -->
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-<uses-permission android:name="android.permission.INTERNET" />
+```
 
+**后台定位权限（仅在 enableBackgroundLocation=true 时添加）：**
+```xml
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+```
+
+**应用配置：**
+```xml
 <application>
   <!-- API Key -->
   <meta-data
     android:name="com.amap.api.v2.apikey"
     android:value="你的API Key" />
+    
+  <!-- 前台服务（仅在 enableBackgroundLocation=true 时添加） -->
+  <service
+    android:name="expo.modules.gaodemap.services.LocationForegroundService"
+    android:enabled="true"
+    android:exported="false"
+    android:foregroundServiceType="location" />
 </application>
 ```
+
+## 后台定位配置
+
+### 启用后台定位
+
+如果你的应用需要在后台持续获取位置信息（例如导航、运动轨迹记录等），需要启用后台定位：
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "iosApiKey": "你的API Key",
+          "androidApiKey": "你的API Key",
+          "enableBackgroundLocation": true
+        }
+      ]
+    ]
+  }
+}
+```
+
+### 后台定位的影响
+
+当 `enableBackgroundLocation: true` 时：
+
+**Android:**
+- ✅ 添加后台定位权限（`ACCESS_BACKGROUND_LOCATION`）
+- ✅ 添加前台服务权限（`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`）
+- ✅ 自动注册 `LocationForegroundService` 服务
+- ⚠️ 应用在后台时会显示常驻通知
+
+**iOS:**
+- ✅ 添加始终定位权限（`NSLocationAlwaysUsageDescription`）
+- ✅ 启用后台定位模式（`UIBackgroundModes`）
+- ⚠️ App Store 审核时需要说明使用原因
+
+### 注意事项
+
+- ⚠️ **权限敏感性**: 后台定位权限很敏感，用户可能拒绝授权
+- ⚠️ **应用商店审核**: Google Play 和 App Store 会严格审查后台定位的使用
+- ⚠️ **耗电量**: 后台定位会增加电池消耗
+- ✅ **必要性原则**: 只在确实需要时才启用后台定位
 
 ## 高级用法
 

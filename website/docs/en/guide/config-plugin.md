@@ -29,6 +29,7 @@ Add plugin configuration to your `app.json` file in the project root:
           "iosApiKey": "Your iOS Gaode Map API Key",
           "androidApiKey": "Your Android Gaode Map API Key",
           "enableLocation": true,
+          "enableBackgroundLocation": false,
           "locationDescription": "We need to access your location to provide map services"
         }
       ]
@@ -60,6 +61,7 @@ npx expo run:android
 | `iosApiKey` | string | No | - | iOS platform Gaode Map API Key |
 | `androidApiKey` | string | No | - | Android platform Gaode Map API Key |
 | `enableLocation` | boolean | No | true | Enable location functionality |
+| `enableBackgroundLocation` | boolean | No | false | Enable background location (Android & iOS) |
 | `locationDescription` | string | No | "We need to access your location to provide map services" | iOS location permission description |
 
 ## Auto-Configured Content
@@ -74,14 +76,18 @@ The Config Plugin automatically configures the following:
 <key>AMapApiKey</key>
 <string>Your API Key</string>
 
-<!-- Location Permissions -->
+<!-- When In Use Location Permission (Always added) -->
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>We need to access your location to provide map services</string>
 
+<!-- Following are added only when enableBackgroundLocation=true -->
 <key>NSLocationAlwaysUsageDescription</key>
 <string>We need to access your location to provide map services</string>
 
-<!-- Background Location -->
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>We need to access your location to provide map services</string>
+
+<!-- Background Location Mode -->
 <key>UIBackgroundModes</key>
 <array>
   <string>location</string>
@@ -103,20 +109,87 @@ The Config Plugin automatically configures the following:
 ### Android Platform
 
 #### AndroidManifest.xml
+
+**Basic Permissions (Always added):**
 ```xml
-<!-- Permissions -->
+<!-- Network Permissions -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+<!-- Location Permissions -->
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-<uses-permission android:name="android.permission.INTERNET" />
+```
 
+**Background Location Permissions (Added only when enableBackgroundLocation=true):**
+```xml
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+```
+
+**Application Configuration:**
+```xml
 <application>
   <!-- API Key -->
   <meta-data
     android:name="com.amap.api.v2.apikey"
     android:value="Your API Key" />
+    
+  <!-- Foreground Service (Added only when enableBackgroundLocation=true) -->
+  <service
+    android:name="expo.modules.gaodemap.services.LocationForegroundService"
+    android:enabled="true"
+    android:exported="false"
+    android:foregroundServiceType="location" />
 </application>
 ```
+
+## Background Location Configuration
+
+### Enable Background Location
+
+If your app needs to continuously access location in the background (e.g., navigation, activity tracking), you need to enable background location:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "iosApiKey": "Your API Key",
+          "androidApiKey": "Your API Key",
+          "enableBackgroundLocation": true
+        }
+      ]
+    ]
+  }
+}
+```
+
+### Impact of Background Location
+
+When `enableBackgroundLocation: true`:
+
+**Android:**
+- ✅ Adds background location permission (`ACCESS_BACKGROUND_LOCATION`)
+- ✅ Adds foreground service permissions (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`)
+- ✅ Automatically registers `LocationForegroundService`
+- ⚠️ Shows persistent notification when app is in background
+
+**iOS:**
+- ✅ Adds always location permission (`NSLocationAlwaysUsageDescription`)
+- ✅ Enables background location mode (`UIBackgroundModes`)
+- ⚠️ Requires justification during App Store review
+
+### Important Notes
+
+- ⚠️ **Permission Sensitivity**: Background location permissions are sensitive, users may deny
+- ⚠️ **App Store Review**: Google Play and App Store strictly review background location usage
+- ⚠️ **Battery Drain**: Background location increases battery consumption
+- ✅ **Necessity Principle**: Only enable when absolutely necessary
 
 ## Advanced Usage
 

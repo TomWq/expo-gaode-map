@@ -1,52 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   
-  <!-- 高德地图必需权限 -->
-  <!-- 用于访问网络 -->
+  <!-- 网络权限 (必需) -->
   <uses-permission android:name="android.permission.INTERNET" />
-  <!-- 用于获取网络状态 -->
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-  <!-- 用于访问wifi网络信息 -->
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-  <!-- 用于获取wifi的获取权限 -->
-  <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
   
-  <!-- 定位相关权限 -->
-  <!-- 用于访问GPS定位 -->
+  <!-- 基础定位权限 (必需) -->
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-  <!-- 用于获取运营商信息，用于支持提供运营商信息相关的接口 -->
-  <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
-  
-  <!-- Android 10及以上需要后台定位权限 -->
-  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-  
-  <!-- 前台服务权限 (Android 9+) -->
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-  <!-- Android 14+ 需要指定前台服务类型 -->
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-  
-  <!-- 写入扩展存储，用于缓存地图数据 -->
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-  
-  <!-- 用于读取手机当前的状态 -->
-  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
   
   <application>
-    <!-- 高德地图 API Key（这里只是示例，实际会通过代码设置） -->
-    <!--
-    <meta-data
-      android:name="com.amap.api.v2.apikey"
-      android:value="YOUR_API_KEY_HERE"/>
-    -->
-    
-    <!-- 定位前台服务 -->
+  
+    <!-- 高德地图定位服务 (必需) -->
     <service
-      android:name="expo.modules.gaodemap.services.LocationForegroundService"
+      android:name="com.amap.api.location.APSService"
       android:enabled="true"
-      android:exported="false"
-      android:foregroundServiceType="location" />
+      android:exported="false" />
+    
   </application>
   
 </manifest>
