@@ -133,8 +133,28 @@ publish_core() {
   cd packages/core
   
   OLD_VERSION=$(node -p "require('./package.json').version")
-  pnpm version $VERSION_FLAG --no-git-tag-version
-  NEW_VERSION=$(node -p "require('./package.json').version")
+  
+  # 直接计算新版本号（避免 npm/pnpm version 命令解析依赖）
+  echo "计算新版本号..."
+  if [[ "$VERSION_FLAG" == "patch" ]]; then
+    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[2]=String(Number(v[2])+1);console.log(v.slice(0,3).join('.'))")
+  elif [[ "$VERSION_FLAG" == "minor" ]]; then
+    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[1]=String(Number(v[1])+1);v[2]='0';console.log(v.slice(0,3).join('.'))")
+  elif [[ "$VERSION_FLAG" == "major" ]]; then
+    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[0]=String(Number(v[0])+1);v[1]='0';v[2]='0';console.log(v.slice(0,3).join('.'))")
+  elif [[ "$VERSION_FLAG" =~ ^prerelease ]]; then
+    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
+    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[2]=String(Number(v[2])+1);console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
+  elif [[ "$VERSION_FLAG" =~ ^preminor ]]; then
+    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
+    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[1]=String(Number(v[1])+1);v[2]='0';console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
+  elif [[ "$VERSION_FLAG" =~ ^premajor ]]; then
+    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
+    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[0]=String(Number(v[0])+1);v[1]='0';v[2]='0';console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
+  fi
+  
+  # 直接修改 package.json 的版本号
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
