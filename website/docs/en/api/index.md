@@ -70,7 +70,7 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 ### Search Features
 
 ```tsx
-import { searchPOI, searchPOIAround, searchInputTips } from '@expo-gaode-map/search';
+import { searchPOI, searchPOIAround, searchInputTips } from 'expo-gaode-map-search';
 
 // Keyword search
 const result = await searchPOI({

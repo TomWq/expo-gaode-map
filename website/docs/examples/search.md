@@ -1,11 +1,11 @@
 # 搜索功能示例
 
-本页面提供 `@expo-gaode-map/search` 的完整使用示例。
+本页面提供 `expo-gaode-map-search` 的完整使用示例。
 
 ## 安装
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ## 基础搜索示例
@@ -15,7 +15,7 @@ npm install @expo-gaode-map/search
 搜索指定关键词的地点：
 
 ```typescript
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 const handleSearch = async () => {
   try {
@@ -43,7 +43,7 @@ const handleSearch = async () => {
 搜索指定位置周边的地点：
 
 ```typescript
-import { searchNearby } from '@expo-gaode-map/search';
+import { searchNearby } from 'expo-gaode-map-search';
 
 const handleNearbySearch = async () => {
   const result = await searchNearby({
@@ -65,7 +65,7 @@ const handleNearbySearch = async () => {
 获取关键词的自动补全建议：
 
 ```typescript
-import { getInputTips } from '@expo-gaode-map/search';
+import { getInputTips } from 'expo-gaode-map-search';
 
 const handleInputTips = async (text: string) => {
   const result = await getInputTips({
@@ -98,7 +98,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, type POI } from '@expo-gaode-map/search';
+import { searchPOI, type POI } from 'expo-gaode-map-search';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
@@ -244,7 +244,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { getInputTips, type InputTip } from '@expo-gaode-map/search';
+import { getInputTips, type InputTip } from 'expo-gaode-map-search';
 
 export default function AutoCompleteSearch() {
   const [keyword, setKeyword] = useState('');
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
 import React, { useState, useEffect } from 'react';
 import { View, Button } from 'react-native';
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
-import { searchNearby, type POI } from '@expo-gaode-map/search';
+import { searchNearby, type POI } from 'expo-gaode-map-search';
 
 export default function NearbySearch() {
   const [nearbyPOIs, setNearbyPOIs] = useState<POI[]>([]);
@@ -392,7 +392,7 @@ export default function NearbySearch() {
 搜索路线沿途的加油站：
 
 ```typescript
-import { searchAlong } from '@expo-gaode-map/search';
+import { searchAlong } from 'expo-gaode-map-search';
 
 const searchGasStations = async (route: Array<{ latitude: number; longitude: number }>) => {
   try {

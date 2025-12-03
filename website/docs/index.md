@@ -54,7 +54,7 @@ npm install expo-gaode-map
 
 **搜索功能（可选）**
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ### 基础使用
@@ -76,7 +76,7 @@ import { MapView } from 'expo-gaode-map';
 ### 使用搜索功能
 
 ```tsx
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 const results = await searchPOI({
   keyword: '酒店',

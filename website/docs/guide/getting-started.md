@@ -7,7 +7,7 @@
 expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：
 
 - **`expo-gaode-map`** - 核心包（地图显示、定位、覆盖物）
-- **`@expo-gaode-map/search`** - 搜索功能包（可选）
+- **`expo-gaode-map-search`** - 搜索功能包（可选）
 
 按需安装，避免不必要的包体积增加。
 
@@ -28,7 +28,7 @@ pnpm add expo-gaode-map
 如果需要使用 POI 搜索、周边搜索等功能：
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ### Expo 项目
@@ -189,7 +189,7 @@ export default function MapScreen() {
 安装搜索包后：
 
 ```tsx
-import { searchPOI, searchNearby } from '@expo-gaode-map/search';
+import { searchPOI, searchNearby } from 'expo-gaode-map-search';
 
 // POI 搜索
 const results = await searchPOI({
@@ -342,7 +342,7 @@ export default function App() {
 npm install expo-gaode-map
 
 # 需要搜索功能
-npm install expo-gaode-map @expo-gaode-map/search
+npm install expo-gaode-map expo-gaode-map-search
 ```
 
 ### 如何获取更多帮助？

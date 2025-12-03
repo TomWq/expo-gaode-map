@@ -20,7 +20,7 @@ expo-gaode-map 已重构为 Monorepo 架构，提供模块化的功能包。
 npm install expo-gaode-map
 ```
 
-### 搜索包：`@expo-gaode-map/search`
+### 搜索包：`expo-gaode-map-search`
 
 **位置**: `packages/search/`
 
@@ -33,7 +33,7 @@ npm install expo-gaode-map
 
 **安装**:
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ## 为什么使用 Monorepo？
@@ -61,7 +61,7 @@ npm install expo-gaode-map
 npm install expo-gaode-map
 
 # 需要搜索功能时才安装
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ## 迁移指南
@@ -80,7 +80,7 @@ import { MapView, ExpoGaodeMapModule, Marker } from 'expo-gaode-map';
 安装搜索包并更新导入：
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ```typescript
@@ -88,7 +88,7 @@ npm install @expo-gaode-map/search
 import { searchPOI } from 'expo-gaode-map';
 
 // 现在
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 ```
 
 ## 开发

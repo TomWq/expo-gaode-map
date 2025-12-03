@@ -1,13 +1,13 @@
-# @expo-gaode-map/search
+# expo-gaode-map-search
 
 高德地图搜索功能模块，提供 POI 搜索、周边搜索、沿途搜索、多边形搜索和输入提示功能。
 
 ## 安装
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 # 或
-pnpm add @expo-gaode-map/search
+pnpm add expo-gaode-map-search
 ```
 
 **前置依赖：**
@@ -29,7 +29,7 @@ pnpm add @expo-gaode-map/search
 ### POI 搜索
 
 ```typescript
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 const result = await searchPOI({
   keyword: '酒店',
@@ -47,7 +47,7 @@ result.pois.forEach(poi => {
 ### 周边搜索
 
 ```typescript
-import { searchNearby } from '@expo-gaode-map/search';
+import { searchNearby } from 'expo-gaode-map-search';
 
 const result = await searchNearby({
   keyword: '餐厅',
@@ -59,7 +59,7 @@ const result = await searchNearby({
 ### 沿途搜索
 
 ```typescript
-import { searchAlong } from '@expo-gaode-map/search';
+import { searchAlong } from 'expo-gaode-map-search';
 
 const result = await searchAlong({
   keyword: '加油站',
@@ -75,7 +75,7 @@ const result = await searchAlong({
 ### 多边形搜索
 
 ```typescript
-import { searchPolygon } from '@expo-gaode-map/search';
+import { searchPolygon } from 'expo-gaode-map-search';
 
 const result = await searchPolygon({
   keyword: '学校',
@@ -91,7 +91,7 @@ const result = await searchPolygon({
 ### 输入提示
 
 ```typescript
-import { getInputTips } from '@expo-gaode-map/search';
+import { getInputTips } from 'expo-gaode-map-search';
 
 const result = await getInputTips({
   keyword: '天安门',
@@ -271,7 +271,7 @@ interface InputTipsResult {
 import { useEffect, useState } from 'react';
 import { View, TextInput, FlatList, Text } from 'react-native';
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
-import { searchPOI, getInputTips, type POI, type InputTip } from '@expo-gaode-map/search';
+import { searchPOI, getInputTips, type POI, type InputTip } from 'expo-gaode-map-search';
 
 export default function SearchScreen() {
   const [keyword, setKeyword] = useState('');

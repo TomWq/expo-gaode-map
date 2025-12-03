@@ -15,7 +15,7 @@ expo-gaode-map/
 │   │   ├── android/        # Android 原生代码
 │   │   └── plugin/         # Config Plugin
 │   │
-│   └── search/             # @expo-gaode-map/search（搜索包）
+│   └── search/             # expo-gaode-map-search（搜索包）
 │       ├── src/            # TypeScript 代码
 │       ├── ios/            # iOS 原生代码
 │       └── android/        # Android 原生代码
@@ -93,7 +93,7 @@ packages/core/android/
         └── PolygonView.kt            # 多边形
 ```
 
-## 搜索包（@expo-gaode-map/search）
+## 搜索包（expo-gaode-map-search）
 
 ### TypeScript 代码结构
 

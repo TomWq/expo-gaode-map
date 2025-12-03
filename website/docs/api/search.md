@@ -1,13 +1,13 @@
 # 搜索 API
 
-`@expo-gaode-map/search` 包提供了高德地图的搜索功能。
+`expo-gaode-map-search` 包提供了高德地图的搜索功能。
 
-> ⚠️ **安装要求**: 搜索功能需要单独安装 `@expo-gaode-map/search` 包。
+> ⚠️ **安装要求**: 搜索功能需要单独安装 `expo-gaode-map-search` 包。
 
 ## 安装
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 ## 导入
@@ -23,7 +23,7 @@ import {
   type POI,
   type SearchResult,
   type InputTipsResult,
-} from '@expo-gaode-map/search';
+} from 'expo-gaode-map-search';
 ```
 
 ## 方法

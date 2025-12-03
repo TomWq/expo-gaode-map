@@ -5,17 +5,17 @@ The Search module provides POI (Point of Interest) search functionality based on
 ## Installation
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 # or
-yarn add @expo-gaode-map/search
+yarn add expo-gaode-map-search
 # or
-pnpm add @expo-gaode-map/search
+pnpm add expo-gaode-map-search
 ```
 
 ## Import
 
 ```typescript
-import { searchPOI, searchPOIAround, searchPOIAlongRoute, searchInputTips } from '@expo-gaode-map/search';
+import { searchPOI, searchPOIAround, searchPOIAlongRoute, searchInputTips } from 'expo-gaode-map-search';
 ```
 
 ## API Methods

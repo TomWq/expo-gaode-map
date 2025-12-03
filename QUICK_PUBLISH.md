@@ -33,7 +33,7 @@ $ pnpm publish:interactive
 
 选择要发布的包：
 1) expo-gaode-map (核心包)
-2) @expo-gaode-map/search (搜索包)
+2) expo-gaode-map-search (搜索包)
 3) 两个包都发布
 请选择 (1/2/3): 3
 
@@ -51,7 +51,7 @@ $ pnpm publish:interactive
 版本: 2.0.0 -> 2.1.0-beta.0
 ✓ 核心包发布成功: v2.1.0-beta.0 [beta]
 
-📦 发布搜索包 (@expo-gaode-map/search) [beta]...
+📦 发布搜索包 (expo-gaode-map-search) [beta]...
 版本: 1.0.0 -> 1.0.1-beta.0
 ✓ 搜索包发布成功: v1.0.1-beta.0 [beta]
 
@@ -68,9 +68,9 @@ $ pnpm publish:interactive
      npm install expo-gaode-map@beta
      或: npm install expo-gaode-map@2.1.0-beta.0
 
-  📦 @expo-gaode-map/search: v1.0.1-beta.0
-     npm install @expo-gaode-map/search@beta
-     或: npm install @expo-gaode-map/search@1.0.1-beta.0
+  📦 expo-gaode-map-search: v1.0.1-beta.0
+     npm install expo-gaode-map-search@beta
+     或: npm install expo-gaode-map-search@1.0.1-beta.0
 
 ⚠️  测试版本说明:
   - 测试版本不会成为默认版本（latest tag）

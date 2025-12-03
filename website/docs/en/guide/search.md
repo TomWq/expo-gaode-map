@@ -23,11 +23,11 @@ The search module is an **optional** extension package that you can install sepa
 ### 1. Install the Package
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 # or
-yarn add @expo-gaode-map/search
+yarn add expo-gaode-map-search
 # or
-pnpm add @expo-gaode-map/search
+pnpm add expo-gaode-map-search
 ```
 
 ### 2. Configure API Key
@@ -83,7 +83,7 @@ import {
   searchPOIAround, 
   searchPOIAlongRoute, 
   searchInputTips 
-} from '@expo-gaode-map/search';
+} from 'expo-gaode-map-search';
 ```
 
 ### Keyword Search
@@ -155,7 +155,7 @@ Here's a complete example of a search map application:
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, POIItem } from '@expo-gaode-map/search';
+import { searchPOI, POIItem } from 'expo-gaode-map-search';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
@@ -375,7 +375,7 @@ Get input suggestions (autocomplete).
 
 ```typescript
 import { getCurrentLocation } from 'expo-gaode-map';
-import { searchPOIAround } from '@expo-gaode-map/search';
+import { searchPOIAround } from 'expo-gaode-map-search';
 
 async function searchNearMe(keyword: string) {
   const location = await getCurrentLocation();
@@ -395,7 +395,7 @@ async function searchNearMe(keyword: string) {
 ### 2. Search Along Driving Route
 
 ```typescript
-import { searchPOIAlongRoute } from '@expo-gaode-map/search';
+import { searchPOIAlongRoute } from 'expo-gaode-map-search';
 
 async function findGasStationsOnRoute(start: Coordinate, end: Coordinate) {
   const result = await searchPOIAlongRoute({
@@ -412,7 +412,7 @@ async function findGasStationsOnRoute(start: Coordinate, end: Coordinate) {
 ### 3. Category Search
 
 ```typescript
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 async function searchByCategory(category: string, city: string) {
   // 040000 = Dining, 050000 = Shopping, etc.

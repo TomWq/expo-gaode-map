@@ -8,7 +8,7 @@
 
 1. **Monorepo 结构** - 使用 pnpm workspaces
 2. **核心包** - `packages/core` (expo-gaode-map)
-3. **搜索模块** - `packages/search` (@expo-gaode-map/search)
+3. **搜索模块** - `packages/search` (expo-gaode-map-search)
 4. **示例应用** - 更新为使用 workspace 包
 5. **完整文档** - 使用指南和 API 文档
 
@@ -18,7 +18,7 @@
 expo-gaode-map/
 ├── packages/
 │   ├── core/           → expo-gaode-map@2.0.0
-│   └── search/         → @expo-gaode-map/search@1.0.0
+│   └── search/         → expo-gaode-map-search@1.0.0
 ├── example/            → 示例应用
 └── docs/               → 文档
 ```
@@ -61,7 +61,7 @@ npm install expo-gaode-map
 
 **按需安装可选模块：**
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 ```
 
 **在代码中使用：**
@@ -70,13 +70,13 @@ npm install @expo-gaode-map/search
 import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // 可选功能（如果已安装）
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 // 使用延迟加载
 import { createLazyLoader } from 'expo-gaode-map';
 
 const loadSearch = createLazyLoader(() =>
-  require('@expo-gaode-map/search')
+  require('expo-gaode-map-search')
 );
 
 function MyComponent() {

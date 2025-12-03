@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert,
 import { createLazyLoader } from 'expo-gaode-map';
 
 // 尝试加载搜索模块
-const loadSearch = createLazyLoader(() => require('@expo-gaode-map/search'));
+const loadSearch = createLazyLoader(() => require('expo-gaode-map-search'));
 
 export default function SearchModuleTest() {
   const [log, setLog] = useState<string[]>([]);
@@ -302,7 +302,7 @@ export default function SearchModuleTest() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🔍 搜索模块测试</Text>
-      <Text style={styles.subtitle}>测试 @expo-gaode-map/search</Text>
+      <Text style={styles.subtitle}>测试 expo-gaode-map-search</Text>
 
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>搜索关键词:</Text>

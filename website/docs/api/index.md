@@ -22,7 +22,7 @@
 
 ### 扩展功能
 
-- [搜索 API](/api/search) - `@expo-gaode-map/search`（可选安装）
+- [搜索 API](/api/search) - `expo-gaode-map-search`（可选安装）
 
 ## 快速导航
 
@@ -53,7 +53,7 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 ### 搜索功能
 
 ```tsx
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 // POI 搜索
 const result = await searchPOI({
@@ -78,7 +78,7 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 expo-gaode-map 采用 Monorepo 架构：
 
 - **核心包** (`expo-gaode-map`) - 地图显示、定位、覆盖物
-- **搜索包** (`@expo-gaode-map/search`) - POI 搜索、周边搜索等（可选）
+- **搜索包** (`expo-gaode-map-search`) - POI 搜索、周边搜索等（可选）
 
 按需安装功能包，减少应用包体积。
 

@@ -35,7 +35,7 @@ fi
 echo ""
 echo "选择要发布的包："
 echo "1) expo-gaode-map (核心包)"
-echo "2) @expo-gaode-map/search (搜索包)"
+echo "2) expo-gaode-map-search (搜索包)"
 echo "3) 两个包都发布"
 read -p "请选择 (1/2/3): " choice
 
@@ -182,7 +182,7 @@ publish_core() {
 
 publish_search() {
   echo ""
-  echo "📦 发布搜索包 (@expo-gaode-map/search) [${RELEASE_TAG}]..."
+  echo "📦 发布搜索包 (expo-gaode-map-search) [${RELEASE_TAG}]..."
   cd packages/search
   
   OLD_VERSION=$(node -p "require('./package.json').version")
@@ -227,8 +227,8 @@ publish_search() {
   else
     pnpm publish --access public --tag $RELEASE_TAG --no-git-checks
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
-    echo "   安装命令: npm install @expo-gaode-map/search@${RELEASE_TAG}"
-    echo "   或指定版本: npm install @expo-gaode-map/search@${NEW_VERSION}"
+    echo "   安装命令: npm install expo-gaode-map-search@${RELEASE_TAG}"
+    echo "   或指定版本: npm install expo-gaode-map-search@${NEW_VERSION}"
   fi
   
   # 恢复 workspace:* 协议
@@ -290,13 +290,13 @@ fi
 
 if [ "$choice" == "2" ] || [ "$choice" == "3" ]; then
   SEARCH_VERSION=$(node -p "require('./packages/search/package.json').version")
-  echo "  📦 @expo-gaode-map/search: v${SEARCH_VERSION}"
+  echo "  📦 expo-gaode-map-search: v${SEARCH_VERSION}"
   if [ "$RELEASE_TAG" == "latest" ]; then
-    echo "     npm install @expo-gaode-map/search"
-    echo "     或: npm install @expo-gaode-map/search@${SEARCH_VERSION}"
+    echo "     npm install expo-gaode-map-search"
+    echo "     或: npm install expo-gaode-map-search@${SEARCH_VERSION}"
   else
-    echo "     npm install @expo-gaode-map/search@${RELEASE_TAG}"
-    echo "     或: npm install @expo-gaode-map/search@${SEARCH_VERSION}"
+    echo "     npm install expo-gaode-map-search@${RELEASE_TAG}"
+    echo "     或: npm install expo-gaode-map-search@${SEARCH_VERSION}"
   fi
 fi
 

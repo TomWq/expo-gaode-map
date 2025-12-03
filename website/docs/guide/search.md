@@ -1,17 +1,17 @@
 # 搜索功能
 
-`@expo-gaode-map/search` 提供了高德地图的搜索功能，包括 POI 搜索、周边搜索、沿途搜索等。
+`expo-gaode-map-search` 提供了高德地图的搜索功能，包括 POI 搜索、周边搜索、沿途搜索等。
 
 ## 安装
 
 搜索功能是**可选的**，需要单独安装：
 
 ```bash
-npm install @expo-gaode-map/search
+npm install expo-gaode-map-search
 # 或
-yarn add @expo-gaode-map/search
+yarn add expo-gaode-map-search
 # 或
-pnpm add @expo-gaode-map/search
+pnpm add expo-gaode-map-search
 ```
 
 ::: tip 提示
@@ -62,7 +62,7 @@ ExpoGaodeMapModule.initSDK({
 搜索指定关键词的地点：
 
 ```typescript
-import { searchPOI } from '@expo-gaode-map/search';
+import { searchPOI } from 'expo-gaode-map-search';
 
 const result = await searchPOI({
   keyword: '酒店',
@@ -84,7 +84,7 @@ result.pois.forEach(poi => {
 搜索指定位置周边的地点：
 
 ```typescript
-import { searchNearby } from '@expo-gaode-map/search';
+import { searchNearby } from 'expo-gaode-map-search';
 
 const result = await searchNearby({
   keyword: '餐厅',
@@ -104,7 +104,7 @@ result.pois.forEach(poi => {
 搜索路线沿途的特定地点（如加油站、ATM）：
 
 ```typescript
-import { searchAlong } from '@expo-gaode-map/search';
+import { searchAlong } from 'expo-gaode-map-search';
 
 const result = await searchAlong({
   keyword: '加油站',  // 支持：加油站、ATM、汽修、厕所
@@ -129,7 +129,7 @@ const result = await searchAlong({
 在指定多边形区域内搜索：
 
 ```typescript
-import { searchPolygon } from '@expo-gaode-map/search';
+import { searchPolygon } from 'expo-gaode-map-search';
 
 const result = await searchPolygon({
   keyword: '学校',
@@ -149,7 +149,7 @@ const result = await searchPolygon({
 获取关键词的自动补全建议：
 
 ```typescript
-import { getInputTips } from '@expo-gaode-map/search';
+import { getInputTips } from 'expo-gaode-map-search';
 
 const result = await getInputTips({
   keyword: '天安门',
@@ -208,7 +208,7 @@ interface SearchResult {
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, TouchableOpacity } from 'react-native';
 import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, type POI } from '@expo-gaode-map/search';
+import { searchPOI, type POI } from 'expo-gaode-map-search';
 
 export default function SearchScreen() {
   const [keyword, setKeyword] = useState('');

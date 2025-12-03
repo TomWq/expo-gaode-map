@@ -2,7 +2,7 @@
 
 本项目采用 Monorepo 架构，包含两个独立的 npm 包：
 - `expo-gaode-map` - 核心包（地图、定位、覆盖物）
-- `@expo-gaode-map/search` - 搜索扩展包
+- `expo-gaode-map-search` - 搜索扩展包
 
 ## 📦 发包前准备
 
@@ -130,7 +130,7 @@ cd ../..
 
 # 发布搜索包
 echo ""
-echo "📦 发布搜索包 (@expo-gaode-map/search)..."
+echo "📦 发布搜索包 (expo-gaode-map-search)..."
 cd packages/search
 npm publish --access public
 SEARCH_VERSION=$(node -p "require('./package.json').version")
@@ -140,7 +140,7 @@ cd ../..
 echo ""
 echo "✅ 发布完成!"
 echo "  - expo-gaode-map: v${CORE_VERSION}"
-echo "  - @expo-gaode-map/search: v${SEARCH_VERSION}"
+echo "  - expo-gaode-map-search: v${SEARCH_VERSION}"
 
 echo ""
 echo "📝 提交版本标签..."
@@ -148,7 +148,7 @@ git add .
 git commit -m "chore: release packages
 
 - expo-gaode-map@${CORE_VERSION}
-- @expo-gaode-map/search@${SEARCH_VERSION}"
+- expo-gaode-map-search@${SEARCH_VERSION}"
 
 git tag "core-v${CORE_VERSION}"
 git tag "search-v${SEARCH_VERSION}"
@@ -386,11 +386,11 @@ npm link
 # 3. 在测试项目中使用链接
 cd /path/to/test-project
 npm link expo-gaode-map
-npm link @expo-gaode-map/search
+npm link expo-gaode-map-search
 
 # 4. 测试完成后取消链接
 npm unlink expo-gaode-map
-npm unlink @expo-gaode-map/search
+npm unlink expo-gaode-map-search
 ```
 
 ---
@@ -637,7 +637,7 @@ npm publish --tag canary --access public
 ```bash
 # 安装最新的 beta 版本
 npm install expo-gaode-map@beta
-npm install @expo-gaode-map/search@beta
+npm install expo-gaode-map-search@beta
 
 # 安装最新的 alpha 版本
 npm install expo-gaode-map@alpha
@@ -651,7 +651,7 @@ npm install expo-gaode-map@canary
 ```bash
 # 安装特定版本
 npm install expo-gaode-map@0.1.1-beta.0
-npm install @expo-gaode-map/search@0.2.0-alpha.3
+npm install expo-gaode-map-search@0.2.0-alpha.3
 ```
 
 #### 在 package.json 中指定
@@ -660,7 +660,7 @@ npm install @expo-gaode-map/search@0.2.0-alpha.3
 {
   "dependencies": {
     "expo-gaode-map": "0.1.1-beta.0",
-    "@expo-gaode-map/search": "beta"
+    "expo-gaode-map-search": "beta"
   }
 }
 ```
@@ -829,7 +829,7 @@ jobs:
 
 ```
 expo-gaode-map@2.1.0-beta.2
-@expo-gaode-map/search@1.0.0-beta.1
+expo-gaode-map-search@1.0.0-beta.1
 
 错误: peer expo-gaode-map@"^2.0.0" 与 2.1.0-beta.2 不兼容
 ```
@@ -980,15 +980,15 @@ npm publish --access public
 ```bash
 # 测试 1: 正式版 + 正式版
 npm install expo-gaode-map@2.0.0
-npm install @expo-gaode-map/search@1.0.0
+npm install expo-gaode-map-search@1.0.0
 
 # 测试 2: Beta 版 + Beta 版
 npm install expo-gaode-map@beta
-npm install @expo-gaode-map/search@beta
+npm install expo-gaode-map-search@beta
 
 # 测试 3: 正式版 + Beta 版（如果适用）
 npm install expo-gaode-map@2.0.0
-npm install @expo-gaode-map/search@beta
+npm install expo-gaode-map-search@beta
 ```
 
 ### 自动化脚本更新
@@ -1013,10 +1013,10 @@ A: 在文档中说明推荐的版本组合：
 
 ```bash
 # 推荐：都使用 beta 版本
-npm install expo-gaode-map@beta @expo-gaode-map/search@beta
+npm install expo-gaode-map@beta expo-gaode-map-search@beta
 
 # 或指定具体版本
-npm install expo-gaode-map@2.1.0-beta.2 @expo-gaode-map/search@1.0.0-beta.1
+npm install expo-gaode-map@2.1.0-beta.2 expo-gaode-map-search@1.0.0-beta.1
 ```
 
 **Q: 如果用户混合使用正式版和 beta 版会怎样？**
