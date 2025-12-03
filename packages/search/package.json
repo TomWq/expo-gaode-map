@@ -1,6 +1,6 @@
 {
   "name": "@expo-gaode-map/search",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -40,7 +40,7 @@
   },
   "peerDependencies": {
     "expo": "*",
-    "expo-gaode-map": "^2.0.0",
+    "expo-gaode-map": "^2.0.0 || ^2.1.0-beta",
     "react": "*",
     "react-native": "*"
   }

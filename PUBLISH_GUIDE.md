@@ -817,3 +817,220 @@ jobs:
           npm version prerelease --preid=canary --no-git-tag-version
           npm publish --tag canary --access public
 ```
+
+
+---
+
+## ⚙️ Beta 版本的 peerDependencies 管理
+
+### 问题说明
+
+当你发布 beta 版本时，可能会遇到 peerDependencies 冲突问题：
+
+```
+expo-gaode-map@2.1.0-beta.2
+@expo-gaode-map/search@1.0.0-beta.1
+
+错误: peer expo-gaode-map@"^2.0.0" 与 2.1.0-beta.2 不兼容
+```
+
+这是因为语义化版本中，`^2.0.0` 不包含预发布版本（beta/alpha/canary）。
+
+### 解决方案
+
+#### 方案一：放宽 peerDependencies 范围（推荐）
+
+在搜索包的 `package.json` 中，使用 `||` 运算符支持多个版本范围：
+
+```json
+{
+  "peerDependencies": {
+    "expo-gaode-map": "^2.0.0 || ^2.1.0-beta"
+  }
+}
+```
+
+这样可以同时支持：
+- 正式版本：`2.0.0`, `2.0.1`, `2.0.2` ...
+- Beta 版本：`2.1.0-beta.0`, `2.1.0-beta.1` ...
+
+**优点**：
+- ✅ 灵活性高，支持多个版本
+- ✅ 用户可以混合使用正式版和 beta 版
+- ✅ 不需要频繁修改
+
+**完整示例**：
+
+```json
+{
+  "peerDependencies": {
+    "expo": "*",
+    "expo-gaode-map": "^2.0.0 || ^2.1.0-beta || ^2.1.0-alpha",
+    "react": "*",
+    "react-native": "*"
+  }
+}
+```
+
+#### 方案二：使用宽松的版本范围
+
+```json
+{
+  "peerDependencies": {
+    "expo-gaode-map": ">=2.0.0"
+  }
+}
+```
+
+**优点**：
+- ✅ 最简单，支持所有 2.x 版本
+- ✅ 包括所有预发布版本
+
+**缺点**：
+- ⚠️ 可能允许不兼容的未来版本
+- ⚠️ 缺乏版本控制
+
+#### 方案三：同步版本号
+
+让核心包和搜索包使用相同的版本号策略：
+
+```bash
+# 核心包发布 beta
+cd packages/core
+npm version 2.1.0-beta.0
+
+# 搜索包也发布相同的 beta
+cd packages/search
+npm version 1.1.0-beta.0
+```
+
+然后更新 peerDependencies：
+
+```json
+{
+  "peerDependencies": {
+    "expo-gaode-map": "^2.1.0-beta.0"
+  }
+}
+```
+
+**优点**：
+- ✅ 版本对应清晰
+- ✅ 强制版本同步
+
+**缺点**：
+- ⚠️ 需要频繁修改 peerDependencies
+- ⚠️ 即使搜索包没有变化也要发新版本
+
+### 推荐的发布流程
+
+#### 1. 初次发布 Beta
+
+```bash
+# 发布核心包 beta
+cd packages/core
+npm version 2.1.0-beta.0 --no-git-tag-version
+npm publish --tag beta --access public
+
+# 更新搜索包的 peerDependencies
+cd packages/search
+# 编辑 package.json
+{
+  "peerDependencies": {
+    "expo-gaode-map": "^2.0.0 || ^2.1.0-beta"
+  }
+}
+
+# 发布搜索包 beta
+npm version 1.0.0-beta.0 --no-git-tag-version
+npm publish --tag beta --access public
+```
+
+#### 2. 更新 Beta 版本
+
+```bash
+# 只更新核心包
+cd packages/core
+npm version prerelease --preid=beta --no-git-tag-version
+# 2.1.0-beta.0 -> 2.1.0-beta.1
+npm publish --tag beta --access public
+
+# 搜索包不需要修改（因为 peerDependencies 已经支持 ^2.1.0-beta）
+```
+
+#### 3. 发布正式版本
+
+```bash
+# 发布核心包正式版
+cd packages/core
+npm version 2.1.0 --no-git-tag-version
+npm publish --access public
+
+# 搜索包不需要修改（因为 peerDependencies 支持 ^2.0.0）
+# 但如果搜索包也有更新，可以发布新版本
+cd packages/search
+npm version 1.0.0 --no-git-tag-version
+npm publish --access public
+```
+
+### 验证兼容性
+
+发布后，测试不同版本组合的兼容性：
+
+```bash
+# 测试 1: 正式版 + 正式版
+npm install expo-gaode-map@2.0.0
+npm install @expo-gaode-map/search@1.0.0
+
+# 测试 2: Beta 版 + Beta 版
+npm install expo-gaode-map@beta
+npm install @expo-gaode-map/search@beta
+
+# 测试 3: 正式版 + Beta 版（如果适用）
+npm install expo-gaode-map@2.0.0
+npm install @expo-gaode-map/search@beta
+```
+
+### 自动化脚本更新
+
+我们的发布脚本已经自动处理这个问题。当你使用交互式脚本发布 beta 版本时：
+
+```bash
+pnpm publish:interactive
+```
+
+脚本会：
+1. ✅ 自动生成正确的预发布版本号
+2. ✅ 使用正确的 npm tag 发布
+3. ✅ 提示用户如何安装 beta 版本
+4. ✅ 不会影响 latest 标签
+
+### 常见问题
+
+**Q: 用户安装时如何确保版本兼容？**
+
+A: 在文档中说明推荐的版本组合：
+
+```bash
+# 推荐：都使用 beta 版本
+npm install expo-gaode-map@beta @expo-gaode-map/search@beta
+
+# 或指定具体版本
+npm install expo-gaode-map@2.1.0-beta.2 @expo-gaode-map/search@1.0.0-beta.1
+```
+
+**Q: 如果用户混合使用正式版和 beta 版会怎样？**
+
+A: 取决于 peerDependencies 的配置。如果使用方案一（`^2.0.0 || ^2.1.0-beta`），npm 会允许这种组合。但建议在文档中说明最佳实践。
+
+**Q: 发布正式版后，beta 版本会怎样？**
+
+A: Beta 版本仍然存在于 npm 上，但不会成为默认版本。用户需要显式安装才能使用。
+
+### 最佳实践总结
+
+1. **使用方案一**：在 peerDependencies 中使用 `||` 支持多个版本范围
+2. **在发布指南中说明**：建议用户同时使用相同类型的版本（都用正式版或都用 beta）
+3. **测试兼容性**：在发布前测试不同版本组合
+4. **更新文档**：在 CHANGELOG 和 Release Notes 中说明版本要求
+5. **使用自动化脚本**：减少手动操作错误
