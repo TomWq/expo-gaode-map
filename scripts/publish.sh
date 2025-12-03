@@ -141,6 +141,14 @@ publish_search() {
   
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
+  # 获取核心包的实际版本号
+  CORE_VERSION=$(node -p "require('../core/package.json').version")
+  echo "检测到核心包版本: ${CORE_VERSION}"
+  
+  # 临时替换 workspace:* 为实际版本号
+  echo "临时替换 workspace:* 为 ^${CORE_VERSION}..."
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  
   if [ "$RELEASE_TAG" == "latest" ]; then
     pnpm publish --access public --no-git-checks
   else
@@ -149,6 +157,10 @@ publish_search() {
     echo "   安装命令: npm install @expo-gaode-map/search@${RELEASE_TAG}"
     echo "   或指定版本: npm install @expo-gaode-map/search@${NEW_VERSION}"
   fi
+  
+  # 恢复 workspace:* 协议
+  echo "恢复 workspace:* 协议..."
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies['expo-gaode-map']='workspace:*';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   cd ../..
   
