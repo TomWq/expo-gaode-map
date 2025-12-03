@@ -1,22 +1,22 @@
 {
   "name": "expo-gaode-map",
-  "version": "2.1.0",
+  "version": "2.1.1-beta.0",
   "description": "一个功能完整的高德地图 React Native 组件库，基于 Expo Modules 开发，提供地图显示、定位、覆盖物等功能。",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "expo-module build && npm run build:plugin",
+    "build": "expo-module build && pnpm run build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean && rm -rf plugin/build",
     "lint": "expo-module lint",
     "test": "expo-module test",
-    "prepare": "expo-module prepare && npm run build:plugin",
+    "prepare": "expo-module prepare && pnpm run build:plugin",
     "prepublishOnly": "expo-module prepublishOnly",
     "expo-module": "expo-module",
     "open:ios": "xed example/ios",
     "open:android": "open -a \"Android Studio\" example/android",
-    "publish:next": "npm publish --tag next",
-    "publish:latest": "npm publish --tag latest"
+    "publish:next": "pnpm publish --tag next",
+    "publish:latest": "pnpm publish --tag latest"
   },
   "keywords": [
     "react-native",
