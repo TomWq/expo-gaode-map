@@ -14,7 +14,9 @@ class ExpoGaodeMapViewModule : Module() {
       Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
       
       // ✅ 关键修复：拦截 React Native 的视图操作异常
-      OnViewDestroys { _: ExpoGaodeMapView ->
+      OnViewDestroys { view: ExpoGaodeMapView ->
+        // 销毁地图实例,释放资源
+        view.onDestroy()
       }
 
       Prop<Int>("mapType") { view, type ->
