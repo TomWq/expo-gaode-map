@@ -1,7 +1,7 @@
 {
   "name": "@expo-gaode-map/search",
   "version": "1.0.0",
-  "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索",
+  "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索，需先安装expo-gaode-map",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -30,7 +30,9 @@
   "author": "尚博信_王强 <wangqiang03@sunboxsoft.com> (https://github.com/TomWq)",
   "license": "MIT",
   "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
-  "dependencies": {},
+  "dependencies": {
+    "expo-gaode-map": "workspace:*"
+  },
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo": "^54.0.18",
@@ -43,5 +45,10 @@
     "expo-gaode-map": ">=2.0.0",
     "react": "*",
     "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "expo-gaode-map": {
+      "optional": false
+    }
   }
 }
