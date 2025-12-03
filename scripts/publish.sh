@@ -109,9 +109,9 @@ publish_core() {
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public
+    pnpm publish --access public --no-git-checks
   else
-    npm publish --access public --tag $RELEASE_TAG
+    pnpm publish --access public --tag $RELEASE_TAG --no-git-checks
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map@${NEW_VERSION}"
@@ -142,9 +142,9 @@ publish_search() {
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public
+    pnpm publish --access public --no-git-checks
   else
-    npm publish --access public --tag $RELEASE_TAG
+    pnpm publish --access public --tag $RELEASE_TAG --no-git-checks
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install @expo-gaode-map/search@${RELEASE_TAG}"
     echo "   或指定版本: npm install @expo-gaode-map/search@${NEW_VERSION}"
