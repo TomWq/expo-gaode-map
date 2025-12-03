@@ -1,51 +1,33 @@
 {
-  "name": "expo-gaode-map",
-  "version": "2.0.0",
-  "description": "一个功能完整的高德地图 React Native 组件库，基于 Expo Modules 开发，提供地图显示、定位、覆盖物等功能。",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "name": "expo-gaode-map-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
-    "build": "expo-module build && npm run build:plugin",
-    "build:plugin": "tsc --project plugin/tsconfig.json",
-    "clean": "expo-module clean && rm -rf plugin/build",
-    "lint": "expo-module lint",
-    "test": "expo-module test",
-    "prepare": "expo-module prepare && npm run build:plugin",
-    "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module",
-    "open:ios": "xed example/ios",
-    "open:android": "open -a \"Android Studio\" example/android",
-    "publish:next": "npm publish --tag next",
-    "publish:latest": "npm publish --tag latest"
+    "build": "pnpm -r --filter './packages/*' run build",
+    "clean": "pnpm -r --filter './packages/*' run clean",
+    "lint": "pnpm -r --filter './packages/*' run lint",
+    "test": "pnpm -r --filter './packages/*' run test",
+    "publish:all": "pnpm -r --filter './packages/*' publish"
   },
   "keywords": [
-    "react-native",
+    "monorepo",
     "expo",
-    "expo-gaode-map",
-    "ExpoGaodeMap",
-    "高德地图"
+    "amap",
+    "gaode-map"
   ],
-  "repository": "https://github.com/TomWq/expo-gaode-map",
-  "bugs": {
-    "url": "https://github.com/TomWq/expo-gaode-map/issues"
-  },
-  "author": "尚博信_王强 <wangqiang03@sunboxsoft.com> (https://github.com/TomWq)",
+  "author": "尚博信_王强 <wangqiang03@sunboxsoft.com>",
   "license": "MIT",
-  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
-  "dependencies": {
-    "supercluster": "^8.0.1"
-  },
   "devDependencies": {
-    "@expo/config-plugins": "^9.1.7",
     "@types/react": "~19.1.0",
     "expo": "^54.0.18",
     "expo-module-scripts": "^5.0.7",
+    "react": "19.1.0",
     "react-native": "0.81.5",
     "typescript": "^5.9.3"
   },
-  "peerDependencies": {
-    "expo": "*",
-    "react": "*",
-    "react-native": "*"
-  }
+  "workspaces": [
+    "packages/*",
+    "example"
+  ]
 }

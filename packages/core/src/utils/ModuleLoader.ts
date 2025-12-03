@@ -6,10 +6,10 @@
  * 可选模块名称常量
  */
 export const OptionalModules = {
-  SEARCH: 'expo-gaode-map-search',
-  NAVIGATION: 'expo-gaode-map-navigation',
-  ROUTE: 'expo-gaode-map-route',
-  GEOCODER: 'expo-gaode-map-geocoder',
+  SEARCH: '@expo-gaode-map/search',
+  NAVIGATION: '@expo-gaode-map/navigation',
+  ROUTE: '@expo-gaode-map/route',
+  GEOCODER: '@expo-gaode-map/geocoder',
 } as const;
 
 /**

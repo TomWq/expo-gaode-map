@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["ExpoGaodeMapSearchModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.gaodemap.search.ExpoGaodeMapSearchModule"]
+  }
+}

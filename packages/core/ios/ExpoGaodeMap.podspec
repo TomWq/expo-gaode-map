@@ -23,10 +23,7 @@ Pod::Spec.new do |s|
   # 核心依赖 - 3D地图和定位
   s.dependency 'AMap3DMap', '10.0.600'
   s.dependency 'AMapLocation'
-  
-  # 注意: 可选功能的依赖不在核心包中声明
-  # 搜索功能: AMapSearch (由 expo-gaode-map-search 提供)
-  # 导航功能: AMapNavi (由 expo-gaode-map-navigation 提供)
+
   
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {

@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
-group = 'expo.modules.gaodemap'
-version = '0.1.0'
+group = 'expo.modules.gaodemap.search'
+version = '1.0.0'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -9,9 +9,7 @@ applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
 useExpoPublishing()
 
-// If you want to use the managed Android SDK versions from expo-modules-core, set this to true.
-// The Android SDK versions will be bumped from time to time in SDK releases and may introduce breaking changes in your module code.
-// Most of the time, you may like to manage the Android SDK versions yourself.
+// 与核心模块保持一致的 SDK 版本配置
 def useManagedAndroidSdkVersions = false
 if (useManagedAndroidSdkVersions) {
   useDefaultAndroidSdkVersions()
@@ -32,10 +30,10 @@ if (useManagedAndroidSdkVersions) {
 }
 
 android {
-  namespace "expo.modules.gaodemap"
+  namespace "expo.modules.gaodemap.search"
   defaultConfig {
     versionCode 1
-    versionName "0.1.0"
+    versionName "1.0.0"
   }
   lintOptions {
     abortOnError false
@@ -43,13 +41,9 @@ android {
 }
 
 dependencies {
-    // 核心依赖 - 3D地图SDK（已包含定位功能）需要移除搜索单独引入
-    implementation ('com.amap.api:3dmap:10.0.600'){
-       exclude group: 'com.amap.api', module: 'search' 
-    }
-    
-    // 可选依赖 - 只在编译时需要,运行时由可选包提供
-    // 如果用户安装了对应的可选包,这些依赖会被可选包提供
-    compileOnly 'com.amap.api:search:9.7.1'        // 搜索服务 (expo-gaode-map-search)
+    //不要升级 升级会导致无法使用
+    implementation('com.amap.api:search:9.4.0') {
+
+  }
 
 }

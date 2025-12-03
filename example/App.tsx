@@ -14,12 +14,14 @@ import {
 import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import RandomMarkersExample from './RandomMarkersExample';
 import OptionalModuleDemo from './OptionalModuleDemo';
+import SearchModuleTest from './SearchModuleTest';
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
 export default function App() {
   const [showRandomMarkers, setShowRandomMarkers] = useState(false);
   const [showOptionalModuleDemo, setShowOptionalModuleDemo] = useState(false);
+  const [showSearchTest, setShowSearchTest] = useState(false);
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -304,6 +306,21 @@ export default function App() {
     );
   }
 
+  // 如果显示搜索测试页面
+  if (showSearchTest) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowSearchTest(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <SearchModuleTest />
+      </View>
+    );
+  }
+
   // 如果显示可选模块演示,则渲染该组件
   if (showOptionalModuleDemo) {
     return (
@@ -340,16 +357,22 @@ export default function App() {
         <Text style={styles.title}>高德地图完整示例</Text>
         <View style={styles.exampleButtonContainer}>
           <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#4CAF50' }]}
+            onPress={() => setShowSearchTest(true)}
+          >
+            <Text style={styles.exampleButtonText}>🔍 搜索测试</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
             onPress={() => setShowOptionalModuleDemo(true)}
           >
-            <Text style={styles.exampleButtonText}>🔌 可选模块演示</Text>
+            <Text style={styles.exampleButtonText}>🔌 模块演示</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.exampleButton}
             onPress={() => setShowRandomMarkers(true)}
           >
-            <Text style={styles.exampleButtonText}>随机标记示例 →</Text>
+            <Text style={styles.exampleButtonText}>📍 随机标记</Text>
           </TouchableOpacity>
         </View>
       </View>

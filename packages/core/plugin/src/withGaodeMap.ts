@@ -193,12 +193,12 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
 };
 
 /**
- * Android: 修改 app/build.gradle 添加依赖
+ * Android: 修改 app/build.gradle（预留扩展）
  */
 const withGaodeMapAppBuildGradle: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withAppBuildGradle(config, (config) => {
-    // 这里可以添加额外的 Gradle 配置，如果需要的话
-    // 例如添加 maven 仓库或其他依赖
+    // Android 3D 地图 SDK 10.0+ 已内置搜索功能
+    // 不需要额外的 Gradle 配置
     return config;
   });
 };
