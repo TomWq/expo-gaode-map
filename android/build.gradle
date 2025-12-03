@@ -43,6 +43,13 @@ android {
 }
 
 dependencies {
-    // 3D地图SDK（已包含定位功能）
-    implementation 'com.amap.api:3dmap:10.0.600'
+    // 核心依赖 - 3D地图SDK（已包含定位功能）需要移除搜索单独引入
+    implementation ('com.amap.api:3dmap:10.0.600'){
+       exclude group: 'com.amap.api', module: 'search' 
+    }
+    
+    // 可选依赖 - 只在编译时需要,运行时由可选包提供
+    // 如果用户安装了对应的可选包,这些依赖会被可选包提供
+    compileOnly 'com.amap.api:search:9.7.1'        // 搜索服务 (expo-gaode-map-search)
+
 }

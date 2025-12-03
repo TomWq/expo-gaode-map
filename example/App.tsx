@@ -13,11 +13,13 @@ import {
 } from 'expo-gaode-map';
 import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import RandomMarkersExample from './RandomMarkersExample';
+import OptionalModuleDemo from './OptionalModuleDemo';
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
 export default function App() {
   const [showRandomMarkers, setShowRandomMarkers] = useState(false);
+  const [showOptionalModuleDemo, setShowOptionalModuleDemo] = useState(false);
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -302,6 +304,21 @@ export default function App() {
     );
   }
 
+  // 如果显示可选模块演示,则渲染该组件
+  if (showOptionalModuleDemo) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowOptionalModuleDemo(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <OptionalModuleDemo />
+      </View>
+    );
+  }
+
   // 如果显示随机标记示例,则渲染该组件
   if (showRandomMarkers) {
     return (
@@ -321,12 +338,20 @@ export default function App() {
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.title}>高德地图完整示例</Text>
-        <TouchableOpacity
-          style={styles.exampleButton}
-          onPress={() => setShowRandomMarkers(true)}
-        >
-          <Text style={styles.exampleButtonText}>随机标记示例 →</Text>
-        </TouchableOpacity>
+        <View style={styles.exampleButtonContainer}>
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
+            onPress={() => setShowOptionalModuleDemo(true)}
+          >
+            <Text style={styles.exampleButtonText}>🔌 可选模块演示</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.exampleButton}
+            onPress={() => setShowRandomMarkers(true)}
+          >
+            <Text style={styles.exampleButtonText}>随机标记示例 →</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <MapView
@@ -617,12 +642,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  exampleButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
   exampleButton: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 8,
-    alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
