@@ -103,7 +103,7 @@ publish_core() {
   cd packages/core
   
   OLD_VERSION=$(node -p "require('./package.json').version")
-  npm version $VERSION_FLAG --no-git-tag-version
+  pnpm version $VERSION_FLAG --no-git-tag-version
   NEW_VERSION=$(node -p "require('./package.json').version")
   
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
@@ -136,7 +136,7 @@ publish_search() {
   cd packages/search
   
   OLD_VERSION=$(node -p "require('./package.json').version")
-  npm version $VERSION_FLAG --no-git-tag-version
+  pnpm version $VERSION_FLAG --no-git-tag-version
   NEW_VERSION=$(node -p "require('./package.json').version")
   
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
