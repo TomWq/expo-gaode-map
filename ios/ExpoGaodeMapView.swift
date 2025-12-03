@@ -513,10 +513,28 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     
     /**
      * 析构函数 - 清理资源
+     * 当视图从层级中移除并释放时自动调用
      */
     deinit {
-        // 先设置 delegate 为 nil，停止接收回调
+        // 清理代理,停止接收回调
         mapView?.delegate = nil
+        
+        // 清除所有覆盖物和标注
+        mapView?.removeAnnotations(mapView?.annotations ?? [])
+        mapView?.removeOverlays(mapView?.overlays ?? [])
+        
+        // 清空覆盖物数组
+        overlayViews.removeAll()
+        
+        // 移除所有子视图
+        markerContainer?.removeFromSuperview()
+        overlayContainer?.removeFromSuperview()
+        mapView?.removeFromSuperview()
+        
+        // 释放引用
+        mapView = nil
+        cameraManager = nil
+        uiManager = nil
     }
 }
 
