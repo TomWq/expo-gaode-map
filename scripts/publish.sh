@@ -97,6 +97,22 @@ echo ""
 echo "🔨 构建包..."
 pnpm build
 
+# 临时替换搜索包的 workspace:* 依赖
+echo ""
+echo "🔧 临时替换 workspace 协议..."
+SEARCH_PKG_PATH="packages/search/package.json"
+if [ -f "$SEARCH_PKG_PATH" ]; then
+  # 备份原始文件
+  cp "$SEARCH_PKG_PATH" "$SEARCH_PKG_PATH.backup"
+  
+  # 获取当前核心包版本
+  CURRENT_CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
+  echo "将搜索包依赖临时改为: ^${CURRENT_CORE_VERSION}"
+  
+  # 替换 workspace:* 为实际版本号
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('$SEARCH_PKG_PATH','utf8'));pkg.dependencies['expo-gaode-map']='^${CURRENT_CORE_VERSION}';fs.writeFileSync('$SEARCH_PKG_PATH',JSON.stringify(pkg,null,2)+'\n');"
+fi
+
 publish_core() {
   echo ""
   echo "📦 发布核心包 (expo-gaode-map) [${RELEASE_TAG}]..."
@@ -145,8 +161,8 @@ publish_search() {
   CORE_VERSION=$(node -p "require('../core/package.json').version")
   echo "检测到核心包版本: ${CORE_VERSION}"
   
-  # 临时替换 workspace:* 为实际版本号
-  echo "临时替换 workspace:* 为 ^${CORE_VERSION}..."
+  # 更新依赖版本号（已经在开始时替换过了，这里更新为最新版本）
+  echo "更新依赖为 ^${CORE_VERSION}..."
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
@@ -157,10 +173,6 @@ publish_search() {
     echo "   安装命令: npm install @expo-gaode-map/search@${RELEASE_TAG}"
     echo "   或指定版本: npm install @expo-gaode-map/search@${NEW_VERSION}"
   fi
-  
-  # 恢复 workspace:* 协议
-  echo "恢复 workspace:* 协议..."
-  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies['expo-gaode-map']='workspace:*';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   cd ../..
   
@@ -185,6 +197,14 @@ case $choice in
     ;;
   *) echo "无效选择"; exit 1 ;;
 esac
+
+# 恢复搜索包的 workspace:* 协议
+echo ""
+echo "🔧 恢复 workspace 协议..."
+if [ -f "$SEARCH_PKG_PATH.backup" ]; then
+  mv "$SEARCH_PKG_PATH.backup" "$SEARCH_PKG_PATH"
+  echo "已恢复搜索包的 workspace:* 依赖"
+fi
 
 # 推送到远程
 echo ""
