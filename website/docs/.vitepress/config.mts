@@ -26,18 +26,25 @@ export default defineConfig({
                 { text: '快速开始', link: '/guide/getting-started' },
                 { text: '初始化', link: '/guide/initialization' },
                 { text: 'Config Plugin', link: '/guide/config-plugin' },
-                { text: '架构说明', link: '/guide/architecture' }
+                { text: '架构说明', link: '/guide/architecture' },
+                { text: '搜索功能', link: '/guide/search' }
               ]
             }
           ],
           '/api/': [
             {
-              text: 'API 参考',
+              text: '核心功能',
               items: [
                 { text: 'API 总览', link: '/api/' },
                 { text: 'MapView Props', link: '/api/mapview' },
                 { text: '定位 API', link: '/api/location' },
                 { text: '覆盖物', link: '/api/overlays' }
+              ]
+            },
+            {
+              text: '扩展功能',
+              items: [
+                { text: '搜索 API', link: '/api/search' }
               ]
             }
           ],
@@ -48,7 +55,8 @@ export default defineConfig({
                 { text: '示例总览', link: '/examples/' },
                 { text: '基础地图', link: '/examples/basic-map' },
                 { text: '定位追踪', link: '/examples/location-tracking' },
-                { text: '覆盖物', link: '/examples/overlays' }
+                { text: '覆盖物', link: '/examples/overlays' },
+                { text: '搜索功能', link: '/examples/search' }
               ]
             }
           ]
@@ -82,18 +90,25 @@ export default defineConfig({
                 { text: 'Getting Started', link: '/en/guide/getting-started' },
                 { text: 'Initialization', link: '/en/guide/initialization' },
                 { text: 'Config Plugin', link: '/en/guide/config-plugin' },
-                { text: 'Architecture', link: '/en/guide/architecture' }
+                { text: 'Architecture', link: '/en/guide/architecture' },
+                { text: 'Search Features', link: '/en/guide/search' }
               ]
             }
           ],
           '/en/api/': [
             {
-              text: 'API Reference',
+              text: 'Core Features',
               items: [
                 { text: 'API Overview', link: '/en/api/' },
                 { text: 'MapView Props', link: '/en/api/mapview' },
                 { text: 'Location API', link: '/en/api/location' },
                 { text: 'Overlays', link: '/en/api/overlays' }
+              ]
+            },
+            {
+              text: 'Extended Features',
+              items: [
+                { text: 'Search API', link: '/en/api/search' }
               ]
             }
           ],
@@ -104,7 +119,8 @@ export default defineConfig({
                 { text: 'Examples Overview', link: '/en/examples/' },
                 { text: 'Basic Map', link: '/en/examples/basic-map' },
                 { text: 'Location Tracking', link: '/en/examples/location-tracking' },
-                { text: 'Overlays', link: '/en/examples/overlays' }
+                { text: 'Overlays', link: '/en/examples/overlays' },
+                { text: 'Search Features', link: '/en/examples/search' }
               ]
             }
           ]

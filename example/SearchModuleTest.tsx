@@ -324,6 +324,7 @@ export default function SearchModuleTest() {
             <View style={styles.tipsContainer}>
               <FlatList
                 data={tips.slice(0, 5)}
+                nestedScrollEnabled
                 keyExtractor={(item, index) => `${item.id || index}`}
                 renderItem={({ item }) => (
                   <TouchableOpacity

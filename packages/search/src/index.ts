@@ -14,6 +14,28 @@ import type {
 } from './ExpoGaodeMapSearch.types';
 
 /**
+ * 初始化搜索模块（可选）
+ *
+ * 如果 API Key 已通过以下方式设置，则无需调用此方法：
+ * 1. app.json 的 plugins 中配置了 iosApiKey（推荐）
+ * 2. 调用了 ExpoGaodeMap.initSDK()
+ * 3. 在 AppDelegate 中手动设置
+ *
+ * 此方法会在首次调用搜索功能时自动执行，手动调用可以提前检测配置问题。
+ *
+ * @example
+ * ```typescript
+ * import { initSearch } from '@expo-gaode-map/search';
+ *
+ * // 可选：提前初始化以检测问题
+ * initSearch();
+ * ```
+ */
+export function initSearch(): void {
+  ExpoGaodeMapSearchModule.initSearch();
+}
+
+/**
  * POI 搜索
  * 
  * @param options 搜索选项
@@ -139,6 +161,7 @@ export { SearchType } from './ExpoGaodeMapSearch.types';
 
 // 默认导出
 export default {
+  initSearch,
   searchPOI,
   searchNearby,
   searchAlong,

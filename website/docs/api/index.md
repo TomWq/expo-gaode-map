@@ -12,11 +12,17 @@
 
 ## 目录
 
+### 核心功能（expo-gaode-map）
+
 - [MapView Props](/api/mapview)
 - [MapView 方法](/api/mapview#mapview-方法)
 - [定位 API](/api/location)
 - [覆盖物组件](/api/overlays)
 - [类型定义](/api/types)
+
+### 扩展功能
+
+- [搜索 API](/api/search) - `@expo-gaode-map/search`（可选安装）
 
 ## 快速导航
 
@@ -40,14 +46,20 @@ import { MapView } from 'expo-gaode-map';
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 初始化 SDK
-ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
-});
-
-// 获取当前位置
+// 获取当前位置（API Key 通过 Config Plugin 自动配置）
 const location = await ExpoGaodeMapModule.getCurrentLocation();
+```
+
+### 搜索功能
+
+```tsx
+import { searchPOI } from '@expo-gaode-map/search';
+
+// POI 搜索
+const result = await searchPOI({
+  keyword: '酒店',
+  city: '北京',
+});
 ```
 
 ### 覆盖物
@@ -61,8 +73,18 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 </MapView>
 ```
 
+## 模块化设计
+
+expo-gaode-map 采用 Monorepo 架构：
+
+- **核心包** (`expo-gaode-map`) - 地图显示、定位、覆盖物
+- **搜索包** (`@expo-gaode-map/search`) - POI 搜索、周边搜索等（可选）
+
+按需安装功能包，减少应用包体积。
+
 ## 相关文档
 
-- [使用示例](/examples/) - 详细的代码示例
-- [初始化指南](/guide/initialization) - SDK 初始化和权限管理
 - [快速开始](/guide/getting-started) - 快速上手指南
+- [搜索功能](/guide/search) - 搜索功能详细指南
+- [架构说明](/guide/architecture) - Monorepo 架构
+- [使用示例](/examples/) - 详细的代码示例

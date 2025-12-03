@@ -24,6 +24,8 @@ public class ExpoGaodeMapModule: Module {
         OnCreate {
             MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
             MAMapView.updatePrivacyShow(AMapPrivacyShowStatus.didShow, privacyInfo: AMapPrivacyInfoStatus.didContain)
+
+      
         }
         
         // ==================== SDK 初始化 ====================

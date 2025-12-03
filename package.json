@@ -8,7 +8,15 @@
     "clean": "pnpm -r --filter './packages/*' run clean",
     "lint": "pnpm -r --filter './packages/*' run lint",
     "test": "pnpm -r --filter './packages/*' run test",
-    "publish:all": "pnpm -r --filter './packages/*' publish"
+    "publish:core": "cd packages/core && npm publish --access public",
+    "publish:search": "cd packages/search && npm publish --access public",
+    "publish:core:beta": "cd packages/core && npm publish --access public --tag beta",
+    "publish:search:beta": "cd packages/search && npm publish --access public --tag beta",
+    "publish:interactive": "bash scripts/publish.sh",
+    "version:core": "cd packages/core && npm version",
+    "version:search": "cd packages/search && npm version",
+    "version:core:beta": "cd packages/core && npm version prerelease --preid=beta --no-git-tag-version",
+    "version:search:beta": "cd packages/search && npm version prerelease --preid=beta --no-git-tag-version"
   },
   "keywords": [
     "monorepo",

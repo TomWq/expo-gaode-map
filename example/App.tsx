@@ -88,7 +88,7 @@ export default function App() {
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);
         ExpoGaodeMapModule.setInterval(5000);
-        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+        // ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
         ExpoGaodeMapModule.setDistanceFilter(10);
         ExpoGaodeMapModule.setDesiredAccuracy(3);
         

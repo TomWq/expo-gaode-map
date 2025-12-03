@@ -12,11 +12,17 @@ Complete API reference documentation.
 
 ## Table of Contents
 
+### Core Features
+
 - [MapView Props](/en/api/mapview)
 - [MapView Methods](/en/api/mapview#mapview-methods)
 - [Location API](/en/api/location)
 - [Overlay Components](/en/api/overlays)
 - [Type Definitions](/en/api/types)
+
+### Extended Features
+
+- [Search API](/en/api/search) - POI search, nearby search, route search, autocomplete
 
 ## Quick Navigation
 
@@ -61,8 +67,34 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 </MapView>
 ```
 
+### Search Features
+
+```tsx
+import { searchPOI, searchPOIAround, searchInputTips } from '@expo-gaode-map/search';
+
+// Keyword search
+const result = await searchPOI({
+  query: 'Starbucks',
+  city: 'Beijing',
+});
+
+// Nearby search
+const nearby = await searchPOIAround({
+  center: { latitude: 39.9, longitude: 116.4 },
+  query: 'restaurant',
+  radius: 2000,
+});
+
+// Autocomplete
+const tips = await searchInputTips({
+  keyword: 'Star',
+  city: 'Beijing',
+});
+```
+
 ## Related Documentation
 
 - [Examples](/en/examples/) - Detailed code examples
+- [Search Examples](/en/examples/search) - Search feature examples
 - [Initialization Guide](/en/guide/initialization) - SDK initialization and permission management
 - [Getting Started](/en/guide/getting-started) - Quick start guide

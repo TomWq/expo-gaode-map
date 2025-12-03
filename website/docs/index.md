@@ -23,6 +23,9 @@ features:
   - icon: 📍
     title: 精准定位
     details: 连续定位、单次定位、坐标转换，满足各种定位需求
+  - icon: 🔍
+    title: 搜索功能（可选）
+    details: POI 搜索、周边搜索、沿途搜索等，按需安装
   - icon: 🎨
     title: 丰富的覆盖物
     details: Circle、Marker、Polyline、Polygon 等多种覆盖物支持
@@ -31,7 +34,7 @@ features:
     details: 完整的 TypeScript 类型定义，零 any 类型
   - icon: 🔧
     title: 模块化设计
-    details: 清晰的架构设计，易于维护和扩展
+    details: Monorepo 架构，核心功能和扩展功能分离，按需使用
   - icon: 📱
     title: 跨平台支持
     details: 同时支持 Android 和 iOS 平台
@@ -44,26 +47,22 @@ features:
 
 ### 安装
 
+**核心包（必需）**
 ```bash
 npm install expo-gaode-map
-# 或
-yarn add expo-gaode-map
-# 或
-pnpm add expo-gaode-map
+```
+
+**搜索功能（可选）**
+```bash
+npm install @expo-gaode-map/search
 ```
 
 ### 基础使用
 
 ```tsx
-import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
+import { MapView } from 'expo-gaode-map';
 
-// 初始化 SDK
-ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
-});
-
-// 使用地图组件
+// 使用地图组件（API Key 通过 Config Plugin 自动配置）
 <MapView
   style={{ flex: 1 }}
   initialCameraPosition={{
@@ -72,6 +71,17 @@ ExpoGaodeMapModule.initSDK({
   }}
   myLocationEnabled={true}
 />
+```
+
+### 使用搜索功能
+
+```tsx
+import { searchPOI } from '@expo-gaode-map/search';
+
+const results = await searchPOI({
+  keyword: '酒店',
+  city: '北京',
+});
 ```
 
 ## 为什么选择 expo-gaode-map？

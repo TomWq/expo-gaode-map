@@ -396,16 +396,28 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     /** 销毁地图 */
     @Suppress("unused")
     fun onDestroy() {
-        // 清理 Handler 回调,防止内存泄露
-        mainHandler.removeCallbacksAndMessages(null)
+               try {
+            // 清理 Handler 回调,防止内存泄露
+            mainHandler.removeCallbacksAndMessages(null)
 
-        // 清理地图监听器
-        aMap.setOnMapClickListener(null)
-        aMap.setOnMapLongClickListener(null)
-        aMap.setOnMapLoadedListener(null)
+            // 清理所有地图监听器
+            aMap.setOnMapClickListener(null)
+            aMap.setOnMapLongClickListener(null)
+            aMap.setOnMapLoadedListener(null)
+            aMap.setOnCameraChangeListener(null)
+            aMap.setOnMarkerClickListener(null)
+            aMap.setOnMarkerDragListener(null)
 
-        // 销毁地图
-        mapView.onDestroy()
+            // 清除所有覆盖物
+            aMap.clear()
+
+            // 销毁地图实例
+            mapView.onDestroy()
+        } catch (e: Exception) {
+            // 静默处理异常,确保销毁流程不会中断
+            android.util.Log.e("ExpoGaodeMapView", "Error destroying map", e)
+        }
+
     }
 
     /** 保存实例状态 */

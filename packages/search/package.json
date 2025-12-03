@@ -1,9 +1,9 @@
 {
   "name": "@expo-gaode-map/search",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
