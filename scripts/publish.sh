@@ -42,10 +42,8 @@ read -p "请选择 (1/2/3): " choice
 echo ""
 echo "选择发布类型："
 echo "1) 正式版本 (latest)"
-echo "2) Beta 测试版 (beta)"
-echo "3) Alpha 测试版 (alpha)"
-echo "4) Canary 金丝雀版 (canary)"
-read -p "请选择 (1/2/3/4): " release_type
+echo "2) 测试版本 (next)"
+read -p "请选择 (1/2): " release_type
 
 case $release_type in
   1)
@@ -64,47 +62,17 @@ case $release_type in
     esac
     ;;
   2)
-    RELEASE_TAG="beta"
-    PRERELEASE="beta"
-    echo "选择 Beta 版本更新类型："
-    echo "1) 基于当前版本创建 beta (例如: 2.1.0 -> 2.1.1-beta.0)"
-    echo "2) 升级 minor 并创建 beta (例如: 2.0.1 -> 2.1.0-beta.0)"
-    echo "3) 升级 major 并创建 beta (例如: 2.0.1 -> 3.0.0-beta.0)"
-    read -p "请选择 (1/2/3): " beta_type
-    case $beta_type in
-      1) VERSION_FLAG="prerelease --preid=beta" ;;
-      2) VERSION_FLAG="preminor --preid=beta" ;;
-      3) VERSION_FLAG="premajor --preid=beta" ;;
-      *) echo "无效选择"; exit 1 ;;
-    esac
-    ;;
-  3)
-    RELEASE_TAG="alpha"
-    PRERELEASE="alpha"
-    echo "选择 Alpha 版本更新类型："
-    echo "1) 基于当前版本创建 alpha (例如: 2.1.0 -> 2.1.1-alpha.0)"
-    echo "2) 升级 minor 并创建 alpha (例如: 2.0.1 -> 2.1.0-alpha.0)"
-    echo "3) 升级 major 并创建 alpha (例如: 2.0.1 -> 3.0.0-alpha.0)"
-    read -p "请选择 (1/2/3): " alpha_type
-    case $alpha_type in
-      1) VERSION_FLAG="prerelease --preid=alpha" ;;
-      2) VERSION_FLAG="preminor --preid=alpha" ;;
-      3) VERSION_FLAG="premajor --preid=alpha" ;;
-      *) echo "无效选择"; exit 1 ;;
-    esac
-    ;;
-  4)
-    RELEASE_TAG="canary"
-    PRERELEASE="canary"
-    echo "选择 Canary 版本更新类型："
-    echo "1) 基于当前版本创建 canary (例如: 2.1.0 -> 2.1.1-canary.0)"
-    echo "2) 升级 minor 并创建 canary (例如: 2.0.1 -> 2.1.0-canary.0)"
-    echo "3) 升级 major 并创建 canary (例如: 2.0.1 -> 3.0.0-canary.0)"
-    read -p "请选择 (1/2/3): " canary_type
-    case $canary_type in
-      1) VERSION_FLAG="prerelease --preid=canary" ;;
-      2) VERSION_FLAG="preminor --preid=canary" ;;
-      3) VERSION_FLAG="premajor --preid=canary" ;;
+    RELEASE_TAG="next"
+    PRERELEASE="next"
+    echo "选择测试版本更新类型："
+    echo "1) 基于当前版本创建测试版 (例如: 2.1.0 -> 2.1.1-next.0)"
+    echo "2) 升级 minor 并创建测试版 (例如: 2.0.1 -> 2.1.0-next.0)"
+    echo "3) 升级 major 并创建测试版 (例如: 2.0.1 -> 3.0.0-next.0)"
+    read -p "请选择 (1/2/3): " next_type
+    case $next_type in
+      1) VERSION_FLAG="prerelease --preid=next" ;;
+      2) VERSION_FLAG="preminor --preid=next" ;;
+      3) VERSION_FLAG="premajor --preid=next" ;;
       *) echo "无效选择"; exit 1 ;;
     esac
     ;;
