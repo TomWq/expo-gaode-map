@@ -31,7 +31,7 @@
   "license": "MIT",
   "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
   "dependencies": {
-    "expo-gaode-map": "workspace:*"
+    "expo-gaode-map": "^2.1.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
