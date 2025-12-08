@@ -85,7 +85,7 @@ export default function RandomMarkersExample() {
   const getReGeocodeForCoordinate = async (lat: number, lng: number): Promise<ReGeocode | null> => {
     try {
       // 使用高德Web API获取逆地理编码
-      const webApiKey = 'e9d912a302e6460222ad0bc1e38034bf'; // Web服务API Key
+      const webApiKey = ''; // Web服务API Key
       const url = `https://restapi.amap.com/v3/geocode/regeo?location=${lng},${lat}&key=${webApiKey}&radius=1000&extensions=base`;
       
       const response = await fetch(url);

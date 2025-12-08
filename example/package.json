@@ -12,6 +12,7 @@
     "expo": "~54.0.23",
     "expo-gaode-map": "workspace:*",
     "expo-gaode-map-search": "workspace:*",
+    "expo-gaode-map-web-api": "workspace:*",
     "expo-router": "^6.0.17",
     "react": "19.1.0",
     "react-native": "0.81.5"

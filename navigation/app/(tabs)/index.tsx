@@ -2,7 +2,7 @@
  * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
  * @Date         : 1985-10-26 16:15:00
  * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-12-08 17:34:35
+ * @LastEditTime : 2025-12-08 20:56:04
  * @FilePath     : /expo-gaode-map/navigation/app/(tabs)/index.tsx
  * @Description  : 
  * 
@@ -44,14 +44,29 @@ export default function Test() {
             style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
             onPress={() => router.push('/BasicNavigationTest')}
         >
-            <Text style={styles.exampleButtonText}>🧭 路线规划</Text>
+            <Text style={styles.exampleButtonText}>🧭 原生sdk路线规划</Text>
         </TouchableOpacity>
         <TouchableOpacity
             style={[styles.exampleButton, { backgroundColor: '#9C27B0' }]}
             onPress={() => router.push('/MultiRouteExample')}
         >
-            <Text style={styles.exampleButtonText}>🛣️ 多路线选择</Text>
+            <Text style={styles.exampleButtonText}>🛣️ 原生sdk多路线选择</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#FFEB3B' }]}
+            onPress={() => router.push('/WebAPINavigationTest')}
+        >
+            <Text style={styles.exampleButtonText}>web API 路线规划</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: 'red' }]}
+            onPress={() => router.push('/MultiRouteExampleWebAPI')}
+        >
+            <Text style={styles.exampleButtonText}>web API 多线路选择</Text>
+        </TouchableOpacity>
+        
     </View>
 }
 

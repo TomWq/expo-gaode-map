@@ -1,0 +1,39 @@
+{
+  "name": "expo-gaode-map-web-api",
+  "version": "1.0.0-beta.0",
+  "description": "高德地图 Web API 服务 - 搜索、路径规划、地理编码（纯 JavaScript 实现）",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf build",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "amap",
+    "gaode",
+    "web-api",
+    "search",
+    "geocode",
+    "route",
+    "高德地图"
+  ],
+  "repository": "https://github.com/TomWq/expo-gaode-map",
+  "bugs": {
+    "url": "https://github.com/TomWq/expo-gaode-map/issues"
+  },
+  "author": "尚博信_王强 <wangqiang03@sunboxsoft.com> (https://github.com/TomWq)",
+  "license": "MIT",
+  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "react-native": "*"
+  }
+}

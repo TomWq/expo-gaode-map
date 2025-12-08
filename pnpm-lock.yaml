@@ -38,6 +38,9 @@ importers:
       expo-gaode-map-search:
         specifier: workspace:*
         version: link:../packages/search
+      expo-gaode-map-web-api:
+        specifier: workspace:*
+        version: link:../packages/web-api
       expo-router:
         specifier: ^6.0.17
         version: 6.0.17(c43848d742ea4d419564d40d1e9b86aa)
@@ -75,6 +78,9 @@ importers:
       expo-gaode-map-navigation:
         specifier: ../packages/navigation
         version: link:../packages/navigation
+      expo-gaode-map-web-api:
+        specifier: workspace:*
+        version: link:../packages/web-api
       expo-linking:
         specifier: ~8.0.10
         version: 8.0.10(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -202,6 +208,19 @@ importers:
       react-native:
         specifier: 0.81.5
         version: 0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/web-api:
+    dependencies:
+      react-native:
+        specifier: '*'
+        version: 0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
+    devDependencies:
+      '@types/react':
+        specifier: ~19.1.0
+        version: 19.1.17
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

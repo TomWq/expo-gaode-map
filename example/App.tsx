@@ -15,8 +15,10 @@ import { Image, StyleSheet, View, Text, Button, Alert, Platform, ScrollView, Tou
 import RandomMarkersExample from './RandomMarkersExample';
 import OptionalModuleDemo from './OptionalModuleDemo';
 import SearchModuleTest from './SearchModuleTest';
-
-
+import WebAPIExample from './WebAPIExample';
+import PIOSearchExample from '../navigation-example/route-examples/POISearchExample';
+import POISearchMapExample from '../navigation-example/route-examples/POISearchMapExample';
+import RouteExamplesMenu from '../navigation-example/route-examples/RouteExamplesMenu';
 
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
@@ -25,9 +27,11 @@ export default function App() {
   const [showRandomMarkers, setShowRandomMarkers] = useState(false);
   const [showOptionalModuleDemo, setShowOptionalModuleDemo] = useState(false);
   const [showSearchTest, setShowSearchTest] = useState(false);
+  const [showWebAPITest, setShowWebAPITest] = useState(false);
 
-
-
+  const [showRouteExamples, setShowRouteExamples] = useState(false);
+  const [showPOIExamples, setShowPOIExamples] = useState(false);
+  const [showPOIMapExample, setShowPOIMapExample] = useState(false);
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -361,7 +365,65 @@ export default function App() {
     );
   }
 
+
+  if(showPOIExamples){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowPOIExamples(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <PIOSearchExample />
+      </View>
+    );
+  }
+
+  if(showPOIMapExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowPOIMapExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <POISearchMapExample />
+      </View>
+    );
+  }
+
+  // 如果显示路径规划示例
+  if(showRouteExamples){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowRouteExamples(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <RouteExamplesMenu />
+      </View>
+    );
+  }
   
+
+  // 如果显示 Web API 测试页面
+  if (showWebAPITest) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowWebAPITest(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <WebAPIExample />
+      </View>
+    );
+  }
 
   // 如果显示搜索测试页面
   if (showSearchTest) {
@@ -399,7 +461,33 @@ export default function App() {
       <View style={styles.headerContainer}>
         <Text style={styles.title}>高德地图完整示例</Text>
         <View style={styles.exampleButtonContainer}>
-         
+          <TouchableOpacity
+            style={styles.exampleButton}
+            onPress={() => setShowRouteExamples(true)}
+          >
+            <Text style={styles.exampleButtonText}>🚗 路径规划示例</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.exampleButton}
+            onPress={() => setShowPOIExamples(true)}
+          >
+            <Text style={styles.exampleButtonText}>📍 POI 搜索</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#4CAF50' }]}
+            onPress={() => setShowPOIMapExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>🗺️ POI+地图</Text>
+          </TouchableOpacity>
+
+          {/* <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
+            onPress={() => setShowWebAPITest(true)}
+          >
+            <Text style={styles.exampleButtonText}>🌐 Web API</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={[styles.exampleButton, { backgroundColor: '#4CAF50' }]}
             onPress={() => setShowSearchTest(true)}
@@ -412,7 +500,7 @@ export default function App() {
             onPress={() => setShowRandomMarkers(true)}
           >
             <Text style={styles.exampleButtonText}>📍 随机标记</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
       
