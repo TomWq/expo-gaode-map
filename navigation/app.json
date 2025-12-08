@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "navigation",
+    "slug": "navigation",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "navigation",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wangqiang.navigation"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.wangqiang.navigation"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-gaode-map-navigation",{
+        "iosApiKey":"56ddc91fcaeeaf8e26f81537b37255d8",
+        "androidApiKey":"778e16e599e6f597b34a42a1ade6293c",
+        "enableLocation":true,
+        "locationDescription":"需要访问您的位置信息以提供地图服务"
+      }]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

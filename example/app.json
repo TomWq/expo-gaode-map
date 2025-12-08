@@ -30,7 +30,7 @@
     },
     "plugins": [
       [
-        "expo-gaode-map",
+        "expo-gaode-map-navigation",
         {
           "iosApiKey": "b07b626eb2ce321df3ff0e9e9371f389",
           "androidApiKey": "8ac9e5983e34398473ecc23fec1d4adc",

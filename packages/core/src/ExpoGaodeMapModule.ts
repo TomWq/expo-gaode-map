@@ -43,6 +43,15 @@ export interface PermissionStatus {
  * 高德地图原生模块类声明
  */
 declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
+  // ==================== 隐私合规管理 ====================
+  
+  /**
+   * 更新隐私合规状态
+   * 必须在用户同意隐私协议后调用
+   * @param hasAgreed 用户是否已同意隐私协议
+   */
+  updatePrivacyCompliance(hasAgreed: boolean): void;
+  
   // ==================== SDK 初始化 ====================
   
   /**

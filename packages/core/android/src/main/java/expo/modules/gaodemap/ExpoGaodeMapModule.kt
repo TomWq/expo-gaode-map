@@ -22,6 +22,17 @@ class ExpoGaodeMapModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMap")
 
+    // ==================== 隐私合规管理 ====================
+    
+    /**
+     * 更新隐私合规状态
+     * 必须在用户同意隐私协议后调用
+     * @param hasAgreed 用户是否已同意隐私协议
+     */
+    Function("updatePrivacyCompliance") { hasAgreed: Boolean ->
+      SDKInitializer.updatePrivacyCompliance(appContext.reactContext!!, hasAgreed)
+    }
+    
     // ==================== SDK 初始化 ====================
     
     /**
@@ -31,8 +42,16 @@ class ExpoGaodeMapModule : Module() {
     Function("initSDK") { config: Map<String, String> ->
       val androidKey = config["androidKey"]
       if (androidKey != null) {
-        SDKInitializer.initSDK(appContext.reactContext!!, androidKey)
-        getLocationManager() // 初始化定位管理器
+        try {
+          SDKInitializer.initSDK(appContext.reactContext!!, androidKey)
+          getLocationManager() // 初始化定位管理器
+        } catch (e: SecurityException) {
+          android.util.Log.e("ExpoGaodeMap", "隐私协议未同意: ${e.message}")
+          throw e
+        } catch (e: Exception) {
+          android.util.Log.e("ExpoGaodeMap", "SDK 初始化失败: ${e.message}")
+          throw e
+        }
       }
     }
 
@@ -50,6 +69,12 @@ class ExpoGaodeMapModule : Module() {
      * 开始连续定位
      */
     Function("start") {
+      // 检查隐私协议状态
+      if (!SDKInitializer.isPrivacyAgreed()) {
+        android.util.Log.w("ExpoGaodeMap", "用户未同意隐私协议，无法开始定位")
+        throw expo.modules.kotlin.exception.CodedException("用户未同意隐私协议，无法开始定位")
+      }
+      
       getLocationManager().start()
     }
     
@@ -73,6 +98,12 @@ class ExpoGaodeMapModule : Module() {
      * @return 位置信息对象
      */
     AsyncFunction("getCurrentLocation") { promise: expo.modules.kotlin.Promise ->
+      // 检查隐私协议状态
+      if (!SDKInitializer.isPrivacyAgreed()) {
+        promise.reject("PRIVACY_NOT_AGREED", "用户未同意隐私协议，无法获取位置", null)
+        return@AsyncFunction
+      }
+      
       getLocationManager().getCurrentLocation(promise)
     }
 

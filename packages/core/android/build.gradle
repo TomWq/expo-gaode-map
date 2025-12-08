@@ -43,7 +43,6 @@ android {
 }
 
 dependencies {
-
-    implementation 'com.amap.api:3dmap:10.0.600'
-
+    // 高德地图 3D SDK
+    implementation ('com.amap.api:3dmap:latest.integration')
 }

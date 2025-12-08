@@ -16,16 +16,46 @@ public class ExpoGaodeMapModule: Module {
     private var locationManager: LocationManager?
     /// 权限管理器实例
     private var permissionManager: PermissionManager?
+    /// 隐私协议是否已同意（模块级别跟踪）
+    private static var privacyAgreed: Bool = false
     
     public func definition() -> ModuleDefinition {
         Name("ExpoGaodeMap")
         
-        // 模块初始化时设置隐私合规
+        // 模块初始化时不设置隐私合规
+        // 需要在用户同意隐私协议后手动调用 updatePrivacyCompliance 方法
         OnCreate {
-            MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+            // 仅更新隐私信息显示状态，不表示用户已同意
             MAMapView.updatePrivacyShow(AMapPrivacyShowStatus.didShow, privacyInfo: AMapPrivacyInfoStatus.didContain)
-
-      
+            print("ℹ️ ExpoGaodeMap: 隐私信息已更新，但需要用户同意隐私协议才能使用 SDK")
+        }
+        
+        // ==================== 隐私合规管理 ====================
+        
+        /**
+         * 更新隐私合规状态
+         * 必须在用户同意隐私协议后调用
+         */
+        Function("updatePrivacyCompliance") { (hasAgreed: Bool) in
+            ExpoGaodeMapModule.privacyAgreed = hasAgreed
+            if hasAgreed {
+                MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+                print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK")
+                
+                // 在用户同意后，如果尚未设置 API Key，则尝试从 Info.plist 读取并设置
+                if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
+                    if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
+                        AMapServices.shared().apiKey = plistKey
+                        AMapServices.shared().enableHTTPS = true
+                        print("✅ ExpoGaodeMap: 从 Info.plist 读取并设置 AMapApiKey 成功")
+                    } else {
+                        print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey，后续需通过 initSDK 提供 iosKey")
+                    }
+                }
+            } else {
+                MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.notAgree)
+                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限")
+            }
         }
         
         // ==================== SDK 初始化 ====================
@@ -35,10 +65,37 @@ public class ExpoGaodeMapModule: Module {
          * @param config 配置字典,包含 iosKey
          */
         Function("initSDK") { (config: [String: String]) in
-            guard let iosKey = config["iosKey"] else { return }
-            AMapServices.shared().apiKey = iosKey
+            // 检查是否已同意隐私协议
+            if !ExpoGaodeMapModule.privacyAgreed {
+                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法初始化 SDK")
+                return
+            }
+            
+            // 1) 优先使用传入的 iosKey；2) 否则回退读取 Info.plist 的 AMapApiKey
+            let providedKey = config["iosKey"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            var finalKey: String? = (providedKey?.isEmpty == false) ? providedKey : nil
+            if finalKey == nil {
+                if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
+                    finalKey = plistKey
+                    print("ℹ️ ExpoGaodeMap: initSDK 未提供 iosKey，已从 Info.plist 使用 AMapApiKey")
+                }
+            }
+            
+            guard let keyToUse = finalKey, !keyToUse.isEmpty else {
+                print("⚠️ ExpoGaodeMap: 未提供 iosKey 且 Info.plist 中也无 AMapApiKey，无法初始化 SDK")
+                return
+            }
+            
+            // 设置 API Key（若与现有不同或尚未设置）
+            if AMapServices.shared().apiKey != keyToUse {
+                AMapServices.shared().apiKey = keyToUse
+            }
             AMapServices.shared().enableHTTPS = true
+            
+            // 初始化定位管理器（触发原生侧懒加载）
             self.getLocationManager()
+            
+            print("✅ ExpoGaodeMap: 已设置 API Key 并完成初始化（来源：\(providedKey != nil ? "入参 iosKey" : "Info.plist")）")
         }
         
         /**
@@ -54,6 +111,18 @@ public class ExpoGaodeMapModule: Module {
          * 开始连续定位
          */
         Function("start") {
+            // 检查隐私协议状态
+            if !ExpoGaodeMapModule.privacyAgreed {
+                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法开始定位")
+                return
+            }
+            
+            // 检查是否已设置 API Key
+            if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
+                print("⚠️ ExpoGaodeMap: 未设置 API Key，无法开始定位")
+                return
+            }
+            
             self.getLocationManager().start()
         }
         
@@ -76,6 +145,18 @@ public class ExpoGaodeMapModule: Module {
          * 返回位置信息和逆地理编码结果
          */
         AsyncFunction("getCurrentLocation") { (promise: Promise) in
+            // 检查隐私协议状态
+            if !ExpoGaodeMapModule.privacyAgreed {
+                promise.reject("PRIVACY_NOT_AGREED", "用户未同意隐私协议，无法获取位置")
+                return
+            }
+            
+            // 检查是否已设置 API Key
+            if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
+                promise.reject("API_KEY_NOT_SET", "未设置 API Key，无法获取位置")
+                return
+            }
+            
             let status = CLLocationManager.authorizationStatus()
             
             if status == .authorizedAlways || status == .authorizedWhenInUse {

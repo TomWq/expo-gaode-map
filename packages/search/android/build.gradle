@@ -41,9 +41,10 @@ android {
 }
 
 dependencies {
-    //不要升级 升级会导致无法使用
+
+    // 引入搜索 SDK
+    // 不要升级 升级会导致无法使用
     implementation('com.amap.api:search:9.4.0') {
 
-  }
-
+    }
 }

@@ -16,12 +16,18 @@ import RandomMarkersExample from './RandomMarkersExample';
 import OptionalModuleDemo from './OptionalModuleDemo';
 import SearchModuleTest from './SearchModuleTest';
 
+
+
+
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
 export default function App() {
   const [showRandomMarkers, setShowRandomMarkers] = useState(false);
   const [showOptionalModuleDemo, setShowOptionalModuleDemo] = useState(false);
   const [showSearchTest, setShowSearchTest] = useState(false);
+
+
+
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -68,14 +74,21 @@ export default function App() {
   }>>([]);
   const polygonIdCounter = useRef(0);
 
+  // 隐私协议状态：未同意前不初始化、不渲染地图
+  const [privacyAgreed, setPrivacyAgreed] = useState(true);
+
   useEffect(() => {
     const init = async () => {
       try {
+        if (!privacyAgreed) return;
+        ExpoGaodeMapModule.updatePrivacyCompliance(true);
+        // 初始化 SDK（iOS 若 Info.plist 已配置可不传 iosKey）
         ExpoGaodeMapModule.initSDK({
           androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
           iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
         });
         
+        // 检查定位权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();
         if (!status.granted) {
           const result = await ExpoGaodeMapModule.requestLocationPermission();
@@ -109,14 +122,38 @@ export default function App() {
         return () => {
           subscription.remove();
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error('初始化失败:', error);
+        if (error?.code === 'PRIVACY_NOT_AGREED') {
+          Alert.alert('错误', '请先同意隐私协议');
+        } else if (error?.code === 'API_KEY_NOT_SET') {
+          Alert.alert('错误', '未设置 API Key');
+        } else {
+          Alert.alert('错误', `初始化失败: ${error?.message || error}`);
+        }
         setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 15 });
       }
     };
 
     init();
-  }, []);
+  }, [privacyAgreed]);
+
+  // 隐私协议交互
+  const handleAgreePrivacy = () => {
+    try {
+      // 用户明确同意后，先更新隐私合规状态，再触发初始化流程
+      ExpoGaodeMapModule.updatePrivacyCompliance(true);
+      setPrivacyAgreed(true);
+    } catch {
+      Alert.alert('错误', '设置隐私协议状态失败');
+    }
+  };
+
+  const handleDeclinePrivacy = () => {
+    ExpoGaodeMapModule.updatePrivacyCompliance(false);
+    setPrivacyAgreed(false);
+    Alert.alert('提示', '未同意隐私协议，地图与定位功能不可用');
+  };
 
   const handleGetLocation = async () => {
     try {
@@ -298,6 +335,24 @@ export default function App() {
   };
 
 
+  // 未同意隐私协议前展示引导页
+  if (!privacyAgreed) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>隐私协议</Text>
+        <View style={{ padding: 16 }}>
+          <Text style={styles.testDescription}>
+            使用地图与定位功能前，请阅读并同意隐私政策。我们将用于提供地图显示、定位导航等服务。
+          </Text>
+          <View style={{ height: 10 }} />
+          <Button title="不同意" color="#9E9E9E" onPress={handleDeclinePrivacy} />
+          <View style={{ height: 10 }} />
+          <Button title="同意并继续" color="#4CAF50" onPress={handleAgreePrivacy} />
+        </View>
+      </View>
+    );
+  }
+
   if (!initialPosition) {
     return (
       <View style={styles.container}>
@@ -305,6 +360,8 @@ export default function App() {
       </View>
     );
   }
+
+  
 
   // 如果显示搜索测试页面
   if (showSearchTest) {
@@ -321,20 +378,6 @@ export default function App() {
     );
   }
 
-  // 如果显示可选模块演示,则渲染该组件
-  if (showOptionalModuleDemo) {
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.switchButton}
-          onPress={() => setShowOptionalModuleDemo(false)}
-        >
-          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
-        </TouchableOpacity>
-        <OptionalModuleDemo />
-      </View>
-    );
-  }
 
   // 如果显示随机标记示例,则渲染该组件
   if (showRandomMarkers) {
@@ -356,18 +399,14 @@ export default function App() {
       <View style={styles.headerContainer}>
         <Text style={styles.title}>高德地图完整示例</Text>
         <View style={styles.exampleButtonContainer}>
+         
           <TouchableOpacity
             style={[styles.exampleButton, { backgroundColor: '#4CAF50' }]}
             onPress={() => setShowSearchTest(true)}
           >
             <Text style={styles.exampleButtonText}>🔍 搜索测试</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
-            onPress={() => setShowOptionalModuleDemo(true)}
-          >
-            <Text style={styles.exampleButtonText}>🔌 模块演示</Text>
-          </TouchableOpacity>
+          
           <TouchableOpacity
             style={styles.exampleButton}
             onPress={() => setShowRandomMarkers(true)}

@@ -19,12 +19,10 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
-  
-  # 核心依赖 - 3D地图和定位
-  s.dependency 'AMap3DMap', '10.0.600'
+  s.dependency 'AMapFoundation'
   s.dependency 'AMapLocation'
+  s.dependency 'AMap3DMap'
 
-  
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',

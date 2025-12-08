@@ -30,9 +30,7 @@
   "author": "尚博信_王强 <wangqiang03@sunboxsoft.com> (https://github.com/TomWq)",
   "license": "MIT",
   "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
-  "dependencies": {
-    "expo-gaode-map": "^2.1.0-beta.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo": "^54.0.18",
@@ -42,13 +40,7 @@
   },
   "peerDependencies": {
     "expo": "*",
-    "expo-gaode-map": ">=2.0.0",
     "react": "*",
     "react-native": "*"
-  },
-  "peerDependenciesMeta": {
-    "expo-gaode-map": {
-      "optional": false
-    }
   }
 }

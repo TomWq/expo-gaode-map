@@ -1,6 +1,5 @@
 import {
   ConfigPlugin,
-  withAppDelegate,
   withInfoPlist,
   withAndroidManifest,
   withAppBuildGradle,
@@ -61,40 +60,14 @@ const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props)
 };
 
 /**
- * iOS: 修改 AppDelegate 添加初始化代码
+ * iOS: 注意 - 不再需要修改 AppDelegate
+ *
+ * 高德地图 SDK 已经支持从 Info.plist 自动读取 API Key
+ * 并且我们在 ExpoGaodeMapModule.swift 中提供了 initSDK 方法
+ * 用户可以选择以下任一方式初始化：
+ * 1. 通过 Info.plist 中的 AMapApiKey 字段（自动读取）
+ * 2. 通过 JavaScript 调用 ExpoGaodeMap.initSDK({ iosKey: 'your-key' })
  */
-const withGaodeMapAppDelegate: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
-  return withAppDelegate(config, (config) => {
-    if (!props.iosApiKey) {
-      return config;
-    }
-
-    let contents = config.modResults.contents;
-
-    // 添加 import 语句
-    if (!contents.includes('#import <AMapFoundationKit/AMapFoundationKit.h>')) {
-      // 在 #import "AppDelegate.h" 之后添加
-      contents = contents.replace(
-        /#import "AppDelegate.h"/g,
-        `#import "AppDelegate.h"\n#import <AMapFoundationKit/AMapFoundationKit.h>`
-      );
-    }
-
-    // 在 didFinishLaunchingWithOptions 方法中添加初始化代码
-    const initCode = `  [AMapServices sharedServices].apiKey = @"${props.iosApiKey}";`;
-    
-    if (!contents.includes(initCode)) {
-      // 在 didFinishLaunchingWithOptions 方法的开始处添加
-      contents = contents.replace(
-        /(- \(BOOL\)application:\(UIApplication \*\)application didFinishLaunchingWithOptions:\(NSDictionary \*\)launchOptions\s*\{)/g,
-        `$1\n${initCode}`
-      );
-    }
-
-    config.modResults.contents = contents;
-    return config;
-  });
-};
 
 /**
  * Android: 修改 AndroidManifest.xml 添加 API Key 和权限
@@ -217,7 +190,9 @@ const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => 
 
   // 应用 iOS 配置
   config = withGaodeMapInfoPlist(config, props);
-  config = withGaodeMapAppDelegate(config, props);
+  // 注意：不再需要修改 AppDelegate，因为：
+  // 1. SDK 会自动从 Info.plist 读取 AMapApiKey
+  // 2. 可以通过 ExpoGaodeMapModule.initSDK() 方法初始化
 
   // 应用 Android 配置
   config = withGaodeMapAndroidManifest(config, props);
