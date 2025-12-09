@@ -32,6 +32,13 @@ class ExpoGaodeMapModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("NaviMap")
 
+    // 在模块加载时尝试从本地缓存恢复隐私同意状态，避免每次启动都必须 JS 调用
+    try {
+      SDKInitializer.restorePrivacyState(appContext.reactContext!!)
+    } catch (e: Exception) {
+      android.util.Log.w("ExpoGaodeMap", "恢复隐私状态时出现问题: ${e.message}")
+    }
+ 
     // ==================== 隐私合规管理 ====================
     
     /**

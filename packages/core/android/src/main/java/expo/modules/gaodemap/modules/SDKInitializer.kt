@@ -1,12 +1,13 @@
 package expo.modules.gaodemap.modules
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
 
 /**
  * SDK 初始化管理器
- * 
+ *
  * 负责:
  * - 初始化高德地图 SDK
  * - 初始化高德定位 SDK
@@ -15,8 +16,14 @@ import com.amap.api.maps.MapsInitializer
  */
 object SDKInitializer {
     
-    /** 隐私协议是否已同意 */
+    /** 隐私协议是否已同意（进程内缓存） */
     private var privacyAgreed = false
+
+    private const val PREFS_NAME = "expo_gaode_map_prefs"
+    private const val KEY_PRIVACY_AGREED = "privacy_agreed"
+
+    private fun prefs(context: Context): SharedPreferences =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
     /**
      * 更新隐私合规状态
@@ -42,8 +49,36 @@ object SDKInitializer {
             AMapLocationClient.updatePrivacyAgree(context, false)
             android.util.Log.w("ExpoGaodeMap", "⚠️ 用户未同意隐私协议，SDK 功能将受限")
         }
+
+        // 持久化状态，供下次启动自动恢复
+        try {
+            prefs(context).edit().putBoolean(KEY_PRIVACY_AGREED, hasAgreed).apply()
+        } catch (e: Exception) {
+            android.util.Log.w("ExpoGaodeMap", "持久化隐私状态失败: ${e.message}")
+        }
     }
     
+    /**
+     * 从本地存储恢复隐私合规状态（在应用启动或模块加载时调用）
+     * 若无记录则保持默认 false，不抛出异常。
+     */
+    fun restorePrivacyState(context: Context) {
+        try {
+            val saved = prefs(context).getBoolean(KEY_PRIVACY_AGREED, false)
+            privacyAgreed = saved
+
+            // 同步到 SDK
+            MapsInitializer.updatePrivacyShow(context, true, true)
+            AMapLocationClient.updatePrivacyShow(context, true, true)
+            MapsInitializer.updatePrivacyAgree(context, saved)
+            AMapLocationClient.updatePrivacyAgree(context, saved)
+
+            android.util.Log.d("ExpoGaodeMap", "🔁 已从缓存恢复隐私状态: $saved")
+        } catch (e: Exception) {
+            android.util.Log.w("ExpoGaodeMap", "恢复隐私状态失败: ${e.message}")
+        }
+    }
+
     /**
      * 检查隐私协议是否已同意
      *
@@ -79,7 +114,7 @@ object SDKInitializer {
 
     /**
      * 获取 SDK 版本号
-     * 
+     *
      * @return SDK 版本字符串
      */
     fun getVersion(): String {
