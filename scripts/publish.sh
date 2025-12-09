@@ -102,6 +102,59 @@ bump_version() {
   node -e "const cur='$1',f='$2';const p=cur.split(/[.-]/);function out(){console.log(p.slice(0,3).join('.'))};if(f==='patch'){p[2]=String(Number(p[2])+1);out()}else if(f==='minor'){p[1]=String(Number(p[1])+1);p[2]='0';out()}else if(f==='major'){p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';out()}else if(f.startsWith('prerelease')){const id=f.split('--preid=')[1]||'next';p[2]=String(Number(p[2])+1);console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('preminor')){const id=f.split('--preid=')[1]||'next';p[1]=String(Number(p[1])+1);p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('premajor')){const id=f.split('--preid=')[1]||'next';p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}"
 }
 
+# 版本是否已存在（查询 npm registry）
+version_exists() {
+  local name="$1"
+  local ver="$2"
+  npm view "${name}@${ver}" version > /dev/null 2>&1
+}
+
+# 计算下一个预发布版本（如 1.1.1-next.0 -> 1.1.1-next.1；1.1.1 -> 1.1.1-next.0）
+next_prerelease() {
+  local ver="$1"
+  local preid="$2"
+  if [[ "$ver" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)-([A-Za-z]+)\.([0-9]+)$ ]]; then
+    local major="${BASH_REMATCH[1]}"
+    local minor="${BASH_REMATCH[2]}"
+    local patch="${BASH_REMATCH[3]}"
+    local curid="${BASH_REMATCH[4]}"
+    local num="${BASH_REMATCH[5]}"
+    if [[ "$curid" != "$preid" ]]; then
+      echo "${major}.${minor}.${patch}-${preid}.0"
+    else
+      echo "${major}.${minor}.${patch}-${preid}.$((num+1))"
+    fi
+  else
+    # 非预发布则添加预发布后缀
+    if [[ "$ver" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+      echo "${ver}-${preid}.0"
+    else
+      # 回退策略：直接补丁+预发布
+      node -e "const s='$ver'.split('.');s[2]=String(Number(s[2]||0)+1);console.log(s.slice(0,3).join('.')+'-${preid}.0')"
+    fi
+  fi
+}
+
+# 确保版本在 npm 上唯一：若存在则滚动递增
+ensure_unique_version() {
+  local name="$1"
+  local ver="$2"
+  local preid="$3"
+  local candidate="$ver"
+
+  # 连续检查，直到未被占用
+  while version_exists "$name" "$candidate"; do
+    if [[ -n "$preid" ]]; then
+      candidate="$(next_prerelease "$candidate" "$preid")"
+    else
+      # 正式版：补丁 +1
+      candidate="$(node -e "const s='$candidate'.split('.');s[2]=String(Number(s[2]||0)+1);console.log(s.slice(0,3).join('.'))")"
+    fi
+  done
+
+  echo "$candidate"
+}
+
 publish_core() {
   echo ""
   echo "📦 发布核心包 (expo-gaode-map) [${RELEASE_TAG}]..."
@@ -110,6 +163,7 @@ publish_core() {
   OLD_VERSION=$(node -p "require('./package.json').version")
   echo "计算新版本号..."
   NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(ensure_unique_version "expo-gaode-map" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
@@ -146,6 +200,7 @@ publish_search() {
   
   echo "计算新版本号..."
   NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(ensure_unique_version "expo-gaode-map-search" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
@@ -190,6 +245,7 @@ publish_navigation() {
   
   echo "计算新版本号..."
   NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(ensure_unique_version "expo-gaode-map-navigation" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
@@ -234,6 +290,7 @@ publish_web_api() {
   
   echo "计算新版本号..."
   NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(ensure_unique_version "expo-gaode-map-web-api" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
