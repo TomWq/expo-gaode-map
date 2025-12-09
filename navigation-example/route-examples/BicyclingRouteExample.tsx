@@ -15,7 +15,7 @@ export default function BicyclingRouteExample() {
   const [result, setResult] = useState('');
 
   // 全局已初始化 Key，这里直接构造实例；内部会自动解析全局 webKey
-  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
+  const api = useMemo(() => new GaodeWebAPI(), []);
 
   // 骑行 - 单条路线
   const testBicyclingSingle = async () => {

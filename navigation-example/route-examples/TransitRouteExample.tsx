@@ -17,7 +17,7 @@ export default function TransitRouteExample() {
   const [result, setResult] = useState('');
 
   // 全局已初始化 Key，这里直接构造实例；内部会自动解析全局 webKey
-  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
+  const api = useMemo(() => new GaodeWebAPI(), []);
 
   // 格式化换乘段信息
   const formatSegments = (segments: any[]) => {

@@ -14,7 +14,7 @@
  * import { GaodeWebAPI } from 'expo-gaode-map-web-api';
  *
  * // 创建实例
- * const api = new GaodeWebAPI({ key: 'your-web-api-key' });
+ * const api = new GaodeWebAPI();
  *
  * // 逆地理编码
  * const result = await api.geocode.regeocode('116.481028,39.989643');
@@ -151,7 +151,7 @@ export class GaodeWebAPI {
   /**
    * 创建高德地图 Web API 实例
    *
-   * @param config 配置选项
+   * @param config 配置选项（可选）
    *
    * @example
    * ```typescript
@@ -161,7 +161,7 @@ export class GaodeWebAPI {
    * });
    * ```
    */
- constructor(config: ClientConfig) {
+ constructor(config: ClientConfig = {}) {
    const webKey = resolveWebKey();
    if (!webKey) {
      throw new Error(

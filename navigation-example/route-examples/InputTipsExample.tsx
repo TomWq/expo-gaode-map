@@ -8,7 +8,7 @@ import { GaodeWebAPI, InputTip } from 'expo-gaode-map-web-api';
  */
 export default function InputTipsExample() {
   // 全局已初始化 Key，这里直接构造实例；内部会自动解析全局 webKey
-  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
+  const api = useMemo(() => new GaodeWebAPI(), []);
 
   // 搜索参数
   const [keywords, setKeywords] = useState('');

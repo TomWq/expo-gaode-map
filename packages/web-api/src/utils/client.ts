@@ -4,6 +4,33 @@
 
 import { getErrorInfo, isSuccess, type ErrorInfo } from './errorCodes';
 
+function resolveWebKey(): string | undefined {
+  // 1) 尝试从核心地图包读取
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const core = require('expo-gaode-map');
+    const fn = core?.getWebKey;
+    if (typeof fn === 'function') {
+      return fn();
+    }
+  } catch {
+    // ignore
+  }
+  // 2) 若未安装核心包，则尝试从导航包读取（导航内置地图）
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nav = require('expo-gaode-map-navigation');
+    const fn2 = nav?.getWebKey;
+    if (typeof fn2 === 'function') {
+      return fn2();
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+
 /**
  * 高德地图 API 错误类
  */
@@ -75,8 +102,8 @@ export interface APIError {
  * HTTP 客户端配置
  */
 export interface ClientConfig {
-  /** 高德地图 Web API Key */
-  key: string;
+  /** 高德地图 Web API Key ,默认可以通过 getWebKey 获取，所以不再是必传*/
+  key?: string;
   /** 基础 URL，默认：https://restapi.amap.com */
   baseURL?: string;
   /** 请求超时时间（毫秒），默认：10000 */
@@ -92,7 +119,7 @@ export class GaodeWebAPIClient {
   private timeout: number;
 
   constructor(config: ClientConfig) {
-    this.key = config.key;
+    this.key = config.key || resolveWebKey() || '';
     this.baseURL = config.baseURL || 'https://restapi.amap.com';
     this.timeout = config.timeout || 10000;
   }

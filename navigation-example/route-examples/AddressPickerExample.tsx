@@ -28,7 +28,7 @@ interface Suggestion {
  * 类似外卖 App 的地址选择功能
  */
 export default function AddressPickerExample() {
-  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
+  const api = useMemo(() => new GaodeWebAPI(), []);
   const mapRef = useRef<MapViewRef>(null);
   // 搜索相关
   const [searchText, setSearchText] = useState('');
