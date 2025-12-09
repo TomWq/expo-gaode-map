@@ -1,38 +1,39 @@
 # expo-gaode-map-web-api
 
-高德地图 Web API 服务模块 - 纯 JavaScript 实现，无需原生依赖
+高德地图 Web API 服务模块（纯 JavaScript 实现），提供地理编码、路径规划、POI 搜索、输入提示等服务能力。支持与导航模块或核心地图模块协同，统一在应用初始化时下发 Web 服务 Key，随后直接无参构造使用。
 
 ## 特性
 
-- ✅ **纯 JavaScript 实现**：无需原生编译，跨平台完全一致
-- ✅ **TypeScript 支持**：完整的类型定义
-- ✅ **文档完善**：高德 Web API 文档持续更新
-- ✅ **易于调试**：可以用浏览器或 Postman 直接测试
-- ✅ **零依赖**：只使用标准的 fetch API
+- ✅ 纯 JavaScript：跨平台一致，无原生编译依赖（使用标准 `fetch`）
+- ✅ TypeScript：完整类型定义与错误码映射
+- ✅ 已适配新版 V5 路径规划策略与字段
+- ✅ 与地图/导航模块协作：从基础初始化动态解析 Web Key，支持无参构造
+- ✅ 运行时错误友好：封装 `GaodeAPIError`，提供错误码中文说明与排查建议
 
 ## 已实现功能
 
-### 地理编码服务
-- ✅ 地理编码（地址 → 坐标）
-- ✅ 逆地理编码（坐标 → 地址）
-- ✅ 批量地理编码
-- ✅ 批量逆地理编码
-
-### 路径规划服务
-- ✅ 驾车路径规划
-- ✅ 步行路径规划
-- ✅ 骑行路径规划
-- ✅ 电动车路径规划
-- ✅ 公交路径规划
-
-## 待实现功能
-
-- ⏳ POI 搜索
-- ⏳ 天气查询
-- ⏳ 行政区域查询
+- 地理编码服务
+  - ✅ 地理编码（地址 → 坐标）
+  - ✅ 逆地理编码（坐标 → 地址）
+  - ✅ 批量地理编码 / 批量逆地理编码
+- 路径规划服务（V5）
+  - ✅ 驾车（支持策略、成本、导航步骤、坐标点串等）
+  - ✅ 步行（支持多路线、导航步骤、坐标点串）
+  - ✅ 骑行 / 电动车（含成本与导航步骤）
+  - ✅ 公交（含多策略、跨城、地铁图模式、出入口等）
+- 搜索服务
+  - ✅ POI 搜索（关键字、周边、类型、详情）
+  - ✅ 输入提示（POI/公交站点/公交线路）
 
 ## 安装
 
+本模块要求先安装且初始化基础地图组件（导航模块或核心地图模块其一即可），用于提供 Web API Key：
+
+- 任选其一：
+  - `expo-gaode-map-navigation`（导航一体化，内置地图能力）
+  - `expo-gaode-map`（核心地图）
+
+安装本模块：
 ```bash
 npm install expo-gaode-map-web-api
 # 或
@@ -40,42 +41,46 @@ yarn add expo-gaode-map-web-api
 # 或
 pnpm add expo-gaode-map-web-api
 ```
+注：若未安装上述基础包，安装时或运行时会给出明确提示。
 
 ## 快速开始
 
-### 1. 申请 Web API Key
+### 1. 申请 Web 服务 Key
+- 登录 [高德开放平台控制台](https://console.amap.com/)
+- 创建应用，添加“Web 服务”Key（注意：不是 iOS/Android Key）
 
-1. 登录 [高德开放平台控制台](https://console.amap.com/)
-2. 创建应用
-3. 添加 **Web 服务** Key（注意：不是 iOS/Android Key）
+### 2. 在基础模块初始化时下发 webKey
+以导航模块为例（核心模块同理）：
+```ts
+import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
-### 2. 基础使用
+ExpoGaodeMapModule.initSDK({
+  androidKey: 'your-android-key',
+  iosKey: 'your-ios-key',
+  webKey: 'your-web-api-key', // 关键：供 Web API 包读取
+});
+```
 
-```typescript
+### 3. 无参构造并使用
+```ts
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-// 创建实例
-const api = new GaodeWebAPI({
-  key: 'your-web-api-key',
-});
+// 无参：从基础模块运行时解析 webKey
+const api = new GaodeWebAPI();
 
 // 逆地理编码：坐标 → 地址
 const result = await api.geocode.regeocode('116.481028,39.989643');
 console.log(result.regeocode.formatted_address);
-// 输出：北京市朝阳区阜通东大街6号
 
 // 地理编码：地址 → 坐标
-const result2 = await api.geocode.geocode('北京市朝阳区阜通东大街6号');
-console.log(result2.geocodes[0].location);
-// 输出：116.481028,39.989643
+const geo = await api.geocode.geocode('北京市朝阳区阜通东大街6号');
+console.log(geo.geocodes[0].location);
 
-// 驾车路径规划
-const route = await api.route.driving(
-  '116.481028,39.989643',
-  '116.434446,39.90816'
-);
-console.log(`距离：${route.route.paths[0].distance}米`);
-console.log(`时间：${route.route.paths[0].duration}秒`);
+// 驾车路径规划（V5）
+const route = await api.route.driving('116.481028,39.989643', '116.434446,39.90816', {
+  show_fields: 'cost,navi,polyline',
+});
+console.log(route.route.paths[0].distance);
 ```
 
 ## 详细用法
@@ -196,7 +201,7 @@ import { View, Text } from 'react-native';
 import * as Location from 'expo-location';
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-const api = new GaodeWebAPI({ key: 'your-key' });
+const api = new GaodeWebAPI();
 
 export default function CurrentLocation() {
   const [address, setAddress] = useState('');
@@ -233,10 +238,11 @@ export default function CurrentLocation() {
 ```typescript
 import React, { useState } from 'react';
 import { View, TextInput, Button } from 'react-native';
-import { MapView, Marker } from 'expo-gaode-map';
+// 如在“导航一体化模块”渲染地图，推荐：
+import { MapView, Marker } from 'expo-gaode-map-navigation';
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-const api = new GaodeWebAPI({ key: 'your-key' });
+const api = new GaodeWebAPI();
 
 export default function SearchMap() {
   const [address, setAddress] = useState('');
@@ -460,15 +466,17 @@ result.route.transits.forEach((transit, index) => {
 #### 构造函数
 
 ```typescript
-new GaodeWebAPI(config: ClientConfig)
+new GaodeWebAPI(config?: ClientConfig)
 ```
+
+- 若未传 `config.key`，会自动从基础模块（`expo-gaode-map` 或 `expo-gaode-map-navigation`）的初始化中解析 `webKey`，未解析到时会抛出明确错误。
 
 #### 配置选项
 
 ```typescript
 interface ClientConfig {
-  /** Web API Key */
-  key: string;
+  /** Web API Key（可选；通常从基础模块解析） */
+  key?: string;
   /** 基础URL，默认：https://restapi.amap.com */
   baseURL?: string;
   /** 请求超时（毫秒），默认：10000 */
@@ -494,6 +502,29 @@ interface ClientConfig {
 **工具方法**
 - `setKey(key)` - 更新 API Key
 - `getKey()` - 获取当前 API Key
+
+### 服务清单
+
+- geocode - 地理编码服务
+  - `regeocode()` - 逆地理编码
+  - `geocode()` - 地理编码
+  - `batchRegeocode()` - 批量逆地理编码
+  - `batchGeocode()` - 批量地理编码
+- route - 路径规划服务（V5）
+  - `driving()` - 驾车路径规划
+  - `walking()` - 步行路径规划
+  - `bicycling()` - 骑行路径规划
+  - `electricBike()` - 电动车路径规划
+  - `transit()` - 公交路径规划
+- poi - POI 搜索
+  - `search()` - 关键字搜索
+  - `searchAround()` - 周边搜索
+  - `getDetail()` - 详情
+- inputTips - 输入提示
+  - `getTips()` - 基础提示
+  - `getPOITips()` - POI 类型提示
+  - `getBusTips()` - 公交站点提示
+  - `getBuslineTips()` - 公交线路提示
 
 ### 逆地理编码参数详解
 
@@ -615,17 +646,17 @@ try {
 
 ## 注意事项
 
-1. **Key 类型**：必须使用 Web 服务 Key，不能使用 iOS/Android Key
-2. **配额限制**：个人开发者每天30万次免费额度
-3. **坐标格式**：经度在前，纬度在后（经度,纬度）
-4. **网络请求**：需要网络连接，无法离线使用
-5. **跨域问题**：Web 端可能遇到跨域，建议使用代理或服务端请求
+1. Key 类型：必须使用 Web 服务 Key（非 iOS/Android Key）
+2. 初始化：建议在 `expo-gaode-map` 或 `expo-gaode-map-navigation` 中通过 `initSDK({ webKey })` 下发，随后本包可无参构造
+3. 配额限制：请参考高德控制台额度与 QPS 限制
+4. 坐标格式：经度在前，纬度在后（经度,纬度）
+5. 网络请求：需要网络连接，无法离线使用；Web 端可能遇到跨域，建议代理或服务端请求
 
 ## 相关资源
 
-- [高德地图 Web API 文档](https://lbs.amap.com/api/webservice/summary)
-- [expo-gaode-map 核心模块](../core)
-- [expo-gaode-map-navigation 导航模块](../navigation)
+- 高德地图 Web API 文档：https://lbs.amap.com/api/webservice/summary
+- 导航一体化模块（推荐渲染地图并下发 key）：`expo-gaode-map-navigation`
+- 核心地图模块：`expo-gaode-map`
 
 ## License
 

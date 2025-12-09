@@ -31,8 +31,17 @@
   "author": "尚博信_王强 <wangqiang03@sunboxsoft.com> (https://github.com/TomWq)",
   "license": "MIT",
   "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
-  "dependencies": {
-    "expo-gaode-map": "^2.2.2-next.0"
+  "files": [
+    "build/**/*",
+    "src/**/*",
+    "android/**/*",
+    "ios/**/*",
+    "expo-module.config.json",
+    "README.md",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

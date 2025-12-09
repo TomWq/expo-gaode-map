@@ -26,8 +26,10 @@ import AddressPickerNativeExample from '../navigation-example/route-examples/Add
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 
-// 集中管理 Web API Key（演示用途，生产请通过服务端/环境变量注入）
-const WEB_API_KEY = 'e9d912a302e6460222ad0bc1e38034bf';
+// 从环境变量读取 Key（示例）。生产请用 EXPO_PUBLIC_ 前缀或远端下发
+const WEB_API_KEY = process.env.EXPO_PUBLIC_AMAP_WEB_KEY;
+const ANDROID_KEY = process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY;
+const IOS_KEY = process.env.EXPO_PUBLIC_AMAP_IOS_KEY;
 
 export default function App() {
   const [showRandomMarkers, setShowRandomMarkers] = useState(false);
@@ -97,12 +99,12 @@ export default function App() {
       try {
         if (!privacyAgreed) return;
         ExpoGaodeMapModule.updatePrivacyCompliance(true);
-        // 初始化 SDK（iOS 若 Info.plist 已配置可不传 iosKey）
-        ExpoGaodeMapModule.initSDK({
-          androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
-          iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
-          webKey: WEB_API_KEY,
-        });
+        // 初始化 SDK（建议通过 config-plugin/原生清单注入安卓/iOS Key）
+        const sdkConfig: Record<string, string> = {};
+        if (ANDROID_KEY) sdkConfig.androidKey = ANDROID_KEY;
+        if (IOS_KEY) sdkConfig.iosKey = IOS_KEY;
+        if (WEB_API_KEY) sdkConfig.webKey = WEB_API_KEY;
+        ExpoGaodeMapModule.initSDK(sdkConfig);
         
         // 检查定位权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();
