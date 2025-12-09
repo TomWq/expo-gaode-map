@@ -1,34 +1,23 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI, TransitStrategy } from 'expo-gaode-map-web-api';
 
 /**
  * 公交路径规划示例
- * 展示新版 V5 API 的各种策略和参数
+ * 依赖全局初始化的 Web API Key（在 example/App.tsx 中初始化）
  */
 export default function TransitRouteExample() {
-  const [apiKey, setApiKey] = useState('');
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
-  
   // 起点终点
   const [origin, setOrigin] = useState('116.481028,39.989643'); // 望京
   const [destination, setDestination] = useState('116.397477,39.908692'); // 天安门
   const [city1, setCity1] = useState('010'); // 北京 citycode
   const [city2, setCity2] = useState('010');
-  
+
   // 结果
   const [result, setResult] = useState('');
 
-  // 初始化 API
-  const handleInitialize = () => {
-    if (!apiKey.trim()) {
-      Alert.alert('错误', '请输入 Web API Key');
-      return;
-    }
-    const newApi = new GaodeWebAPI({ key: apiKey });
-    setApi(newApi);
-    Alert.alert('成功', 'API 初始化成功');
-  };
+  // 全局已初始化 Key，这里直接构造实例；内部会自动解析全局 webKey
+  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
 
   // 格式化换乘段信息
   const formatSegments = (segments: any[]) => {
@@ -66,11 +55,6 @@ export default function TransitRouteExample() {
 
   // 策略 0：推荐模式
   const testRecommended = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.RECOMMENDED,
@@ -87,7 +71,7 @@ export default function TransitRouteExample() {
       const duration = costInfo?.duration ? Math.floor(parseInt(costInfo.duration) / 60) : 0;
       const fee = costInfo?.transit_fee || '0';
 
-      console.log('换乘方案：',JSON.stringify(transit.segments));
+      console.log('换乘方案：', JSON.stringify(transit.segments));
       
       setResult(`
 🚌 推荐模式（策略0）
@@ -109,11 +93,6 @@ ${formatSegments(transit.segments)}
 
   // 策略 1：最经济模式
   const testCheapest = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.CHEAPEST,
@@ -144,11 +123,6 @@ ${formatSegments(transit.segments)}
 
   // 策略 2：最少换乘模式
   const testLeastTransfer = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.LEAST_TRANSFER,
@@ -181,11 +155,6 @@ ${formatSegments(transit.segments)}
 
   // 策略 3：最少步行模式
   const testLeastWalk = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.LEAST_WALK,
@@ -216,11 +185,6 @@ ${formatSegments(transit.segments)}
 
   // 策略 5：不乘地铁模式
   const testNoSubway = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.NO_SUBWAY,
@@ -251,11 +215,6 @@ ${formatSegments(transit.segments)}
 
   // 策略 7：地铁优先模式
   const testSubwayFirst = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.SUBWAY_FIRST,
@@ -286,11 +245,6 @@ ${formatSegments(transit.segments)}
 
   // 策略 8：时间短模式
   const testTimeFirst = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.TIME_FIRST,
@@ -321,11 +275,6 @@ ${formatSegments(transit.segments)}
 
   // 多方案对比
   const testMultipleRoutes = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.transit(origin, destination, city1, city2, {
         strategy: TransitStrategy.RECOMMENDED,
@@ -373,35 +322,24 @@ ${debugInfo}
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🚌 公交路径规划示例</Text>
 
-      {/* 初始化 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. 初始化 API</Text>
-        <TextInput
-          style={styles.input}
-          value={apiKey}
-          onChangeText={setApiKey}
-          placeholder="输入 Web API Key"
-          secureTextEntry
-        />
-        <Button title="初始化" onPress={handleInitialize} />
-      </View>
-
       {/* 起点终点 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. 设置起点终点</Text>
-        <TextInput
-          style={styles.input}
-          value={origin}
-          onChangeText={setOrigin}
-          placeholder="起点坐标（经度,纬度）"
-        />
-        <TextInput
-          style={styles.input}
-          value={destination}
-          onChangeText={setDestination}
-          placeholder="终点坐标（经度,纬度）"
-        />
+        <Text style={styles.sectionTitle}>1. 设置起点终点</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            value={origin}
+            onChangeText={setOrigin}
+            placeholder="起点坐标（经度,纬度）"
+          />
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            value={destination}
+            onChangeText={setDestination}
+            placeholder="终点坐标（经度,纬度）"
+          />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
           <TextInput
             style={[styles.input, { flex: 1 }]}
             value={city1}
@@ -422,73 +360,65 @@ ${debugInfo}
 
       {/* 基础策略 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>3. 基础策略</Text>
+        <Text style={styles.sectionTitle}>2. 基础策略</Text>
         
         <View style={styles.buttonGroup}>
           <Button
             title="策略0：推荐模式"
             onPress={testRecommended}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略1：最经济"
             onPress={testCheapest}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略2：最少换乘"
             onPress={testLeastTransfer}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略3：最少步行"
             onPress={testLeastWalk}
-            disabled={!api}
           />
         </View>
       </View>
 
       {/* 地铁相关策略 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>4. 地铁相关策略</Text>
+        <Text style={styles.sectionTitle}>3. 地铁相关策略</Text>
         
         <View style={styles.buttonGroup}>
           <Button
             title="策略5：不乘地铁"
             onPress={testNoSubway}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略7：地铁优先"
             onPress={testSubwayFirst}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略8：时间短"
             onPress={testTimeFirst}
-            disabled={!api}
           />
         </View>
       </View>
 
       {/* 多方案 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>5. 多方案对比</Text>
+        <Text style={styles.sectionTitle}>4. 多方案对比</Text>
         
         <Button
           title="返回3个方案对比"
           onPress={testMultipleRoutes}
-          disabled={!api}
         />
         
         <Text style={styles.hint}>

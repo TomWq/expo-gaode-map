@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI, POIInfo } from 'expo-gaode-map-web-api';
 import { MapView, Marker } from 'expo-gaode-map';
 
 /**
  * POI 搜索 + 地图标记示例
- * 搜索结果会在地图上显示标记
+ * 依赖全局初始化的 Web API Key（在 example/App.tsx 中初始化）
  */
 export default function POISearchMapExample() {
-  const [apiKey, setApiKey] = useState('');
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
-  
+  // 全局已初始化 Key，这里直接构造实例；内部会自动解析全局 webKey
+  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
+
   // 搜索参数
   const [keywords, setKeywords] = useState('肯德基');
   const [region, setRegion] = useState('北京市');
@@ -30,17 +30,6 @@ export default function POISearchMapExample() {
   const [resultCount, setResultCount] = useState(0);
   const [selectedPOI, setSelectedPOI] = useState<POIInfo | null>(null);
 
-  // 初始化 API
-  const handleInitialize = () => {
-    if (!apiKey.trim()) {
-      Alert.alert('错误', '请输入 Web API Key');
-      return;
-    }
-    const newApi = new GaodeWebAPI({ key: apiKey });
-    setApi(newApi);
-    Alert.alert('成功', 'API 初始化成功');
-  };
-
   // 解析坐标字符串
   const parseLocation = (locationStr: string): { latitude: number; longitude: number } => {
     const [lng, lat] = locationStr.split(',').map(Number);
@@ -49,11 +38,6 @@ export default function POISearchMapExample() {
 
   // 关键字搜索
   const testKeywordSearch = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.poi.search(keywords, {
         region,
@@ -90,11 +74,6 @@ export default function POISearchMapExample() {
 
   // 周边搜索
   const testAroundSearch = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.poi.searchAround(location, {
         keywords,
@@ -190,22 +169,9 @@ export default function POISearchMapExample() {
 
       {/* 控制面板 */}
       <ScrollView style={styles.controlPanel}>
-        {/* 初始化 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. 初始化 API</Text>
-          <TextInput
-            style={styles.input}
-            value={apiKey}
-            onChangeText={setApiKey}
-            placeholder="输入 Web API Key"
-            secureTextEntry
-          />
-          <Button title="初始化" onPress={handleInitialize} />
-        </View>
-
         {/* 关键字搜索 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. 关键字搜索</Text>
+          <Text style={styles.sectionTitle}>1. 关键字搜索</Text>
           <TextInput
             style={styles.input}
             value={keywords}
@@ -221,13 +187,12 @@ export default function POISearchMapExample() {
           <Button
             title="🔍 搜索并标记"
             onPress={testKeywordSearch}
-            disabled={!api}
           />
         </View>
 
         {/* 周边搜索 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. 周边搜索</Text>
+          <Text style={styles.sectionTitle}>2. 周边搜索</Text>
           <TextInput
             style={styles.input}
             value={location}
@@ -244,7 +209,6 @@ export default function POISearchMapExample() {
           <Button
             title="📍 周边搜索并标记"
             onPress={testAroundSearch}
-            disabled={!api}
           />
         </View>
 

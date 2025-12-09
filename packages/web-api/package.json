@@ -1,14 +1,15 @@
 {
   "name": "expo-gaode-map-web-api",
   "version": "1.0.0-beta.0",
-  "description": "高德地图 Web API 服务 - 搜索、路径规划、地理编码（纯 JavaScript 实现）",
+  "description": "高德地图 Web API 服务 - 搜索、路径规划、地理编码（纯 JavaScript 实现），配合 expo-gaode-map 使用",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf build",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "postinstall": "node -e \"try{require.resolve('expo-gaode-map');process.exit(0)}catch(e1){try{require.resolve('expo-gaode-map-navigation');process.exit(0)}catch(e2){console.error('[expo-gaode-map-web-api] 需要安装基础地图组件：expo-gaode-map 或 expo-gaode-map-navigation 中的任意一个。\\n请执行：pnpm add expo-gaode-map 或 pnpm add expo-gaode-map-navigation');process.exit(1)}}\""
   },
   "keywords": [
     "react-native",

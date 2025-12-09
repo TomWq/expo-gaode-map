@@ -80,6 +80,34 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
     // INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE
     // ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
 
+
+    // 添加基础权限（高德地图 SDK 必需）
+    const basePermissions = [
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.ACCESS_WIFI_STATE',
+      'android.permission.READ_PHONE_STATE',
+      'android.permission.BLUETOOTH',
+      'android.permission.BLUETOOTH_ADMIN',
+    ];
+
+    if (!androidManifest['uses-permission']) {
+      androidManifest['uses-permission'] = [];
+    }
+
+    basePermissions.forEach((permission) => {
+      const hasPermission = androidManifest['uses-permission']?.some(
+        (item) => item.$?.['android:name'] === permission
+      );
+      
+      if (!hasPermission) {
+        androidManifest['uses-permission']?.push({
+          $: { 'android:name': permission },
+        });
+      }
+    });
+
     // 后台定位权限（可选）
     if (props.enableBackgroundLocation) {
       const backgroundPermissions = [
@@ -87,6 +115,7 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
         'android.permission.FOREGROUND_SERVICE',
         'android.permission.FOREGROUND_SERVICE_LOCATION',
       ];
+
 
       if (!androidManifest['uses-permission']) {
         androidManifest['uses-permission'] = [];

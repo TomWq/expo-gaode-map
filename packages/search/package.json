@@ -11,7 +11,8 @@
     "test": "expo-module test",
     "prepare": "expo-module prepare",
     "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module"
+    "expo-module": "expo-module",
+    "postinstall": "node -e \"try{require.resolve('expo-gaode-map');process.exit(0)}catch(e1){try{require.resolve('expo-gaode-map-navigation');process.exit(0)}catch(e2){console.error('[expo-gaode-map-search] 需要安装基础地图组件：expo-gaode-map 或 expo-gaode-map-navigation 中的任意一个。\\n请执行：pnpm add expo-gaode-map 或 pnpm add expo-gaode-map-navigation');process.exit(1)}}\""
   },
   "keywords": [
     "react-native",

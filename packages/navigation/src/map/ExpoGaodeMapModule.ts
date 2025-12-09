@@ -23,6 +23,8 @@ export interface SDKConfig {
   androidKey?: string;
   /** iOS 平台的高德地图 API Key */
   iosKey?: string;
+  /** web api key：若要使用 web-api 相关功能，建议在初始化时提供 */
+  webKey?: string;
 }
 
 /**
@@ -266,23 +268,48 @@ if (!nativeModule) {
   console.error('NaviMap: 原生模块不可用，请检查配置');
 }
 
+// 记录最近一次 initSDK 的配置（含 webKey）
+let _sdkConfig: SDKConfig | null = null;
+
 // 扩展原生模块，添加便捷方法
 const ExpoGaodeMapModuleWithHelpers = {
-  ...(nativeModule || {}),
-  
-  /**
-   * 添加定位监听器（便捷方法）
-   * 自动订阅 onLocationUpdate 事件，提供容错处理
-   * @param listener 定位回调函数
-   * @returns 订阅对象，调用 remove() 取消监听
-   * @throws 如果底层模块不可用，返回一个空操作的订阅对象
-   */
-  addLocationListener(listener: LocationListener): { remove: () => void } {
-    // 使用可选链和空值合并，确保即使模块不可用也不会崩溃
-    return nativeModule?.addListener?.('onLocationUpdate', listener) || {
-      remove: () => {},
-    };
-  },
+ ...(nativeModule || {}),
+
+ /**
+  * 初始化 SDK，并缓存配置（包含 webKey）
+  */
+ initSDK(config: SDKConfig): void {
+   _sdkConfig = config ?? null;
+   nativeModule?.initSDK?.(config);
+ },
+
+ /**
+  * 添加定位监听器（便捷方法）
+  * 自动订阅 onLocationUpdate 事件，提供容错处理
+  * @param listener 定位回调函数
+  * @returns 订阅对象，调用 remove() 取消监听
+  * @throws 如果底层模块不可用，返回一个空操作的订阅对象
+  */
+ addLocationListener(listener: LocationListener): { remove: () => void } {
+   // 使用可选链和空值合并，确保即使模块不可用也不会崩溃
+   return nativeModule?.addListener?.('onLocationUpdate', listener) || {
+     remove: () => {},
+   };
+ },
 };
+
+/**
+* 获取最近一次 initSDK 的配置
+*/
+export function getSDKConfig(): SDKConfig | null {
+ return _sdkConfig;
+}
+
+/**
+* 获取用于 Web API 的 webKey（若未初始化或未提供则返回 undefined）
+*/
+export function getWebKey(): string | undefined {
+ return _sdkConfig?.webKey;
+}
 
 export default ExpoGaodeMapModuleWithHelpers as ExpoGaodeMapModule;

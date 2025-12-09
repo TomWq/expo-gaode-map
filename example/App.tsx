@@ -18,10 +18,16 @@ import SearchModuleTest from './SearchModuleTest';
 import WebAPIExample from './WebAPIExample';
 import PIOSearchExample from '../navigation-example/route-examples/POISearchExample';
 import POISearchMapExample from '../navigation-example/route-examples/POISearchMapExample';
+import InputTipsExample from '../navigation-example/route-examples/InputTipsExample';
 import RouteExamplesMenu from '../navigation-example/route-examples/RouteExamplesMenu';
-
+import ErrorHandlingExample from '../navigation-example/route-examples/ErrorHandlingExample';
+import AddressPickerExample from '../navigation-example/route-examples/AddressPickerExample';
+import AddressPickerNativeExample from '../navigation-example/route-examples/AddressPickerNativeExample';
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
+
+// 集中管理 Web API Key（演示用途，生产请通过服务端/环境变量注入）
+const WEB_API_KEY = 'e9d912a302e6460222ad0bc1e38034bf';
 
 export default function App() {
   const [showRandomMarkers, setShowRandomMarkers] = useState(false);
@@ -32,6 +38,11 @@ export default function App() {
   const [showRouteExamples, setShowRouteExamples] = useState(false);
   const [showPOIExamples, setShowPOIExamples] = useState(false);
   const [showPOIMapExample, setShowPOIMapExample] = useState(false);
+  const [showInputTipsExample, setShowInputTipsExample] = useState(false);
+  const [showErrorHandlingExample, setShowErrorHandlingExample] = useState(false);
+  const [showAddressPickerExample, setShowAddressPickerExample] = useState(false);
+  const [showAddressPickerNativeExample, setShowAddressPickerNativeExample] = useState(false);
+
   const mapRef = useRef<MapViewRef>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -90,6 +101,7 @@ export default function App() {
         ExpoGaodeMapModule.initSDK({
           androidKey: '8ac9e5983e34398473ecc23fec1d4adc',
           iosKey: 'b07b626eb2ce321df3ff0e9e9371f389',
+          webKey: WEB_API_KEY,
         });
         
         // 检查定位权限
@@ -365,6 +377,33 @@ export default function App() {
     );
   }
 
+  if(showAddressPickerNativeExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowAddressPickerNativeExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <AddressPickerNativeExample />
+      </View>
+    );
+  }
+
+  if(showErrorHandlingExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowErrorHandlingExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <ErrorHandlingExample />
+      </View>
+    );
+  }
 
   if(showPOIExamples){
     return (
@@ -380,6 +419,20 @@ export default function App() {
     );
   }
 
+  if(showAddressPickerExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowAddressPickerExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <AddressPickerExample />
+      </View>
+    );
+  }
+
   if(showPOIMapExample){
     return (
       <View style={styles.container}>
@@ -390,6 +443,20 @@ export default function App() {
           <Text style={styles.switchButtonText}>← 返回完整示例</Text>
         </TouchableOpacity>
         <POISearchMapExample />
+      </View>
+    );
+  }
+
+  if(showInputTipsExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowInputTipsExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <InputTipsExample />
       </View>
     );
   }
@@ -479,6 +546,34 @@ export default function App() {
             onPress={() => setShowPOIMapExample(true)}
           >
             <Text style={styles.exampleButtonText}>🗺️ POI+地图</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
+            onPress={() => setShowInputTipsExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>💡 输入提示</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#4CAF50' }]}
+            onPress={() => setShowAddressPickerExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>🗺️ 地址选择</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
+            onPress={() => setShowAddressPickerNativeExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>🗺️ 原生地址选择器</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#FF9800' }]}
+            onPress={() => setShowErrorHandlingExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>🚨 错误处理</Text>
           </TouchableOpacity>
 
           {/* <TouchableOpacity

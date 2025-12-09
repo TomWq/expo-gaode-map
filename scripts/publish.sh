@@ -36,8 +36,10 @@ echo ""
 echo "选择要发布的包："
 echo "1) expo-gaode-map (核心包)"
 echo "2) expo-gaode-map-search (搜索包)"
-echo "3) 两个包都发布"
-read -p "请选择 (1/2/3): " choice
+echo "3) expo-gaode-map-navigation (导航包)"
+echo "4) expo-gaode-map-web-api (Web API 包)"
+echo "5) 四个包都发布"
+read -p "请选择 (1/2/3/4/5): " choice
 
 echo ""
 echo "选择发布类型："
@@ -95,35 +97,21 @@ echo ""
 echo "🔨 构建包..."
 pnpm build
 
+bump_version() {
+  # $1: 当前版本, $2: 标志
+  node -e "const cur='$1',f='$2';const p=cur.split(/[.-]/);function out(){console.log(p.slice(0,3).join('.'))};if(f==='patch'){p[2]=String(Number(p[2])+1);out()}else if(f==='minor'){p[1]=String(Number(p[1])+1);p[2]='0';out()}else if(f==='major'){p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';out()}else if(f.startsWith('prerelease')){const id=f.split('--preid=')[1]||'next';p[2]=String(Number(p[2])+1);console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('preminor')){const id=f.split('--preid=')[1]||'next';p[1]=String(Number(p[1])+1);p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('premajor')){const id=f.split('--preid=')[1]||'next';p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}"
+}
+
 publish_core() {
   echo ""
   echo "📦 发布核心包 (expo-gaode-map) [${RELEASE_TAG}]..."
   cd packages/core
   
   OLD_VERSION=$(node -p "require('./package.json').version")
-  
-  # 直接计算新版本号（避免 npm/pnpm version 命令解析依赖）
   echo "计算新版本号..."
-  if [[ "$VERSION_FLAG" == "patch" ]]; then
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[2]=String(Number(v[2])+1);console.log(v.slice(0,3).join('.'))")
-  elif [[ "$VERSION_FLAG" == "minor" ]]; then
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[1]=String(Number(v[1])+1);v[2]='0';console.log(v.slice(0,3).join('.'))")
-  elif [[ "$VERSION_FLAG" == "major" ]]; then
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[0]=String(Number(v[0])+1);v[1]='0';v[2]='0';console.log(v.slice(0,3).join('.'))")
-  elif [[ "$VERSION_FLAG" =~ ^prerelease ]]; then
-    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[2]=String(Number(v[2])+1);console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
-  elif [[ "$VERSION_FLAG" =~ ^preminor ]]; then
-    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[1]=String(Number(v[1])+1);v[2]='0';console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
-  elif [[ "$VERSION_FLAG" =~ ^premajor ]]; then
-    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[0]=String(Number(v[0])+1);v[1]='0';v[2]='0';console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
-  fi
+  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
   
-  # 直接修改 package.json 的版本号
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
@@ -154,41 +142,18 @@ publish_search() {
   cd packages/search
   
   OLD_VERSION=$(node -p "require('./package.json').version")
-  
-  # 备份原始 package.json
   cp package.json package.json.backup
   
-  # 直接计算新版本号（避免 npm/pnpm version 命令解析依赖）
   echo "计算新版本号..."
-  if [[ "$VERSION_FLAG" == "patch" ]]; then
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[2]=String(Number(v[2])+1);console.log(v.slice(0,3).join('.'))")
-  elif [[ "$VERSION_FLAG" == "minor" ]]; then
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[1]=String(Number(v[1])+1);v[2]='0';console.log(v.slice(0,3).join('.'))")
-  elif [[ "$VERSION_FLAG" == "major" ]]; then
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[0]=String(Number(v[0])+1);v[1]='0';v[2]='0';console.log(v.slice(0,3).join('.'))")
-  elif [[ "$VERSION_FLAG" =~ ^prerelease ]]; then
-    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[2]=String(Number(v[2])+1);console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
-  elif [[ "$VERSION_FLAG" =~ ^preminor ]]; then
-    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[1]=String(Number(v[1])+1);v[2]='0';console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
-  elif [[ "$VERSION_FLAG" =~ ^premajor ]]; then
-    PREID=$(echo "$VERSION_FLAG" | sed 's/.*--preid=//')
-    NEW_VERSION=$(node -e "const v=require('./package.json').version.split(/[.-]/);v[0]=String(Number(v[0])+1);v[1]='0';v[2]='0';console.log(v.slice(0,3).join('.')+'-${PREID}.0')")
-  fi
+  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
   
-  # 直接修改 package.json 的版本号
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
-  # 获取核心包的最新版本号
   CORE_VERSION=$(node -p "require('../core/package.json').version")
   echo "检测到核心包版本: ${CORE_VERSION}"
-  
-  # 替换为实际的核心包版本号（用于发布）
   echo "更新依赖为 ^${CORE_VERSION}..."
-  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies=pkg.dependencies||{};pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
     pnpm publish --access public --no-git-checks
@@ -199,7 +164,6 @@ publish_search() {
     echo "   或指定版本: npm install expo-gaode-map-search@${NEW_VERSION}"
   fi
   
-  # 恢复 workspace:* 协议
   echo "恢复 workspace:* 协议..."
   mv package.json.backup package.json
   
@@ -216,13 +180,105 @@ publish_search() {
   echo -e "${GREEN}✓ 搜索包发布成功: v${NEW_VERSION} [${RELEASE_TAG}]${NC}"
 }
 
+publish_navigation() {
+  echo ""
+  echo "📦 发布导航包 (expo-gaode-map-navigation) [${RELEASE_TAG}]..."
+  cd packages/navigation
+  
+  OLD_VERSION=$(node -p "require('./package.json').version")
+  cp package.json package.json.backup
+  
+  echo "计算新版本号..."
+  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
+  
+  CORE_VERSION=$(node -p "require('../core/package.json').version")
+  echo "检测到核心包版本: ${CORE_VERSION}"
+  echo "更新依赖为 ^${CORE_VERSION}..."
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies=pkg.dependencies||{};pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  
+  if [ "$RELEASE_TAG" == "latest" ]; then
+    pnpm publish --access public --no-git-checks
+  else
+    pnpm publish --access public --tag $RELEASE_TAG --no-git-checks
+    echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
+    echo "   安装命令: npm install expo-gaode-map-navigation@${RELEASE_TAG}"
+    echo "   或指定版本: npm install expo-gaode-map-navigation@${NEW_VERSION}"
+  fi
+  
+  echo "恢复 workspace:* 协议..."
+  mv package.json.backup package.json
+  
+  cd ../..
+  
+  git add packages/navigation/package.json
+  if [ "$PRERELEASE" != "" ]; then
+    git commit -m "chore(navigation): release v${NEW_VERSION} [${PRERELEASE}]"
+  else
+    git commit -m "chore(navigation): release v${NEW_VERSION}"
+  fi
+  git tag "navigation-v${NEW_VERSION}"
+  
+  echo -e "${GREEN}✓ 导航包发布成功: v${NEW_VERSION} [${RELEASE_TAG}]${NC}"
+}
+
+publish_web_api() {
+  echo ""
+  echo "📦 发布 Web API 包 (expo-gaode-map-web-api) [${RELEASE_TAG}]..."
+  cd packages/web-api
+  
+  OLD_VERSION=$(node -p "require('./package.json').version")
+  cp package.json package.json.backup
+  
+  echo "计算新版本号..."
+  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
+  
+  # Web API 包在工作区通常使用 workspace:* 避免强耦合；发布前将 expo-gaode-map 依赖（如存在）对齐核心版本
+  CORE_VERSION=$(node -p "require('../core/package.json').version")
+  echo "检测到核心包版本: ${CORE_VERSION}"
+  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));if(!pkg.dependencies) pkg.dependencies={}; if (pkg.dependencies['expo-gaode-map']!==undefined){pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';} fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  
+  if [ "$RELEASE_TAG" == "latest" ]; then
+    pnpm publish --access public --no-git-checks
+  else
+    pnpm publish --access public --tag $RELEASE_TAG --no-git-checks
+    echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
+    echo "   安装命令: npm install expo-gaode-map-web-api@${RELEASE_TAG}"
+    echo "   或指定版本: npm install expo-gaode-map-web-api@${NEW_VERSION}"
+  fi
+  
+  echo "恢复 workspace:* 协议..."
+  mv package.json.backup package.json
+  
+  cd ../..
+  
+  git add packages/web-api/package.json
+  if [ "$PRERELEASE" != "" ]; then
+    git commit -m "chore(web-api): release v${NEW_VERSION} [${PRERELEASE}]"
+  else
+    git commit -m "chore(web-api): release v${NEW_VERSION}"
+  fi
+  git tag "web-api-v${NEW_VERSION}"
+  
+  echo -e "${GREEN}✓ Web API 包发布成功: v${NEW_VERSION} [${RELEASE_TAG}]${NC}"
+}
+
 # 根据选择发布
 case $choice in
   1) publish_core ;;
   2) publish_search ;;
-  3) 
+  3) publish_navigation ;;
+  4) publish_web_api ;;
+  5)
     publish_core
     publish_search
+    publish_navigation
+    publish_web_api
     ;;
   *) echo "无效选择"; exit 1 ;;
 esac
@@ -244,7 +300,7 @@ echo "发布信息："
 echo "发布类型: ${RELEASE_TAG}"
 echo ""
 
-if [ "$choice" == "1" ] || [ "$choice" == "3" ]; then
+if [ "$choice" == "1" ] || [ "$choice" == "5" ]; then
   CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
   echo "  📦 expo-gaode-map: v${CORE_VERSION}"
   if [ "$RELEASE_TAG" == "latest" ]; then
@@ -256,7 +312,7 @@ if [ "$choice" == "1" ] || [ "$choice" == "3" ]; then
   fi
 fi
 
-if [ "$choice" == "2" ] || [ "$choice" == "3" ]; then
+if [ "$choice" == "2" ] || [ "$choice" == "5" ]; then
   SEARCH_VERSION=$(node -p "require('./packages/search/package.json').version")
   echo "  📦 expo-gaode-map-search: v${SEARCH_VERSION}"
   if [ "$RELEASE_TAG" == "latest" ]; then
@@ -265,6 +321,30 @@ if [ "$choice" == "2" ] || [ "$choice" == "3" ]; then
   else
     echo "     npm install expo-gaode-map-search@${RELEASE_TAG}"
     echo "     或: npm install expo-gaode-map-search@${SEARCH_VERSION}"
+  fi
+fi
+
+if [ "$choice" == "3" ] || [ "$choice" == "5" ]; then
+  NAVI_VERSION=$(node -p "require('./packages/navigation/package.json').version")
+  echo "  📦 expo-gaode-map-navigation: v${NAVI_VERSION}"
+  if [ "$RELEASE_TAG" == "latest" ]; then
+    echo "     npm install expo-gaode-map-navigation"
+    echo "     或: npm install expo-gaode-map-navigation@${NAVI_VERSION}"
+  else
+    echo "     npm install expo-gaode-map-navigation@${RELEASE_TAG}"
+    echo "     或: npm install expo-gaode-map-navigation@${NAVI_VERSION}"
+  fi
+fi
+
+if [ "$choice" == "4" ] || [ "$choice" == "5" ]; then
+  WEBAPI_VERSION=$(node -p "require('./packages/web-api/package.json').version")
+  echo "  📦 expo-gaode-map-web-api: v${WEBAPI_VERSION}"
+  if [ "$RELEASE_TAG" == "latest" ]; then
+    echo "     npm install expo-gaode-map-web-api"
+    echo "     或: npm install expo-gaode-map-web-api@${WEBAPI_VERSION}"
+  else
+    echo "     npm install expo-gaode-map-web-api@${RELEASE_TAG}"
+    echo "     或: npm install expo-gaode-map-web-api@${WEBAPI_VERSION}"
   fi
 fi
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI, DrivingStrategy } from 'expo-gaode-map-web-api';
 
@@ -7,8 +7,7 @@ import { GaodeWebAPI, DrivingStrategy } from 'expo-gaode-map-web-api';
  * 展示新版 V5 API 的各种策略和参数
  */
 export default function DrivingRouteExample() {
-  const [apiKey, setApiKey] = useState('');
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
+  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
   
   // 起点终点
   const [origin, setOrigin] = useState('116.481028,39.989643'); // 望京
@@ -17,24 +16,9 @@ export default function DrivingRouteExample() {
   // 结果
   const [result, setResult] = useState('');
 
-  // 初始化 API
-  const handleInitialize = () => {
-    if (!apiKey.trim()) {
-      Alert.alert('错误', '请输入 Web API Key');
-      return;
-    }
-    const newApi = new GaodeWebAPI({ key: apiKey });
-    setApi(newApi);
-    Alert.alert('成功', 'API 初始化成功');
-  };
 
   // 策略 32：速度优先（默认）
   const testSpeedFirst = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.driving(origin, destination, {
         strategy: DrivingStrategy.DEFAULT,
@@ -65,11 +49,6 @@ ${path.steps.map((step, i) =>
 
   // 策略 33：躲避拥堵
   const testAvoidJam = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.driving(origin, destination, {
         strategy: DrivingStrategy.AVOID_JAM,
@@ -101,11 +80,6 @@ ${path.steps.map((step, i) =>
 
   // 策略 34：高速优先
   const testHighwayFirst = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.driving(origin, destination, {
         strategy: DrivingStrategy.HIGHWAY_FIRST, // 高速优先（策略34）
@@ -136,11 +110,6 @@ ${path.steps.map((step, i) =>
 
   // 策略 35：不走高速
   const testAvoidHighway = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.driving(origin, destination, {
         strategy: DrivingStrategy.NO_HIGHWAY,
@@ -171,11 +140,6 @@ ${path.steps.map((step, i) =>
 
   // 新能源车（纯电）
   const testElectricCar = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.driving(origin, destination, {
         strategy: DrivingStrategy.DEFAULT,
@@ -207,11 +171,6 @@ ${path.steps.map((step, i) =>
 
   // 避免收费
   const testAvoidFee = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.driving(origin, destination, {
         strategy: DrivingStrategy.LESS_TOLL,
@@ -244,19 +203,6 @@ ${path.steps.map((step, i) =>
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🚗 驾车路径规划示例</Text>
 
-      {/* 初始化 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. 初始化 API</Text>
-        <TextInput
-          style={styles.input}
-          value={apiKey}
-          onChangeText={setApiKey}
-          placeholder="输入 Web API Key"
-          secureTextEntry
-        />
-        <Button title="初始化" onPress={handleInitialize} />
-      </View>
-
       {/* 起点终点 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>2. 设置起点终点</Text>
@@ -285,35 +231,30 @@ ${path.steps.map((step, i) =>
           <Button
             title="策略32：速度优先（默认）"
             onPress={testSpeedFirst}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略33：躲避拥堵"
             onPress={testAvoidJam}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略34：高速优先"
             onPress={testHighwayFirst}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略35：不走高速"
             onPress={testAvoidHighway}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="策略36：避免收费"
             onPress={testAvoidFee}
-            disabled={!api}
           />
         </View>
       </View>
@@ -325,7 +266,6 @@ ${path.steps.map((step, i) =>
         <Button
           title="🔋 纯电动车路径"
           onPress={testElectricCar}
-          disabled={!api}
         />
         
         <Text style={styles.hint}>

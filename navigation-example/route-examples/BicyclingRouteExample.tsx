@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
-import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Button, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
 /**
  * 骑行和电动车路径规划示例
- * 展示新版 V5 API 的功能
+ * 依赖全局初始化的 Web API Key（在 example/App.tsx 中初始化）
  */
 export default function BicyclingRouteExample() {
-  const [apiKey, setApiKey] = useState('');
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
-  
   // 起点终点
   const [origin, setOrigin] = useState('116.481028,39.989643'); // 望京
   const [destination, setDestination] = useState('116.434446,39.90816'); // 天安门
@@ -17,24 +14,11 @@ export default function BicyclingRouteExample() {
   // 结果
   const [result, setResult] = useState('');
 
-  // 初始化 API
-  const handleInitialize = () => {
-    if (!apiKey.trim()) {
-      Alert.alert('错误', '请输入 Web API Key');
-      return;
-    }
-    const newApi = new GaodeWebAPI({ key: apiKey });
-    setApi(newApi);
-    Alert.alert('成功', 'API 初始化成功');
-  };
+  // 全局已初始化 Key，这里直接构造实例；内部会自动解析全局 webKey
+  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
 
   // 骑行 - 单条路线
   const testBicyclingSingle = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.bicycling(origin, destination);
 
@@ -61,11 +45,6 @@ ${path.steps.map((step, i) =>
 
   // 骑行 - 多备选路线
   const testBicyclingMultiple = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.bicycling(origin, destination, {
         alternative_route: 3, // 返回3条路线
@@ -94,11 +73,6 @@ ${routeText}
 
   // 骑行 - 详细信息
   const testBicyclingDetailed = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.bicycling(origin, destination, {
         alternative_route: 2,
@@ -136,11 +110,6 @@ ${path.steps.map((step, i) => {
 
   // 电动车 - 单条路线
   const testElectricBikeSingle = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.electricBike(origin, destination);
 
@@ -168,11 +137,6 @@ ${path.steps.map((step, i) =>
 
   // 电动车 - 多备选路线
   const testElectricBikeMultiple = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.electricBike(origin, destination, {
         alternative_route: 3,
@@ -201,11 +165,6 @@ ${routeText}
 
   // 骑行 vs 电动车对比
   const testComparison = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const [bicyclingRes, electricRes] = await Promise.all([
         api.route.bicycling(origin, destination, { show_fields: 'cost' }),
@@ -243,11 +202,6 @@ ${routeText}
 
   // 短途骑行
   const testShortDistance = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.bicycling(
         '116.481028,39.989643', // 望京
@@ -281,34 +235,9 @@ ${path.steps.map((step, i) =>
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🚴 骑行 & 电动车路径规划示例</Text>
 
-      {/* 初始化 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. 初始化 API</Text>
-        <TextInput
-          style={styles.input}
-          value={apiKey}
-          onChangeText={setApiKey}
-          placeholder="输入 Web API Key"
-          secureTextEntry
-        />
-        <Button title="初始化" onPress={handleInitialize} />
-      </View>
-
       {/* 起点终点 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. 设置起点终点</Text>
-        <TextInput
-          style={styles.input}
-          value={origin}
-          onChangeText={setOrigin}
-          placeholder="起点坐标（经度,纬度）"
-        />
-        <TextInput
-          style={styles.input}
-          value={destination}
-          onChangeText={setDestination}
-          placeholder="终点坐标（经度,纬度）"
-        />
+        <Text style={styles.sectionTitle}>1. 设置起点终点</Text>
         <Text style={styles.hint}>
           💡 默认：望京 → 天安门
         </Text>
@@ -316,66 +245,59 @@ ${path.steps.map((step, i) =>
 
       {/* 骑行路径规划 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>3. 🚴 骑行路径规划</Text>
+        <Text style={styles.sectionTitle}>2. 🚴 骑行路径规划</Text>
         
         <View style={styles.buttonGroup}>
           <Button
             title="单条路线"
             onPress={testBicyclingSingle}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="3条备选路线"
             onPress={testBicyclingMultiple}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="详细信息（含导航）"
             onPress={testBicyclingDetailed}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="短途骑行"
             onPress={testShortDistance}
-            disabled={!api}
           />
         </View>
       </View>
 
       {/* 电动车路径规划 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>4. 🛵 电动车路径规划</Text>
+        <Text style={styles.sectionTitle}>3. 🛵 电动车路径规划</Text>
         
         <View style={styles.buttonGroup}>
           <Button
             title="单条路线"
             onPress={testElectricBikeSingle}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="3条备选路线"
             onPress={testElectricBikeMultiple}
-            disabled={!api}
           />
         </View>
       </View>
 
       {/* 对比测试 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>5. 🔍 对比测试</Text>
+        <Text style={styles.sectionTitle}>4. 🔍 对比测试</Text>
         
         <Button
           title="骑行 vs 电动车"
           onPress={testComparison}
-          disabled={!api}
         />
         
         <Text style={styles.hint}>

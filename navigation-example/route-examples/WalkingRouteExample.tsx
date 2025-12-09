@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
@@ -7,8 +7,7 @@ import { GaodeWebAPI } from 'expo-gaode-map-web-api';
  * 展示新版 V5 API 的各种参数
  */
 export default function WalkingRouteExample() {
-  const [apiKey, setApiKey] = useState('');
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
+  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
   
   // 起点终点
   const [origin, setOrigin] = useState('116.481028,39.989643'); // 望京
@@ -17,24 +16,9 @@ export default function WalkingRouteExample() {
   // 结果
   const [result, setResult] = useState('');
 
-  // 初始化 API
-  const handleInitialize = () => {
-    if (!apiKey.trim()) {
-      Alert.alert('错误', '请输入 Web API Key');
-      return;
-    }
-    const newApi = new GaodeWebAPI({ key: apiKey });
-    setApi(newApi);
-    Alert.alert('成功', 'API 初始化成功');
-  };
 
   // 单条路线
   const testSingleRoute = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.walking(origin, destination, {
         show_fields: 'cost', // 返回时间和打车费用
@@ -68,11 +52,6 @@ ${path.steps.map((step, i) =>
 
   // 多备选路线（2条）
   const testTwoRoutes = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.walking(origin, destination, {
         alternative_route: 2, // 返回2条路线
@@ -114,11 +93,6 @@ ${routeText}
 
   // 多备选路线（3条）
   const testThreeRoutes = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.walking(origin, destination, {
         alternative_route: 3, // 返回3条路线
@@ -153,11 +127,6 @@ ${routeText}
 
   // 详细导航信息（包含 navi）
   const testDetailedNavi = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.walking(origin, destination, {
         show_fields: 'cost,navi',
@@ -204,11 +173,6 @@ ${path.steps.map((step, i) => {
 
   // 室内算路
   const testIndoorRoute = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.walking(origin, destination, {
         isindoor: 1, // 启用室内算路
@@ -244,11 +208,6 @@ ${path.steps.map((step, i) =>
 
   // 长距离步行（望京 → 天安门）
   const testLongDistance = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
     try {
       const res = await api.route.walking(
         '116.481028,39.989643', // 望京
@@ -294,18 +253,6 @@ ${path.steps.map((step, i) =>
     <ScrollView style={styles.container}>
       <Text style={styles.title}>🚶 步行路径规划示例</Text>
 
-      {/* 初始化 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. 初始化 API</Text>
-        <TextInput
-          style={styles.input}
-          value={apiKey}
-          onChangeText={setApiKey}
-          placeholder="输入 Web API Key"
-          secureTextEntry
-        />
-        <Button title="初始化" onPress={handleInitialize} />
-      </View>
 
       {/* 起点终点 */}
       <View style={styles.section}>
@@ -335,21 +282,18 @@ ${path.steps.map((step, i) =>
           <Button
             title="单条路线"
             onPress={testSingleRoute}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="2条备选路线"
             onPress={testTwoRoutes}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="3条备选路线"
             onPress={testThreeRoutes}
-            disabled={!api}
           />
         </View>
       </View>
@@ -362,21 +306,18 @@ ${path.steps.map((step, i) =>
           <Button
             title="详细导航信息"
             onPress={testDetailedNavi}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="室内算路"
             onPress={testIndoorRoute}
-            disabled={!api}
           />
           <View style={styles.buttonSpacer} />
           
           <Button
             title="长距离步行（望京→天安门）"
             onPress={testLongDistance}
-            disabled={!api}
           />
         </View>
       </View>

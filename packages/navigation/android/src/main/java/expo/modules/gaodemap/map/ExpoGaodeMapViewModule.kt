@@ -16,7 +16,7 @@ class ExpoGaodeMapViewModule : Module() {
 
       // ✅ 关键修复：拦截 React Native 的视图操作异常
 
-      OnViewDestroys { view: ExpoGaodeMapView ->
+      OnViewDestroys { view ->
         // 销毁地图实例,释放资源
         view.onDestroy()
       }
@@ -53,7 +53,7 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Boolean>("buildingsEnabled") { view, show -> view.setShowsBuildings(show) }
       Prop<Boolean>("indoorViewEnabled") { view, show -> view.setShowsIndoorMap(show) }
 
-      OnViewDidUpdateProps { view: ExpoGaodeMapView ->
+      OnViewDidUpdateProps { view ->
         if (view.mapType != 0) {
           view.setMapType(view.mapType)
         }

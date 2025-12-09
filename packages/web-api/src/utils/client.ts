@@ -2,6 +2,69 @@
  * 高德地图 Web API HTTP 客户端
  */
 
+import { getErrorInfo, isSuccess, type ErrorInfo } from './errorCodes';
+
+/**
+ * 高德地图 API 错误类
+ */
+export class GaodeAPIError extends Error {
+  /** 错误码 */
+  public readonly code: string;
+  /** 官方错误信息 */
+  public readonly info: string;
+  /** 友好的错误描述 */
+  public readonly description: string;
+  /** 问题排查建议 */
+  public readonly suggestion: string;
+  /** 错误类型 */
+  public readonly type: ErrorInfo['type'];
+  /** API 响应状态 */
+  public readonly status: string;
+
+  constructor(status: string, info: string, infocode: string) {
+    const errorInfo = getErrorInfo(infocode);
+    
+    // 使用友好的错误描述作为 message
+    super(`${errorInfo.description} (${infocode})`);
+    
+    this.name = 'GaodeAPIError';
+    this.status = status;
+    this.code = infocode;
+    this.info = info;
+    this.description = errorInfo.description;
+    this.suggestion = errorInfo.suggestion;
+    this.type = errorInfo.type;
+
+    // 保持正确的 prototype 链
+    Object.setPrototypeOf(this, GaodeAPIError.prototype);
+  }
+
+  /**
+   * 获取完整的错误信息（用于日志记录）
+   */
+  toJSON() {
+    return {
+      name: this.name,
+      code: this.code,
+      info: this.info,
+      description: this.description,
+      suggestion: this.suggestion,
+      type: this.type,
+      status: this.status,
+    };
+  }
+
+  /**
+   * 获取用户友好的错误提示
+   */
+  getUserMessage(): string {
+    return `${this.description}\n\n💡 ${this.suggestion}`;
+  }
+}
+
+/**
+ * @deprecated 使用 GaodeAPIError 代替
+ */
 export interface APIError {
   status: string;
   info: string;
@@ -73,13 +136,12 @@ export class GaodeWebAPIClient {
       const data = await response.json();
 
       // 检查 API 状态
-      if (data.status !== '1') {
-        const error: APIError = {
-          status: data.status,
-          info: data.info || 'Unknown error',
-          infocode: data.infocode || '0',
-        };
-        throw new Error(`API Error: ${error.info} (code: ${error.infocode})`);
+      if (data.status !== '1' && !isSuccess(data.infocode)) {
+        throw new GaodeAPIError(
+          data.status,
+          data.info || 'Unknown error',
+          data.infocode || '0'
+        );
       }
 
       return data as T;
