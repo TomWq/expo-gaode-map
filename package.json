@@ -10,13 +10,21 @@
     "test": "pnpm -r --filter './packages/*' run test",
     "publish:core": "cd packages/core && pnpm publish --access public",
     "publish:search": "cd packages/search && pnpm publish --access public",
+    "publish:navigation": "cd packages/navigation && pnpm publish --access public",
+    "publish:web-api": "cd packages/web-api && pnpm publish --access public",
     "publish:core:beta": "cd packages/core && pnpm publish --access public --tag beta",
     "publish:search:beta": "cd packages/search && pnpm publish --access public --tag beta",
+    "publish:navigation:beta": "cd packages/navigation && pnpm publish --access public --tag beta",
+    "publish:web-api:beta": "cd packages/web-api && pnpm publish --access public --tag beta",
     "publish:interactive": "bash scripts/publish.sh",
     "version:core": "cd packages/core && pnpm version",
     "version:search": "cd packages/search && pnpm version",
+    "version:navigation": "cd packages/navigation && pnpm version",
+    "version:web-api": "cd packages/web-api && pnpm version",
     "version:core:beta": "cd packages/core && pnpm version prerelease --preid=beta --no-git-tag-version",
-    "version:search:beta": "cd packages/search && pnpm version prerelease --preid=beta --no-git-tag-version"
+    "version:search:beta": "cd packages/search && pnpm version prerelease --preid=beta --no-git-tag-version",
+    "version:navigation:beta": "cd packages/navigation && pnpm version prerelease --preid=beta --no-git-tag-version",
+    "version:web-api:beta": "cd packages/web-api && pnpm version prerelease --preid=beta --no-git-tag-version"
   },
   "keywords": [
     "monorepo",
