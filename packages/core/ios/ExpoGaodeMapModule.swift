@@ -18,16 +18,27 @@ public class ExpoGaodeMapModule: Module {
     private var permissionManager: PermissionManager?
     /// 隐私协议是否已同意（模块级别跟踪）
     private static var privacyAgreed: Bool = false
+    /// 隐私同意持久化 Key
+    private static let privacyDefaultsKey = "expo_gaode_map_privacy_agreed"
     
     public func definition() -> ModuleDefinition {
         Name("ExpoGaodeMap")
         
-        // 模块初始化时不设置隐私合规
-        // 需要在用户同意隐私协议后手动调用 updatePrivacyCompliance 方法
+        // 模块初始化：尝试从本地缓存恢复隐私同意状态
         OnCreate {
-            // 仅更新隐私信息显示状态，不表示用户已同意
+            // 先确保隐私信息展示状态
             MAMapView.updatePrivacyShow(AMapPrivacyShowStatus.didShow, privacyInfo: AMapPrivacyInfoStatus.didContain)
-            print("ℹ️ ExpoGaodeMap: 隐私信息已更新，但需要用户同意隐私协议才能使用 SDK")
+
+            // 从 UserDefaults 恢复上次的同意状态（默认 false）
+            let saved = UserDefaults.standard.bool(forKey: ExpoGaodeMapModule.privacyDefaultsKey)
+            ExpoGaodeMapModule.privacyAgreed = saved
+            if saved {
+                // 同步到 SDK
+                MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+                print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
+            } else {
+                print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")
+            }
         }
         
         // ==================== 隐私合规管理 ====================
@@ -37,10 +48,15 @@ public class ExpoGaodeMapModule: Module {
          * 必须在用户同意隐私协议后调用
          */
         Function("updatePrivacyCompliance") { (hasAgreed: Bool) in
+            // 更新内存状态
             ExpoGaodeMapModule.privacyAgreed = hasAgreed
+            // 持久化到本地，供下次启动自动恢复
+            UserDefaults.standard.set(hasAgreed, forKey: ExpoGaodeMapModule.privacyDefaultsKey)
+
             if hasAgreed {
+                // 同步到 SDK
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
-                print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK")
+                print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK（状态已持久化）")
                 
                 // 在用户同意后，如果尚未设置 API Key，则尝试从 Info.plist 读取并设置
                 if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
@@ -54,7 +70,7 @@ public class ExpoGaodeMapModule: Module {
                 }
             } else {
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.notAgree)
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限")
+                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限（状态已持久化）")
             }
         }
         
