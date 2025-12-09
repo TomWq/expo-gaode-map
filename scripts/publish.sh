@@ -179,11 +179,15 @@ publish_core() {
   
   cd ../..
   
-  git add packages/core/package.json
-  if [ "$PRERELEASE" != "" ]; then
-    git commit -m "chore(core): release v${NEW_VERSION} [${PRERELEASE}]"
+  git add packages/core/package.json || true
+  if ! git diff --cached --quiet; then
+    if [ "$PRERELEASE" != "" ]; then
+      git commit -m "chore(core): release v${NEW_VERSION} [${PRERELEASE}]"
+    else
+      git commit -m "chore(core): release v${NEW_VERSION}"
+    fi
   else
-    git commit -m "chore(core): release v${NEW_VERSION}"
+    echo -e "${YELLOW}⚠️  核心包无改动可提交（可能已恢复 workspace 依赖），跳过 commit${NC}"
   fi
   git tag "core-v${NEW_VERSION}"
   
@@ -224,11 +228,15 @@ publish_search() {
   
   cd ../..
   
-  git add packages/search/package.json
-  if [ "$PRERELEASE" != "" ]; then
-    git commit -m "chore(search): release v${NEW_VERSION} [${PRERELEASE}]"
+  git add packages/search/package.json || true
+  if ! git diff --cached --quiet; then
+    if [ "$PRERELEASE" != "" ]; then
+      git commit -m "chore(search): release v${NEW_VERSION} [${PRERELEASE}]"
+    else
+      git commit -m "chore(search): release v${NEW_VERSION}"
+    fi
   else
-    git commit -m "chore(search): release v${NEW_VERSION}"
+    echo -e "${YELLOW}⚠️  搜索包无改动可提交（已恢复 workspace 依赖），跳过 commit${NC}"
   fi
   git tag "search-v${NEW_VERSION}"
   
@@ -269,11 +277,15 @@ publish_navigation() {
   
   cd ../..
   
-  git add packages/navigation/package.json
-  if [ "$PRERELEASE" != "" ]; then
-    git commit -m "chore(navigation): release v${NEW_VERSION} [${PRERELEASE}]"
+  git add packages/navigation/package.json || true
+  if ! git diff --cached --quiet; then
+    if [ "$PRERELEASE" != "" ]; then
+      git commit -m "chore(navigation): release v${NEW_VERSION} [${PRERELEASE}]"
+    else
+      git commit -m "chore(navigation): release v${NEW_VERSION}"
+    fi
   else
-    git commit -m "chore(navigation): release v${NEW_VERSION}"
+    echo -e "${YELLOW}⚠️  导航包无改动可提交（已恢复 workspace 依赖），跳过 commit${NC}"
   fi
   git tag "navigation-v${NEW_VERSION}"
   
@@ -314,11 +326,15 @@ publish_web_api() {
   
   cd ../..
   
-  git add packages/web-api/package.json
-  if [ "$PRERELEASE" != "" ]; then
-    git commit -m "chore(web-api): release v${NEW_VERSION} [${PRERELEASE}]"
+  git add packages/web-api/package.json || true
+  if ! git diff --cached --quiet; then
+    if [ "$PRERELEASE" != "" ]; then
+      git commit -m "chore(web-api): release v${NEW_VERSION} [${PRERELEASE}]"
+    else
+      git commit -m "chore(web-api): release v${NEW_VERSION}"
+    fi
   else
-    git commit -m "chore(web-api): release v${NEW_VERSION}"
+    echo -e "${YELLOW}⚠️  Web API 包无改动可提交（已恢复 workspace 依赖），跳过 commit${NC}"
   fi
   git tag "web-api-v${NEW_VERSION}"
   
