@@ -18,6 +18,8 @@ import SearchModuleTest from './SearchModuleTest';
 import WebAPIExample from './WebAPIExample';
 import PIOSearchExample from '../navigation-example/route-examples/POISearchExample';
 import POISearchMapExample from '../navigation-example/route-examples/POISearchMapExample';
+import POISearchNativeExample from '../navigation-example/route-examples/POISearchNativeExample';
+import POISearchMapNativeExample from '../navigation-example/route-examples/POISearchMapNativeExample';
 import InputTipsExample from '../navigation-example/route-examples/InputTipsExample';
 import RouteExamplesMenu from '../navigation-example/route-examples/RouteExamplesMenu';
 import ErrorHandlingExample from '../navigation-example/route-examples/ErrorHandlingExample';
@@ -40,6 +42,8 @@ export default function App() {
   const [showRouteExamples, setShowRouteExamples] = useState(false);
   const [showPOIExamples, setShowPOIExamples] = useState(false);
   const [showPOIMapExample, setShowPOIMapExample] = useState(false);
+  const [showPOISearchNativeExample, setShowPOISearchNativeExample] = useState(false);
+  const [showPOISearchMapNativeExample, setShowPOISearchMapNativeExample] = useState(false);
   const [showInputTipsExample, setShowInputTipsExample] = useState(false);
   const [showErrorHandlingExample, setShowErrorHandlingExample] = useState(false);
   const [showAddressPickerExample, setShowAddressPickerExample] = useState(false);
@@ -407,6 +411,34 @@ export default function App() {
     );
   }
 
+  if(showPOISearchNativeExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowPOISearchNativeExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <POISearchNativeExample />
+      </View>
+    );
+  }
+
+  if(showPOISearchMapNativeExample){
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setShowPOISearchMapNativeExample(false)}
+        >
+          <Text style={styles.switchButtonText}>← 返回完整示例</Text>
+        </TouchableOpacity>
+        <POISearchMapNativeExample />
+      </View>
+    );
+  }
+
   if(showPOIExamples){
     return (
       <View style={styles.container}>
@@ -569,6 +601,20 @@ export default function App() {
             onPress={() => setShowAddressPickerNativeExample(true)}
           >
             <Text style={styles.exampleButtonText}>🗺️ 原生地址选择器</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#9C27B0' }]}
+            onPress={() => setShowPOISearchNativeExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>🔍 原生POI搜索</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exampleButton, { backgroundColor: '#3F51B5' }]}
+            onPress={() => setShowPOISearchMapNativeExample(true)}
+          >
+            <Text style={styles.exampleButtonText}>🗺️ 原生POI+地图</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
