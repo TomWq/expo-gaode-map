@@ -104,7 +104,7 @@ ExpoGaodeMapModule.initSDK({
 - `webKey` 仅在使用 `expo-gaode-map-web-api` 包时需要
 :::
 
-查看完整示例 → [快速开始指南](/guide/getting-started)
+查看完整示例 → [快速开始指南](/guide/getting-started) · [示例仓库](https://github.com/TomWq/expo-gaode-map-example)
 
 ## 核心功能模块
 
@@ -119,7 +119,7 @@ ExpoGaodeMapModule.initSDK({
 - **导航视图**: 官方导航界面，实时路况、语音播报
 - **独立规划**: 不影响当前导航状态的路径计算
 
-[导航文档](/api/navigation) · [使用示例](/examples/navigation)
+[使用指南](/guide/navigation) · [API 文档](/api/navigation)
 
 ### 🌐 expo-gaode-map-web-api 🆕
 Web API 服务包，纯 JavaScript 实现，跨平台一致：
@@ -128,7 +128,7 @@ Web API 服务包，纯 JavaScript 实现，跨平台一致：
 - **POI 搜索**: 关键字搜索、周边搜索、多边形搜索
 - **输入提示**: 实时搜索建议
 
-[Web API 文档](/api/web-api) · [使用示例](/examples/web-api)
+[使用指南](/guide/web-api) · [API 文档](/api/web-api)
 
 ### 🔍 expo-gaode-map-search
 原生搜索包，性能更优的 POI 搜索实现（可选）。

@@ -2,6 +2,10 @@
 
 本指南将帮助你快速开始使用 expo-gaode-map。
 
+::: tip 完整示例代码
+📦 查看完整的可运行示例：[expo-gaode-map-example](https://github.com/TomWq/expo-gaode-map-example)
+:::
+
 ## 项目架构
 
 expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：
@@ -411,7 +415,7 @@ export default function App() {
 - [配置插件](/guide/config-plugin) - Config Plugin 详细配置
 - [架构说明](/guide/architecture) - Monorepo 架构和模块说明
 - [API 文档](/api/) - 完整的 API 参考
-- [示例代码](/examples/) - 更多使用示例
+- [完整示例仓库](https://github.com/TomWq/expo-gaode-map-example) - 可运行的完整示例代码
 
 ## 常见问题
 

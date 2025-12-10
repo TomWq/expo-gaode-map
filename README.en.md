@@ -8,7 +8,7 @@ A full-featured AMap (Gaode Map) React Native component library, **built with Ex
 
 ## 📖 Complete Documentation
 
-**👉 [Documentation Website](https://TomWq.github.io/expo-gaode-map/)**
+**👉 [Documentation Website](https://TomWq.github.io/expo-gaode-map/)** · **👉 [Example Repository](https://github.com/TomWq/expo-gaode-map-example)**
 
 Including complete API documentation, guides, and examples:
 - [Getting Started](https://TomWq.github.io/expo-gaode-map/en/guide/getting-started.html)
@@ -87,7 +87,9 @@ npx expo run:ios
 
 ## 🚀 Quick Start
 
-For detailed initialization and usage guide, please check: [Getting Started](https://TomWq.github.io/expo-gaode-map/en/guide/getting-started.html)
+For detailed initialization and usage guide, please check:
+- 📖 [Getting Started Guide](https://TomWq.github.io/expo-gaode-map/en/guide/getting-started.html)
+- 💻 [Complete Example Code](https://github.com/TomWq/expo-gaode-map-example)
 
 ## 📚 Feature Comparison
 
