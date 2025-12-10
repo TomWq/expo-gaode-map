@@ -15,12 +15,21 @@ expo-gaode-map/
 │   │   ├── android/        # Android 原生代码
 │   │   └── plugin/         # Config Plugin
 │   │
-│   └── search/             # expo-gaode-map-search（搜索包）
-│       ├── src/            # TypeScript 代码
-│       ├── ios/            # iOS 原生代码
-│       └── android/        # Android 原生代码
+│   ├── search/             # expo-gaode-map-search（搜索包）
+│   │   ├── src/            # TypeScript 代码
+│   │   ├── ios/            # iOS 原生代码
+│   │   └── android/        # Android 原生代码
+│   │
+│   ├── navigation/         # expo-gaode-map-navigation（导航包）
+│   │   ├── src/            # TypeScript 代码
+│   │   ├── ios/            # iOS 原生代码
+│   │   └── android/        # Android 原生代码
+│   │
+│   └── web-api/            # expo-gaode-map-web-api（Web API 包）
+│       └── src/            # TypeScript 代码（纯 JS）
 │
-├── example/                # 示例应用
+├── example/                # 示例应用（使用核心包）
+├── navigation/             # 导航示例应用
 ├── website/                # 文档网站
 └── pnpm-workspace.yaml     # Workspace 配置
 ```
@@ -34,237 +43,128 @@ expo-gaode-map/
 
 ## 核心包（expo-gaode-map）
 
-### TypeScript 代码结构
-
-```
-packages/core/src/
-├── index.ts                          # 主导出文件
-├── ExpoGaodeMapModule.ts             # 原生模块导入
-├── ExpoGaodeMapView.tsx              # 地图视图组件
-├── ExpoGaodeMap.types.ts             # 类型定义导出
-├── components/                       # React 组件
-│   └── overlays/                     # 覆盖物组件
-│       ├── Circle.tsx                # 圆形组件
-│       ├── Marker.tsx                # 标记点组件
-│       ├── Polyline.tsx              # 折线组件
-│       └── Polygon.tsx               # 多边形组件
-└── types/                            # TypeScript 类型定义
-    ├── common.types.ts               # 通用类型
-    ├── map-view.types.ts             # 地图视图类型
-    ├── location.types.ts             # 定位类型
-    └── overlays.types.ts             # 覆盖物类型
-```
-
-### iOS 代码结构
-
-```
-packages/core/ios/
-├── ExpoGaodeMapModule.swift          # Expo 模块定义
-├── ExpoGaodeMapView.swift            # 地图视图组件
-├── managers/                         # 管理器类
-│   ├── CameraManager.swift           # 相机控制管理器
-│   └── UIManager.swift               # UI 和手势管理器
-├── modules/                          # 功能模块
-│   └── LocationManager.swift         # 定位管理器
-└── overlays/                         # 覆盖物视图
-    ├── CircleView.swift              # 圆形覆盖物
-    ├── MarkerView.swift              # 标记点
-    ├── PolylineView.swift            # 折线
-    └── PolygonView.swift             # 多边形
-```
-
-### Android 代码结构
-
-```
-packages/core/android/
-└── src/main/java/expo/modules/gaodemap/
-    ├── ExpoGaodeMapModule.kt         # Expo 模块定义
-    ├── ExpoGaodeMapView.kt           # 地图视图组件
-    ├── managers/                     # 管理器类
-    │   ├── CameraManager.kt          # 相机控制管理器
-    │   └── UIManager.kt              # UI 和手势管理器
-    ├── modules/                      # 功能模块
-    │   ├── SDKInitializer.kt         # SDK 初始化
-    │   └── LocationManager.kt        # 定位管理器
-    └── overlays/                     # 覆盖物视图
-        ├── CircleView.kt             # 圆形覆盖物
-        ├── MarkerView.kt             # 标记点
-        ├── PolylineView.kt           # 折线
-        └── PolygonView.kt            # 多边形
-```
+提供基础的地图显示和定位功能。详细结构请参考原文档。
 
 ## 搜索包（expo-gaode-map-search）
 
-### TypeScript 代码结构
+提供 POI 搜索和输入提示功能。详细结构请参考原文档。
 
-```
-packages/search/src/
-├── index.ts                          # 主导出文件
-├── ExpoGaodeMapSearchModule.ts       # 原生模块导入
-└── ExpoGaodeMapSearch.types.ts       # 类型定义
-```
+## 导航包（expo-gaode-map-navigation）
 
-### iOS 代码结构
+导航包是一个**独立的集成包**，内置完整的地图功能和导航能力。
 
-```
-packages/search/ios/
-├── ExpoGaodeMapSearch.podspec        # CocoaPods 配置
-└── ExpoGaodeMapSearchModule.swift    # 搜索模块实现
-```
+::: danger 二进制冲突警告
+导航包与核心包（expo-gaode-map）存在二进制冲突，**不能同时安装**。需要根据项目需求选择其一。
+:::
 
-### Android 代码结构
+### 特点
 
-```
-packages/search/android/
-├── build.gradle                      # Gradle 配置
-└── src/main/java/expo/modules/gaodemap/search/
-    └── ExpoGaodeMapSearchModule.kt   # 搜索模块实现
-```
+- **集成地图**：内置完整的地图显示功能
+- **路径规划**：驾车、步行、骑行、公交路线规划
+- **实时导航**：提供导航视图和语音导航
+- **独立服务**：支持无地图的独立路径规划
+
+## Web API 包（expo-gaode-map-web-api）
+
+Web API 包是**纯 JavaScript 实现**，通过 HTTP 调用高德 Web 服务 API。
+
+### 特点
+
+- **跨平台**：纯 JS 实现，无原生依赖
+- **协同工作**：从核心包或导航包读取 webKey
+- **V5 API**：适配最新的路径规划 API
+- **类型安全**：完整的 TypeScript 类型定义
+
+### 功能模块
+
+- **地理编码服务**：地址与坐标互转、批量编码
+- **路径规划服务**：驾车、步行、骑行、公交路线规划（V5 API）
+- **POI 搜索服务**：关键字搜索、周边搜索、详情查询
+- **输入提示服务**：POI/公交站点/公交线路提示
 
 ## SDK 依赖关系
 
 ### Android
 
 ```
-核心包：com.amap.api:3dmap:10.0.600（统一 SDK，包含所有功能）
-搜索包：依赖核心包的 SDK，无需额外依赖
+核心包：com.amap.api:3dmap:10.0.600（统一 SDK）
+搜索包：依赖核心包的 SDK
+导航包：com.amap.api:navi-3dmap（与核心包冲突）
+Web API 包：无原生依赖
 ```
 
 ### iOS
 
 ```
-核心包：
-  - AMapFoundationKit（基础框架）
-  - AMapLocationKit（定位）
-  - MAMapKit（地图）
-
-搜索包：
-  - AMapFoundationKit（API Key 管理）
-  - AMapSearchKit（搜索功能）
-```
-
-## API Key 初始化机制
-
-### 核心包负责设置 API Key
-
-1. **Config Plugin 方式**（推荐）
-   - Android: 写入 `AndroidManifest.xml`
-   - iOS: 写入 `Info.plist` 和 `AppDelegate.m`
-
-2. **手动初始化方式**
-   ```typescript
-   ExpoGaodeMapModule.initSDK({
-     androidKey: 'your-key',
-     iosKey: 'your-key'
-   });
-   ```
-
-### 搜索包自动读取 API Key
-
-搜索模块在初始化时会：
-1. 检查 `AMapServices.shared().apiKey` 是否已设置
-2. 如果未设置，从 `Info.plist` 读取并设置
-3. 延迟初始化：首次调用搜索方法时才初始化
-
-这确保了搜索包可以独立工作，不依赖核心包的初始化顺序。
-
-## 架构设计原则
-
-### 1. 模块化设计
-
-- **核心包**：提供基础的地图和定位功能
-- **扩展包**：按需提供额外功能（搜索、导航等）
-- **独立发布**：各包独立版本管理
-
-### 2. 职责分离
-
-- **Module**: 负责模块定义和方法注册
-- **View**: 负责视图创建和属性管理
-- **Manager**: 负责具体功能实现
-- **Overlay**: 负责覆盖物渲染
-
-### 3. 跨平台一致性
-
-- iOS 和 Android 提供相同的 API
-- TypeScript 层统一封装
-- 平台差异在原生层处理
-
-### 4. 依赖管理
-
-- **核心包**：Expo Modules API + 高德地图 SDK
-- **搜索包**：依赖核心包 + 搜索 SDK（iOS）或复用统一 SDK（Android）
-- **自动链接**：使用 Expo Autolinking
-
-### 5. 内存管理
-
-- 使用弱引用避免循环引用
-- 及时清理监听器和资源
-- 主线程操作使用 Handler/DispatchQueue
-
-### 6. 错误处理
-
-- Promise 处理异步操作
-- 统一的错误码和消息
-- 详细的错误日志
-
-## 开发指南
-
-### 添加新功能包
-
-1. 在 `packages/` 下创建新目录
-2. 添加 `package.json` 和 `expo-module.config.json`
-3. 实现 iOS 和 Android 原生代码
-4. 在 TypeScript 层封装 API
-5. 更新 `pnpm-workspace.yaml`
-6. 在 example 中测试
-
-### 调试技巧
-
-- **Monorepo 调试**：使用 Metro `watchFolders` 监听包目录
-- **原生日志**：使用 `print`（iOS）或 `Log.d`（Android）
-- **类型检查**：运行 `pnpm typecheck`
-- **依赖检查**：使用 `pnpm why` 查看依赖来源
-
-### 发布流程
-
-```bash
-# 1. 构建所有包
-pnpm build
-
-# 2. 发布核心包
-cd packages/core
-npm publish
-
-# 3. 发布搜索包
-cd packages/search
-npm publish
+核心包：AMapFoundationKit + AMapLocationKit + MAMapKit
+搜索包：AMapFoundationKit + AMapSearchKit
+导航包：AMapFoundationKit + AMapNaviKit + MAMapKit
+Web API 包：无原生依赖
 ```
 
 ## 包之间的关系
 
 ```
+方案一：核心包 + 扩展包
 ┌─────────────────────────────────────┐
 │         用户应用 (example)           │
-└──────────┬──────────────┬───────────┘
-           │              │
-           ▼              ▼
-    ┌─────────────┐  ┌──────────────────┐
-    │ expo-gaode- │  │ @expo-gaode-map/ │
-    │    map      │◄─┤     search       │
-    │  (核心包)    │  │   (搜索包)        │
-    └──────┬──────┘  └──────────────────┘
-           │
-           ▼
-    ┌─────────────────────────────┐
-    │    高德地图 SDK              │
-    │ - Android: 3dmap 10.0.600   │
-    │ - iOS: Foundation + Search  │
-    └─────────────────────────────┘
+└──────┬──────────────┬───────────────┘
+       │              │
+       ▼              ▼
+┌─────────────┐  ┌──────────────────┐
+│ expo-gaode- │  │ expo-gaode-map-  │
+│    map      │◄─┤     search       │
+│  (核心包)    │  │   (搜索包)        │
+└──────┬──────┘  └──────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│    高德地图 SDK              │
+└─────────────────────────────┘
+
+方案二：导航包（独立）
+┌─────────────────────────────────────┐
+│      导航应用 (navigation)           │
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+         ┌─────────────────────┐
+         │ expo-gaode-map-     │
+         │   navigation        │
+         │ (集成地图+导航)      │
+         └──────────┬──────────┘
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │ 高德导航 SDK         │
+         │  (navi-3dmap)       │
+         └─────────────────────┘
+
+通用：Web API 包
+┌─────────────────────────────────────┐
+│     任一方案的应用                    │
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+         ┌─────────────────────┐
+         │ expo-gaode-map-     │
+         │   web-api           │
+         │ (纯 JS，读取 webKey) │
+         └──────────┬──────────┘
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │ 高德 Web 服务 API    │
+         └─────────────────────┘
 ```
 
 ## 相关文档
 
 - [快速开始](/guide/getting-started) - 快速开始和基本使用
 - [配置插件](/guide/config-plugin) - Config Plugin 详细配置
+- [初始化指南](/guide/initialization) - SDK 初始化详细说明
+- [搜索功能](/guide/search) - 搜索模块使用指南
+- [导航 API](/api/navigation) - 导航模块完整文档
+- [Web API](/api/web-api) - Web API 服务文档
 - [API 文档](/api/) - 完整 API 文档
 - [使用示例](/examples/) - 示例代码

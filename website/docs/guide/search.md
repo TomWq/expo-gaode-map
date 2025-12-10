@@ -49,9 +49,16 @@ pnpm add expo-gaode-map-search
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
+// 使用 Config Plugin 时，原生 Key 已自动配置
+ExpoGaodeMapModule.initSDK({
+  webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
+});
+
+// 不使用 Config Plugin 时
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
+  webKey: 'your-web-api-key', // 可选
 });
 ```
 

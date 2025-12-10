@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map",
-  "version": "2.2.6-next.0",
+  "version": "2.1.0",
   "description": "一个功能完整的高德地图 React Native 组件库，基于 Expo Modules 开发，提供地图显示、定位、覆盖物等功能。",
   "main": "build/index.js",
   "types": "build/index.d.ts",

@@ -35,10 +35,9 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // 1. 初始化 SDK
+        // 1. 初始化 SDK（使用 Config Plugin 时可传空对象）
         ExpoGaodeMapModule.initSDK({
-          androidKey: 'your-android-api-key',
-          iosKey: 'your-ios-api-key',
+          webKey: 'your-web-api-key', // 可选
         });
         
         // 2. 检查权限

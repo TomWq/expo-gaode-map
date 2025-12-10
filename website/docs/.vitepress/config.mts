@@ -27,7 +27,9 @@ export default defineConfig({
                 { text: '初始化', link: '/guide/initialization' },
                 { text: 'Config Plugin', link: '/guide/config-plugin' },
                 { text: '架构说明', link: '/guide/architecture' },
-                { text: '搜索功能', link: '/guide/search' }
+                { text: '搜索功能', link: '/guide/search' },
+                { text: '导航功能', link: '/guide/navigation' },
+                { text: 'Web API', link: '/guide/web-api' }
               ]
             }
           ],
@@ -38,13 +40,16 @@ export default defineConfig({
                 { text: 'API 总览', link: '/api/' },
                 { text: 'MapView Props', link: '/api/mapview' },
                 { text: '定位 API', link: '/api/location' },
-                { text: '覆盖物', link: '/api/overlays' }
+                { text: '覆盖物', link: '/api/overlays' },
+                { text: '类型定义', link: '/api/types' }
               ]
             },
             {
               text: '扩展功能',
               items: [
-                { text: '搜索 API', link: '/api/search' }
+                { text: '搜索 API', link: '/api/search' },
+                { text: '导航 API', link: '/api/navigation' },
+                { text: 'Web API', link: '/api/web-api' }
               ]
             }
           ],
@@ -102,13 +107,16 @@ export default defineConfig({
                 { text: 'API Overview', link: '/en/api/' },
                 { text: 'MapView Props', link: '/en/api/mapview' },
                 { text: 'Location API', link: '/en/api/location' },
-                { text: 'Overlays', link: '/en/api/overlays' }
+                { text: 'Overlays', link: '/en/api/overlays' },
+                { text: 'Type Definitions', link: '/en/api/types' }
               ]
             },
             {
               text: 'Extended Features',
               items: [
-                { text: 'Search API', link: '/en/api/search' }
+                { text: 'Search API', link: '/en/api/search' },
+                { text: 'Navigation API', link: '/en/api/navigation' },
+                { text: 'Web API', link: '/en/api/web-api' }
               ]
             }
           ],

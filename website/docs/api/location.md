@@ -11,10 +11,9 @@
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 初始化 SDK
+// 初始化 SDK（使用 Config Plugin 时可传空对象）
 ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
+  webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
 });
 
 // 开始连续定位
@@ -31,7 +30,7 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| `initSDK` | `{androidKey, iosKey}` | `void` | 初始化 SDK |
+| `initSDK` | `{androidKey?, iosKey?, webKey?}` | `void` | 初始化 SDK（使用 Config Plugin 时原生 Key 可省略） |
 | `start` | - | `void` | 开始连续定位 |
 | `stop` | - | `void` | 停止定位 |
 | `isStarted` | - | `Promise<boolean>` | 检查是否正在定位 |
@@ -158,10 +157,9 @@ export default function LocationExample() {
 
   useEffect(() => {
     const init = async () => {
-      // 初始化
+      // 初始化（使用 Config Plugin 时可传空对象）
       ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-key',
-        iosKey: 'your-ios-key',
+        webKey: 'your-web-api-key', // 可选
       });
 
       // 配置

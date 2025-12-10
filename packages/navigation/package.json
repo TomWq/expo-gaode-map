@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-navigation",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0",
   "description": "高德地图导航功能模块 - 路径规划、导航引导，基于expo-gaode-map",
   "main": "src/index.ts",
   "types": "src/index.d.ts",

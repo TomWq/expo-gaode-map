@@ -149,8 +149,6 @@ const res = await api.route.driving('116.400000,39.900000', '116.410000,39.91000
 - 本模块内部使用 `navi-3dmap` 体系，已包含地图能力；请勿同时引入核心 `3dmap` 体系以免二进制冲突。
 - 若历史项目从核心包迁移至本模块，务必移除 `expo-gaode-map` 依赖与其 native 配置（Gradle/CocoaPods 链接等）。
 
-## 迁移指南（从核心包迁移）
-
 ## 许可
 
 MIT
