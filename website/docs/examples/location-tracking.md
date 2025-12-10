@@ -15,9 +15,9 @@ export default function BasicLocation() {
   const [location, setLocation] = useState<Location | null>(null);
 
   useEffect(() => {
+    // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
-      androidKey: 'your-android-key',
-      iosKey: 'your-ios-key',
+      webKey: 'your-web-api-key', // 可选
     });
   }, []);
 
@@ -57,9 +57,9 @@ export default function ContinuousLocation() {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
+    // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
-      androidKey: 'your-android-key',
-      iosKey: 'your-ios-key',
+      webKey: 'your-web-api-key', // 可选
     });
 
     // 配置定位
@@ -124,9 +124,9 @@ export default function MapLocationTracking() {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
+    // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
-      androidKey: 'your-android-key',
-      iosKey: 'your-ios-key',
+      webKey: 'your-web-api-key', // 可选
     });
 
     ExpoGaodeMapModule.setLocatingWithReGeocode(true);

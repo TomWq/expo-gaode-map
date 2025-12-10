@@ -32,9 +32,9 @@ import { useEffect } from 'react';
 
 export default function MapWithLocation() {
   useEffect(() => {
+    // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
-      androidKey: 'your-android-key',
-      iosKey: 'your-ios-key',
+      webKey: 'your-web-api-key', // 可选
     });
   }, []);
 

@@ -1,0 +1,34 @@
+{
+  "name": "expo-gaode-map-navigation",
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": [
+      "ExpoGaodeMapNavigationModule",
+      "ExpoGaodeMapNaviViewModule",
+      "NaviMapModule",
+      "NaviMapViewModule",
+      "NaviMarkerViewModule",
+      "NaviCircleViewModule",
+      "NaviPolygonViewModule",
+      "NaviPolylineViewModule",
+      "NaviMultiPointViewModule",
+      "NaviHeatMapViewModule",
+      "NaviClusterViewModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "expo.modules.gaodemap.navigation.ExpoGaodeMapNavigationModule",
+      "expo.modules.gaodemap.navigation.ExpoGaodeMapNaviViewModule",
+      "expo.modules.gaodemap.map.ExpoGaodeMapModule",
+      "expo.modules.gaodemap.map.ExpoGaodeMapViewModule",
+      "expo.modules.gaodemap.map.overlays.MarkerViewModule",
+      "expo.modules.gaodemap.map.overlays.CircleViewModule",
+      "expo.modules.gaodemap.map.overlays.PolygonViewModule",
+      "expo.modules.gaodemap.map.overlays.PolylineViewModule",
+      "expo.modules.gaodemap.map.overlays.MultiPointViewModule",
+      "expo.modules.gaodemap.map.overlays.HeatMapViewModule",
+      "expo.modules.gaodemap.map.overlays.ClusterViewModule"
+    ]
+  }
+}

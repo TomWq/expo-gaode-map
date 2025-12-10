@@ -1,0 +1,6 @@
+node_modules/
+*.log
+*.tgz
+src/
+tsconfig.json
+.eslintrc.js

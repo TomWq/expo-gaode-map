@@ -97,14 +97,29 @@ website/
 │   ├── guide/                  # 指南
 │   │   ├── getting-started.md  # 快速开始
 │   │   ├── initialization.md   # 初始化
-│   │   └── architecture.md     # 架构
+│   │   ├── architecture.md     # 架构
+│   │   ├── config-plugin.md    # 配置插件
+│   │   └── search.md           # 搜索功能
 │   ├── api/                    # API 文档
 │   │   ├── index.md           # API 总览
 │   │   ├── mapview.md         # MapView
 │   │   ├── location.md        # 定位
-│   │   └── overlays.md        # 覆盖物
+│   │   ├── overlays.md        # 覆盖物
+│   │   ├── search.md          # 搜索 API
+│   │   └── types.md           # 类型定义
 │   ├── examples/              # 示例
-│   │   └── index.md           # 示例总览
+│   │   ├── index.md           # 示例总览
+│   │   ├── basic-map.md       # 基础地图
+│   │   ├── overlays.md        # 覆盖物示例
+│   │   ├── search.md          # 搜索示例
+│   │   └── location-tracking.md # 定位追踪
+│   ├── en/                    # 英文文档
+│   │   ├── guide/             # 英文指南
+│   │   ├── api/               # 英文 API
+│   │   └── examples/          # 英文示例
+│   ├── public/                # 静态资源
+│   │   ├── logo.svg           # 网站图标
+│   │   └── hero-map.svg       # 首页背景图
 │   └── index.md               # 首页
 ├── package.json
 └── README.md                  # 本文件

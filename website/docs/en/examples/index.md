@@ -25,6 +25,13 @@ Learn how to add various overlays on the map, including:
 - Polylines
 - Polygons
 
+### [Search Features](/en/examples/search)
+Learn how to use the search module, including:
+- POI keyword search
+- Nearby search
+- Route search
+- Autocomplete suggestions
+
 ## Quick Start
 
 ### 1. Install Dependencies
@@ -158,10 +165,42 @@ function LocationTracker() {
 }
 ```
 
+## Extended Features
+
+### Search Features
+
+```tsx
+import { searchPOI, searchPOIAround, searchInputTips } from 'expo-gaode-map-search';
+
+// Keyword search
+const result = await searchPOI({
+  query: 'Starbucks',
+  city: 'Beijing',
+  pageNum: 1,
+  pageSize: 20
+});
+
+// Nearby search
+const nearby = await searchPOIAround({
+  center: { latitude: 39.9, longitude: 116.4 },
+  query: 'restaurant',
+  radius: 2000
+});
+
+// Autocomplete
+const tips = await searchInputTips({
+  keyword: 'Star',
+  city: 'Beijing'
+});
+```
+
+Learn more: [Search Examples](/en/examples/search)
+
 ## More Examples
 
 - [GitHub Repository](https://github.com/TomWq/expo-gaode-map/tree/main/example) - View complete example project
 - [API Documentation](/en/api/) - Detailed API reference
+- [Search API](/en/api/search) - Search module API reference
 - [Initialization Guide](/en/guide/initialization) - SDK initialization guide
 
 ## Need Help?

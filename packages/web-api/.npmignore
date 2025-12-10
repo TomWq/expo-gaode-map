@@ -1,0 +1,21 @@
+# Source files
+src/
+
+# Config
+tsconfig.json
+.eslintrc.js
+
+# Tests
+**/__tests__/
+**/__mocks__/
+*.test.ts
+*.test.tsx
+
+# Development
+.DS_Store
+*.log
+node_modules/
+
+# Git
+.git/
+.gitignore

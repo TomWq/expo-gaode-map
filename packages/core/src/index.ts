@@ -1,0 +1,50 @@
+/*
+ * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
+ * @Date         : 2025-12-03 14:27:06
+ * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
+ * @LastEditTime : 2025-12-09 11:32:54
+ * @FilePath     : /expo-gaode-map/packages/core/src/index.ts
+ * @Description  : 
+ * 
+ * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
+ */
+
+// 导出类型定义
+export * from './ExpoGaodeMap.types';
+export * from './types';
+
+// 导出原生模块 - 直接使用，无需封装
+export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
+
+// 从 ExpoGaodeMapModule 重新导出类型，方便使用
+export type { SDKConfig, PermissionStatus } from './ExpoGaodeMapModule';
+
+// 导出地图视图组件
+export { default as MapView } from './ExpoGaodeMapView';
+export type { MapViewRef } from './ExpoGaodeMapView';
+
+// 导出覆盖物组件
+export {
+  Marker,
+  Polyline,
+  Polygon,
+  Circle,
+  HeatMap,
+  MultiPoint,
+  Cluster,
+} from './components/overlays';
+
+// 导出模块检测工具
+export {
+  requireModule,
+  OptionalModules,
+  getInstalledModules,
+  printModuleInfo,
+  createLazyLoader,
+} from './utils/ModuleLoader';
+
+// 导出便捷读取的 SDK 配置与 webKey
+export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';
+
+// 默认导出原生模块
+export { default } from './ExpoGaodeMapModule';
