@@ -114,6 +114,11 @@ export interface MarkerProps {
   customViewHeight?: number;
 
   /**
+   * 缓存 key 建议使用 提高性能
+   */
+  cacheKey?: string;
+
+  /**
    * 点击事件
    */
   onMarkerPress?: (event: NativeSyntheticEvent<LatLng>) => void;

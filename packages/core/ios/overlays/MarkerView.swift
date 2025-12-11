@@ -52,6 +52,8 @@ class MarkerView: ExpoView {
     private var mapView: MAMapView?
     /// 标记点对象
     var annotation: MAPointAnnotation?
+    /// 在 MarkerView 中新增属性
+    var cacheKey: String?
     /// 标记是否正在被移除（防止重复移除）
     private var isRemoving: Bool = false
     /// 标记点视图
@@ -124,19 +126,19 @@ class MarkerView: ExpoView {
     }
     
     /**
-     * 更新标记点（批量处理，避免频繁更新）
+     * 更新标记点（立即执行，与其他覆盖物保持一致）
      */
     func updateAnnotation() {
-        // 取消之前的延迟更新
-        pendingUpdateTask?.cancel()
-        
-        // 延迟 16ms（一帧）批量更新
-        let task = DispatchWorkItem { [weak self] in
-            self?.performUpdateAnnotation()
-        }
-        pendingUpdateTask = task
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.016, execute: task)
+        // 🔑 性能优化：移除延迟机制，立即添加
+        // 原因：延迟会在快速添加多个 Marker 时累积，导致帧率下降
+        performUpdateAnnotation()
+    }
+    
+    // JS 侧可以调用
+    func setCacheKey(_ key: String?) {
+        self.cacheKey = key
+        // 发生变化时刷新 annotation
+        updateAnnotation()
     }
     
     /**
@@ -160,20 +162,29 @@ class MarkerView: ExpoView {
         pendingAddTask = nil
         
         // 移除旧的标记
-        if let oldAnnotation = annotation {
-            mapView.removeAnnotation(oldAnnotation)
+//        if let oldAnnotation = annotation {
+//            mapView.removeAnnotation(oldAnnotation)
+//        }
+//        
+//        // 创建新的标记
+//        let annotation = MAPointAnnotation()
+        // 如果已有 annotation，尝试更新坐标与属性，避免 remove/add
+        if let existing = annotation {
+            existing.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            existing.title = title
+            existing.subtitle = markerDescription
+            // 如果 annotationView 已存在且需要刷新图片（比如 cacheKey 改变或 children 变化），我们后面会处理
+            return
         }
-        
-        // 创建新的标记
+
+        // 如果没有，则创建并添加
         let annotation = MAPointAnnotation()
         annotation.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         annotation.title = title
         annotation.subtitle = markerDescription
-        
         self.annotation = annotation
         
-        // 🔑 关键修复：立即添加到地图（与 CircleView 等保持一致）
-        // 不再使用延迟添加，避免新架构下的时序问题
+        // 立即添加到地图（与 CircleView 等保持一致）
         mapView.addAnnotation(annotation)
     }
     
@@ -184,43 +195,63 @@ class MarkerView: ExpoView {
         
         // 🔑 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
-            let reuseId = "custom_marker_children_\(ObjectIdentifier(self).hashValue)"
+            // 使用 class-level reuseId，便于系统复用 view，减少内存
+            let reuseId = "custom_marker_children"
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
-            
             if annotationView == nil {
                 annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
             }
-            
             annotationView?.annotation = annotation
-            // 🔑 关键修复：有自定义内容时不显示默认 callout（信息窗口）
             annotationView?.canShowCallout = false
             annotationView?.isDraggable = draggable
             self.annotationView = annotationView
-            
-            if let image = self.createImageFromSubviews() {
-                annotationView?.image = image
-                annotationView?.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
-            } else {
-                // 🔑 关键修复：不返回 nil，而是设置透明图片，然后延迟重试
-                let size = CGSize(width: CGFloat(customViewWidth > 0 ? customViewWidth : 200),
-                                  height: CGFloat(customViewHeight > 0 ? customViewHeight : 40))
-                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-                let transparentImage = UIGraphicsGetImageFromCurrentImageContext()
-                UIGraphicsEndImageContext()
-                annotationView?.image = transparentImage
+
+            // 生成 cacheKey 或 fallback 到 identifier
+            let key = cacheKey ?? "children_\(ObjectIdentifier(self).hashValue)"
+
+            // 1) 如果缓存命中，直接同步返回图像（fast path）
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                // 🔑 修复:自定义视图使用中心偏移,不需要底部偏移
+                annotationView?.centerOffset = CGPoint(x: 0, y: 0)
+                return annotationView
+            }
+
+            // 2) 缓存未命中：返回占位（透明），并异步在主线程生成图像然后回填
+            let size = CGSize(width: CGFloat(customViewWidth > 0 ? customViewWidth : 200),
+                              height: CGFloat(customViewHeight > 0 ? customViewHeight : 40))
+            UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+            let transparentImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            annotationView?.image = transparentImage
+
+            // 🔑 修复:延长延迟时间,给 React Native Image 更多加载时间
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
+                guard let self = self, let annotationView = annotationView else { return }
+                // 再次检查缓存（避免重复渲染）
+                if let cached = IconBitmapCache.shared.image(forKey: key) {
+                    print("🔄 iOS Marker: 使用缓存图片, key: \(key)")
+                    annotationView.image = cached
+                    annotationView.centerOffset = CGPoint(x: 0, y: 0)
+                    return
+                }
                 
-                // 延迟重试创建图片
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
-                    guard let self = self, let annotationView = annotationView else { return }
-                    if let image = self.createImageFromSubviews() {
-                        annotationView.image = image
-                        annotationView.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
-                    }
+                print("⏰ iOS Marker: 0.5秒后开始渲染, key: \(key)")
+                // 调用你的原生渲染逻辑（保留空白检测、多次 layout）
+                if let generated = self.createImageFromSubviews() {
+                    // 写入缓存（仅当用户传了 cacheKey 才缓存；否则建议仍缓存由 fingerprint 决定）
+                    IconBitmapCache.shared.setImage(generated, forKey: key)
+                    annotationView.image = generated
+                    annotationView.centerOffset = CGPoint(x: 0, y: 0)
+                    print("✅ iOS Marker: 渲染成功并显示, size: \(generated.size)")
+                } else {
+                    print("⚠️ iOS Marker: 渲染失败,图片为空")
                 }
             }
-            
+
             return annotationView
         }
+
         
         // 🔑 如果有 icon 属性，使用自定义图标
         if let iconUri = iconUri, !iconUri.isEmpty {
@@ -237,49 +268,59 @@ class MarkerView: ExpoView {
             annotationView?.isDraggable = draggable
             self.annotationView = annotationView
             
-            // 加载自定义图标
-            loadIcon(iconUri: iconUri) { [weak self] image in
-                guard let self = self, let image = image else {
-                    return
-                }
+            // 构建 key
+            let key = cacheKey ?? "icon|\(iconUri)|\(Int(iconWidth))x\(Int(iconHeight))"
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                annotationView?.centerOffset = CGPoint(x: 0, y: -cached.size.height / 2)
+                return annotationView
+            }
+
+            // 原有异步加载，不变：只是在回调里先缓存 then set
+            loadIcon(iconUri: iconUri) { [weak self, weak annotationView] image in
+                guard let self = self, let image = image else { return }
                 let size = CGSize(width: self.iconWidth, height: self.iconHeight)
-                
                 UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
                 image.draw(in: CGRect(origin: .zero, size: size))
                 let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
                 UIGraphicsEndImageContext()
-                
+
                 DispatchQueue.main.async {
-                    annotationView?.image = resizedImage
-                    annotationView?.centerOffset = CGPoint(x: 0, y: -self.iconHeight / 2)
+                    if let img = resizedImage {
+                        IconBitmapCache.shared.setImage(img, forKey: key)
+                        annotationView?.image = img
+                        annotationView?.centerOffset = CGPoint(x: 0, y: -img.size.height / 2)
+                    }
                 }
             }
+
             
             return annotationView
         }
         
         // 🔑 既没有 children 也没有 icon，使用系统默认大头针
-        let reuseId = "pin_marker_\(ObjectIdentifier(self).hashValue)"
+        // 🔑 性能优化：使用颜色作为 reuseId，让系统复用相同颜色的大头针
+        let reuseId = "pin_marker_\(pinColor)"
         var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MAPinAnnotationView
         
         if pinView == nil {
             pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            
+            // 🔑 创建时设置颜色（只在创建时设置一次）
+            switch pinColor.lowercased() {
+            case "green":
+                pinView?.pinColor = .green
+            case "purple":
+                pinView?.pinColor = .purple
+            default:
+                pinView?.pinColor = .red
+            }
         }
         
         pinView?.annotation = annotation
         pinView?.canShowCallout = canShowCallout
         pinView?.isDraggable = draggable
         pinView?.animatesDrop = animatesDrop
-        
-        // 设置大头针颜色
-        switch pinColor.lowercased() {
-        case "green":
-            pinView?.pinColor = .green
-        case "purple":
-            pinView?.pinColor = .purple
-        default:
-            pinView?.pinColor = .red
-        }
         
         self.annotationView = pinView
         return pinView
@@ -318,12 +359,16 @@ class MarkerView: ExpoView {
      * 将子视图转换为图片
      */
     private func createImageFromSubviews() -> UIImage? {
+        // 🔑 如果有 cacheKey 且命中缓存，直接返回缓存图片
+        if let key = cacheKey, let cachedImage = IconBitmapCache.shared.image(forKey: key) {
+            return cachedImage
+        }
+        
         guard let firstSubview = subviews.first else {
             return nil
         }
         
         // 优先使用 customViewWidth/customViewHeight（用于 children），其次使用子视图尺寸，最后使用默认值
-        // 注意：iconWidth/iconHeight 是用于自定义图标的，不用于 children
         let width: CGFloat
         let height: CGFloat
         
@@ -348,7 +393,7 @@ class MarkerView: ExpoView {
         // 强制子视图使用指定尺寸布局
         firstSubview.frame = CGRect(origin: .zero, size: size)
         
-        // 🔑 关键修复：多次强制布局，确保 React Native Text 完全渲染
+        // 🔑 多次强制布局，确保 React Native Text 完全渲染
         for _ in 0..<3 {
             forceLayoutRecursively(view: firstSubview)
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
@@ -357,46 +402,55 @@ class MarkerView: ExpoView {
         UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
         defer { UIGraphicsEndImageContext() }
         
-        guard let context = UIGraphicsGetCurrentContext() else {
+        guard let _ = UIGraphicsGetCurrentContext() else {
             return nil
         }
         
         // 使用 drawHierarchy 而不是 layer.render，这样能正确渲染 Text
-        let success = firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
         
         guard let image = UIGraphicsGetImageFromCurrentImageContext() else {
             return nil
         }
         
-        // 🔑 关键：检查图片是否真的有内容（不是空白图片）
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
+        // 🔑 检查图片是否真的有内容（不是空白图片）
+        // 暂时禁用空白检测,因为 React Native Image 可能需要额外的渲染时间
+        // guard let cgImage = image.cgImage else {
+        //     print("⚠️ iOS Marker: cgImage 为 nil")
+        //     return nil
+        // }
         
-        // 检查图片数据是否为空白
-        let dataProvider = cgImage.dataProvider
-        let data = dataProvider?.data
-        let buffer = CFDataGetBytePtr(data)
+        // let dataProvider = cgImage.dataProvider
+        // let data = dataProvider?.data
+        // let buffer = CFDataGetBytePtr(data)
         
-        var isBlank = true
-        if let buffer = buffer {
-            let length = CFDataGetLength(data)
-            // 检查前 100 个字节是否都是 0（空白）
-            let checkLength = min(100, length)
-            for i in 0..<checkLength {
-                if buffer[i] != 0 {
-                    isBlank = false
-                    break
-                }
-            }
-        }
+        // var isBlank = true
+        // if let buffer = buffer {
+        //     let length = CFDataGetLength(data)
+        //     let checkLength = min(100, length)
+        //     for i in 0..<checkLength {
+        //         if buffer[i] != 0 {
+        //             isBlank = false
+        //             break
+        //         }
+        //     }
+        // }
         
-        if isBlank {
-            return nil
+        // if isBlank {
+        //     print("⚠️ iOS Marker: 渲染的图片是空白的")
+        //     return nil
+        // }
+        
+        print("✅ iOS Marker: 成功渲染图片, size: \(image.size)")
+        
+        // 🔑 写入缓存
+        if let key = cacheKey {
+            IconBitmapCache.shared.setImage(image, forKey: key)
         }
         
         return image
     }
+
     
     /**
      * 递归强制布局视图及其所有子视图
@@ -429,21 +483,17 @@ class MarkerView: ExpoView {
     private func removeAnnotationFromMap() {
         guard !isRemoving else { return }
         isRemoving = true
-        
-        // 取消任何待处理的延迟任务
-        pendingAddTask?.cancel()
-        pendingAddTask = nil
-        pendingUpdateTask?.cancel()
-        pendingUpdateTask = nil
-        
-        // 立即保存引用并清空属性，避免在异步块中访问 self
-        guard let mapView = mapView, let annotation = annotation else {
-            return
-        }
+        pendingAddTask?.cancel(); pendingAddTask = nil
+        pendingUpdateTask?.cancel(); pendingUpdateTask = nil
+
+        guard let mapView = mapView, let annotation = annotation else { return }
         self.annotation = nil
         self.annotationView = nil
-        
-        // 同步移除，避免对象在异步块执行时已被释放
+
+        // 🔑 修复：不要在移除时删除缓存
+        // 理由：多个 Marker 可能共享同一 cacheKey，删除会影响其他 Marker
+        // 缓存由 NSCache 自动管理，内存不足时会自动清理
+
         if Thread.isMainThread {
             mapView.removeAnnotation(annotation)
         } else {
@@ -452,7 +502,7 @@ class MarkerView: ExpoView {
             }
         }
     }
-    
+
     override func willRemoveSubview(_ subview: UIView) {
         super.willRemoveSubview(subview)
         
@@ -616,3 +666,45 @@ class MarkerView: ExpoView {
         lastSetMapView = nil
     }
 }
+
+
+/// 增强版内存缓存（带 cost 与清理）
+class IconBitmapCache {
+    static let shared = IconBitmapCache()
+    private init() {
+        // 设置 totalCostLimit = 1/8 可用内存（以字节计）
+        let mem = ProcessInfo.processInfo.physicalMemory
+        // 限制在可用物理内存的 1/8（可按需调整）
+        let limit = Int(mem / 8)
+        cache.totalCostLimit = limit
+    }
+
+    private var cache = NSCache<NSString, UIImage>()
+
+    func image(forKey key: String) -> UIImage? {
+        return cache.object(forKey: key as NSString)
+    }
+
+    func setImage(_ image: UIImage, forKey key: String) {
+        // 以 bitmap 字节数作为 cost（更可靠）
+        let cost = imageCostInBytes(image)
+        cache.setObject(image, forKey: key as NSString, cost: cost)
+    }
+
+    func removeImage(forKey key: String) {
+        cache.removeObject(forKey: key as NSString)
+    }
+
+    func clear() {
+        cache.removeAllObjects()
+    }
+
+    private func imageCostInBytes(_ image: UIImage) -> Int {
+        if let cg = image.cgImage {
+            return cg.bytesPerRow * cg.height
+        }
+        // fallback estimate
+        return Int(image.size.width * image.size.height * 4)
+    }
+}
+

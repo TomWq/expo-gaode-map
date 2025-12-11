@@ -73,6 +73,10 @@ class MarkerViewModule : Module() {
       Prop<Int>("customViewHeight") { view, height ->
         view.setCustomViewHeight(height)
       }
+
+        Prop<String>("cacheKey") { view, key ->
+            view.setCacheKey(key)
+        }
     }
   }
 }

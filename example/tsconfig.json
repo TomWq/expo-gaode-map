@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "expo-gaode-map": ["../src/index"],
+      "expo-gaode-map/*": ["../src/*"]
+    }
+  }
+}
