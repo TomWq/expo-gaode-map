@@ -1,13 +1,4 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-12-03 14:27:06
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-12-09 11:32:54
- * @FilePath     : /expo-gaode-map/packages/core/src/index.ts
- * @Description  : 
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
+
 
 // 导出类型定义
 export * from './ExpoGaodeMap.types';

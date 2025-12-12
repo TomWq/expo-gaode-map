@@ -1,10 +1,11 @@
 
+
 // 导出类型定义
 export * from './ExpoGaodeMap.types';
 export * from './types';
 
 // 导出原生模块 - 直接使用，无需封装
-export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
+export { default as ExpoGaodeMapModule, getWebKey, getSDKConfig } from './ExpoGaodeMapModule';
 
 // 从 ExpoGaodeMapModule 重新导出类型，方便使用
 export type { SDKConfig, PermissionStatus } from './ExpoGaodeMapModule';

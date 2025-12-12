@@ -1,13 +1,4 @@
-/*
- * @Author       : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @Date         : 2025-12-03 20:12:54
- * @LastEditors  : 尚博信_王强 wangqiang03@sunboxsoft.com
- * @LastEditTime : 2025-12-05 12:37:28
- * @FilePath     : /expo-gaode-map/packages/navigation/src/ExpoGaodeMapNaviView.tsx
- * @Description  : 
- * 
- * Copyright (c) 2025 by 尚博信_王强, All Rights Reserved. 
- */
+
 import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
 import type { Coordinates, NaviViewProps } from './types';
