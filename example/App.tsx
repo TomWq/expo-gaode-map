@@ -16,7 +16,7 @@ import {
   type ReGeocode,
 } from 'expo-gaode-map';
 import { useNavigation } from 'expo-router';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;

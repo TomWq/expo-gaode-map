@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.wangqiang.expogaodemapmonorepo"
+  },
+  "ios": {
+    "bundleIdentifier": "com.wangqiang.expogaodemapmonorepo"
+  }
+}

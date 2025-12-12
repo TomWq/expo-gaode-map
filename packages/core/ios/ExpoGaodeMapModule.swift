@@ -84,6 +84,7 @@ public class ExpoGaodeMapModule: Module {
             // 检查是否已同意隐私协议
             if !ExpoGaodeMapModule.privacyAgreed {
                 print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法初始化 SDK")
+
                 return
             }
             
@@ -383,12 +384,47 @@ public class ExpoGaodeMapModule: Module {
             }
         }
         
+        // ==================== 地图预加载 ====================
+        
+        /**
+         * 开始预加载地图实例
+         * @param config 预加载配置对象,包含 poolSize
+         */
+        Function("startMapPreload") { (config: [String: Any]) in
+            let poolSize = config["poolSize"] as? Int ?? 2
+            MapPreloadManager.shared.startPreload(poolSize: poolSize)
+        }
+        
+        /**
+         * 获取预加载状态
+         * @return 预加载状态信息
+         */
+        Function("getMapPreloadStatus") {
+            MapPreloadManager.shared.getStatus()
+        }
+        
+        /**
+         * 清空预加载池
+         */
+        Function("clearMapPreloadPool") {
+            MapPreloadManager.shared.clearPool()
+        }
+        
+        /**
+         * 检查是否有可用的预加载实例
+         * @return 是否有可用实例
+         */
+        Function("hasPreloadedMapView") {
+            MapPreloadManager.shared.hasPreloadedMapView()
+        }
+        
         Events("onHeadingUpdate")
         Events("onLocationUpdate")
         
         OnDestroy {
             self.locationManager?.destroy()
             self.locationManager = nil
+            MapPreloadManager.shared.cleanup()
         }
     }
     

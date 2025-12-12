@@ -352,11 +352,46 @@ class ExpoGaodeMapModule : Module() {
       handler.postDelayed(checkPermission, 100)
     }
 
+    // ==================== 地图预加载 ====================
+    
+    /**
+     * 开始预加载地图实例
+     * @param config 预加载配置对象,包含 poolSize
+     */
+    Function("startMapPreload") { config: Map<String, Any> ->
+      val poolSize = (config["poolSize"] as? Number)?.toInt() ?: 2
+      MapPreloadManager.startPreload(appContext.reactContext!!, poolSize)
+    }
+    
+    /**
+     * 获取预加载状态
+     * @return 预加载状态信息
+     */
+    Function("getMapPreloadStatus") {
+      MapPreloadManager.getStatus()
+    }
+    
+    /**
+     * 清空预加载池
+     */
+    Function("clearMapPreloadPool") {
+      MapPreloadManager.clearPool()
+    }
+    
+    /**
+     * 检查是否有可用的预加载实例
+     * @return 是否有可用实例
+     */
+    Function("hasPreloadedMapView") {
+      MapPreloadManager.hasPreloadedMapView()
+    }
+
     Events("onLocationUpdate")
 
     OnDestroy {
       locationManager?.destroy()
       locationManager = null
+      MapPreloadManager.cleanup()
     }
   }
 

@@ -1,5 +1,4 @@
 
-
 // 导出类型定义
 export * from './ExpoGaodeMap.types';
 export * from './types';
@@ -33,6 +32,23 @@ export {
   printModuleInfo,
   createLazyLoader,
 } from './utils/ModuleLoader';
+
+// 导出地图预加载功能
+export {
+  MapPreloader,
+  preloadMap,
+  getPreloadStatus,
+  clearPreloadedMaps,
+} from './utils/MapPreloader';
+export type { PreloadConfig, PreloadStatus } from './utils/MapPreloader';
+
+// 导出预加载 Hook
+export { useMapPreload, useMapPreloadStatus } from './hooks/useMapPreload';
+export type { UseMapPreloadReturn } from './hooks/useMapPreload';
+
+// 导出预加载组件
+export { default as MapPreloaderComponent } from './components/MapPreloader';
+export type { MapPreloaderProps } from './components/MapPreloader';
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';

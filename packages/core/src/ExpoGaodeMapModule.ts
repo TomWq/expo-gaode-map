@@ -243,6 +243,38 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
    */
   requestLocationPermission(): Promise<PermissionStatus>;
   
+  // ==================== 地图预加载 ====================
+  
+  /**
+   * 开始预加载地图实例
+   * 在后台预先初始化地图视图，提升首次显示速度
+   * @param config 预加载配置对象
+   * @param config.poolSize 预加载的地图实例数量，默认 2
+   */
+  startMapPreload(config: { poolSize?: number }): void;
+  
+  /**
+   * 获取预加载状态
+   * @returns 预加载状态信息，包含池大小、是否正在预加载等
+   */
+  getMapPreloadStatus(): {
+    poolSize: number;
+    isPreloading: boolean;
+    maxPoolSize: number;
+  };
+  
+  /**
+   * 清空预加载池
+   * 释放所有预加载的地图实例
+   */
+  clearMapPreloadPool(): void;
+  
+  /**
+   * 检查是否有可用的预加载实例
+   * @returns 是否有可用的预加载地图实例
+   */
+  hasPreloadedMapView(): boolean;
+  
   // ==================== 便捷方法 ====================
   
   /**
