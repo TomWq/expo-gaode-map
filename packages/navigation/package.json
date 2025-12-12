@@ -9,7 +9,8 @@
     "android",
     "ios",
     "app.plugin.js",
-    "expo-module.config.json"
+    "expo-module.config.json",
+    "plugin/build"
   ],
   "scripts": {
     "build": "expo-module build && pnpm run build:plugin",
@@ -42,6 +43,7 @@
     "supercluster": "^8.0.1"
   },
   "devDependencies": {
+    "@expo/config-plugins": "^9.1.7",
     "@types/react": "~19.1.0",
     "expo": "^54.0.18",
     "expo-module-scripts": "^5.0.7",
