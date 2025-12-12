@@ -1,6 +1,10 @@
+# 开发文件
 node_modules/
 *.log
 *.tgz
 src/
 tsconfig.json
 .eslintrc.js
+
+# 确保包含构建产物
+!build/

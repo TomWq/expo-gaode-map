@@ -260,12 +260,11 @@ let nativeModule: ExpoGaodeMapModule | null = null;
 try {
   nativeModule = requireNativeModule<ExpoGaodeMapModule>('NaviMap');
 } catch (error) {
-  console.warn('NaviMap 原生模块加载失败:', error);
-}
-
-// 如果模块加载失败，创建一个空的代理对象防止崩溃
-if (!nativeModule) {
-  console.error('NaviMap: 原生模块不可用，请检查配置');
+  // 原生模块加载失败时的静默处理
+  // 这是正常的，因为 navigation 包可以独立使用，不一定需要完整的地图功能
+  if (__DEV__) {
+    console.warn('[expo-gaode-map-navigation] NaviMap 原生模块未加载，地图相关功能将不可用');
+  }
 }
 
 // 记录最近一次 initSDK 的配置（含 webKey）
