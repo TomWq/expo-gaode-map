@@ -258,10 +258,8 @@ publish_navigation() {
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
-  CORE_VERSION=$(node -p "require('../core/package.json').version")
-  echo "检测到核心包版本: ${CORE_VERSION}"
-  echo "更新依赖为 ^${CORE_VERSION}..."
-  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies=pkg.dependencies||{};pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  # navigation 包是独立的，包含完整地图功能，不需要依赖 expo-gaode-map
+  echo "⚠️  navigation 包是独立包，跳过 expo-gaode-map 依赖更新"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
     pnpm publish --access public --no-git-checks
