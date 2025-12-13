@@ -4,36 +4,9 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { MapPreloader, PreloadConfig, PreloadStatus } from '../utils/MapPreloader';
+import { MapPreloader } from '../utils/MapPreloader';
+import { PreloadConfig,PreloadStatus ,UseMapPreloadReturn} from '../types/preload.types';
 
-/**
- * Hook 返回值
- */
-export interface UseMapPreloadReturn {
-  /** 当前预加载状态 */
-  status: PreloadStatus;
-  /** 是否正在预加载 */
-  isLoading: boolean;
-  /** 是否已准备就绪 */
-  isReady: boolean;
-  /** 是否发生错误 */
-  hasError: boolean;
-  /** 预加载统计信息 */
-  stats: {
-    total: number;
-    ready: number;
-    loading: number;
-    error: number;
-  };
-  /** 手动开始预加载 */
-  startPreload: () => void;
-  /** 停止预加载 */
-  stopPreload: () => void;
-  /** 清理预加载实例 */
-  clearInstances: () => void;
-  /** 获取一个预加载实例 */
-  getPreloadedInstance: () => string | null;
-}
 
 /**
  * 地图预加载 Hook

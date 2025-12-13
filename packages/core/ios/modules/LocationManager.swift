@@ -11,128 +11,129 @@ import CoreLocation
  * - 方向传感器管理
  * - 定位结果回调
  */
+
 class LocationManager: NSObject, AMapLocationManagerDelegate {
-    /// 高德定位管理器实例
+
+    // 高德定位对象
     var locationManager: AMapLocationManager?
-    /// 定位是否已启动
+
+    // 连续定位是否已开启
     private var isLocationStarted = false
-    /// 定位更新回调
-    var onLocationUpdate: (([String: Any]) -> Void)?
-    /// 方向更新回调
-    var onHeadingUpdate: (([String: Any]) -> Void)?
+
+    // --- 一次定位状态管理 ---
+    private var onceSuccess: (([String: Any]) -> Void)?
+    private var onceError: ((String, String) -> Void)?
+    private var isTempStartForOnce = false
     
+
+    // 连续定位 event 回调（给 JS map listener 用）
+    var onLocationUpdate: (([String: Any]) -> Void)?
+    var onHeadingUpdate: (([String: Any]) -> Void)?
+
     override init() {
         super.init()
         initLocationManager()
     }
-    
-    // MARK: - 定位控制
-    
-    /**
-     * 开始连续定位
-     */
+
+    // MARK: - 连续定位控制
+
     func start() {
         locationManager?.startUpdatingLocation()
         isLocationStarted = true
     }
-    
-    /**
-     * 停止定位
-     */
+
     func stop() {
         locationManager?.stopUpdatingLocation()
         isLocationStarted = false
     }
-    
-    /**
-     * 检查定位是否已启动
-     * @return 是否正在定位
-     */
+
     func isStarted() -> Bool {
         return isLocationStarted
     }
-    
-    // MARK: - 定位配置
-    
-    /**
-     * 设置是否返回逆地理信息
-     * @param isReGeocode 是否返回逆地理信息
-     */
+
+    // MARK: - 一次定位（给 Module 层的 getCurrentLocation 调用）
+
+    func requestSingleLocation(
+        onSuccess: @escaping ([String: Any]) -> Void,
+        onError: @escaping (String, String) -> Void
+    ) {
+        // 若上一次未完成，先拒绝掉
+        if onceSuccess != nil || onceError != nil {
+            onceError?("LOCATION_CANCELLED", "Previous request was interrupted")
+        }
+
+        onceSuccess = onSuccess
+        onceError = onError
+
+        // 如果连续定位已开启 → 等下一次 update
+        if isLocationStarted {
+            scheduleTimeout()
+            return
+        }
+
+        // 否则临时启动定位
+        isTempStartForOnce = true
+        start()
+        scheduleTimeout()
+    }
+
+    private func scheduleTimeout() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+            guard let self = self else { return }
+
+            if let error = self.onceError {
+                error("LOCATION_TIMEOUT", "getCurrentLocation timeout")
+                self.onceSuccess = nil
+                self.onceError = nil
+
+                if self.isTempStartForOnce {
+                    self.stop()
+                    self.isTempStartForOnce = false
+                }
+            }
+        }
+    }
+
+    // MARK: - 高德定位配置 API
+
     func setLocatingWithReGeocode(_ isReGeocode: Bool) {
         locationManager?.locatingWithReGeocode = isReGeocode
     }
-    
-    /**
-     * 设置定位距离过滤器(米)
-     * @param distance 最小距离变化才触发定位更新
-     */
+
     func setDistanceFilter(_ distance: Double) {
         locationManager?.distanceFilter = distance
     }
-    
-    /**
-     * 设置定位超时时间(秒)
-     * @param timeout 超时时间
-     */
+
     func setLocationTimeout(_ timeout: Int) {
         locationManager?.locationTimeout = timeout
     }
-    
-    /**
-     * 设置逆地理超时时间(秒)
-     * @param timeout 超时时间
-     */
+
     func setReGeocodeTimeout(_ timeout: Int) {
         locationManager?.reGeocodeTimeout = timeout
     }
-    
-    /**
-     * 设置定位精度
-     * @param accuracy 精度级别
-     *   - 0: 最适合导航
-     *   - 1: 最佳精度
-     *   - 2: 10米精度
-     *   - 3: 100米精度
-     *   - 4: 1公里精度
-     *   - 5: 3公里精度
-     */
+
     func setDesiredAccuracy(_ accuracy: Int) {
-        let accuracyValue: CLLocationAccuracy
+        let value: CLLocationAccuracy
         switch accuracy {
-        case 0: accuracyValue = kCLLocationAccuracyBestForNavigation
-        case 1: accuracyValue = kCLLocationAccuracyBest
-        case 2: accuracyValue = kCLLocationAccuracyNearestTenMeters
-        case 3: accuracyValue = kCLLocationAccuracyHundredMeters
-        case 4: accuracyValue = kCLLocationAccuracyKilometer
-        case 5: accuracyValue = kCLLocationAccuracyThreeKilometers
-        default: accuracyValue = kCLLocationAccuracyBest
+        case 0: value = kCLLocationAccuracyBestForNavigation
+        case 1: value = kCLLocationAccuracyBest
+        case 2: value = kCLLocationAccuracyNearestTenMeters
+        case 3: value = kCLLocationAccuracyHundredMeters
+        case 4: value = kCLLocationAccuracyKilometer
+        case 5: value = kCLLocationAccuracyThreeKilometers
+        default: value = kCLLocationAccuracyBest
         }
-        locationManager?.desiredAccuracy = accuracyValue
+        locationManager?.desiredAccuracy = value
     }
-    
-    /**
-     * 设置是否自动暂停定位更新
-     * @param pauses 是否自动暂停
-     */
+
     func setPausesLocationUpdatesAutomatically(_ pauses: Bool) {
         locationManager?.pausesLocationUpdatesAutomatically = pauses
     }
-    
-    /**
-     * 设置是否允许后台定位
-     * @param allows 是否允许后台定位
-     */
+
     func setAllowsBackgroundLocationUpdates(_ allows: Bool) {
         locationManager?.allowsBackgroundLocationUpdates = allows
     }
-    
-    /**
-     * 设置逆地理语言
-     * @param language 语言类型
-     *   - 0: 默认
-     *   - 1: 中文
-     *   - 2: 英文
-     */
+
     func setGeoLanguage(_ language: Int) {
         switch language {
         case 0: locationManager?.reGeocodeLanguage = .default
@@ -141,71 +142,41 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         default: break
         }
     }
-    
-    // MARK: - 方向传感器
-    
-    /**
-     * 开始更新设备方向
-     */
+
+    // MARK: - 方向
+
     func startUpdatingHeading() {
         locationManager?.startUpdatingHeading()
     }
-    
-    /**
-     * 停止更新设备方向
-     */
+
     func stopUpdatingHeading() {
         locationManager?.stopUpdatingHeading()
     }
-    
-    // MARK: - 生命周期
-    
-    /**
-     * 销毁定位管理器
-     */
-    func destroy() {
-        locationManager?.stopUpdatingLocation()
-        locationManager?.stopUpdatingHeading()
-        locationManager?.delegate = nil
-        locationManager = nil
-        onLocationUpdate = nil
-        onHeadingUpdate = nil
-    }
-    
-    /**
-     * 初始化定位管理器
-     */
+
+    // MARK: - 初始化
+
     private func initLocationManager() {
         locationManager = AMapLocationManager()
         locationManager?.delegate = self
-        // 推荐配置：百米精度，快速定位
+
+        // 默认配置
         locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
         locationManager?.distanceFilter = 10
-        // 增加超时时间，避免首次授权时超时(首次定位建议10秒以上)
-        locationManager?.locationTimeout = 10  // 10秒超时
-        locationManager?.reGeocodeTimeout = 5   // 5秒超时
+        locationManager?.locationTimeout = 10
+        locationManager?.reGeocodeTimeout = 5
         locationManager?.locatingWithReGeocode = true
-        
-        // iOS 9 之前:防止后台被系统挂起(默认关闭,用户可通过 setPausesLocationUpdatesAutomatically 配置)
         locationManager?.pausesLocationUpdatesAutomatically = false
     }
-    
-    // MARK: - AMapLocationManagerDelegate
-    
-    /**
-     * 定位更新回调
-     * @param manager 定位管理器
-     * @param location 位置信息
-     * @param reGeocode 逆地理信息
-     */
-    func amapLocationManager(_ manager: AMapLocationManager!, didUpdate location: CLLocation!, reGeocode: AMapLocationReGeocode!) {
-        // 🔑 坐标验证：防止无效坐标
-        guard location.coordinate.latitude >= -90 && location.coordinate.latitude <= 90,
-              location.coordinate.longitude >= -180 && location.coordinate.longitude <= 180 else {
-            return
-        }
-        
-        var locationData: [String: Any] = [
+
+    // MARK: - Delegate（一次定位 + 连续定位统一出口）
+
+    func amapLocationManager(_ manager: AMapLocationManager!,
+                             didUpdate location: CLLocation!,
+                             reGeocode: AMapLocationReGeocode!) {
+
+        guard let location = location else { return }
+
+        var data: [String: Any] = [
             "latitude": location.coordinate.latitude,
             "longitude": location.coordinate.longitude,
             "accuracy": location.horizontalAccuracy,
@@ -214,52 +185,61 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
             "speed": location.speed,
             "timestamp": location.timestamp.timeIntervalSince1970 * 1000
         ]
-        
-        // 添加逆地理信息
-        if let reGeocode = reGeocode {
-            locationData["address"] = reGeocode.formattedAddress
-            locationData["province"] = reGeocode.province
-            locationData["city"] = reGeocode.city
-            locationData["district"] = reGeocode.district
-            locationData["street"] = reGeocode.street
-            locationData["streetNumber"] = reGeocode.number
-            locationData["country"] = reGeocode.country
-            locationData["cityCode"] = reGeocode.citycode
-            locationData["adCode"] = reGeocode.adcode
+
+        if let geo = reGeocode {
+            data["address"] = geo.formattedAddress
+            data["province"] = geo.province
+            data["city"] = geo.city
+            data["district"] = geo.district
+            data["street"] = geo.street
+            data["streetNumber"] = geo.number
+            data["country"] = geo.country
+            data["cityCode"] = geo.citycode
+            data["adCode"] = geo.adcode
         }
-        
-        onLocationUpdate?(locationData)
+
+        // --- 一次定位优先 ---
+        if let success = onceSuccess {
+            success(data)
+            onceSuccess = nil
+            onceError = nil
+
+            if isTempStartForOnce {
+                stop()
+                isTempStartForOnce = false
+            }
+            return
+        }
+
+        // --- 连续定位 ---
+        onLocationUpdate?(data)
     }
-    
-    /**
-     * 方向更新回调
-     * @param manager 定位管理器
-     * @param heading 方向信息
-     */
-    func amapLocationManager(_ manager: AMapLocationManager!, didUpdate heading: CLHeading!) {
-        let headingData: [String: Any] = [
-            "heading": heading.trueHeading,
-            "accuracy": heading.headingAccuracy,
-            "timestamp": heading.timestamp.timeIntervalSince1970 * 1000
-        ]
-        onHeadingUpdate?(headingData)
-    }
-    
-    /**
-     * 需要定位权限回调
-     * @param manager 定位管理器
-     * @param locationManager 系统定位管理器
-     */
-    func amapLocationManager(_ manager: AMapLocationManager!, doRequireLocationAuth locationManager: CLLocationManager!) {
-        locationManager.requestAlwaysAuthorization()
-    }
-    
-    /**
-     * 定位失败回调
-     * @param manager 定位管理器
-     * @param error 错误信息
-     */
+
     func amapLocationManager(_ manager: AMapLocationManager!, didFailWithError error: Error!) {
-        // 定位失败 - 静默处理
+
+        if let onError = onceError {
+            onError("LOCATION_ERROR", error.localizedDescription)
+
+            onceSuccess = nil
+            onceError = nil
+
+            if isTempStartForOnce {
+                stop()
+                isTempStartForOnce = false
+            }
+        }
+    }
+
+    // MARK: - 销毁
+    func destroy() {
+        locationManager?.stopUpdatingLocation()
+        locationManager?.stopUpdatingHeading()
+        locationManager?.delegate = nil
+        locationManager = nil
+
+        onceSuccess = nil
+        onceError = nil
+        onLocationUpdate = nil
+        onHeadingUpdate = nil
     }
 }

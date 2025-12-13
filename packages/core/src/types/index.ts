@@ -1,3 +1,5 @@
+
+
 /**
  * 高德地图 Expo Module 类型定义统一导出
  * 基于 Expo Modules API 重新设计
@@ -38,6 +40,8 @@ export {
   LocationAccuracy,
   LocationMode,
   CoordinateType,
+  UseLocationOptions,
+  UseLocationResult,
 } from './location.types';
 
 // 覆盖物类型
@@ -53,3 +57,13 @@ export type {
   ClusterPoint,
   ClusterProps,
 } from './overlays.types';
+
+//预加载类型
+export type {
+  PreloadConfig,
+  PreloadStatus,
+  PreloadStrategy,
+  PreloadInstance,
+  UseMapPreloadReturn,
+  MapPreloaderProps
+} from './preload.types';

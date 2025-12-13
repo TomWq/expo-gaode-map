@@ -6,24 +6,11 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import ExpoGaodeMapView from '../ExpoGaodeMapView';
-import { MapPreloader, PreloadConfig } from '../utils/MapPreloader';
-import type { MapViewProps } from '../types';
+import { MapPreloader,  } from '../utils/MapPreloader';
+import { MapPreloaderProps } from '../types';
 
-/**
- * 预加载组件属性
- */
-export interface MapPreloaderProps {
-  /** 预加载配置 */
-  config?: PreloadConfig;
-  /** 预加载的地图视图属性 */
-  mapProps?: Partial<MapViewProps>;
-  /** 是否启用预加载，默认为 true */
-  enabled?: boolean;
-  /** 预加载完成回调 */
-  onPreloadComplete?: () => void;
-  /** 预加载失败回调 */
-  onPreloadError?: (error: Error) => void;
-}
+
+
 
 /**
  * 地图预加载组件

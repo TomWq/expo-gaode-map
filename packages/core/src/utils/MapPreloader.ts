@@ -5,6 +5,8 @@
  * - 否则回退到 JS 层预加载（性能提升 5-25%）
  */
 
+import { PreloadInstance, PreloadConfig, PreloadStrategy,PreloadStatus } from "../types/preload.types";
+
 // 动态导入原生模块，避免在模块不可用时报错
 let NativeModule: any = null;
 try {
@@ -13,47 +15,6 @@ try {
   console.warn('[MapPreloader] 原生模块加载失败，将只使用 JS 层预加载');
 }
 
-/**
- * 预加载配置
- */
-export interface PreloadConfig {
-  /** 预加载的地图数量，默认为 1 */
-  poolSize?: number;
-  /** 预加载延迟时间（毫秒），默认为 0（立即预加载） */
-  delay?: number;
-  /** 是否启用预加载，默认为 true */
-  enabled?: boolean;
-  /** 预加载超时时间（毫秒），默认为 15000（15秒） */
-  timeout?: number;
-  /** 预加载策略：'native' | 'js' | 'auto' | 'hybrid'，默认为 'auto' */
-  strategy?: PreloadStrategy;
-  /** 超时后是否自动回退到 JS 预加载，默认为 true */
-  fallbackOnTimeout?: boolean;
-}
-
-/**
- * 预加载状态
- */
-export type PreloadStatus = 'idle' | 'loading' | 'ready' | 'error';
-
-/**
- * 预加载策略
- * - 'native': 仅使用原生预加载
- * - 'js': 仅使用 JS 层预加载
- * - 'auto': 自动选择（优先原生，不可用时用 JS）
- * - 'hybrid': 同时启动原生和 JS，谁先完成用谁（最快最可靠）
- */
-export type PreloadStrategy = 'native' | 'js' | 'auto' | 'hybrid';
-
-/**
- * 预加载实例信息
- */
-interface PreloadInstance {
-  id: string;
-  status: PreloadStatus;
-  timestamp: number;
-  error?: Error;
-}
 
 /**
  * 地图预加载管理器类

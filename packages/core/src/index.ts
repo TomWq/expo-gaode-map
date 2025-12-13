@@ -40,15 +40,20 @@ export {
   getPreloadStatus,
   clearPreloadedMaps,
 } from './utils/MapPreloader';
-export type { PreloadConfig, PreloadStatus } from './utils/MapPreloader';
+
+export type { PreloadConfig, PreloadStatus ,UseMapPreloadReturn,MapPreloaderProps} from './types/preload.types';
+
+export type {UseLocationOptions,UseLocationResult} from './types/location.types'
 
 // 导出预加载 Hook
 export { useMapPreload, useMapPreloadStatus } from './hooks/useMapPreload';
-export type { UseMapPreloadReturn } from './hooks/useMapPreload';
+
+//导出定位的 Hook
+export { useLocation } from './hooks/useLocation';
 
 // 导出预加载组件
 export { default as MapPreloaderComponent } from './components/MapPreloader';
-export type { MapPreloaderProps } from './components/MapPreloader';
+
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';
