@@ -37,10 +37,26 @@ public class ExpoGaodeMapModule: Module {
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
                 print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
                 
+                // 尝试从 Info.plist 读取并设置 API Key
+                if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
+                    if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
+                        AMapServices.shared().apiKey = plistKey
+                        AMapServices.shared().enableHTTPS = true
+                        print("✅ ExpoGaodeMap: OnCreate 从 Info.plist 读取并设置 AMapApiKey 成功")
+                    } else {
+                        print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey，跳过自动预加载")
+                    }
+                }
+                
                 // 🚀 自动启动预加载（延迟2秒，避免影响启动速度）
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    print("🚀 ExpoGaodeMap: 自动启动地图预加载")
-                    MapPreloadManager.shared.startPreload(poolSize: 1)
+                // 只有在 API Key 已设置的情况下才启动预加载
+                if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        print("🚀 ExpoGaodeMap: 自动启动地图预加载")
+                        MapPreloadManager.shared.startPreload(poolSize: 1)
+                    }
+                } else {
+                    print("⚠️ ExpoGaodeMap: API Key 未设置，跳过自动预加载")
                 }
             } else {
                 print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")

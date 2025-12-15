@@ -32,10 +32,28 @@ class ExpoGaodeMapModule : Module() {
       
       // 🚀 如果用户已同意隐私协议，自动启动预加载（延迟2秒）
       if (SDKInitializer.isPrivacyAgreed()) {
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-          android.util.Log.i("ExpoGaodeMap", "🚀 自动启动地图预加载")
-          MapPreloadManager.startPreload(context, poolSize = 1)
-        }, 2000)
+        // 尝试从 AndroidManifest.xml 读取并设置 API Key
+        val apiKey = context.packageManager
+          .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+          .metaData?.getString("com.amap.api.v2.apikey")
+        
+        if (!apiKey.isNullOrEmpty()) {
+          try {
+            com.amap.api.maps.MapsInitializer.setApiKey(apiKey)
+            com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
+            android.util.Log.d("ExpoGaodeMap", "✅ 从 AndroidManifest.xml 读取并设置 API Key 成功")
+            
+            // 只有在 API Key 已设置的情况下才启动预加载
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+              android.util.Log.i("ExpoGaodeMap", "🚀 自动启动地图预加载")
+              MapPreloadManager.startPreload(context, poolSize = 1)
+            }, 2000)
+          } catch (e: Exception) {
+            android.util.Log.w("ExpoGaodeMap", "设置 API Key 失败: ${e.message}")
+          }
+        } else {
+          android.util.Log.w("ExpoGaodeMap", "⚠️ AndroidManifest.xml 未找到 API Key，跳过自动预加载")
+        }
       }
     } catch (e: Exception) {
       android.util.Log.w("ExpoGaodeMap", "恢复隐私状态时出现问题: ${e.message}")
@@ -54,6 +72,24 @@ class ExpoGaodeMapModule : Module() {
       
       // 🚀 用户首次同意隐私协议后，自动启动预加载
       if (hasAgreed) {
+        // 在用户同意后，如果尚未设置 API Key，则尝试从 AndroidManifest.xml 读取并设置
+        try {
+          val apiKey = context.packageManager
+            .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+            .metaData?.getString("com.amap.api.v2.apikey")
+          
+          if (!apiKey.isNullOrEmpty()) {
+            com.amap.api.maps.MapsInitializer.setApiKey(apiKey)
+            com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
+            android.util.Log.d("ExpoGaodeMap", "✅ 从 AndroidManifest.xml 读取并设置 API Key 成功")
+          } else {
+            android.util.Log.w("ExpoGaodeMap", "⚠️ AndroidManifest.xml 未找到 API Key，后续需通过 initSDK 提供 androidKey")
+          }
+        } catch (e: Exception) {
+          android.util.Log.w("ExpoGaodeMap", "读取 API Key 失败: ${e.message}")
+        }
+        
+        // 延迟启动预加载
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
           if (!MapPreloadManager.hasPreloadedMapView() &&
               !(MapPreloadManager.getStatus()["isPreloading"] as Boolean)) {
