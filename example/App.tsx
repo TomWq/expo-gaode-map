@@ -11,11 +11,13 @@ import {
   Marker,
   Polygon,
   Polyline,
+  useMapPreload,
   type CameraPosition,
   type Coordinates,
   type ReGeocode,
 } from 'expo-gaode-map';
 import { useNavigation } from 'expo-router';
+import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -83,7 +85,7 @@ export default function MamScreen() {
   // 隐私协议状态：未同意前不初始化、不渲染地图
   const [privacyAgreed, setPrivacyAgreed] = useState(true);
 
-
+  const { isReady, stats } = useMapPreload({ poolSize: 1, delay: 100, strategy: 'native' }, true);
 
   useEffect(() => {
     const init = async () => {
@@ -155,7 +157,7 @@ export default function MamScreen() {
         await mapRef.current.moveCamera({
           target: { latitude: loc.latitude, longitude: loc.longitude },
           zoom: 15,
-        }, 300);
+        }, 0);
       }
     } catch (error) {
       Alert.alert('错误', '获取位置失败');
@@ -311,13 +313,13 @@ export default function MamScreen() {
   };
 
 
-  if (!initialPosition) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={[styles.title, { color: '#000' }]}>正在加载地图...</Text>
-      </View>
-    );
-  }
+  // if (!initialPosition) {
+  //   return (
+  //     <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+  //       <Text style={[styles.title, { color: '#000' }]}>正在加载地图...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#f5f5f5' }]}>
@@ -329,14 +331,14 @@ export default function MamScreen() {
         trafficEnabled={true}
         compassEnabled={true}
         tiltGesturesEnabled={true}
-        initialCameraPosition={initialPosition}
+        initialCameraPosition={initialPosition as CameraPosition}
         minZoom={3}
         maxZoom={20}
         userLocationRepresentation={{
-          showsAccuracyRing: false,
-          image: iconUri,
-          imageWidth: 40,
-          imageHeight: 40,
+          // showsAccuracyRing: false,
+          // image: iconUri,
+          // imageWidth: 40,
+          // imageHeight: 40,
         }}
         onLoad={() => {
           console.log('地图加载完成');
@@ -402,7 +404,7 @@ export default function MamScreen() {
           />
         ))}
 
-        {dynamicMarkers.map((marker) => (
+        {/* {dynamicMarkers.map((marker) => (
           <Marker
             key={marker.id}
             position={{ latitude: marker.latitude, longitude: marker.longitude }}
@@ -420,18 +422,37 @@ export default function MamScreen() {
               />
             </View>
           </Marker>
-        ))}
+        ))} */}
+
+          {dynamicMarkers.map((marker) => (
+                  <Marker
+                    key={marker.id}
+                    position={{ latitude: marker.latitude, longitude: marker.longitude }}
+                    title={marker.content}
+                    pinColor={marker.color}
+                    zIndex={99}
+                    onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+                  >
+                    <View style={[styles.markerContainer1,{
+                      backgroundColor: marker.color}]}>
+                      <Text style={styles.markerText}>{marker.content}</Text>
+                    </View>
+                  </Marker>
+                ))}
+                
 
         {isMapReady && location && (
           <Marker
             key="fixed_current_location_marker"
             position={{ latitude: location.latitude, longitude: location.longitude }}
+            zIndex={99}
             title={location.address}
             cacheKey={"fixed_current_location_marker"}
             onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
-            <View style={styles.markerContainer}>
-              <Text style={[styles.markerText, { color: primary }]}>{location?.address}</Text>
+           <View style={[styles.markerContainer1,{
+                      backgroundColor: '#fff'} ]}>
+                      <Text style={styles.markerText}>{location.address}</Text>
             </View>
           </Marker>
         )}
@@ -751,6 +772,18 @@ const styles = StyleSheet.create({
   markerContainer: {
     width: 20,
     height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markerContainer1: {
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    width: 200,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },

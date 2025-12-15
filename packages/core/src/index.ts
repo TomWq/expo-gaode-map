@@ -43,13 +43,9 @@ export {
 
 export type { PreloadConfig, PreloadStatus ,UseMapPreloadReturn,MapPreloaderProps} from './types/preload.types';
 
-export type {UseLocationOptions,UseLocationResult} from './types/location.types'
-
 // 导出预加载 Hook
 export { useMapPreload, useMapPreloadStatus } from './hooks/useMapPreload';
 
-//导出定位的 Hook
-export { useLocation } from './hooks/useLocation';
 
 // 导出预加载组件
 export { default as MapPreloaderComponent } from './components/MapPreloader';

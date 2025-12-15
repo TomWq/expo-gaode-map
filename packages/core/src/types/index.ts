@@ -40,8 +40,6 @@ export {
   LocationAccuracy,
   LocationMode,
   CoordinateType,
-  UseLocationOptions,
-  UseLocationResult,
 } from './location.types';
 
 // 覆盖物类型

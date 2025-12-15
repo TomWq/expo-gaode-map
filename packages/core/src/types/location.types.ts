@@ -368,29 +368,5 @@ export interface LocationOptions {
 export type LocationListener = (location: Coordinates | ReGeocode) => void;
 
 
-export interface UseLocationOptions {
-  /** 是否自动开始连续定位 */
-  autoStart?: boolean;
-  /** 是否自动获取一次当前位置（仅首次） */
-  autoGet?: boolean;
-}
 
-export interface UseLocationResult {
-  /** 当前最新位置（连续定位 or 一次定位） */
-  location: Coordinates | ReGeocode | null;
 
-  /** 是否正在连续定位 */
-  isStarted: boolean;
-
-  /** 手动开始连续定位 */
-  start: () => void;
-
-  /** 停止连续定位 */
-  stop: () => void;
-
-  /** 执行一次定位并返回 Promise */
-  get: () => Promise<Coordinates | ReGeocode>;
-
-  /** 上次定位的时间戳 */
-  timestamp: number | null;
-}

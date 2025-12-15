@@ -178,10 +178,7 @@ public class ExpoGaodeMapModule: Module {
             // 权限
             let status = CLLocationManager.authorizationStatus()
             
-     
-            
-          
-            
+
             guard status == .authorizedAlways || status == .authorizedWhenInUse else {
                 promise.reject("LOCATION_ERROR", "location unauthorized")
                 return
@@ -190,8 +187,6 @@ public class ExpoGaodeMapModule: Module {
             // 调用我们 LocationManager 的单次定位封装
             let manager = self.getLocationManager()
             
-            
-
             manager.requestSingleLocation(
                 onSuccess: { data in
                     promise.resolve(data)
