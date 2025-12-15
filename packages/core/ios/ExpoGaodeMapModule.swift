@@ -36,6 +36,12 @@ public class ExpoGaodeMapModule: Module {
                 // 同步到 SDK
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
                 print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
+                
+                // 🚀 自动启动预加载（延迟2秒，避免影响启动速度）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    print("🚀 ExpoGaodeMap: 自动启动地图预加载")
+                    MapPreloadManager.shared.startPreload(poolSize: 1)
+                }
             } else {
                 print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")
             }
@@ -66,6 +72,17 @@ public class ExpoGaodeMapModule: Module {
                         print("✅ ExpoGaodeMap: 从 Info.plist 读取并设置 AMapApiKey 成功")
                     } else {
                         print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey，后续需通过 initSDK 提供 iosKey")
+                    }
+                }
+                
+                // 🚀 用户首次同意后，立即启动预加载
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    let status = MapPreloadManager.shared.getStatus()
+                    let isPreloading = (status["isPreloading"] as? Bool) ?? false
+                    
+                    if !MapPreloadManager.shared.hasPreloadedMapView() && !isPreloading {
+                        print("🚀 ExpoGaodeMap: 用户同意隐私协议，自动启动预加载")
+                        MapPreloadManager.shared.startPreload(poolSize: 1)
                     }
                 }
             } else {
@@ -162,39 +179,60 @@ public class ExpoGaodeMapModule: Module {
          * 返回位置信息和逆地理编码结果
          */
         AsyncFunction("getCurrentLocation") { (promise: Promise) in
-            
-            // 隐私
+            // 检查隐私协议状态
             if !ExpoGaodeMapModule.privacyAgreed {
                 promise.reject("PRIVACY_NOT_AGREED", "用户未同意隐私协议，无法获取位置")
                 return
             }
-
-            // API key
+            
+            // 检查是否已设置 API Key
             if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
                 promise.reject("API_KEY_NOT_SET", "未设置 API Key，无法获取位置")
                 return
             }
-
-            // 权限
+            
             let status = CLLocationManager.authorizationStatus()
             
-
-            guard status == .authorizedAlways || status == .authorizedWhenInUse else {
+            if status == .authorizedAlways || status == .authorizedWhenInUse {
+                let manager = self.getLocationManager()
+                manager.locationManager?.requestLocation(withReGeocode: manager.locationManager?.locatingWithReGeocode ?? true, completionBlock: { location, regeocode, error in
+                    if let error = error {
+                        promise.reject("LOCATION_ERROR", error.localizedDescription)
+                        return
+                    }
+                    
+                    guard let location = location else {
+                        promise.reject("LOCATION_ERROR", "位置信息为空")
+                        return
+                    }
+                    
+                    var locationData: [String: Any] = [
+                        "latitude": location.coordinate.latitude,
+                        "longitude": location.coordinate.longitude,
+                        "accuracy": location.horizontalAccuracy,
+                        "altitude": location.altitude,
+                        "bearing": location.course,
+                        "speed": location.speed,
+                        "timestamp": location.timestamp.timeIntervalSince1970 * 1000
+                    ]
+                    
+                    if let regeocode = regeocode {
+                        locationData["address"] = regeocode.formattedAddress
+                        locationData["province"] = regeocode.province
+                        locationData["city"] = regeocode.city
+                        locationData["district"] = regeocode.district
+                        locationData["street"] = regeocode.street
+                        locationData["streetNumber"] = regeocode.number
+                        locationData["country"] = regeocode.country
+                        locationData["cityCode"] = regeocode.citycode
+                        locationData["adCode"] = regeocode.adcode
+                    }
+                    
+                    promise.resolve(locationData)
+                })
+            } else {
                 promise.reject("LOCATION_ERROR", "location unauthorized")
-                return
             }
-
-            // 调用我们 LocationManager 的单次定位封装
-            let manager = self.getLocationManager()
-            
-            manager.requestSingleLocation(
-                onSuccess: { data in
-                    promise.resolve(data)
-                },
-                onError: { code, message in
-                    promise.reject(code, message)
-                }
-            )
         }
 
         

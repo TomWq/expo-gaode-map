@@ -24,7 +24,19 @@ class ExpoGaodeMapModule : Module() {
 
     // 在模块加载时尝试从本地缓存恢复隐私同意状态，避免每次启动都必须 JS 调用
     try {
-      SDKInitializer.restorePrivacyState(appContext.reactContext!!)
+      val context = appContext.reactContext!!
+      SDKInitializer.restorePrivacyState(context)
+      
+      // 初始化预加载管理器（注册内存监听）
+      MapPreloadManager.initialize(context)
+      
+      // 🚀 如果用户已同意隐私协议，自动启动预加载（延迟2秒）
+      if (SDKInitializer.isPrivacyAgreed()) {
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+          android.util.Log.i("ExpoGaodeMap", "🚀 自动启动地图预加载")
+          MapPreloadManager.startPreload(context, poolSize = 1)
+        }, 2000)
+      }
     } catch (e: Exception) {
       android.util.Log.w("ExpoGaodeMap", "恢复隐私状态时出现问题: ${e.message}")
     }
@@ -37,7 +49,19 @@ class ExpoGaodeMapModule : Module() {
      * @param hasAgreed 用户是否已同意隐私协议
      */
     Function("updatePrivacyCompliance") { hasAgreed: Boolean ->
-      SDKInitializer.updatePrivacyCompliance(appContext.reactContext!!, hasAgreed)
+      val context = appContext.reactContext!!
+      SDKInitializer.updatePrivacyCompliance(context, hasAgreed)
+      
+      // 🚀 用户首次同意隐私协议后，自动启动预加载
+      if (hasAgreed) {
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+          if (!MapPreloadManager.hasPreloadedMapView() &&
+              !(MapPreloadManager.getStatus()["isPreloading"] as Boolean)) {
+            android.util.Log.i("ExpoGaodeMap", "🚀 用户同意隐私协议，自动启动预加载")
+            MapPreloadManager.startPreload(context, poolSize = 1)
+          }
+        }, 1000)
+      }
     }
     
     // ==================== SDK 初始化 ====================
@@ -384,6 +408,14 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("hasPreloadedMapView") {
       MapPreloadManager.hasPreloadedMapView()
+    }
+    
+    /**
+     * 获取预加载性能统计
+     * @return 性能统计信息
+     */
+    Function("getMapPreloadPerformanceMetrics") {
+      MapPreloadManager.getPerformanceMetrics()
     }
 
     Events("onLocationUpdate")

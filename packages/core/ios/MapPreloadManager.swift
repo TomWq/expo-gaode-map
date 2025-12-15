@@ -20,6 +20,24 @@ class MapPreloadManager {
 
     private init() {
         print("🔧 [MapPreload] 初始化预加载管理器")
+        
+        // 注册内存警告监听
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMemoryWarning),
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
+    }
+    
+    /// 处理内存警告
+    @objc private func handleMemoryWarning() {
+        print("⚠️ [MapPreload] 收到内存警告，自动清理预加载池")
+        clearPool()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     /// 开始预加载地图实例
@@ -64,31 +82,43 @@ class MapPreloadManager {
     /// - Returns: 预加载的地图视图实例
     private func createPreloadedMapView() -> MAMapView {
         var mapView: MAMapView!
-        // 确保在主线程中创建 MAMapView
-        DispatchQueue.main.sync {
+        
+        // 检查是否已在主线程，避免死锁
+        if Thread.isMainThread {
             mapView = MAMapView()
-            
-            // 基础配置
-            mapView.mapType = .standard
-            mapView.showsUserLocation = false
-            mapView.showsCompass = false
-            mapView.showsScale = false
-            mapView.isZoomEnabled = true
-            mapView.isScrollEnabled = true
-            mapView.isRotateEnabled = true
-            
-            // 预加载中心区域（北京天安门）
-            let centerCoordinate = CLLocationCoordinate2D(latitude: 39.9042, longitude: 116.4074)
-            mapView.setCenter(centerCoordinate, animated: false)
-            mapView.setZoomLevel(12, animated: false)
-            
-            // 设置一个最小的 frame 以触发地图渲染
-            mapView.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
-            
-            // 触发地图初始化
-            mapView.layoutIfNeeded()
+            configureMapView(mapView)
+        } else {
+            // 确保在主线程中创建 MAMapView
+            DispatchQueue.main.sync {
+                mapView = MAMapView()
+                self.configureMapView(mapView)
+            }
         }
         return mapView
+    }
+    
+    /// 配置地图视图的基础属性
+    /// - Parameter mapView: 需要配置的地图视图
+    private func configureMapView(_ mapView: MAMapView) {
+        // 基础配置
+        mapView.mapType = .standard
+        mapView.showsUserLocation = false
+        mapView.showsCompass = false
+        mapView.showsScale = false
+        mapView.isZoomEnabled = true
+        mapView.isScrollEnabled = true
+        mapView.isRotateEnabled = true
+        
+        // 预加载中心区域（北京天安门）
+        let centerCoordinate = CLLocationCoordinate2D(latitude: 39.9042, longitude: 116.4074)
+        mapView.setCenter(centerCoordinate, animated: false)
+        mapView.setZoomLevel(12, animated: false)
+        
+        // 设置一个最小的 frame 以触发地图渲染
+        mapView.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+        
+        // 触发地图初始化
+        mapView.layoutIfNeeded()
     }
     
     /// 获取一个预加载的地图实例

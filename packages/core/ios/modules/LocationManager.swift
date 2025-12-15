@@ -20,12 +20,6 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     // 连续定位是否已开启
     private var isLocationStarted = false
 
-    // --- 一次定位状态管理 ---
-    private var onceSuccess: (([String: Any]) -> Void)?
-    private var onceError: ((String, String) -> Void)?
-    private var isTempStartForOnce = false
-    
-
     // 连续定位 event 回调（给 JS map listener 用）
     var onLocationUpdate: (([String: Any]) -> Void)?
     var onHeadingUpdate: (([String: Any]) -> Void)?
@@ -49,49 +43,6 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
 
     func isStarted() -> Bool {
         return isLocationStarted
-    }
-
-    // MARK: - 一次定位（给 Module 层的 getCurrentLocation 调用）
-
-    func requestSingleLocation(
-        onSuccess: @escaping ([String: Any]) -> Void,
-        onError: @escaping (String, String) -> Void
-    ) {
-        // 若上一次未完成，先拒绝掉
-        if onceSuccess != nil || onceError != nil {
-            onceError?("LOCATION_CANCELLED", "Previous request was interrupted")
-        }
-
-        onceSuccess = onSuccess
-        onceError = onError
-
-        // 如果连续定位已开启 → 等下一次 update
-        if isLocationStarted {
-            scheduleTimeout()
-            return
-        }
-
-        // 否则临时启动定位
-        isTempStartForOnce = true
-        start()
-        scheduleTimeout()
-    }
-
-    private func scheduleTimeout() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
-            guard let self = self else { return }
-
-            if let error = self.onceError {
-                error("LOCATION_TIMEOUT", "getCurrentLocation timeout")
-                self.onceSuccess = nil
-                self.onceError = nil
-
-                if self.isTempStartForOnce {
-                    self.stop()
-                    self.isTempStartForOnce = false
-                }
-            }
-        }
     }
 
     // MARK: - 高德定位配置 API
@@ -168,7 +119,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         locationManager?.pausesLocationUpdatesAutomatically = false
     }
 
-    // MARK: - Delegate（一次定位 + 连续定位统一出口）
+    // MARK: - Delegate（连续定位回调）
 
     func amapLocationManager(_ manager: AMapLocationManager!,
                              didUpdate location: CLLocation!,
@@ -198,36 +149,21 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
             data["adCode"] = geo.adcode
         }
 
-        // --- 一次定位优先 ---
-        if let success = onceSuccess {
-            success(data)
-            onceSuccess = nil
-            onceError = nil
-
-            if isTempStartForOnce {
-                stop()
-                isTempStartForOnce = false
-            }
-            return
-        }
-
-        // --- 连续定位 ---
+        // 触发连续定位回调
         onLocationUpdate?(data)
     }
 
+    func amapLocationManager(_ manager: AMapLocationManager!, didUpdate heading: CLHeading!) {
+        let headingData: [String: Any] = [
+            "heading": heading.trueHeading,
+            "accuracy": heading.headingAccuracy,
+            "timestamp": heading.timestamp.timeIntervalSince1970 * 1000
+        ]
+        onHeadingUpdate?(headingData)
+    }
+
     func amapLocationManager(_ manager: AMapLocationManager!, didFailWithError error: Error!) {
-
-        if let onError = onceError {
-            onError("LOCATION_ERROR", error.localizedDescription)
-
-            onceSuccess = nil
-            onceError = nil
-
-            if isTempStartForOnce {
-                stop()
-                isTempStartForOnce = false
-            }
-        }
+        // 定位失败 - 静默处理（连续定位会自动重试）
     }
 
     // MARK: - 销毁
@@ -236,9 +172,6 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         locationManager?.stopUpdatingHeading()
         locationManager?.delegate = nil
         locationManager = nil
-
-        onceSuccess = nil
-        onceError = nil
         onLocationUpdate = nil
         onHeadingUpdate = nil
     }

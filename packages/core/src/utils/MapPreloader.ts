@@ -23,13 +23,18 @@ try {
 class MapPreloaderManager {
   private static instance: MapPreloaderManager;
   private preloadInstances: Map<string, PreloadInstance> = new Map();
-  private config: Required<PreloadConfig> & { strategy: PreloadStrategy; fallbackOnTimeout: boolean } = {
+  private config: Required<PreloadConfig> & {
+    strategy: PreloadStrategy;
+    fallbackOnTimeout: boolean;
+    instanceTTL: number; // 实例过期时间（毫秒）
+  } = {
     poolSize: 1,
     delay: 0,
     enabled: true,
     timeout: 15000, // 增加到 15 秒，给原生预加载更充足的时间
     strategy: 'auto',
     fallbackOnTimeout: true,
+    instanceTTL: 5 * 60 * 1000, // 默认 5 分钟过期
   };
   private currentStrategy: 'native' | 'js' | 'hybrid' = 'js';
   private hybridNativeReady = false;
@@ -40,10 +45,29 @@ class MapPreloaderManager {
   private isPreloading = false;
   private activeCheckInterval: ReturnType<typeof setInterval> | null = null;
   private activeTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  
+  // 性能统计
+  private performanceMetrics = {
+    totalPreloads: 0,
+    successfulPreloads: 0,
+    failedPreloads: 0,
+    nativePreloads: 0,
+    jsPreloads: 0,
+    hybridPreloads: 0,
+    averageDuration: 0,
+    totalDuration: 0,
+    instancesUsed: 0,
+    instancesExpired: 0,
+  };
 
   private constructor() {
     // 检测热重载，清理原生状态
     this.detectAndHandleHotReload();
+    
+    // 启动过期检查定时器（每分钟检查一次）
+    setInterval(() => {
+      this.cleanupExpiredInstances();
+    }, 60 * 1000);
   }
   
   /**
@@ -140,6 +164,52 @@ class MapPreloaderManager {
   }
 
   /**
+   * 清理过期的预加载实例
+   */
+  private cleanupExpiredInstances(): void {
+    const now = Date.now();
+    let expiredCount = 0;
+    
+    // 使用 Array.from 避免 TypeScript downlevelIteration 错误
+    Array.from(this.preloadInstances.entries()).forEach(([id, instance]) => {
+      if (instance.status === 'ready' && now - instance.timestamp > this.config.instanceTTL) {
+        this.preloadInstances.delete(id);
+        expiredCount++;
+      }
+    });
+    
+    if (expiredCount > 0) {
+      this.performanceMetrics.instancesExpired += expiredCount;
+      console.log(`[MapPreloader] 🧹 清理了 ${expiredCount} 个过期实例（总计: ${this.performanceMetrics.instancesExpired}）`);
+    }
+  }
+  
+  /**
+   * 记录性能指标
+   */
+  private recordPerformanceMetric(duration: number, success: boolean): void {
+    this.performanceMetrics.totalPreloads++;
+    
+    if (success) {
+      this.performanceMetrics.successfulPreloads++;
+      this.performanceMetrics.totalDuration += duration;
+      this.performanceMetrics.averageDuration =
+        this.performanceMetrics.totalDuration / this.performanceMetrics.successfulPreloads;
+      
+      // 记录策略统计
+      if (this.currentStrategy === 'native') {
+        this.performanceMetrics.nativePreloads++;
+      } else if (this.currentStrategy === 'js') {
+        this.performanceMetrics.jsPreloads++;
+      } else if (this.currentStrategy === 'hybrid') {
+        this.performanceMetrics.hybridPreloads++;
+      }
+    } else {
+      this.performanceMetrics.failedPreloads++;
+    }
+  }
+
+  /**
    * 获取当前配置
    */
   public getConfig(): Required<PreloadConfig> {
@@ -198,12 +268,33 @@ class MapPreloaderManager {
     const startTime = Date.now();
 
     // 同时启动原生和 JS 预加载
-    const nativePromise = this.executeHybridNativePreload(startTime);
-    const jsPromise = this.executeHybridJSPreload(startTime);
+    const nativePromise = this.executeHybridNativePreload(startTime).catch((error) => {
+      console.warn('[MapPreloader] 原生预加载失败:', error);
+      return null; // 原生失败不影响整体流程
+    });
+    
+    const jsPromise = this.executeHybridJSPreload(startTime).catch((error) => {
+      console.warn('[MapPreloader] JS 预加载失败:', error);
+      return null; // JS 失败不影响整体流程
+    });
 
     // 等待任意一个完成
     try {
       await Promise.race([nativePromise, jsPromise]);
+      
+      // 确保至少有一个成功
+      if (!this.hybridNativeReady && !this.hybridJSReady) {
+        // 两者都失败了，等待另一个
+        await Promise.race([
+          nativePromise.then(() => this.hybridNativeReady),
+          jsPromise.then(() => this.hybridJSReady),
+        ]);
+      }
+      
+      // 如果还是都没有完成，标记为错误
+      if (!this.hybridNativeReady && !this.hybridJSReady) {
+        throw new Error('原生和 JS 预加载都失败了');
+      }
     } catch (error) {
       console.error('[MapPreloader] 混合预加载失败:', error);
       this.isPreloading = false;
@@ -249,12 +340,21 @@ class MapPreloaderManager {
               if (consecutiveReadyCount >= REQUIRED_READY_COUNT) {
                 clearInterval(checkInterval);
                 
+                // 使用原子操作避免竞态条件
                 if (!this.hybridNativeReady && !this.hybridJSReady) {
                   this.hybridNativeReady = true;
                   const duration = Date.now() - startTime;
-                  this.isPreloading = false;
-                  this.notifyListeners('ready');
-                  console.log(`[MapPreloader] ✅ 原生预加载先完成（耗时: ${duration}ms）`);
+                  
+                  // 延迟设置状态，确保状态变更的原子性
+                  setTimeout(() => {
+                    if (this.hybridNativeReady) { // 再次确认
+                      this.isPreloading = false;
+                      this.recordPerformanceMetric(duration, true);
+                      this.notifyListeners('ready');
+                      console.log(`[MapPreloader] ✅ 原生预加载先完成（耗时: ${duration}ms）`);
+                    }
+                  }, 0);
+                  
                   resolve();
                 }
               }
@@ -309,17 +409,24 @@ class MapPreloaderManager {
           return;
         }
 
-        // JS 先完成
-        if (!this.hybridJSReady) {
+        // JS 先完成，使用原子操作
+        if (!this.hybridJSReady && !this.hybridNativeReady) {
           this.hybridJSReady = true;
           this.preloadInstances.forEach((instance) => {
             instance.status = 'ready';
           });
           
           const duration = Date.now() - startTime;
-          this.isPreloading = false;
-          this.notifyListeners('ready');
-          console.log(`[MapPreloader] ✅ JS 预加载先完成（耗时: ${duration}ms）`);
+          
+          // 延迟设置状态，确保状态变更的原子性
+          setTimeout(() => {
+            if (this.hybridJSReady) { // 再次确认
+              this.isPreloading = false;
+              this.recordPerformanceMetric(duration, true);
+              this.notifyListeners('ready');
+              console.log(`[MapPreloader] ✅ JS 预加载先完成（耗时: ${duration}ms）`);
+            }
+          }, 0);
         }
         
         resolve();
@@ -384,6 +491,7 @@ class MapPreloaderManager {
               
               const duration = Date.now() - startTime;
               this.isPreloading = false;
+              this.recordPerformanceMetric(duration, true);
               this.notifyListeners('ready');
               console.log(`[MapPreloader] ✅ 原生预加载完成（耗时: ${duration}ms，池大小: ${status.poolSize}）`);
             }
@@ -479,9 +587,10 @@ class MapPreloaderManager {
         instance.status = 'ready';
       });
       this.isPreloading = false;
-      this.notifyListeners('ready');
       
       const duration = Date.now() - startTime;
+      this.recordPerformanceMetric(duration, true);
+      this.notifyListeners('ready');
       console.log(`[MapPreloader] ✅ JS 层预加载完成（耗时: ${duration}ms）`);
     }, 100);
   }
@@ -513,11 +622,22 @@ class MapPreloaderManager {
    * @returns 预加载实例 ID，如果没有可用实例则返回 null
    */
   public getPreloadedInstance(): string | null {
-    for (const [id, instance] of this.preloadInstances.entries()) {
+    const now = Date.now();
+    
+    // 使用 Array.from 避免 TypeScript downlevelIteration 错误
+    for (const [id, instance] of Array.from(this.preloadInstances.entries())) {
       if (instance.status === 'ready') {
+        // 检查是否过期
+        if (now - instance.timestamp > this.config.instanceTTL) {
+          this.preloadInstances.delete(id);
+          console.log(`[MapPreloader] 预加载实例已过期，已删除: ${id}`);
+          continue;
+        }
+        
         // 标记为已使用（从池中移除）
         this.preloadInstances.delete(id);
-        console.log(`[MapPreloader] 使用预加载实例: ${id}`);
+        this.performanceMetrics.instancesUsed++;
+        console.log(`[MapPreloader] 使用预加载实例: ${id}，剩余: ${this.preloadInstances.size}，总使用: ${this.performanceMetrics.instancesUsed}`);
         return id;
       }
     }
@@ -582,6 +702,18 @@ class MapPreloaderManager {
       this.nativePreloadAvailable = this.checkNativePreloadAvailable();
     }
     return this.nativePreloadAvailable;
+  }
+
+  /**
+   * 获取性能统计信息
+   */
+  public getPerformanceMetrics() {
+    return {
+      ...this.performanceMetrics,
+      successRate: this.performanceMetrics.totalPreloads > 0
+        ? (this.performanceMetrics.successfulPreloads / this.performanceMetrics.totalPreloads) * 100
+        : 0,
+    };
   }
 
   /**

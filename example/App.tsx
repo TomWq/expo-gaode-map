@@ -1,11 +1,12 @@
 
 
 
-import { useHeaderHeight } from '@react-navigation/elements';
+
 import { BlurView } from 'expo-blur';
 import {
   Circle,
   ExpoGaodeMapModule,
+  MapPreloaderComponent,
   MapView,
   MapViewRef,
   Marker,
@@ -16,7 +17,7 @@ import {
   type Coordinates,
   type ReGeocode,
 } from 'expo-gaode-map';
-import { useNavigation } from 'expo-router';
+
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -85,7 +86,7 @@ export default function MamScreen() {
   // 隐私协议状态：未同意前不初始化、不渲染地图
   const [privacyAgreed, setPrivacyAgreed] = useState(true);
 
-  const { isReady, stats } = useMapPreload({ poolSize: 1, delay: 100, strategy: 'native' }, true);
+  // const { isReady, stats } = useMapPreload();
 
   useEffect(() => {
     const init = async () => {
@@ -313,16 +314,27 @@ export default function MamScreen() {
   };
 
 
-  // if (!initialPosition) {
-  //   return (
-  //     <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-  //       <Text style={[styles.title, { color: '#000' }]}>正在加载地图...</Text>
-  //     </View>
-  //   );
-  // }
+  if (!initialPosition) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={[styles.title, { color: '#000' }]}>正在加载地图...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#f5f5f5' }]}>
+      
+       {/* <MapPreloaderComponent
+        config={{
+          poolSize: 1,
+          delay: 1000,
+          strategy: 'auto',
+        }}
+        onPreloadComplete={() => console.log('✅ 地图预加载完成')}
+        onPreloadError={(error) => console.error('❌ 预加载失败:', error)}
+      />
+      */}
       <MapView
         ref={mapRef}
         style={styles.map}
