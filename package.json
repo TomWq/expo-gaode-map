@@ -24,7 +24,9 @@
     "version:core:beta": "cd packages/core && pnpm version prerelease --preid=beta --no-git-tag-version",
     "version:search:beta": "cd packages/search && pnpm version prerelease --preid=beta --no-git-tag-version",
     "version:navigation:beta": "cd packages/navigation && pnpm version prerelease --preid=beta --no-git-tag-version",
-    "version:web-api:beta": "cd packages/web-api && pnpm version prerelease --preid=beta --no-git-tag-version"
+    "version:web-api:beta": "cd packages/web-api && pnpm version prerelease --preid=beta --no-git-tag-version",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "keywords": [
     "monorepo",
@@ -36,8 +38,8 @@
   "license": "MIT",
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "expo": "^54.0.18",
-    "expo-module-scripts": "^5.0.7",
+    "expo": "^54.0.28",
+    "expo-module-scripts": "^5.0.8",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "typescript": "^5.9.3"

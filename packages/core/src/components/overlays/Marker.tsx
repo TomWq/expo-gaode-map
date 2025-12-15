@@ -22,11 +22,11 @@ function Marker(props: MarkerProps) {
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
   const finalIconWidth = hasChildren
-    ? (customViewWidth && customViewWidth > 0 ? customViewWidth : 200)
-    : (iconWidth && iconWidth > 0 ? iconWidth : 40);
+    ? (customViewWidth && customViewWidth > 0 ? customViewWidth : 0)
+    : (iconWidth && iconWidth > 0 ? iconWidth : 0);
   const finalIconHeight = hasChildren
-    ? (customViewHeight && customViewHeight > 0 ? customViewHeight : 40)
-    : (iconHeight && iconHeight > 0 ? iconHeight : 40);
+    ? (customViewHeight && customViewHeight > 0 ? customViewHeight : 0)
+    : (iconHeight && iconHeight > 0 ? iconHeight : 0);
   
   return (
     <NativeMarkerView
