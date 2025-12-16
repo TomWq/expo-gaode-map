@@ -21,6 +21,48 @@ public class ExpoGaodeMapModule: Module {
     /// 隐私同意持久化 Key
     private static let privacyDefaultsKey = "expo_gaode_map_privacy_agreed"
     
+    // MARK: - 私有辅助方法
+    
+    /**
+     * 尝试从 Info.plist 读取并设置 API Key
+     * @return 是否成功设置 API Key
+     */
+    private func trySetupApiKeyFromPlist() -> Bool {
+        if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
+            if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
+                AMapServices.shared().apiKey = plistKey
+                AMapServices.shared().enableHTTPS = true
+                print("✅ ExpoGaodeMap: 从 Info.plist 读取并设置 AMapApiKey 成功")
+                return true
+            } else {
+                print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey")
+                return false
+            }
+        }
+        return true // 已经设置过了
+    }
+    
+    /**
+     * 尝试启动预加载（检查 API Key 后）
+     * @param delay 延迟时间（秒）
+     * @param poolSize 预加载池大小
+     */
+    private func tryStartPreload(delay: Double = 1.0, poolSize: Int = 1) {
+        if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                let status = MapPreloadManager.shared.getStatus()
+                let isPreloading = (status["isPreloading"] as? Bool) ?? false
+                
+                if !MapPreloadManager.shared.hasPreloadedMapView() && !isPreloading {
+                    print("🚀 ExpoGaodeMap: 自动启动地图预加载")
+                    MapPreloadManager.shared.startPreload(poolSize: poolSize)
+                }
+            }
+        } else {
+            print("⚠️ ExpoGaodeMap: API Key 未设置，跳过自动预加载")
+        }
+    }
+    
     public func definition() -> ModuleDefinition {
         Name("ExpoGaodeMap")
         
@@ -37,27 +79,9 @@ public class ExpoGaodeMapModule: Module {
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
                 print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
                 
-                // 尝试从 Info.plist 读取并设置 API Key
-                if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
-                    if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
-                        AMapServices.shared().apiKey = plistKey
-                        AMapServices.shared().enableHTTPS = true
-                        print("✅ ExpoGaodeMap: OnCreate 从 Info.plist 读取并设置 AMapApiKey 成功")
-                    } else {
-                        print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey，跳过自动预加载")
-                    }
-                }
-                
-                // 🚀 自动启动预加载（延迟2秒，避免影响启动速度）
-                // 只有在 API Key 已设置的情况下才启动预加载
-                if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        print("🚀 ExpoGaodeMap: 自动启动地图预加载")
-                        MapPreloadManager.shared.startPreload(poolSize: 1)
-                    }
-                } else {
-                    print("⚠️ ExpoGaodeMap: API Key 未设置，跳过自动预加载")
-                }
+                // 尝试设置 API Key 并启动预加载（延迟2秒）
+                self.trySetupApiKeyFromPlist()
+                self.tryStartPreload(delay: 2.0, poolSize: 1)
             } else {
                 print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")
             }
@@ -80,33 +104,14 @@ public class ExpoGaodeMapModule: Module {
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
                 print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK（状态已持久化）")
                 
-                // 在用户同意后，如果尚未设置 API Key，则尝试从 Info.plist 读取并设置
-                if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
-                    if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
-                        AMapServices.shared().apiKey = plistKey
-                        AMapServices.shared().enableHTTPS = true
-                        print("✅ ExpoGaodeMap: 从 Info.plist 读取并设置 AMapApiKey 成功")
-                    } else {
-                        print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey，后续需通过 initSDK 提供 iosKey")
-                    }
-                }
-                
-                // 🚀 用户首次同意后，立即启动预加载
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    let status = MapPreloadManager.shared.getStatus()
-                    let isPreloading = (status["isPreloading"] as? Bool) ?? false
-                    
-                    if !MapPreloadManager.shared.hasPreloadedMapView() && !isPreloading {
-                        print("🚀 ExpoGaodeMap: 用户同意隐私协议，自动启动预加载")
-                        MapPreloadManager.shared.startPreload(poolSize: 1)
-                    }
-                }
+                // 尝试设置 API Key 并启动预加载（延迟1秒）
+                self.trySetupApiKeyFromPlist()
+                self.tryStartPreload(delay: 1.0, poolSize: 1)
             } else {
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.notAgree)
                 print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限（状态已持久化）")
             }
         }
-        
         // ==================== SDK 初始化 ====================
         
         /**
@@ -462,7 +467,7 @@ public class ExpoGaodeMapModule: Module {
         }
     }
     
-    // MARK: - 私有方法
+    // MARK: - 定位管理器
     
     /**
      * 获取或创建定位管理器实例
