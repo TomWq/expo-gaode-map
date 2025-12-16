@@ -154,6 +154,12 @@ Config Plugin 会自动配置原生项目，包括 API Key、权限、隐私合�
 
 ### 隐私合规（必需）
 
+::: warning 重要提示
+无论是否有隐私协议弹窗，**都必须至少调用一次** `ExpoGaodeMapModule.updatePrivacyCompliance(true)`，否则地图和定位功能将无法正常工作。
+:::
+
+#### 方案 1：有隐私协议弹窗（推荐）
+
 **首次使用时**，在用户同意隐私协议后调用：
 
 ```tsx
@@ -168,6 +174,44 @@ if (!agreed) {
   ExpoGaodeMapModule.updatePrivacyCompliance(true); // ✅ 只需调用一次，原生端会持久化
 }
 ```
+
+::: tip 存储方案灵活
+上面示例使用 `AsyncStorage` 仅作演示，你可以使用**任何你熟悉的存储方案**：
+- `@react-native-async-storage/async-storage`
+- `expo-secure-store`
+- `react-native-mmkv`
+- `redux-persist`
+- 或其他任何持久化存储库
+
+选择最适合你项目的存储方案即可。
+:::
+
+#### 方案 2：没有隐私协议弹窗
+
+如果你的应用没有隐私协议弹窗，**必须在应用启动时手动调用一次**：
+
+```tsx
+import { useEffect } from 'react';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+export default function App() {
+  useEffect(() => {
+    // ⚠️ 没有隐私协议弹窗时，必须手动调用一次
+    ExpoGaodeMapModule.updatePrivacyCompliance(true);
+    
+    // 然后初始化 SDK（可选，如果需要使用 Web API，安卓和 ios 已经自动配置）
+    ExpoGaodeMapModule.initSDK({
+      webKey: 'your-web-api-key', // 可选
+    });
+  }, []);
+
+  return <YourApp />;
+}
+```
+
+::: danger 必须调用
+即使没有隐私协议弹窗，也**必须调用** `updatePrivacyCompliance(true)`，这是高德地图 SDK 的强制要求。不调用将导致地图无法显示、定位功能失败。
+:::
 
 ::: tip 原生持久化
 调用 `updatePrivacyCompliance(true)` 后，原生端会自动保存该状态。应用重启后无需再次调用，SDK 会自动读取保存的状态。
@@ -343,7 +387,7 @@ const nearby = await searchNearby({
 ```tsx
 import { useEffect, useState } from 'react';
 import { View, Text, Alert, Linking, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // 可替换为其他存储方案
 import {
   MapView,
   ExpoGaodeMapModule,
@@ -383,7 +427,9 @@ export default function App() {
           );
           return;
         }
-        // 已同意过，直接继续初始化（无需再次调用 updatePrivacyCompliance）
+        
+        // 已同意过，直接继续初始化
+        // 注意：无需再次调用 updatePrivacyCompliance，原生端已持久化
         await continueInit();
       } catch (err) {
         console.error('初始化失败:', err);
@@ -476,11 +522,33 @@ export default function App() {
 
 ### 每次启动都需要调用 updatePrivacyCompliance 吗？
 
-**不需要。**只需要在用户首次同意隐私协议时调用一次，原生端会自动持久化该状态。后续启动时，SDK 会自动读取保存的状态，无需再次调用。
+**不需要。**只需要调用一次（首次同意隐私协议时，或应用启动时），原生端会自动持久化该状态。后续启动时，SDK 会自动读取保存的状态，无需再次调用。
 
-### 忘记首次调用 updatePrivacyCompliance 会怎样？
+### 我的应用没有隐私协议弹窗，怎么办？
 
-地图可能无法正常显示，定位功能可能失败。这是强制要求，请务必在用户首次同意隐私协议后调用。
+**必须在应用启动时手动调用一次** `ExpoGaodeMapModule.updatePrivacyCompliance(true)`。即使没有弹窗，这也是高德地图 SDK 的强制要求：
+
+```tsx
+useEffect(() => {
+  // 应用启动时调用一次
+  ExpoGaodeMapModule.updatePrivacyCompliance(true);
+  ExpoGaodeMapModule.initSDK({ webKey: 'your-key' });
+}, []);
+```
+
+### 忘记调用 updatePrivacyCompliance 会怎样？
+
+地图将无法正常显示，定位功能会失败。这是**强制要求**，必须至少调用一次。
+
+### 可以使用其他存储方案代替 AsyncStorage 吗？
+
+**完全可以！**示例中使用 `AsyncStorage` 仅作演示。你可以使用任何你熟悉的存储方案：
+- `expo-secure-store` - Expo 的安全存储
+- `react-native-mmkv` - 高性能键值存储
+- `redux-persist` - Redux 持久化
+- 或其他任何持久化存储库
+
+选择最适合你项目的方案即可。存储方案只是用来记录用户是否同意过隐私协议，与地图 SDK 本身无关。
 
 ### 地图不显示？
 
