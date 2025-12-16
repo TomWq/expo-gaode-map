@@ -93,6 +93,38 @@ export interface MapViewProps {
     imageWidth?: number;
     /** 定位图标高度(像素) */
     imageHeight?: number;
+    /**
+     * 是否显示定位蓝点 @default true
+     * - iOS: 对应 mapView.showsUserLocation
+     * - Android: 对应 MyLocationStyle.showMyLocation() (5.1.0+)
+     */
+    showMyLocation?: boolean;
+    /** 定位图标锚点 U 坐标 (0.0-1.0) @platform android */
+    anchorU?: number;
+    /** 定位图标锚点 V 坐标 (0.0-1.0) @platform android */
+    anchorV?: number;
+    /**
+     * 定位蓝点展现模式 @platform android
+     * @default 'LOCATION_ROTATE' (连续定位、定位点旋转、移动到中心)
+     *
+     * 🧭 **方向指示说明**：
+     * - Android 通过 locationType 实现方向指示（定位点依照设备方向旋转）
+     * - iOS 通过 showsHeadingIndicator 实现方向指示（显示扇形方向指示器）
+     *
+     * 📱 **Android 方向指示模式**（推荐使用以下两种）：
+     * - 'LOCATION_ROTATE': 定位点依照设备方向旋转，视角跟随移动到中心（默认）⭐
+     * - 'LOCATION_ROTATE_NO_CENTER': 定位点依照设备方向旋转，视角不移动到中心 ⭐
+     *
+     * 🗺️ **其他模式**：
+     * - 'SHOW': 只定位一次
+     * - 'LOCATE': 定位一次，且将视角移动到地图中心点
+     * - 'FOLLOW': 连续定位、跟随移动，但定位点不旋转
+     * - 'MAP_ROTATE': 地图依照设备方向旋转（而非定位点旋转）
+     * - 'FOLLOW_NO_CENTER': 连续定位、不移动到中心，定位点不旋转
+     * - 'MAP_ROTATE_NO_CENTER': 地图依照设备方向旋转，不移动到中心
+     */
+    locationType?: 'SHOW' | 'LOCATE' | 'FOLLOW' | 'MAP_ROTATE' | 'LOCATION_ROTATE' |
+                   'LOCATION_ROTATE_NO_CENTER' | 'FOLLOW_NO_CENTER' | 'MAP_ROTATE_NO_CENTER';
   };
 
   /**
@@ -179,6 +211,33 @@ export interface MapViewProps {
    * @platform ios
    */
   headingFilter?: number;
+
+  /**
+   * 自定义地图样式
+   *
+   * 支持两种方式：
+   * 1. 在线样式：提供 styleId（从高德开放平台获取）
+   * 2. 本地样式：提供 styleDataPath 和可选的 extraStyleDataPath
+   *
+   * @example
+   * // 使用在线样式
+   * customMapStyle={{ styleId: "your-style-id" }}
+   *
+   * @example
+   * // 使用本地样式文件
+   * customMapStyle={{
+   *   styleDataPath: "path/to/style.data",
+   *   extraStyleDataPath: "path/to/extra.data"
+   * }}
+   */
+  customMapStyle?: {
+    /** 在线样式ID（从高德开放平台获取） */
+    styleId?: string;
+    /** 本地样式文件路径 */
+    styleDataPath?: string;
+    /** 额外样式文件路径（可选） */
+    extraStyleDataPath?: string;
+  };
 
   /**
    * 样式

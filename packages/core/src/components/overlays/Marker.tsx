@@ -9,7 +9,7 @@ const NativeMarkerView = requireNativeViewManager('MarkerView');
  *
  * 支持：
  * - 自定义图标（icon）
- * - 自定义内容（children）
+ * - 自定义内容（children）- 自动测量尺寸
  * - 大头针样式（pinColor）
  * - 拖拽功能
  * - 所有事件回调
@@ -18,14 +18,16 @@ function Marker(props: MarkerProps) {
   // 从 props 中排除 position 属性，避免传递到原生层
   const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, ...restProps } = props;
   
-  // 🔑 性能优化：使用常量避免重复计算
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
+  
+  // 智能尺寸计算
   const finalIconWidth = hasChildren
-    ? (customViewWidth && customViewWidth > 0 ? customViewWidth : 200)
+    ? (customViewWidth && customViewWidth > 0 ? customViewWidth : 0)
     : (iconWidth && iconWidth > 0 ? iconWidth : 40);
+    
   const finalIconHeight = hasChildren
-    ? (customViewHeight && customViewHeight > 0 ? customViewHeight : 40)
+    ? (customViewHeight && customViewHeight > 0 ? customViewHeight : 0)
     : (iconHeight && iconHeight > 0 ? iconHeight : 40);
   
   return (

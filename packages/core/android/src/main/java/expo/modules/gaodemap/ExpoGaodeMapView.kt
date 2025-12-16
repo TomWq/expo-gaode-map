@@ -45,6 +45,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     internal var initialCameraPosition: Map<String, Any?>? = null
     /** 是否跟随用户位置 */
     internal var followUserLocation: Boolean = false
+    /** 自定义地图样式配置（缓存） */
+    private var customMapStyleData: Map<String, Any>? = null
 
     /** 主线程 Handler */
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -113,6 +115,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 positionToApply?.let { position ->
                     applyInitialCameraPosition(position)
                     pendingCameraPosition = null
+                }
+
+                // 应用缓存的自定义地图样式
+                customMapStyleData?.let { styleData ->
+                    uiManager.setCustomMapStyle(styleData)
                 }
 
                 onLoad(mapOf("loaded" to true))
@@ -331,6 +338,18 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     fun setShowsBuildings(show: Boolean) = uiManager.setShowsBuildings(show)
     /** 设置是否显示室内地图 */
     fun setShowsIndoorMap(show: Boolean) = uiManager.setShowsIndoorMap(show)
+    
+    /**
+     * 设置自定义地图样式
+     * @param styleData 样式配置
+     */
+    fun setCustomMapStyle(styleData: Map<String, Any>) {
+        customMapStyleData = styleData
+        // 如果地图已加载，立即应用样式
+        if (isMapLoaded) {
+            uiManager.setCustomMapStyle(styleData)
+        }
+    }
 
     // ==================== 相机控制方法 ====================
 

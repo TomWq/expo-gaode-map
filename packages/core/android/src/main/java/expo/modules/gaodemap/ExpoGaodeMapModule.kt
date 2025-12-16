@@ -331,6 +331,24 @@ class ExpoGaodeMapModule : Module() {
       // 未实现
     }
 
+    /**
+     * 开始更新设备方向 (iOS 专用,Android 空实现)
+     * Android 不支持此功能
+     */
+    Function("startUpdatingHeading") {
+      // Android 不支持罗盘方向更新
+      android.util.Log.d("ExpoGaodeMap", "startUpdatingHeading: iOS 专用功能，Android 不支持")
+    }
+
+    /**
+     * 停止更新设备方向 (iOS 专用,Android 空实现)
+     * Android 不支持此功能
+     */
+    Function("stopUpdatingHeading") {
+      // Android 不支持罗盘方向更新
+      android.util.Log.d("ExpoGaodeMap", "stopUpdatingHeading: iOS 专用功能，Android 不支持")
+    }
+
     // ==================== 权限管理 ====================
     
     /**

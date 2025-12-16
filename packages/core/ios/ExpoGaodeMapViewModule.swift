@@ -79,6 +79,12 @@ public class ExpoGaodeMapViewModule: Module {
                 view.setShowsIndoorMap(show)
             }
             
+            Prop("customMapStyle") { (view: ExpoGaodeMapView, styleData: [String: Any]?) in
+                if let styleData = styleData {
+                    view.setCustomMapStyle(styleData)
+                }
+            }
+            
             OnViewDidUpdateProps { (view: ExpoGaodeMapView) in
                 view.applyProps()
             }

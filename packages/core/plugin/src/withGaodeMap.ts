@@ -134,27 +134,42 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       });
     }
 
-    // 添加前台服务（如果启用后台定位）
+    // 添加高德定位服务（APSService）- 必需
     const mainApplication = androidManifest.application?.[0];
-    if (mainApplication && props.enableBackgroundLocation) {
+    if (mainApplication) {
       if (!mainApplication['service']) {
         mainApplication['service'] = [];
       }
 
-      // 检查是否已存在 LocationForegroundService
-      const hasService = mainApplication['service'].some(
-        (item) => item.$?.['android:name'] === 'expo.modules.gaodemap.services.LocationForegroundService'
+      // 1. 添加高德定位服务 APSService（必需）
+      const hasAPSService = mainApplication['service'].some(
+        (item) => item.$?.['android:name'] === 'com.amap.api.location.APSService'
       );
 
-      if (!hasService) {
+      if (!hasAPSService) {
         mainApplication['service'].push({
           $: {
-            'android:name': 'expo.modules.gaodemap.services.LocationForegroundService',
-            'android:enabled': 'true',
-            'android:exported': 'false',
-            'android:foregroundServiceType': 'location',
+            'android:name': 'com.amap.api.location.APSService',
           },
         });
+      }
+
+      // 2. 添加前台服务（如果启用后台定位）
+      if (props.enableBackgroundLocation) {
+        const hasLocationService = mainApplication['service'].some(
+          (item) => item.$?.['android:name'] === 'expo.modules.gaodemap.services.LocationForegroundService'
+        );
+
+        if (!hasLocationService) {
+          mainApplication['service'].push({
+            $: {
+              'android:name': 'expo.modules.gaodemap.services.LocationForegroundService',
+              'android:enabled': 'true',
+              'android:exported': 'false',
+              'android:foregroundServiceType': 'location',
+            },
+          });
+        }
       }
     }
 

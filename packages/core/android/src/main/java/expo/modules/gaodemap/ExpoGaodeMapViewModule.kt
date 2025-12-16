@@ -51,6 +51,10 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Boolean>("trafficEnabled") { view, show -> view.setShowsTraffic(show) }
       Prop<Boolean>("buildingsEnabled") { view, show -> view.setShowsBuildings(show) }
       Prop<Boolean>("indoorViewEnabled") { view, show -> view.setShowsIndoorMap(show) }
+      
+      Prop<Map<String, Any>?>("customMapStyle") { view, styleData ->
+        styleData?.let { view.setCustomMapStyle(it) }
+      }
 
       OnViewDidUpdateProps { view: ExpoGaodeMapView ->
         if (view.mapType != 0) {

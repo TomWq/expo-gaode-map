@@ -254,6 +254,61 @@ export default function MapScreen() {
 }
 ```
 
+### 自定义地图样式
+
+expo-gaode-map 支持自定义地图样式，让你的地图更符合应用的视觉风格。
+
+#### 使用在线样式
+
+从[高德开放平台](https://lbs.amap.com/api/javascript-api/guide/create-map/customized-map)创建自定义样式，获取样式 ID：
+
+```tsx
+import { MapView } from 'expo-gaode-map';
+
+export default function MapScreen() {
+  return (
+    <MapView
+      style={{ flex: 1 }}
+      initialCameraPosition={{
+        target: { latitude: 39.9, longitude: 116.4 },
+        zoom: 10,
+      }}
+      customMapStyle={{
+        styleId: 'your-style-id', // 从高德开放平台获取
+      }}
+    />
+  );
+}
+```
+
+#### 使用本地样式文件
+
+下载样式文件（.data 和 .extra），放入项目资源目录：
+
+```tsx
+import { MapView } from 'expo-gaode-map';
+
+export default function MapScreen() {
+  return (
+    <MapView
+      style={{ flex: 1 }}
+      initialCameraPosition={{
+        target: { latitude: 39.9, longitude: 116.4 },
+        zoom: 10,
+      }}
+      customMapStyle={{
+        styleDataPath: 'style.data',
+        extraStyleDataPath: 'style.extra', // 可选
+      }}
+    />
+  );
+}
+```
+
+::: tip 样式持久化
+iOS 和 Android 平台都已实现样式持久化机制，地图缩放、移动、切换地图类型时样式会自动保持。
+:::
+
 ### 使用搜索功能
 
 安装搜索包后：

@@ -49,6 +49,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     var showsBuildings: Bool = false
     /// 是否显示室内地图
     var showsIndoorMap: Bool = false
+    /// 自定义地图样式配置
+    var customMapStyleData: [String: Any]?
     
     // MARK: - 事件派发器
     
@@ -481,6 +483,18 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         uiManager.setShowsIndoorMap(show)
     }
     
+    /**
+     * 设置自定义地图样式
+     * @param styleData 样式配置
+     */
+    func setCustomMapStyle(_ styleData: [String: Any]) {
+        customMapStyleData = styleData
+        // 如果地图已加载，立即应用样式
+        if isMapLoaded {
+            uiManager.setCustomMapStyle(styleData)
+        }
+    }
+    
     func setFollowUserLocation(_ follow: Bool) {
         followUserLocation = follow
         uiManager.setShowsUserLocation(showsUserLocation, followUser: follow)
@@ -547,6 +561,12 @@ extension ExpoGaodeMapView {
     public func mapViewDidFinishLoadingMap(_ mapView: MAMapView) {
         guard !isMapLoaded else { return }
         isMapLoaded = true
+        
+        // 地图加载完成后，应用自定义样式
+        if let styleData = customMapStyleData {
+            uiManager.setCustomMapStyle(styleData)
+        }
+        
         onLoad(["loaded": true])
     }
     
