@@ -14,5 +14,30 @@ function Polygon(props: PolygonProps) {
   return <NativePolygonView {...props} />;
 }
 
+/**
+ * 🔑 性能优化：浅比较关键属性
+ */
+function arePropsEqual(prevProps: PolygonProps, nextProps: PolygonProps): boolean {
+  // 比较 points 数组引用（最常变化）
+  if (prevProps.points !== nextProps.points) {
+    return false;
+  }
+  
+  // 比较样式属性
+  if (prevProps.strokeWidth !== nextProps.strokeWidth ||
+      prevProps.strokeColor !== nextProps.strokeColor ||
+      prevProps.fillColor !== nextProps.fillColor ||
+      prevProps.zIndex !== nextProps.zIndex) {
+    return false;
+  }
+  
+  // 比较回调
+  if (prevProps.onPolygonPress !== nextProps.onPolygonPress) {
+    return false;
+  }
+  
+  return true;
+}
+
 // 导出优化后的组件
-export default React.memo(Polygon);
+export default React.memo(Polygon, arePropsEqual);

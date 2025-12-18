@@ -59,6 +59,21 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     private val onCameraMove by EventDispatcher()
     private val onCameraIdle by EventDispatcher()
 
+    // 事件节流控制
+    /** 相机移动事件节流间隔(毫秒) */
+    private val CAMERA_MOVE_THROTTLE_MS = 100L
+    /** 上次触发相机移动事件的时间戳 */
+    private var lastCameraMoveTime = 0L
+    /** 缓存的相机移动事件数据 */
+    private var pendingCameraMoveData: Map<String, Any>? = null
+    /** 节流定时器 Runnable */
+    private val throttleRunnable = Runnable {
+        pendingCameraMoveData?.let { data ->
+            onCameraMove(data)
+            pendingCameraMoveData = null
+        }
+    }
+
     // 高德地图视图
     private lateinit var mapView: MapView
     private lateinit var aMap: AMap
@@ -136,10 +151,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         // 设置相机移动监听器
         aMap.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
             override fun onCameraChange(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
-                // 相机移动中
+                // 相机移动中 - 应用节流优化
                 cameraPosition?.let {
+                    val currentTime = System.currentTimeMillis()
                     val visibleRegion = aMap.projection.visibleRegion
-                    onCameraMove(mapOf(
+                    val eventData = mapOf(
                         "cameraPosition" to mapOf(
                             "target" to mapOf(
                                 "latitude" to it.target.latitude,
@@ -159,7 +175,25 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                                 "longitude" to visibleRegion.nearLeft.longitude
                             )
                         )
-                    ))
+                    )
+                    
+                    // 节流逻辑：100ms 内只触发一次
+                    if (currentTime - lastCameraMoveTime >= CAMERA_MOVE_THROTTLE_MS) {
+                        // 超过节流时间，立即触发事件
+                        lastCameraMoveTime = currentTime
+                        onCameraMove(eventData)
+                        // 清除待处理的事件和定时器
+                        mainHandler.removeCallbacks(throttleRunnable)
+                        pendingCameraMoveData = null
+                    } else {
+                        // 在节流时间内，缓存事件数据，使用定时器延迟触发
+                        pendingCameraMoveData = eventData
+                        mainHandler.removeCallbacks(throttleRunnable)
+                        mainHandler.postDelayed(
+                            throttleRunnable,
+                            CAMERA_MOVE_THROTTLE_MS - (currentTime - lastCameraMoveTime)
+                        )
+                    }
                 }
             }
 
@@ -416,8 +450,12 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     @Suppress("unused")
     fun onDestroy() {
                try {
-            // 清理 Handler 回调,防止内存泄露
-            mainHandler.removeCallbacksAndMessages(null)
+                   // 清理节流定时器
+                   mainHandler.removeCallbacks(throttleRunnable)
+                   pendingCameraMoveData = null
+                   
+                   // 清理 Handler 回调,防止内存泄露
+                   mainHandler.removeCallbacksAndMessages(null)
 
             // 清理所有地图监听器
             aMap.setOnMapClickListener(null)

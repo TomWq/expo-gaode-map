@@ -34,7 +34,7 @@
     "amap",
     "gaode-map"
   ],
-  "author": "尚博信_王强 <wangqiang03@sunboxsoft.com>",
+  "author": "",
   "license": "MIT",
   "devDependencies": {
     "@types/react": "~19.1.0",

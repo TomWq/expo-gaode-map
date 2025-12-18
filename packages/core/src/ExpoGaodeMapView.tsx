@@ -38,90 +38,36 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const nativeRef = React.useRef<MapViewRef>(null);
   const internalRef = React.useRef<MapViewRef | null>(null);
   
+  /**
+   * 🔑 性能优化：通用 API 方法包装器
+   * 统一处理初始化检查和错误处理，减少重复代码
+   */
+  const createApiMethod = React.useCallback(<T extends (...args: any[]) => any>(
+    methodName: keyof MapViewRef
+  ) => {
+    return ((...args: Parameters<T>) => {
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized(methodName as string);
+      }
+      try {
+        return (nativeRef.current[methodName] as T)(...args);
+      } catch (error: any) {
+        throw ErrorHandler.wrapNativeError(error, methodName as string);
+      }
+    }) as T;
+  }, []);
 
+  /**
+   * 使用通用包装器创建所有 API 方法
+   * 所有方法共享相同的错误处理逻辑
+   */
   const apiRef: MapViewRef = React.useMemo(() => ({
-    /**
-     * 移动地图相机到指定位置
-     * @param position 相机位置参数对象，包含目标经纬度、缩放级别等信息
-     * @param duration 动画持续时间（毫秒），默认300毫秒
-     * @throws 如果地图视图未初始化则抛出错误
-     * @returns Promise<void> 异步操作完成后的Promise
-     */
-    moveCamera: async (position: CameraPosition, duration: number = 300) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('moveCamera');
-      }
-      try {
-        return await nativeRef.current.moveCamera(position, duration);
-      } catch (error: any) {
-        throw ErrorHandler.wrapNativeError(error, 'moveCamera');
-      }
-    },
-    /**
-     * 将屏幕坐标点转换为地理坐标（经纬度）
-     * @param point 屏幕坐标点 {x: number, y: number}
-     * @returns 返回Promise，解析为对应的地理坐标 {latitude: number, longitude: number}
-     * @throws 如果地图视图未初始化，抛出错误 'MapView not initialized'
-     */
-    getLatLng: async (point: Point) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('getLatLng');
-      }
-      try {
-        return await nativeRef.current.getLatLng(point);
-      } catch (error: any) {
-        throw ErrorHandler.wrapNativeError(error, 'getLatLng');
-      }
-    },
-    /**
-     * 设置地图中心点坐标
-     * @param center 要设置的中心点坐标(LatLng格式)
-     * @param animated 是否使用动画效果移动地图(默认为false)
-     * @throws 如果地图视图未初始化则抛出错误
-     */
-    setCenter: async (center: LatLng, animated: boolean = false) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('setCenter');
-      }
-      try {
-        return await nativeRef.current.setCenter(center, animated);
-      } catch (error: any) {
-        throw ErrorHandler.wrapNativeError(error, 'setCenter');
-      }
-    },
-    /**
-     * 设置地图的缩放级别
-     * @param zoom 目标缩放级别
-     * @param animated 是否使用动画过渡效果，默认为false
-     * @throws 如果地图视图未初始化，抛出错误
-     */
-    setZoom: async (zoom: number, animated: boolean = false) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('setZoom');
-      }
-      try {
-        return await nativeRef.current.setZoom(zoom, animated);
-      } catch (error: any) {
-        throw ErrorHandler.wrapNativeError(error, 'setZoom');
-      }
-    },
-    /**
-     * 获取当前地图的相机位置（视角中心点、缩放级别、倾斜角度等）
-     * @returns 返回一个Promise，解析为当前相机位置的对象
-     * @throws 如果地图视图未初始化，则抛出错误
-     */
-    getCameraPosition: async () => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('getCameraPosition');
-      }
-      try {
-        return await nativeRef.current.getCameraPosition();
-      } catch (error: any) {
-        throw ErrorHandler.wrapNativeError(error, 'getCameraPosition');
-      }
-    }
-
-  }), []);
+    moveCamera: createApiMethod<(position: CameraPosition, duration?: number) => Promise<void>>('moveCamera'),
+    getLatLng: createApiMethod<(point: Point) => Promise<LatLng>>('getLatLng'),
+    setCenter: createApiMethod<(center: LatLng, animated?: boolean) => Promise<void>>('setCenter'),
+    setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
+    getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
+  }), [createApiMethod]);
 
   /**
    * 将传入的apiRef赋值给internalRef.current
@@ -142,7 +88,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
         ref={nativeRef}
           {...props}>
           {props.children}
-        </NativeView>
+      </NativeView>
   );
 });
 

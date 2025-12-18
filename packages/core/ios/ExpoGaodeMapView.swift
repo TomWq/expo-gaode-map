@@ -80,6 +80,17 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     /// 显式跟踪所有覆盖物视图（新架构下 subviews 可能不可靠）
     private var overlayViews: [UIView] = []
     
+    // MARK: - 事件节流控制
+    
+    /// 相机移动事件节流间隔(秒)
+    private let cameraMoveThrottleInterval: TimeInterval = 0.1
+    /// 上次触发相机移动事件的时间戳
+    private var lastCameraMoveTime: TimeInterval = 0
+    /// 缓存的相机移动事件数据
+    private var pendingCameraMoveData: [String: Any]?
+    /// 节流定时器
+    private var throttleTimer: Timer?
+    
     // MARK: - 初始化
     
     required init(appContext: AppContext? = nil) {
@@ -530,6 +541,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
      * 当视图从层级中移除并释放时自动调用
      */
     deinit {
+        // 清理节流定时器
+        throttleTimer?.invalidate()
+        throttleTimer = nil
+        pendingCameraMoveData = nil
+        
         // 清理代理,停止接收回调
         mapView?.delegate = nil
         
@@ -571,14 +587,15 @@ extension ExpoGaodeMapView {
     }
     
     /**
-     * 地图区域即将改变时触发
+     * 地图区域即将改变时触发 - 应用节流优化
      */
     public func mapView(_ mapView: MAMapView, regionWillChangeAnimated animated: Bool) {
-        // 相机开始移动
+        // 相机开始移动 - 应用节流优化
+        let currentTime = Date().timeIntervalSince1970
         let cameraPosition = cameraManager.getCameraPosition()
         let visibleRegion = mapView.region
         
-        onCameraMove([
+        let eventData: [String: Any] = [
             "cameraPosition": cameraPosition,
             "latLngBounds": [
                 "northeast": [
@@ -590,7 +607,31 @@ extension ExpoGaodeMapView {
                     "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
                 ]
             ]
-        ])
+        ]
+        
+        // 节流逻辑：0.1秒 内只触发一次
+        if currentTime - lastCameraMoveTime >= cameraMoveThrottleInterval {
+            // 超过节流时间，立即触发事件
+            lastCameraMoveTime = currentTime
+            onCameraMove(eventData)
+            // 清除待处理的事件和定时器
+            throttleTimer?.invalidate()
+            throttleTimer = nil
+            pendingCameraMoveData = nil
+        } else {
+            // 在节流时间内，缓存事件数据，使用定时器延迟触发
+            pendingCameraMoveData = eventData
+            throttleTimer?.invalidate()
+            
+            let delay = cameraMoveThrottleInterval - (currentTime - lastCameraMoveTime)
+            throttleTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+                guard let self = self, let data = self.pendingCameraMoveData else { return }
+                self.lastCameraMoveTime = Date().timeIntervalSince1970
+                self.onCameraMove(data)
+                self.pendingCameraMoveData = nil
+                self.throttleTimer = nil
+            }
+        }
     }
     
     /**

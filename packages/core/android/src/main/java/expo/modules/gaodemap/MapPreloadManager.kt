@@ -34,12 +34,26 @@ data class PreloadedMapInstance(
  */
 object MapPreloadManager : ComponentCallbacks2 {
     private const val TAG = "MapPreloadManager"
-    private const val MAX_POOL_SIZE = 3
-    private const val INSTANCE_TTL = 5 * 60 * 1000L // 5分钟过期
+    
+    // 动态池大小配置（根据内存自适应）
+    private const val MAX_POOL_SIZE_HIGH_MEMORY = 3      // 高内存设备：>= 500MB
+    private const val MAX_POOL_SIZE_MEDIUM_MEMORY = 2    // 中等内存：300-500MB
+    private const val MAX_POOL_SIZE_LOW_MEMORY = 1       // 低内存设备：150-300MB
+    private const val MIN_MEMORY_THRESHOLD_MB = 150      // 最低内存要求
+    
+    // 动态 TTL 配置（根据内存压力自适应）
+    private const val TTL_NORMAL = 5 * 60 * 1000L        // 正常：5分钟
+    private const val TTL_MEMORY_PRESSURE = 2 * 60 * 1000L  // 内存压力：2分钟
+    private const val TTL_LOW_MEMORY = 1 * 60 * 1000L    // 低内存：1分钟
     
     private val preloadedMapViews = ConcurrentLinkedQueue<PreloadedMapInstance>()
     private val isPreloading = AtomicBoolean(false)
     private val preloadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    // 动态配置
+    @Volatile private var currentMaxPoolSize = MAX_POOL_SIZE_MEDIUM_MEMORY
+    @Volatile private var currentTTL = TTL_NORMAL
+    @Volatile private var memoryPressureLevel = 0  // 0=正常, 1=压力, 2=严重
     
     // 性能统计
     private val totalPreloads = AtomicInteger(0)
@@ -83,7 +97,7 @@ object MapPreloadManager : ComponentCallbacks2 {
     }
     
     /**
-     * 清理过期的预加载实例
+     * 清理过期的预加载实例（使用动态 TTL）
      */
     private fun cleanupExpiredInstances() {
         val now = System.currentTimeMillis()
@@ -92,7 +106,8 @@ object MapPreloadManager : ComponentCallbacks2 {
         val iterator = preloadedMapViews.iterator()
         while (iterator.hasNext()) {
             val instance = iterator.next()
-            if (now - instance.timestamp > INSTANCE_TTL) {
+            // 使用动态 TTL
+            if (now - instance.timestamp > currentTTL) {
                 try {
                     instance.mapView.onDestroy()
                     iterator.remove()
@@ -105,7 +120,7 @@ object MapPreloadManager : ComponentCallbacks2 {
         
         if (expiredCount > 0) {
             instancesExpired.addAndGet(expiredCount)
-            Log.i(TAG, "🧹 清理了 $expiredCount 个过期实例（总计: ${instancesExpired.get()}）")
+            Log.i(TAG, "🧹 清理了 $expiredCount 个过期实例（总计: ${instancesExpired.get()}，当前TTL: ${currentTTL/1000}秒）")
         }
     }
     
@@ -144,15 +159,22 @@ object MapPreloadManager : ComponentCallbacks2 {
     }
     
     /**
-     * 开始预加载地图实例
+     * 开始预加载地图实例（自适应版本）
      * @param context Android 上下文
-     * @param poolSize 预加载的地图实例数量
+     * @param poolSize 预加载的地图实例数量（会根据内存自适应调整）
      */
     fun startPreload(context: Context, poolSize: Int) {
         if (isPreloading.get()) {
             Log.w(TAG, "⚠️ 预加载已在进行中")
             return
         }
+        
+        // 动态计算最优池大小
+        val adaptiveMaxPoolSize = calculateAdaptivePoolSize(context)
+        currentMaxPoolSize = adaptiveMaxPoolSize
+        
+        // 动态调整 TTL
+        currentTTL = calculateAdaptiveTTL(context)
         
         // 检查内存是否充足
         if (!hasEnoughMemory(context)) {
@@ -161,8 +183,8 @@ object MapPreloadManager : ComponentCallbacks2 {
         }
         
         isPreloading.set(true)
-        val targetSize = minOf(poolSize, MAX_POOL_SIZE)
-        Log.i(TAG, "🚀 开始预加载 $targetSize 个地图实例")
+        val targetSize = minOf(poolSize, adaptiveMaxPoolSize)
+        Log.i(TAG, "🚀 开始预加载 $targetSize 个地图实例 (自适应池大小: $adaptiveMaxPoolSize, TTL: ${currentTTL/1000}秒)")
         
         val startTime = System.currentTimeMillis()
         totalPreloads.incrementAndGet()
@@ -208,16 +230,86 @@ object MapPreloadManager : ComponentCallbacks2 {
     }
     
     /**
-     * 检查是否有足够的内存
+     * 计算自适应池大小
+     * 根据可用内存动态调整池大小
      */
-    private fun hasEnoughMemory(context: Context): Boolean {
+    private fun calculateAdaptivePoolSize(context: Context): Int {
+        val availableMB = getAvailableMemoryMB(context)
+        
+        return when {
+            availableMB >= 500 -> {
+                Log.i(TAG, "📊 高内存设备 (${availableMB}MB)，池大小: $MAX_POOL_SIZE_HIGH_MEMORY")
+                MAX_POOL_SIZE_HIGH_MEMORY
+            }
+            availableMB >= 300 -> {
+                Log.i(TAG, "📊 中等内存设备 (${availableMB}MB)，池大小: $MAX_POOL_SIZE_MEDIUM_MEMORY")
+                MAX_POOL_SIZE_MEDIUM_MEMORY
+            }
+            availableMB >= 150 -> {
+                Log.i(TAG, "📊 低内存设备 (${availableMB}MB)，池大小: $MAX_POOL_SIZE_LOW_MEMORY")
+                MAX_POOL_SIZE_LOW_MEMORY
+            }
+            else -> {
+                Log.w(TAG, "⚠️ 内存极低 (${availableMB}MB)，禁用预加载")
+                0
+            }
+        }
+    }
+    
+    /**
+     * 计算自适应 TTL
+     * 根据内存压力动态调整过期时间
+     */
+    private fun calculateAdaptiveTTL(context: Context): Long {
+        val availableMB = getAvailableMemoryMB(context)
+        val totalMB = getTotalMemoryMB(context)
+        val usagePercent = ((totalMB - availableMB).toFloat() / totalMB * 100).toInt()
+        
+        return when {
+            usagePercent < 60 -> {
+                memoryPressureLevel = 0
+                Log.i(TAG, "📊 内存充足 (使用率: $usagePercent%)，TTL: ${TTL_NORMAL/1000}秒")
+                TTL_NORMAL
+            }
+            usagePercent < 80 -> {
+                memoryPressureLevel = 1
+                Log.i(TAG, "📊 内存压力 (使用率: $usagePercent%)，TTL: ${TTL_MEMORY_PRESSURE/1000}秒")
+                TTL_MEMORY_PRESSURE
+            }
+            else -> {
+                memoryPressureLevel = 2
+                Log.w(TAG, "⚠️ 内存严重不足 (使用率: $usagePercent%)，TTL: ${TTL_LOW_MEMORY/1000}秒")
+                TTL_LOW_MEMORY
+            }
+        }
+    }
+    
+    /**
+     * 获取可用内存（MB）
+     */
+    private fun getAvailableMemoryMB(context: Context): Long {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
         val memoryInfo = ActivityManager.MemoryInfo()
         activityManager?.getMemoryInfo(memoryInfo)
-        
-        // 如果可用内存低于 100MB，不进行预加载
-        val availableMB = memoryInfo.availMem / (1024 * 1024)
-        return availableMB > 100
+        return memoryInfo.availMem / (1024 * 1024)
+    }
+    
+    /**
+     * 获取总内存（MB）
+     */
+    private fun getTotalMemoryMB(context: Context): Long {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager?.getMemoryInfo(memoryInfo)
+        return memoryInfo.totalMem / (1024 * 1024)
+    }
+    
+    /**
+     * 检查是否有足够的内存
+     */
+    private fun hasEnoughMemory(context: Context): Boolean {
+        val availableMB = getAvailableMemoryMB(context)
+        return availableMB > MIN_MEMORY_THRESHOLD_MB
     }
     
     /**
@@ -257,22 +349,22 @@ object MapPreloadManager : ComponentCallbacks2 {
     }
     
     /**
-     * 获取一个预加载的地图实例
+     * 获取一个预加载的地图实例（使用动态 TTL）
      * @return 预加载的地图视图，如果池为空则返回 null
      */
     fun getPreloadedMapView(): MapView? {
         val now = System.currentTimeMillis()
         
-        // 检查并移除过期实例
+        // 检查并移除过期实例（使用动态 TTL）
         while (true) {
             val instance = preloadedMapViews.peek() ?: break
             
-            if (now - instance.timestamp > INSTANCE_TTL) {
+            if (now - instance.timestamp > currentTTL) {
                 preloadedMapViews.poll()
                 try {
                     instance.mapView.onDestroy()
                     instancesExpired.incrementAndGet()
-                    Log.i(TAG, "🗑️ 预加载实例已过期，已删除")
+                    Log.i(TAG, "🗑️ 预加载实例已过期（TTL: ${currentTTL/1000}秒），已删除")
                 } catch (e: Exception) {
                     Log.e(TAG, "清理过期实例失败: ${e.message}", e)
                 }
@@ -316,14 +408,17 @@ object MapPreloadManager : ComponentCallbacks2 {
     }
     
     /**
-     * 获取预加载状态
+     * 获取预加载状态（包含动态配置信息）
      * @return 预加载状态信息
      */
     fun getStatus(): Map<String, Any> {
         return mapOf(
             "poolSize" to preloadedMapViews.size,
             "isPreloading" to isPreloading.get(),
-            "maxPoolSize" to MAX_POOL_SIZE
+            "maxPoolSize" to currentMaxPoolSize,
+            "currentTTL" to currentTTL,
+            "memoryPressureLevel" to memoryPressureLevel,
+            "isAdaptive" to true
         )
     }
     
@@ -336,13 +431,17 @@ object MapPreloadManager : ComponentCallbacks2 {
     }
     
     /**
-     * 获取性能统计信息
+     * 获取性能统计信息（包含内存信息）
      */
     fun getPerformanceMetrics(): Map<String, Any> {
         val total = totalPreloads.get()
         val successful = successfulPreloads.get()
         val avgDuration = if (successful > 0) totalDuration.get() / successful else 0
         val successRate = if (total > 0) (successful.toFloat() / total * 100) else 0f
+        
+        val availableMB = appContext?.let { getAvailableMemoryMB(it) } ?: 0
+        val totalMB = appContext?.let { getTotalMemoryMB(it) } ?: 0
+        val usagePercent = if (totalMB > 0) ((totalMB - availableMB).toFloat() / totalMB * 100).toInt() else 0
         
         return mapOf(
             "totalPreloads" to total,
@@ -351,7 +450,13 @@ object MapPreloadManager : ComponentCallbacks2 {
             "averageDuration" to avgDuration,
             "instancesUsed" to instancesUsed.get(),
             "instancesExpired" to instancesExpired.get(),
-            "successRate" to successRate
+            "successRate" to successRate,
+            "currentMaxPoolSize" to currentMaxPoolSize,
+            "currentTTL" to currentTTL,
+            "memoryPressureLevel" to memoryPressureLevel,
+            "availableMemoryMB" to availableMB,
+            "totalMemoryMB" to totalMB,
+            "memoryUsagePercent" to usagePercent
         )
     }
     

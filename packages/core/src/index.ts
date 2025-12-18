@@ -1,13 +1,10 @@
+// 导出类型定义（包含所有通用类型）
+export * from './ExpoGaodeMap.types';  // 包含 ExpoGaodeMapModuleEvents + 所有 types/*
+// 注意：不需要再 export * from './types'，因为 ExpoGaodeMap.types 已经导出了
 
-// 导出类型定义
-export * from './ExpoGaodeMap.types';
-export * from './types';
-
-// 导出原生模块 - 直接使用，无需封装
+// 导出原生模块
 export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
-
-// 从 ExpoGaodeMapModule 重新导出类型，方便使用
-export type { SDKConfig, PermissionStatus } from './ExpoGaodeMapModule';
+// 注意：SDKConfig 和 PermissionStatus 已在 ExpoGaodeMap.types 中导出，无需重复
 
 // 导出地图视图组件
 export { default as MapView } from './ExpoGaodeMapView';
