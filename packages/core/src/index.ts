@@ -33,23 +33,44 @@ export {
   createLazyLoader,
 } from './utils/ModuleLoader';
 
-// 导出地图预加载功能
+// 导出错误处理工具
 export {
-  MapPreloader,
-  preloadMap,
-  getPreloadStatus,
-  clearPreloadedMaps,
-} from './utils/MapPreloader';
+  ErrorHandler,
+  ErrorLogger,
+  GaodeMapError,
+  ErrorType,
+} from './utils/ErrorHandler';
+export type { ErrorDetails } from './utils/ErrorHandler';
 
-export type { PreloadConfig, PreloadStatus ,UseMapPreloadReturn,MapPreloaderProps} from './types/preload.types';
+// 导出平台检测工具
+export {
+  PlatformDetector,
+  DeviceType,
+  FoldState,
+  isAndroid14Plus,
+  isiOS17Plus,
+  isTablet,
+  isFoldable,
+  isIPad,
+} from './utils/PlatformDetector';
+export type { DeviceInfo, SystemVersion } from './utils/PlatformDetector';
 
-// 导出预加载 Hook
-export { useMapPreload, useMapPreloadStatus } from './hooks/useMapPreload';
+// 导出权限工具类（仅提供文案和诊断，实际权限请求使用 ExpoGaodeMapModule）
+export {
+  PermissionUtils,
+  PermissionManager, // 向后兼容的别名
+  LocationPermissionType,
+} from './utils/PermissionUtils';
 
-
-// 导出预加载组件
-export { default as MapPreloaderComponent } from './components/MapPreloader';
-
+// 导出折叠屏适配组件
+export {
+  FoldableMapView,
+  useFoldableMap,
+} from './components/FoldableMapView';
+export type {
+  FoldableMapViewProps,
+  FoldableConfig,
+} from './components/FoldableMapView';
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';

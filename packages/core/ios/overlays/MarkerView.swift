@@ -441,8 +441,6 @@ class MarkerView: ExpoView {
         //     return nil
         // }
         
-        print("✅ iOS Marker: 成功渲染图片, size: \(image.size)")
-        
         // 🔑 写入缓存
         if let key = cacheKey {
             IconBitmapCache.shared.setImage(image, forKey: key)

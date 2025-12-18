@@ -423,6 +423,43 @@ public class ExpoGaodeMapModule: Module {
             }
         }
         
+        /**
+         * 请求后台位置权限（iOS）
+         * 注意：必须在前台权限已授予后才能请求
+         */
+        AsyncFunction("requestBackgroundLocationPermission") { (promise: Promise) in
+            let status = CLLocationManager.authorizationStatus()
+            
+            // 检查前台权限是否已授予
+            if status != .authorizedWhenInUse && status != .authorizedAlways {
+                promise.reject("FOREGROUND_PERMISSION_REQUIRED", "必须先授予前台位置权限才能请求后台位置权限")
+                return
+            }
+            
+            // iOS 上后台权限通过 Info.plist 配置 + 系统设置
+            // 这里返回当前状态
+            let hasBackground = status == .authorizedAlways
+            
+            promise.resolve([
+                "granted": hasBackground,
+                "backgroundLocation": hasBackground,
+                "status": self.getAuthorizationStatusString(status),
+                "message": hasBackground ? "已授予后台权限" : "需要在系统设置中手动授予'始终'权限"
+            ])
+        }
+        
+        /**
+         * 打开应用设置页面
+         * 引导用户手动授予权限
+         */
+        Function("openAppSettings") {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                if UIApplication.shared.canOpenURL(url) {
+                    UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                }
+            }
+        }
+        
         // ==================== 地图预加载 ====================
         
         /**

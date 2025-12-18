@@ -23,9 +23,14 @@
 - ✅ 完整的地图功能（多种地图类型、手势控制、相机操作）
 - ✅ 精准定位（连续定位、单次定位、坐标转换）
 - ✅ 丰富的覆盖物（Circle、Marker、Polyline、Polygon、HeatMap、Cluster 等）
+- ✅ 友好的错误提示系统（详细的解决方案和文档链接）
 - ✅ 完整的 TypeScript 类型定义
 - ✅ 跨平台支持（Android、iOS）
 - ✅ 同时支持 React Native 新旧架构（Paper & Fabric）
+- ✅ 高测试覆盖率（75.7%，207 个单元测试）
+- ✅ 友好的错误提示系统
+- ✅ **高测试覆盖率**（78.82%，164 个单元测试）
+- ✅ **友好的错误提示系统**（v3.0.0+）- 详细的错误信息和解决方案指引
 
 ### 可选模块
 - 🔍 **搜索功能**（expo-gaode-map-search）- POI 搜索、周边搜索、关键字搜索、地理编码等
@@ -135,6 +140,34 @@ expo-gaode-map/
 
 推荐使用 Config Plugin 自动配置，详见：[初始化指南](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
 
+### 4. 如何处理错误？ 🆕
+
+`expo-gaode-map` 提供了完善的错误处理系统：
+
+```typescript
+import ExpoGaodeMapModule, { GaodeMapError, ErrorType } from 'expo-gaode-map';
+
+try {
+  await ExpoGaodeMapModule.getCurrentLocation();
+} catch (error) {
+  if (error instanceof GaodeMapError) {
+    console.error(error.message);  // 友好的错误信息
+    console.log(error.solution);   // 详细的解决方案
+    console.log(error.docUrl);     // 相关文档链接
+  }
+}
+```
+
+**完整错误处理指南**：[ERROR_HANDLING_GUIDE.md](./ERROR_HANDLING_GUIDE.md)
+
+支持的错误类型：
+- `SDK_NOT_INITIALIZED` - SDK 未初始化
+- `INVALID_API_KEY` - API Key 配置错误
+- `PERMISSION_DENIED` - 权限未授予
+- `LOCATION_FAILED` - 定位失败
+- `MAP_VIEW_NOT_INITIALIZED` - 地图视图未初始化
+- 更多错误类型...
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
@@ -143,10 +176,12 @@ expo-gaode-map/
 
 MIT
 
-## 🔗 相关链接
+## 📚 文档与资源
 
 - [在线文档](https://TomWq.github.io/expo-gaode-map/)
+- [错误处理指南](./ERROR_HANDLING_GUIDE.md) 🆕
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map)
+- [示例项目](https://github.com/TomWq/expo-gaode-map-example)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

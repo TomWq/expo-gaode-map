@@ -56,12 +56,3 @@ export type {
   ClusterProps,
 } from './overlays.types';
 
-//预加载类型
-export type {
-  PreloadConfig,
-  PreloadStatus,
-  PreloadStrategy,
-  PreloadInstance,
-  UseMapPreloadReturn,
-  MapPreloaderProps
-} from './preload.types';

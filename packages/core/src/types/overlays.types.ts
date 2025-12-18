@@ -358,9 +358,19 @@ export interface ClusterParams {
  */
 export interface ClusterPoint {
   /**
-   * 坐标
+   * 纬度（原生 Cluster 使用）
    */
-  position: LatLng;
+  latitude?: number;
+  
+  /**
+   * 经度（原生 Cluster 使用）
+   */
+  longitude?: number;
+
+  /**
+   * 坐标（JS ClusterLayer 使用）
+   */
+  position?: LatLng;
 
   /**
    * 自定义数据
@@ -378,6 +388,11 @@ export interface ClusterProps {
   radius?: number;
 
   /**
+   * 最小聚合数量
+   */
+  minClusterSize?: number;
+
+  /**
    * 聚合点样式
    */
   clusterStyle?: ViewStyle;
@@ -393,12 +408,12 @@ export interface ClusterProps {
   points: ClusterPoint[];
 
   /**
-   * 渲染标记点
+   * 渲染标记点（仅 JS 实现的 ClusterLayer 需要）
    */
-  renderMarker: (item: ClusterPoint) => React.ReactNode;
+  renderMarker?: (item: ClusterPoint) => React.ReactNode;
 
   /**
-   * 渲染聚合点
+   * 渲染聚合点（仅 JS 实现的 ClusterLayer 需要）
    */
   renderCluster?: (params: ClusterParams) => React.ReactNode;
 

@@ -26,6 +26,8 @@ export default defineConfig({
                 { text: '快速开始', link: '/guide/getting-started' },
                 { text: '初始化', link: '/guide/initialization' },
                 { text: 'Config Plugin', link: '/guide/config-plugin' },
+                { text: '错误处理', link: '/guide/error-handling' },
+                { text: '测试与质量保证', link: '/guide/testing' },
                 { text: '架构说明', link: '/guide/architecture' },
                 { text: '搜索功能', link: '/guide/search' },
                 { text: '导航功能', link: '/guide/navigation' },

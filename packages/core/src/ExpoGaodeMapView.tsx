@@ -9,6 +9,7 @@ import type {
   Point,
 
 } from './types';
+import { ErrorHandler } from './utils/ErrorHandler';
 
 export type { MapViewRef } from './types';
 
@@ -47,8 +48,14 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @returns Promise<void> 异步操作完成后的Promise
      */
     moveCamera: async (position: CameraPosition, duration: number = 300) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.moveCamera(position, duration);
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('moveCamera');
+      }
+      try {
+        return await nativeRef.current.moveCamera(position, duration);
+      } catch (error: any) {
+        throw ErrorHandler.wrapNativeError(error, 'moveCamera');
+      }
     },
     /**
      * 将屏幕坐标点转换为地理坐标（经纬度）
@@ -57,8 +64,14 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @throws 如果地图视图未初始化，抛出错误 'MapView not initialized'
      */
     getLatLng: async (point: Point) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.getLatLng(point);
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('getLatLng');
+      }
+      try {
+        return await nativeRef.current.getLatLng(point);
+      } catch (error: any) {
+        throw ErrorHandler.wrapNativeError(error, 'getLatLng');
+      }
     },
     /**
      * 设置地图中心点坐标
@@ -67,8 +80,14 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @throws 如果地图视图未初始化则抛出错误
      */
     setCenter: async (center: LatLng, animated: boolean = false) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.setCenter(center, animated);
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('setCenter');
+      }
+      try {
+        return await nativeRef.current.setCenter(center, animated);
+      } catch (error: any) {
+        throw ErrorHandler.wrapNativeError(error, 'setCenter');
+      }
     },
     /**
      * 设置地图的缩放级别
@@ -77,8 +96,14 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @throws 如果地图视图未初始化，抛出错误
      */
     setZoom: async (zoom: number, animated: boolean = false) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.setZoom(zoom, animated);
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('setZoom');
+      }
+      try {
+        return await nativeRef.current.setZoom(zoom, animated);
+      } catch (error: any) {
+        throw ErrorHandler.wrapNativeError(error, 'setZoom');
+      }
     },
     /**
      * 获取当前地图的相机位置（视角中心点、缩放级别、倾斜角度等）
@@ -86,8 +111,14 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
      * @throws 如果地图视图未初始化，则抛出错误
      */
     getCameraPosition: async () => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.getCameraPosition();
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('getCameraPosition');
+      }
+      try {
+        return await nativeRef.current.getCameraPosition();
+      } catch (error: any) {
+        throw ErrorHandler.wrapNativeError(error, 'getCameraPosition');
+      }
     }
 
   }), []);

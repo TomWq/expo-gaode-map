@@ -14,6 +14,7 @@ import type {
   LocationAccuracy,
   LocationListener,
 } from './types';
+import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
 
 /**
  * SDK 配置参数
@@ -28,17 +29,33 @@ export interface SDKConfig {
 }
 
 /**
- * 权限状态
+ * 权限状态（增强版，支持 Android 14+ 和 iOS 17+）
  */
 export interface PermissionStatus {
-  /** 是否已授权 */
+  /** 是否已授权（前台位置权限） */
   granted: boolean;
+  
+  // iOS 专用字段
   /** iOS 权限状态字符串 */
   status?: 'notDetermined' | 'restricted' | 'denied' | 'authorizedAlways' | 'authorizedWhenInUse' | 'unknown';
+  
+  // Android 专用字段
   /** Android 精确位置权限 */
   fineLocation?: boolean;
   /** Android 粗略位置权限 */
   coarseLocation?: boolean;
+  /** Android 后台位置权限（Android 10+） */
+  backgroundLocation?: boolean;
+  /** 是否应显示权限说明（Android） */
+  shouldShowRationale?: boolean;
+  /** 权限是否被永久拒绝（Android） */
+  isPermanentlyDenied?: boolean;
+  /** 是否为 Android 14+（Android） */
+  isAndroid14Plus?: boolean;
+  
+  // 其他字段
+  /** 额外的消息说明 */
+  message?: string;
 }
 
 /**
@@ -229,19 +246,32 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
    */
   stopUpdatingHeading(): void;
   
-  // ==================== 权限管理 ====================
+  // ==================== 权限管理（增强版） ====================
   
   /**
-   * 检查位置权限状态
-   * @returns Promise<PermissionStatus> 权限状态
+   * 检查前台位置权限状态（增强版，支持 Android 14+ 适配）
+   * @returns Promise<PermissionStatus> 详细的权限状态信息
    */
   checkLocationPermission(): Promise<PermissionStatus>;
   
   /**
-   * 请求位置权限
+   * 请求前台位置权限（增强版，支持 Android 14+ 适配）
    * @returns Promise<PermissionStatus> 请求后的权限状态
    */
   requestLocationPermission(): Promise<PermissionStatus>;
+  
+  /**
+   * 请求后台位置权限（Android 10+、iOS）
+   * 注意：必须在前台权限已授予后才能请求
+   * @returns Promise<PermissionStatus> 请求后的权限状态
+   */
+  requestBackgroundLocationPermission(): Promise<PermissionStatus>;
+  
+  /**
+   * 打开应用设置页面
+   * 引导用户手动授予权限（当权限被永久拒绝时使用）
+   */
+  openAppSettings(): void;
   
   // ==================== 地图预加载 ====================
   
@@ -292,16 +322,13 @@ let nativeModule: ExpoGaodeMapModule | null = null;
 try {
   nativeModule = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
 } catch (error) {
-  console.warn('ExpoGaodeMap 原生模块加载失败:', error);
-}
-
-// 如果模块加载失败，创建一个空的代理对象防止崩溃
-if (!nativeModule) {
-  console.error('ExpoGaodeMap: 原生模块不可用，请检查配置');
+  const moduleError = ErrorHandler.nativeModuleUnavailable();
+  ErrorLogger.log(moduleError);
 }
 
 // 记录最近一次 initSDK 的配置（含 webKey）
 let _sdkConfig: SDKConfig | null = null;
+let _isSDKInitialized = false;
 
 // 扩展原生模块，添加便捷方法
 const ExpoGaodeMapModuleWithHelpers = {
@@ -311,8 +338,142 @@ const ExpoGaodeMapModuleWithHelpers = {
   * 初始化 SDK，并缓存配置（包含 webKey）
   */
  initSDK(config: SDKConfig): void {
-   _sdkConfig = config ?? null;
-   nativeModule?.initSDK?.(config);
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+
+   // 验证 API Key 配置
+   if (!config.androidKey && !config.iosKey) {
+     throw ErrorHandler.invalidApiKey('both');
+   }
+
+   try {
+     _sdkConfig = config ?? null;
+     nativeModule.initSDK(config);
+     _isSDKInitialized = true;
+     ErrorLogger.warn('SDK 初始化成功', { config });
+   } catch (error: any) {
+     _isSDKInitialized = false;
+     throw ErrorHandler.wrapNativeError(error, 'SDK 初始化');
+   }
+ },
+
+ /**
+  * 检查 SDK 是否已通过 JS 调用 initSDK() 初始化
+  * 注意：即使返回 false，原生端可能已通过 Config Plugin 自动初始化
+  */
+ isSDKInitialized(): boolean {
+   return _isSDKInitialized;
+ },
+
+ /**
+  * 开始连续定位
+  * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
+  */
+ start(): void {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     nativeModule.start();
+   } catch (error: any) {
+     throw ErrorHandler.wrapNativeError(error, '开始定位');
+   }
+ },
+
+ /**
+  * 停止定位
+  */
+ stop(): void {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     nativeModule.stop();
+   } catch (error: any) {
+     throw ErrorHandler.wrapNativeError(error, '停止定位');
+   }
+ },
+
+ /**
+  * 获取当前位置（单次定位）
+  * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
+  */
+ async getCurrentLocation(): Promise<Coordinates | ReGeocode> {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     return await nativeModule.getCurrentLocation();
+   } catch (error: any) {
+     throw ErrorHandler.locationFailed(error?.message);
+   }
+ },
+
+ /**
+  * 检查位置权限状态
+  */
+ async checkLocationPermission(): Promise<PermissionStatus> {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     return await nativeModule.checkLocationPermission();
+   } catch (error: any) {
+     throw ErrorHandler.wrapNativeError(error, '检查权限');
+   }
+ },
+
+ /**
+  * 请求前台位置权限（增强版）
+  */
+ async requestLocationPermission(): Promise<PermissionStatus> {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     const result = await nativeModule.requestLocationPermission();
+     if (!result.granted) {
+       ErrorLogger.warn('前台位置权限未授予', result);
+     }
+     return result;
+   } catch (error: any) {
+     throw ErrorHandler.wrapNativeError(error, '请求前台权限');
+   }
+ },
+
+ /**
+  * 请求后台位置权限
+  * 注意：必须在前台权限已授予后才能请求
+  */
+ async requestBackgroundLocationPermission(): Promise<PermissionStatus> {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     const result = await nativeModule.requestBackgroundLocationPermission();
+     if (!result.granted) {
+       ErrorLogger.warn('后台位置权限未授予', result);
+     }
+     return result;
+   } catch (error: any) {
+     throw ErrorHandler.wrapNativeError(error, '请求后台权限');
+   }
+ },
+
+ /**
+  * 打开应用设置页面
+  * 引导用户手动授予权限
+  */
+ openAppSettings(): void {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
+   try {
+     nativeModule.openAppSettings();
+   } catch (error: any) {
+     throw ErrorHandler.wrapNativeError(error, '打开设置');
+   }
  },
 
  /**
@@ -320,9 +481,12 @@ const ExpoGaodeMapModuleWithHelpers = {
   * 自动订阅 onLocationUpdate 事件，提供容错处理
   * @param listener 定位回调函数
   * @returns 订阅对象，调用 remove() 取消监听
-  * @throws 如果底层模块不可用，返回一个空操作的订阅对象
+  * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
   */
  addLocationListener(listener: LocationListener): { remove: () => void } {
+   if (!nativeModule) {
+     throw ErrorHandler.nativeModuleUnavailable();
+   }
    // 使用可选链和空值合并，确保即使模块不可用也不会崩溃
    return nativeModule?.addListener?.('onLocationUpdate', listener) || {
      remove: () => {},
@@ -344,4 +508,4 @@ export function getWebKey(): string | undefined {
  return _sdkConfig?.webKey;
 }
 
-export default ExpoGaodeMapModuleWithHelpers as ExpoGaodeMapModule;
+export default ExpoGaodeMapModuleWithHelpers as unknown as ExpoGaodeMapModule;

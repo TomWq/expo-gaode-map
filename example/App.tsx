@@ -6,13 +6,11 @@ import { BlurView } from 'expo-blur';
 import {
   Circle,
   ExpoGaodeMapModule,
-  MapPreloaderComponent,
   MapView,
   MapViewRef,
   Marker,
   Polygon,
   Polyline,
-  useMapPreload,
   type CameraPosition,
   type Coordinates,
   type ReGeocode,
@@ -99,10 +97,10 @@ export default function MamScreen() {
         
         ExpoGaodeMapModule.updatePrivacyCompliance(true)
         const sdkConfig: Record<string, string> = {};
-        if (ANDROID_KEY) sdkConfig.androidKey = ANDROID_KEY;
-        if (IOS_KEY) sdkConfig.iosKey = IOS_KEY;
-        if (WEB_API_KEY) sdkConfig.webKey = WEB_API_KEY;
-        ExpoGaodeMapModule.initSDK(sdkConfig);
+        // if (ANDROID_KEY) sdkConfig.androidKey = ANDROID_KEY;
+        // if (IOS_KEY) sdkConfig.iosKey = IOS_KEY;
+        // if (WEB_API_KEY) sdkConfig.webKey = WEB_API_KEY;
+        // ExpoGaodeMapModule.initSDK(sdkConfig);
         // 检查定位权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();
         if (!status.granted) {
@@ -139,12 +137,11 @@ export default function MamScreen() {
         };
       } catch (error: any) {
         console.error('初始化失败:', error);
-        if (error?.code === 'PRIVACY_NOT_AGREED') {
-          Alert.alert('错误', '请先同意隐私协议');
-        } else if (error?.code === 'API_KEY_NOT_SET') {
-          Alert.alert('错误', '未设置 API Key');
-        } else {
-          Alert.alert('错误', `初始化失败: ${error?.message || error}`);
+        // 只在控制台输出详细错误，不弹框
+        // 如果需要弹框，可以只显示错误类型
+        if (error?.type) {
+          console.warn(`错误类型: ${error.type}`);
+          console.warn(`解决方案: ${error.solution}`);
         }
         setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 16.6 });
       }
@@ -348,11 +345,11 @@ export default function MamScreen() {
         ref={mapRef}
         style={styles.map}
         myLocationEnabled={true}
-        followUserLocation={isFollowing}
+        // followUserLocation={isFollowing}
         indoorViewEnabled={true}
         trafficEnabled={true}
-        compassEnabled={true}
-        tiltGesturesEnabled={true}
+        // compassEnabled={true}
+        // tiltGesturesEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
         initialCameraPosition={initialPosition as CameraPosition}
@@ -406,7 +403,7 @@ export default function MamScreen() {
         }}
       >
         {/* 🔑 性能优化:等待地图加载完成后再渲染覆盖物 */}
-        {/* {isMapReady && location && (
+        {isMapReady && location && (
           <Circle
             center={{ latitude: location.latitude, longitude: location.longitude }}
             radius={300}
@@ -416,7 +413,7 @@ export default function MamScreen() {
             zIndex={99}
             onCirclePress={() => Alert.alert('圆形', '点击了声明式圆形')}
           />
-        )} */}
+        )}
 
         {dynamicCircles.map((circle) => (
           <Circle
@@ -501,7 +498,7 @@ export default function MamScreen() {
           ))}
                 
 
-        {/* {isMapReady && location && (
+        {isMapReady && location && (
           <Marker
             key="fixed_current_location_marker"
             position={{ latitude: location.latitude, longitude: location.longitude }}
@@ -525,7 +522,7 @@ export default function MamScreen() {
                 }]} numberOfLines={2}>{location.address}</Text>
             </View>
           </Marker>
-        )} */}
+        )}
 
         {isMapReady && <Marker
           key="draggable_marker"

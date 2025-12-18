@@ -4,6 +4,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.gaodemap.modules.SDKInitializer
 import expo.modules.gaodemap.modules.LocationManager
+import expo.modules.gaodemap.utils.PermissionHelper
 
 /**
  * 高德地图 Expo 模块
@@ -352,28 +353,29 @@ class ExpoGaodeMapModule : Module() {
     // ==================== 权限管理 ====================
     
     /**
-     * 检查位置权限状态
-     * @return 权限状态对象
+     * 检查位置权限状态（增强版，支持 Android 14+ 适配）
+     * @return 权限状态对象，包含详细的权限信息
      */
     AsyncFunction("checkLocationPermission") { promise: expo.modules.kotlin.Promise ->
       val context = appContext.reactContext!!
-      val fineLocation = android.Manifest.permission.ACCESS_FINE_LOCATION
-      val coarseLocation = android.Manifest.permission.ACCESS_COARSE_LOCATION
       
-      val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(context, fineLocation) ==
-        android.content.pm.PackageManager.PERMISSION_GRANTED
-      val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(context, coarseLocation) ==
-        android.content.pm.PackageManager.PERMISSION_GRANTED
+      // 使用增强的权限检查
+      val foregroundStatus = PermissionHelper.checkForegroundLocationPermission(context)
+      val backgroundStatus = PermissionHelper.checkBackgroundLocationPermission(context)
       
       promise.resolve(mapOf(
-        "granted" to (hasFine && hasCoarse),
-        "fineLocation" to hasFine,
-        "coarseLocation" to hasCoarse
+        "granted" to foregroundStatus.granted,
+        "fineLocation" to foregroundStatus.fineLocation,
+        "coarseLocation" to foregroundStatus.coarseLocation,
+        "backgroundLocation" to backgroundStatus.backgroundLocation,
+        "shouldShowRationale" to foregroundStatus.shouldShowRationale,
+        "isPermanentlyDenied" to foregroundStatus.isPermanentlyDenied,
+        "isAndroid14Plus" to PermissionHelper.isAndroid14Plus()
       ))
     }
     
     /**
-     * 请求位置权限
+     * 请求前台位置权限（增强版，支持 Android 14+ 适配）
      * 注意: Android 权限请求是异步的,使用轮询方式检查权限状态
      * @return 权限请求结果
      */
@@ -384,18 +386,14 @@ class ExpoGaodeMapModule : Module() {
         return@AsyncFunction
       }
       
-      val permissions = arrayOf(
-        android.Manifest.permission.ACCESS_FINE_LOCATION,
-        android.Manifest.permission.ACCESS_COARSE_LOCATION
-      )
-      
-      androidx.core.app.ActivityCompat.requestPermissions(activity, permissions, 1001)
+      // 使用增强的权限请求方法
+      PermissionHelper.requestForegroundLocationPermission(activity, 1001)
       
       // 使用 WeakReference 避免内存泄露
       val contextRef = java.lang.ref.WeakReference(appContext.reactContext)
       val handler = android.os.Handler(android.os.Looper.getMainLooper())
       var attempts = 0
-      val maxAttempts = 30 // 3 秒 / 100ms
+      val maxAttempts = 50 // 增加到 5 秒 / 100ms，给用户足够时间操作
       
       val checkPermission = object : Runnable {
         override fun run() {
@@ -405,20 +403,85 @@ class ExpoGaodeMapModule : Module() {
             return
           }
           
-          val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(
-            context, android.Manifest.permission.ACCESS_FINE_LOCATION
-          ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-          val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(
-            context, android.Manifest.permission.ACCESS_COARSE_LOCATION
-          ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+          val status = PermissionHelper.checkForegroundLocationPermission(context)
           
           // 如果权限已授予或达到最大尝试次数,返回结果并清理 Handler
-          if ((hasFine && hasCoarse) || attempts >= maxAttempts) {
+          if (status.granted || attempts >= maxAttempts) {
             handler.removeCallbacks(this)
             promise.resolve(mapOf(
-              "granted" to (hasFine && hasCoarse),
-              "fineLocation" to hasFine,
-              "coarseLocation" to hasCoarse
+              "granted" to status.granted,
+              "fineLocation" to status.fineLocation,
+              "coarseLocation" to status.coarseLocation,
+              "shouldShowRationale" to status.shouldShowRationale,
+              "isPermanentlyDenied" to status.isPermanentlyDenied
+            ))
+          } else {
+            attempts++
+            handler.postDelayed(this, 100)
+          }
+        }
+      }
+      
+      // 延迟更长时间开始轮询，给权限对话框弹出的时间
+      handler.postDelayed(checkPermission, 500)
+    }
+    
+    /**
+     * 请求后台位置权限（Android 10+ 支持）
+     * 注意: 必须在前台权限已授予后才能请求
+     * @return 权限请求结果
+     */
+    AsyncFunction("requestBackgroundLocationPermission") { promise: expo.modules.kotlin.Promise ->
+      val activity = appContext.currentActivity
+      if (activity == null) {
+        promise.reject("NO_ACTIVITY", "Activity not available", null)
+        return@AsyncFunction
+      }
+      
+      // 检查是否支持后台位置权限
+      if (!PermissionHelper.isAndroid10Plus()) {
+        promise.resolve(mapOf(
+          "granted" to true,
+          "backgroundLocation" to true,
+          "message" to "Android 10 以下不需要单独请求后台位置权限"
+        ))
+        return@AsyncFunction
+      }
+      
+      // 尝试请求后台位置权限
+      val canRequest = PermissionHelper.requestBackgroundLocationPermission(activity, 1002)
+      if (!canRequest) {
+        promise.reject(
+          "FOREGROUND_PERMISSION_REQUIRED",
+          "必须先授予前台位置权限才能请求后台位置权限",
+          null
+        )
+        return@AsyncFunction
+      }
+      
+      // 轮询检查权限状态
+      val contextRef = java.lang.ref.WeakReference(appContext.reactContext)
+      val handler = android.os.Handler(android.os.Looper.getMainLooper())
+      var attempts = 0
+      val maxAttempts = 30
+      
+      val checkPermission = object : Runnable {
+        override fun run() {
+          val context = contextRef.get()
+          if (context == null) {
+            promise.reject("CONTEXT_LOST", "Context was garbage collected", null)
+            return
+          }
+          
+          val status = PermissionHelper.checkBackgroundLocationPermission(context)
+          
+          if (status.granted || attempts >= maxAttempts) {
+            handler.removeCallbacks(this)
+            promise.resolve(mapOf(
+              "granted" to status.granted,
+              "backgroundLocation" to status.backgroundLocation,
+              "shouldShowRationale" to status.shouldShowRationale,
+              "isPermanentlyDenied" to status.isPermanentlyDenied
             ))
           } else {
             attempts++
@@ -428,6 +491,14 @@ class ExpoGaodeMapModule : Module() {
       }
       
       handler.postDelayed(checkPermission, 100)
+    }
+    
+    /**
+     * 打开应用设置页面（引导用户手动授予权限）
+     */
+    Function("openAppSettings") {
+      val context = appContext.reactContext!!
+      PermissionHelper.openAppSettings(context)
     }
 
     // ==================== 地图预加载 ====================
