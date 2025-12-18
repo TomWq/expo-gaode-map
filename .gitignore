@@ -45,7 +45,7 @@ example/ios/Pods
 
 # Ruby
 example/vendor/
-
+packages/core-v2/
 # node.js
 #
 node_modules/
@@ -58,3 +58,4 @@ yarn-error.log
 
 PUBLISHING.md
 RELEASE_GUIDE.md
+
