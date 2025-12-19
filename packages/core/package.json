@@ -33,13 +33,17 @@
     "ExpoGaodeMap",
     "高德地图"
   ],
-  "repository": "https://github.com/TomWq/expo-gaode-map",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TomWq/expo-gaode-map",
+    "directory": "packages/core"
+  },
   "bugs": {
     "url": "https://github.com/TomWq/expo-gaode-map/issues"
   },
   "author": "<TomWq>(https://github.com/TomWq)",
   "license": "MIT",
-  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
+ "homepage": "https://github.com/TomWq/expo-gaode-map/tree/main/packages/core",
   "dependencies": {
     "supercluster": "^8.0.1"
   },
