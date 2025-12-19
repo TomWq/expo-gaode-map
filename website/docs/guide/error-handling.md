@@ -482,7 +482,6 @@ if (__DEV__) {
 
 - [API 文档](/api/)
 - [初始化指南](/guide/initialization)
-- [常见问题](/guide/faq)
 - [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 
 ## 💡 常见问题
