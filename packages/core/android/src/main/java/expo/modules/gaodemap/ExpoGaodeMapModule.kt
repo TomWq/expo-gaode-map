@@ -31,14 +31,12 @@ class ExpoGaodeMapModule : Module() {
       // 初始化预加载管理器（注册内存监听）
       MapPreloadManager.initialize(context)
       
-      // 🚀 如果用户已同意隐私协议，自动启动预加载（延迟2秒）
-      if (SDKInitializer.isPrivacyAgreed()) {
-        // 尝试从 AndroidManifest.xml 读取并设置 API Key
-        val apiKey = context.packageManager
+      // 尝试从 AndroidManifest.xml 读取并设置 API Key
+      val apiKey = context.packageManager
           .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
           .metaData?.getString("com.amap.api.v2.apikey")
         
-        if (!apiKey.isNullOrEmpty()) {
+      if (!apiKey.isNullOrEmpty()) {
           try {
             com.amap.api.maps.MapsInitializer.setApiKey(apiKey)
             com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
@@ -55,50 +53,21 @@ class ExpoGaodeMapModule : Module() {
         } else {
           android.util.Log.w("ExpoGaodeMap", "⚠️ AndroidManifest.xml 未找到 API Key，跳过自动预加载")
         }
-      }
+
     } catch (e: Exception) {
       android.util.Log.w("ExpoGaodeMap", "恢复隐私状态时出现问题: ${e.message}")
     }
  
-    // ==================== 隐私合规管理 ====================
+    // ==================== 隐私协议 ====================
     
     /**
      * 更新隐私合规状态
-     * 必须在用户同意隐私协议后调用
-     * @param hasAgreed 用户是否已同意隐私协议
+     * 不用主动调用，下个版本删除
+     * 
      */
     Function("updatePrivacyCompliance") { hasAgreed: Boolean ->
-      val context = appContext.reactContext!!
-      SDKInitializer.updatePrivacyCompliance(context, hasAgreed)
-      
-      // 🚀 用户首次同意隐私协议后，自动启动预加载
-      if (hasAgreed) {
-        // 在用户同意后，如果尚未设置 API Key，则尝试从 AndroidManifest.xml 读取并设置
-        try {
-          val apiKey = context.packageManager
-            .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
-            .metaData?.getString("com.amap.api.v2.apikey")
-          
-          if (!apiKey.isNullOrEmpty()) {
-            com.amap.api.maps.MapsInitializer.setApiKey(apiKey)
-            com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
-            android.util.Log.d("ExpoGaodeMap", "✅ 从 AndroidManifest.xml 读取并设置 API Key 成功")
-          } else {
-            android.util.Log.w("ExpoGaodeMap", "⚠️ AndroidManifest.xml 未找到 API Key，后续需通过 initSDK 提供 androidKey")
-          }
-        } catch (e: Exception) {
-          android.util.Log.w("ExpoGaodeMap", "读取 API Key 失败: ${e.message}")
-        }
-        
-        // 延迟启动预加载
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-          if (!MapPreloadManager.hasPreloadedMapView() &&
-              !(MapPreloadManager.getStatus()["isPreloading"] as Boolean)) {
-            android.util.Log.i("ExpoGaodeMap", "🚀 用户同意隐私协议，自动启动预加载")
-            MapPreloadManager.startPreload(context, poolSize = 1)
-          }
-        }, 1000)
-      }
+       val context = appContext.reactContext!!
+       SDKInitializer.restorePrivacyState(context)
     }
     
     // ==================== SDK 初始化 ====================
@@ -137,12 +106,7 @@ class ExpoGaodeMapModule : Module() {
      * 开始连续定位
      */
     Function("start") {
-      // 检查隐私协议状态
-      if (!SDKInitializer.isPrivacyAgreed()) {
-        android.util.Log.w("ExpoGaodeMap", "用户未同意隐私协议，无法开始定位")
-        throw expo.modules.kotlin.exception.CodedException("用户未同意隐私协议，无法开始定位")
-      }
-      
+
       getLocationManager().start()
     }
     
@@ -166,12 +130,6 @@ class ExpoGaodeMapModule : Module() {
      * @return 位置信息对象
      */
     AsyncFunction("getCurrentLocation") { promise: expo.modules.kotlin.Promise ->
-      // 检查隐私协议状态
-      if (!SDKInitializer.isPrivacyAgreed()) {
-        promise.reject("PRIVACY_NOT_AGREED", "用户未同意隐私协议，无法获取位置", null)
-        return@AsyncFunction
-      }
-      
       getLocationManager().getCurrentLocation(promise)
     }
 

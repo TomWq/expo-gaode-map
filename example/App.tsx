@@ -1,7 +1,3 @@
-
-
-
-
 import { BlurView } from 'expo-blur';
 import {
   Circle,
@@ -45,8 +41,9 @@ export default function MamScreen() {
   const chipBg = colorScheme === 'dark' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
   const hairline = colorScheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
 
-  const [mSize, setMSize] = useState({width: 0, height: 0});
-  
+  const [mSize, setMSize] = useState({ width: 0, height: 0 });
+
+  console.log('mSize', mSize)
 
   // 用于测试 Marker 动态添加/删除和位置变化
   const [dynamicMarkers, setDynamicMarkers] = useState<Array<{
@@ -59,7 +56,7 @@ export default function MamScreen() {
     height?: number;
   }>>([]);
   const markerIdCounter = useRef(0);
-  
+
   // 用于测试声明式覆盖物的动态添加
   const [dynamicCircles, setDynamicCircles] = useState<Array<{
     id: string;
@@ -70,14 +67,14 @@ export default function MamScreen() {
     strokeColor: string;
   }>>([]);
   const circleIdCounter = useRef(0);
-  
+
   const [dynamicPolylines, setDynamicPolylines] = useState<Array<{
     id: string;
     points: Array<{ latitude: number; longitude: number }>;
     color: string;
   }>>([]);
   const polylineIdCounter = useRef(0);
-  
+
   const [dynamicPolygons, setDynamicPolygons] = useState<Array<{
     id: string;
     points: Array<{ latitude: number; longitude: number }>;
@@ -94,10 +91,10 @@ export default function MamScreen() {
   useEffect(() => {
     const init = async () => {
       try {
-        
+
         ExpoGaodeMapModule.updatePrivacyCompliance(true)
-      
-       
+
+
         // 检查定位权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();
         if (!status.granted) {
@@ -107,14 +104,14 @@ export default function MamScreen() {
             return;
           }
         }
-        
+
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);
         ExpoGaodeMapModule.setInterval(5000);
         // ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
         ExpoGaodeMapModule.setDistanceFilter(10);
         ExpoGaodeMapModule.setDesiredAccuracy(3);
-         ExpoGaodeMapModule.startUpdatingHeading();
+        ExpoGaodeMapModule.startUpdatingHeading();
         // 先获取初始位置
         const loc = await ExpoGaodeMapModule.getCurrentLocation();
         setLocation(loc);
@@ -122,13 +119,13 @@ export default function MamScreen() {
           target: { latitude: loc.latitude, longitude: loc.longitude },
           zoom: 16.6
         });
-        
+
         // 使用便捷方法监听连续定位更新
         const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
           console.log('收到定位更新:', location);
           setLocation(location);
         });
-        
+
         return () => {
           subscription.remove();
         };
@@ -151,7 +148,7 @@ export default function MamScreen() {
   const handleGetLocation = async () => {
     try {
       const loc = await ExpoGaodeMapModule.getCurrentLocation();
-     
+
       setLocation(loc);
       if (mapRef.current) {
         await mapRef.current.moveCamera({
@@ -168,7 +165,7 @@ export default function MamScreen() {
 
   const handleStartLocation = () => {
     ExpoGaodeMapModule.start();
-     ExpoGaodeMapModule.startUpdatingHeading();
+    ExpoGaodeMapModule.startUpdatingHeading();
     setIsLocating(true);
     Alert.alert('成功', '开始连续定位');
   };
@@ -205,13 +202,13 @@ export default function MamScreen() {
       Alert.alert('提示', '请等待定位完成');
       return;
     }
-    
+
     const randomLatitude = location.latitude + (Math.random() - 0.5) * 0.02;
     const randomLongitude = location.longitude + (Math.random() - 0.5) * 0.02;
     const randomRadius = 200 + Math.random() * 500;
     const randomFillColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}44`;
     const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-    
+
     const newCircle = {
       id: `circle_${circleIdCounter.current++}`,
       latitude: randomLatitude,
@@ -220,7 +217,7 @@ export default function MamScreen() {
       fillColor: randomFillColor,
       strokeColor: randomStrokeColor,
     };
-    
+
     setDynamicCircles(prev => [...prev, newCircle]);
     // Alert.alert('成功', `已添加圆形\n当前共 ${dynamicCircles.length + 1} 个动态圆形`);
   };
@@ -231,11 +228,11 @@ export default function MamScreen() {
       Alert.alert('提示', '请等待定位完成');
       return;
     }
-    
+
     const colors: Array<'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'purple'> = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'purple'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const randomOffset = () => (Math.random() - 0.5) * 0.02;
-    
+
     const newMarker = {
       id: `marker_${markerIdCounter.current++}`,
       latitude: location.latitude + randomOffset(),
@@ -244,7 +241,7 @@ export default function MamScreen() {
       color: randomColor,
       cacheKey: `marker_${markerIdCounter.current++}`,
     };
-    
+
     setDynamicMarkers(prev => [...prev, newMarker]);
     // Alert.alert('成功', `已添加标记\n当前共 ${dynamicMarkers.length + 1} 个动态标记`);
   };
@@ -255,7 +252,7 @@ export default function MamScreen() {
       Alert.alert('提示', '请等待定位完成');
       return;
     }
-    
+
     const randomOffset = () => (Math.random() - 0.5) * 0.02;
     const points = [
       { latitude: location.latitude + randomOffset(), longitude: location.longitude + randomOffset() },
@@ -263,13 +260,13 @@ export default function MamScreen() {
       { latitude: location.latitude + randomOffset(), longitude: location.longitude + randomOffset() },
     ];
     const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-    
+
     const newPolyline = {
       id: `polyline_${polylineIdCounter.current++}`,
       points,
       color: randomColor,
     };
-    
+
     setDynamicPolylines(prev => [...prev, newPolyline]);
     // Alert.alert('成功', `已添加折线\n当前共 ${dynamicPolylines.length + 1} 个动态折线`);
   };
@@ -280,7 +277,7 @@ export default function MamScreen() {
       Alert.alert('提示', '请等待定位完成');
       return;
     }
-    
+
     const randomOffset = () => (Math.random() - 0.5) * 0.02;
     const points = [
       { latitude: location.latitude + randomOffset(), longitude: location.longitude + randomOffset() },
@@ -289,14 +286,14 @@ export default function MamScreen() {
     ];
     const randomFillColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}44`;
     const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-    
+
     const newPolygon = {
       id: `polygon_${polygonIdCounter.current++}`,
       points,
       fillColor: randomFillColor,
       strokeColor: randomStrokeColor,
     };
-    
+
     setDynamicPolygons(prev => [...prev, newPolygon]);
     // Alert.alert('成功', `已添加多边形\n当前共 ${dynamicPolygons.length + 1} 个动态多边形`);
   };
@@ -308,7 +305,7 @@ export default function MamScreen() {
       Alert.alert('提示', '没有可移除的覆盖物');
       return;
     }
-    
+
     setDynamicCircles([]);
     setDynamicMarkers([]);
     setDynamicPolylines([]);
@@ -327,8 +324,8 @@ export default function MamScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#f5f5f5' }]}>
-      
-       {/* <MapPreloaderComponent
+
+      {/* <MapPreloaderComponent
         config={{
           poolSize: 1,
           delay: 1000,
@@ -359,7 +356,7 @@ export default function MamScreen() {
           showsAccuracyRing: true,
           showsHeadingIndicator: true,
           enablePulseAnimation: true,
-          locationType:'LOCATION_ROTATE_NO_CENTER'
+          locationType: 'LOCATION_ROTATE_NO_CENTER'
           // showMyLocation:false,
           // locationDotBgColor: '#FFFFFF',
           // locationDotFillColor: '#007AFF',
@@ -458,42 +455,42 @@ export default function MamScreen() {
           </Marker>
         ))} */}
 
-          {dynamicMarkers.map((marker) => (
-            <Marker
-              key={marker.id}
-              position={{ latitude: marker.latitude, longitude: marker.longitude }}
-              title={marker.content}
-              pinColor={marker.color}
-              zIndex={99}
-              customViewWidth={marker.width}
-              customViewHeight={marker.height}
-              cacheKey={marker.id}
-              onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+        {dynamicMarkers.map((marker) => (
+          <Marker
+            key={marker.id}
+            position={{ latitude: marker.latitude, longitude: marker.longitude }}
+            title={marker.content}
+            pinColor={marker.color}
+            zIndex={99}
+            customViewWidth={marker.width}
+            customViewHeight={marker.height}
+            cacheKey={marker.id}
+            onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+          >
+            <View
+              style={{ alignSelf: 'flex-start' }}
+              onLayout={(e) => {
+                const { width, height } = e.nativeEvent.layout;
+                if (marker.width !== width || marker.height !== height) {
+                  setDynamicMarkers(prev =>
+                    prev.map(m =>
+                      m.id === marker.id
+                        ? { ...m, width: Math.ceil(width), height: Math.ceil(height) }
+                        : m
+                    )
+                  );
+                }
+              }}
             >
-              <View
-                style={{ alignSelf: 'flex-start' }}
-                onLayout={(e) => {
-                  const { width, height } = e.nativeEvent.layout;
-                  if (marker.width !== width || marker.height !== height) {
-                    setDynamicMarkers(prev =>
-                      prev.map(m =>
-                        m.id === marker.id
-                          ? { ...m, width: Math.ceil(width), height: Math.ceil(height) }
-                          : m
-                      )
-                    );
-                  }
-                }}
-              >
-                <Text
-                  style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 10 }]}
-                  numberOfLines={2}>
-                  {marker.content}这是文字内容
-                </Text>
-              </View>
-            </Marker>
-          ))}
-                
+              <Text
+                style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 10 }]}
+                numberOfLines={2}>
+                {marker.content}这是文字内容
+              </Text>
+            </View>
+          </Marker>
+        ))}
+
 
         {isMapReady && location && (
           <Marker
@@ -501,34 +498,56 @@ export default function MamScreen() {
             position={{ latitude: location.latitude, longitude: location.longitude }}
             zIndex={99}
             title={location.address}
-            cacheKey={"fixed_current_location_marker"}
+            cacheKey="fixed_current_location_marker"
             customViewWidth={mSize.width}
             customViewHeight={mSize.height}
+            anchor={{ x: 0.5, y: 0.5 }} // ← 关键：跨平台居中锚点
             onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
           >
-           <View style={{ alignSelf: 'flex-start' }}
-            onLayout={(e)=>{
-              const { width, height } = e.nativeEvent.layout;
-              if (mSize.width !== width || mSize.height !== height) {
-                setMSize({ width: Math.ceil(width), height: Math.ceil(height) });
-              }
-            }}>
-                <Text style={[styles.dynamicMarkerText,{
-                  backgroundColor: '#007AFF',
-                  borderRadius: 10
-                }]} numberOfLines={2}>{location.address}</Text>
+            <View
+              style={{
+                // 把内容居中显示；不要用 alignSelf: 'flex-start'
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 6,
+                paddingVertical: 4,
+                // debug 用的边框（开发完成后删掉）
+                // borderWidth: 1,
+                // borderColor: 'rgba(255,0,0,0.6)',
+              }}
+              onLayout={(e) => {
+                const { width, height } = e.nativeEvent.layout;
+                if (mSize.width !== width || mSize.height !== height) {
+                  setMSize({ width: Math.ceil(width), height: Math.ceil(height) });
+                }
+              }}
+            >
+              <Text
+                style={[
+                  styles.dynamicMarkerText,
+                  {
+                    backgroundColor: '#007AFF',
+                    borderRadius: 10,
+                    textAlign: 'center', // 确保文字居中
+                  },
+                ]}
+                numberOfLines={2}
+              >
+                这是一个地点标记
+              </Text>
             </View>
           </Marker>
         )}
+
 
         {isMapReady && <Marker
           key="draggable_marker"
           position={{ latitude: 39.92, longitude: 116.42 }}
           title="可拖拽标记"
           draggable={true}
-                      cacheKey={"draggable_marker"}
+          cacheKey={"draggable_marker"}
           pinColor="purple"
-          
+
           onMarkerPress={() => Alert.alert('标记', '点击了可拖拽标记')}
           onMarkerDragEnd={(e) => {
             Alert.alert('拖拽结束', `新位置: ${e.nativeEvent.latitude.toFixed(6)}, ${e.nativeEvent.longitude.toFixed(6)}`);
@@ -607,7 +626,7 @@ export default function MamScreen() {
       </MapView>
 
       {/* 顶部信息 Chip */}
-      <View style={[styles.overlayTop,{
+      <View style={[styles.overlayTop, {
         top: 100
       }]}>
         {!!cameraInfo && (
@@ -702,10 +721,10 @@ export default function MamScreen() {
           </View>
         </View>
       </View>
-   
-     
-   </View>
- );
+
+
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -752,30 +771,30 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
-   
+
   },
- chipText: {
-   fontSize: 12,
- },
- infoBtn: {
-   width: 32,
-   height: 32,
-   borderRadius: 16,
-   alignItems: 'center',
-   justifyContent: 'center',
- },
- infoBtnText: {
-   fontSize: 16,
-   fontWeight: '800',
-   color: '#444',
- },
+  chipText: {
+    fontSize: 12,
+  },
+  infoBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoBtnText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#444',
+  },
   // 底部悬浮面板
   overlayBottom: {
     position: 'absolute',
     left: 16,
     right: 16,
     bottom: Platform.OS === 'ios' ? 24 : 16,
-   
+
   },
   panel: {
     // 兼容旧用法占位，实际未直接使用
@@ -793,11 +812,11 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
-     backgroundColor:Platform.OS == 'android'?'rgba(255,255,255,0.5)':'transparent',
+    backgroundColor: Platform.OS == 'android' ? 'rgba(255,255,255,0.5)' : 'transparent',
   },
   panelInner: {
     padding: 12,
-    backgroundColor:Platform.OS == 'android'?'rgba(255,255,255,0.5)':'transparent',
+    backgroundColor: Platform.OS == 'android' ? 'rgba(255,255,255,0.5)' : 'transparent',
 
   },
   panelTitle: {
@@ -809,7 +828,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 10,
-    backgroundColor:'transparent',
+    backgroundColor: 'transparent',
   },
   actionBtn: {
     flex: 1,
@@ -886,6 +905,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     overflow: 'hidden',
     // 设置最大宽度防止过长
-  
+
   },
 });

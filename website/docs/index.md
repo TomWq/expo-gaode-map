@@ -82,8 +82,6 @@ npm install expo-gaode-map-search
 ```tsx
 import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// ⚠️ 首次启动时，用户同意隐私协议后调用一次（原生端会持久化）
-ExpoGaodeMapModule.updatePrivacyCompliance(true);
 
 // 初始化 SDK（使用 Config Plugin 时可传空对象）
 ExpoGaodeMapModule.initSDK({
@@ -102,7 +100,6 @@ ExpoGaodeMapModule.initSDK({
 ```
 
 ::: tip 重要提示
-- `updatePrivacyCompliance(true)` 只需在用户首次同意时调用一次，原生端会自动持久化
 - 使用 Config Plugin 时，原生 Key 会自动配置，`initSDK` 可传空对象（更安全）
 - `webKey` 仅在使用 `expo-gaode-map-web-api` 包时需要
 :::

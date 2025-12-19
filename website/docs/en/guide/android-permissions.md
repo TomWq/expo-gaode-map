@@ -145,9 +145,7 @@ async function handlePermissionDenied() {
 useEffect(() => {
   const init = async () => {
     try {
-      // Update privacy compliance status
-      ExpoGaodeMapModule.updatePrivacyCompliance(true);
-      
+     
       // Check location permission
       const status = await ExpoGaodeMapModule.checkLocationPermission();
       
@@ -201,7 +199,6 @@ This library automatically handles these permissions without additional configur
 | Error Code | Description | Solution |
 |------------|-------------|----------|
 | `NO_ACTIVITY` | Activity unavailable | Ensure called within React Native lifecycle |
-| `PRIVACY_NOT_AGREED` | User hasn't agreed to privacy policy | Call `updatePrivacyCompliance(true)` first |
 | `CONTEXT_LOST` | Context garbage collected | Usually a memory issue, check app memory usage |
 
 ## Debugging Tips

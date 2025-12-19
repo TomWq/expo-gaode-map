@@ -145,9 +145,6 @@ async function handlePermissionDenied() {
 useEffect(() => {
   const init = async () => {
     try {
-      // 更新隐私合规状态
-      ExpoGaodeMapModule.updatePrivacyCompliance(true);
-      
       // 检查定位权限
       const status = await ExpoGaodeMapModule.checkLocationPermission();
       
@@ -201,7 +198,6 @@ Android 14 引入了更细粒度的位置权限控制：
 | 错误码 | 说明 | 解决方案 |
 |--------|------|----------|
 | `NO_ACTIVITY` | Activity 不可用 | 确保在 React Native 生命周期内调用 |
-| `PRIVACY_NOT_AGREED` | 用户未同意隐私协议 | 先调用 `updatePrivacyCompliance(true)` |
 | `CONTEXT_LOST` | Context 被垃圾回收 | 通常是内存问题，检查应用内存使用 |
 
 ## 调试技巧
