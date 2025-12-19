@@ -24,10 +24,13 @@ features:
     title: 精准定位
     details: 连续定位、单次定位、坐标转换，满足各种定位需求
   - icon: 🚗
-    title: 导航功能 🆕
+    title: 导航功能 （可选）
     details: 完整的路径规划和导航能力，支持驾车、步行、骑行、货车等多种出行方式
+  - icon: 📥
+    title: 离线地图 🆕
+    details: 城市地图下载管理、实时进度监控、存储管理，无网络也能使用地图
   - icon: 🌐
-    title: Web API 服务 🆕
+    title: Web API 服务 （可选）
     details: 纯 JavaScript 实现，提供地理编码、路径规划、POI 搜索等跨平台服务
   - icon: 🔍
     title: 原生搜索（可选）

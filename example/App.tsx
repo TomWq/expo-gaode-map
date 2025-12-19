@@ -96,11 +96,8 @@ export default function MamScreen() {
       try {
         
         ExpoGaodeMapModule.updatePrivacyCompliance(true)
-        const sdkConfig: Record<string, string> = {};
-        // if (ANDROID_KEY) sdkConfig.androidKey = ANDROID_KEY;
-        // if (IOS_KEY) sdkConfig.iosKey = IOS_KEY;
-        // if (WEB_API_KEY) sdkConfig.webKey = WEB_API_KEY;
-        // ExpoGaodeMapModule.initSDK(sdkConfig);
+      
+       
         // 检查定位权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();
         if (!status.granted) {

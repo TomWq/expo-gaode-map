@@ -1,3 +1,4 @@
+
 // 导出类型定义（包含所有通用类型）
 export * from './ExpoGaodeMap.types';  // 包含 ExpoGaodeMapModuleEvents + 所有 types/*
 // 注意：不需要再 export * from './types'，因为 ExpoGaodeMap.types 已经导出了
@@ -68,6 +69,22 @@ export type {
   FoldableMapViewProps,
   FoldableConfig,
 } from './components/FoldableMapView';
+
+// 导出离线地图 API
+export { default as OfflineMapModule } from './OfflineMapModule';
+export { OfflineMapManager } from './OfflineMapManager';
+export type {
+  OfflineMapInfo,
+  OfflineMapStatus,
+  OfflineMapDownloadConfig,
+  OfflineMapDownloadEvent,
+  OfflineMapCompleteEvent,
+  OfflineMapErrorEvent,
+  OfflineMapPausedEvent,
+  OfflineMapCancelledEvent,
+  OfflineMapStorageInfo,
+  OfflineMapEvents,
+} from './types/offline.types';
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';

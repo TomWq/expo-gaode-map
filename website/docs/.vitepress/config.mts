@@ -31,6 +31,7 @@ export default defineConfig({
                 { text: '架构说明', link: '/guide/architecture' },
                 { text: '搜索功能', link: '/guide/search' },
                 { text: '导航功能', link: '/guide/navigation' },
+                { text: '离线地图', link: '/guide/offline-map' },
                 { text: 'Web API', link: '/guide/web-api' }
               ]
             }
@@ -51,6 +52,7 @@ export default defineConfig({
               items: [
                 { text: '搜索 API', link: '/api/search' },
                 { text: '导航 API', link: '/api/navigation' },
+                { text: '离线地图 API', link: '/api/offline-map' },
                 { text: 'Web API', link: '/api/web-api' }
               ]
             }
@@ -98,7 +100,8 @@ export default defineConfig({
                 { text: 'Initialization', link: '/en/guide/initialization' },
                 { text: 'Config Plugin', link: '/en/guide/config-plugin' },
                 { text: 'Architecture', link: '/en/guide/architecture' },
-                { text: 'Search Features', link: '/en/guide/search' }
+                { text: 'Search Features', link: '/en/guide/search' },
+                { text: 'Offline Maps', link: '/en/guide/offline-map' }
               ]
             }
           ],
@@ -118,6 +121,7 @@ export default defineConfig({
               items: [
                 { text: 'Search API', link: '/en/api/search' },
                 { text: 'Navigation API', link: '/en/api/navigation' },
+                { text: 'Offline Maps API', link: '/en/api/offline-map' },
                 { text: 'Web API', link: '/en/api/web-api' }
               ]
             }

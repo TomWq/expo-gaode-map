@@ -10,7 +10,8 @@
       "PolylineViewModule",
       "MultiPointViewModule",
       "HeatMapViewModule",
-      "ClusterViewModule"
+      "ClusterViewModule",
+      "ExpoGaodeMapOfflineModule"
     ]
   },
   "android": {
@@ -23,7 +24,8 @@
       "expo.modules.gaodemap.overlays.PolylineViewModule",
       "expo.modules.gaodemap.overlays.MultiPointViewModule",
       "expo.modules.gaodemap.overlays.HeatMapViewModule",
-      "expo.modules.gaodemap.overlays.ClusterViewModule"
+      "expo.modules.gaodemap.overlays.ClusterViewModule",
+      "expo.modules.gaodemap.ExpoGaodeMapOfflineModule"
     ]
   }
 }

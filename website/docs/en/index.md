@@ -23,6 +23,9 @@ features:
   - icon: 📍
     title: Accurate Location
     details: Continuous location, single location, coordinate conversion
+  - icon: 📥
+    title: Offline Maps 🆕
+    details: City map download management, real-time progress monitoring, storage management, works without network
   - icon: 🎨
     title: Rich Overlays
     details: Circle, Marker, Polyline, Polygon and more
