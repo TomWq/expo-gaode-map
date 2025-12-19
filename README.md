@@ -22,7 +22,7 @@
 ## ✨ 主要特性
 
 ### 核心功能（expo-gaode-map）
-- ✅ 完整的地图功能（多种地图类型、手势控制、相机操作）
+- ✅ 完整的地图功能（多种地图类型、手势控制、相机操作、离线地图）
 - ✅ 精准定位（连续定位、单次定位、坐标转换）
 - ✅ 丰富的覆盖物（Circle、Marker、Polyline、Polygon、HeatMap、Cluster 等）
 - ✅ 完整的 TypeScript 类型定义
