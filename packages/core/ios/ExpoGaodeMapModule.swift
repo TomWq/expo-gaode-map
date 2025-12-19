@@ -17,9 +17,9 @@ public class ExpoGaodeMapModule: Module {
     /// 权限管理器实例
     private var permissionManager: PermissionManager?
     /// 隐私协议是否已同意（模块级别跟踪）
-    private static var privacyAgreed: Bool = false
+    /// private static var privacyAgreed: Bool = false
     /// 隐私同意持久化 Key
-    private static let privacyDefaultsKey = "expo_gaode_map_privacy_agreed"
+    // private static let privacyDefaultsKey = "expo_gaode_map_privacy_agreed"
     
     // MARK: - 私有辅助方法
     
@@ -68,23 +68,41 @@ public class ExpoGaodeMapModule: Module {
         
         // 模块初始化：尝试从本地缓存恢复隐私同意状态
         OnCreate {
+
+             // 1. 告知 SDK：隐私协议已展示且包含隐私内容
+            MAMapView.updatePrivacyShow(
+                AMapPrivacyShowStatus.didShow,
+                privacyInfo: AMapPrivacyInfoStatus.didContain
+            )
+
+            // 2. 告知 SDK：用户已同意隐私协议（关键）
+            MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+
+            print("✅ ExpoGaodeMap: 原生侧已默认同意隐私协议")
+
+             // 3. 自动设置 API Key（Info.plist）
+            self.trySetupApiKeyFromPlist()
+
+            // 4. 自动启动预加载（可选）
+            self.tryStartPreload(delay: 2.0, poolSize: 1)
+
             // 先确保隐私信息展示状态
-            MAMapView.updatePrivacyShow(AMapPrivacyShowStatus.didShow, privacyInfo: AMapPrivacyInfoStatus.didContain)
+            // MAMapView.updatePrivacyShow(AMapPrivacyShowStatus.didShow, privacyInfo: AMapPrivacyInfoStatus.didContain)
 
             // 从 UserDefaults 恢复上次的同意状态（默认 false）
-            let saved = UserDefaults.standard.bool(forKey: ExpoGaodeMapModule.privacyDefaultsKey)
-            ExpoGaodeMapModule.privacyAgreed = saved
-            if saved {
-                // 同步到 SDK
-                MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
-                print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
+            // let saved = UserDefaults.standard.bool(forKey: ExpoGaodeMapModule.privacyDefaultsKey)
+            // ExpoGaodeMapModule.privacyAgreed = saved
+            // if saved {
+            //     // 同步到 SDK
+            //     MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+            //     print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
                 
-                // 尝试设置 API Key 并启动预加载（延迟2秒）
-                self.trySetupApiKeyFromPlist()
-                self.tryStartPreload(delay: 2.0, poolSize: 1)
-            } else {
-                print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")
-            }
+            //     // 尝试设置 API Key 并启动预加载（延迟2秒）
+            //     self.trySetupApiKeyFromPlist()
+            //     self.tryStartPreload(delay: 2.0, poolSize: 1)
+            // } else {
+            //     print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")
+            // }
         }
         
         // ==================== 隐私合规管理 ====================
@@ -92,25 +110,26 @@ public class ExpoGaodeMapModule: Module {
         /**
          * 更新隐私合规状态
          * 必须在用户同意隐私协议后调用
+         * @deprecated 废弃
          */
         Function("updatePrivacyCompliance") { (hasAgreed: Bool) in
             // 更新内存状态
-            ExpoGaodeMapModule.privacyAgreed = hasAgreed
-            // 持久化到本地，供下次启动自动恢复
-            UserDefaults.standard.set(hasAgreed, forKey: ExpoGaodeMapModule.privacyDefaultsKey)
+            // ExpoGaodeMapModule.privacyAgreed = hasAgreed
+            // // 持久化到本地，供下次启动自动恢复
+            // UserDefaults.standard.set(hasAgreed, forKey: ExpoGaodeMapModule.privacyDefaultsKey)
 
-            if hasAgreed {
-                // 同步到 SDK
-                MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
-                print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK（状态已持久化）")
+            // if hasAgreed {
+            //     // 同步到 SDK
+            //     MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+            //     print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK（状态已持久化）")
                 
-                // 尝试设置 API Key 并启动预加载（延迟1秒）
-                self.trySetupApiKeyFromPlist()
-                self.tryStartPreload(delay: 1.0, poolSize: 1)
-            } else {
-                MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.notAgree)
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限（状态已持久化）")
-            }
+            //     // 尝试设置 API Key 并启动预加载（延迟1秒）
+            //     self.trySetupApiKeyFromPlist()
+            //     self.tryStartPreload(delay: 1.0, poolSize: 1)
+            // } else {
+            //     MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.notAgree)
+            //     print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限（状态已持久化）")
+            // }
         }
         // ==================== SDK 初始化 ====================
         
@@ -120,11 +139,11 @@ public class ExpoGaodeMapModule: Module {
          */
         Function("initSDK") { (config: [String: String]) in
             // 检查是否已同意隐私协议
-            if !ExpoGaodeMapModule.privacyAgreed {
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法初始化 SDK")
+            // if !ExpoGaodeMapModule.privacyAgreed {
+            //     print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法初始化 SDK")
 
-                return
-            }
+            //     return
+            // }
             
             // 1) 优先使用传入的 iosKey；2) 否则回退读取 Info.plist 的 AMapApiKey
             let providedKey = config["iosKey"]?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -167,10 +186,10 @@ public class ExpoGaodeMapModule: Module {
          */
         Function("start") {
             // 检查隐私协议状态
-            if !ExpoGaodeMapModule.privacyAgreed {
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法开始定位")
-                return
-            }
+            // if !ExpoGaodeMapModule.privacyAgreed {
+            //     print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法开始定位")
+            //     return
+            // }
             
             // 检查是否已设置 API Key
             if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
@@ -201,10 +220,10 @@ public class ExpoGaodeMapModule: Module {
          */
         AsyncFunction("getCurrentLocation") { (promise: Promise) in
             // 检查隐私协议状态
-            if !ExpoGaodeMapModule.privacyAgreed {
-                promise.reject("PRIVACY_NOT_AGREED", "用户未同意隐私协议，无法获取位置")
-                return
-            }
+            // if !ExpoGaodeMapModule.privacyAgreed {
+            //     promise.reject("PRIVACY_NOT_AGREED", "用户未同意隐私协议，无法获取位置")
+            //     return
+            // }
             
             // 检查是否已设置 API Key
             if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {

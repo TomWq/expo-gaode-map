@@ -17,10 +17,10 @@ import com.amap.api.maps.MapsInitializer
 object SDKInitializer {
     
     /** 隐私协议是否已同意（进程内缓存） */
-    private var privacyAgreed = false
+    private var privacyAgreed = true
 
     private const val PREFS_NAME = "expo_gaode_map_prefs"
-    private const val KEY_PRIVACY_AGREED = "privacy_agreed"
+//    private const val KEY_PRIVACY_AGREED = "privacy_agreed"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -31,31 +31,32 @@ object SDKInitializer {
      *
      * @param context 应用上下文
      * @param hasAgreed 用户是否已同意隐私协议
+     * @deprecated 废弃
      */
     fun updatePrivacyCompliance(context: Context, hasAgreed: Boolean) {
-        privacyAgreed = hasAgreed
-        
-        // 先更新隐私信息显示状态
-        MapsInitializer.updatePrivacyShow(context, true, true)
-        AMapLocationClient.updatePrivacyShow(context, true, true)
-        
-        // 根据用户选择更新同意状态
-        if (hasAgreed) {
-            MapsInitializer.updatePrivacyAgree(context, true)
-            AMapLocationClient.updatePrivacyAgree(context, true)
-            android.util.Log.d("ExpoGaodeMap", "✅ 用户已同意隐私协议，可以使用 SDK")
-        } else {
-            MapsInitializer.updatePrivacyAgree(context, false)
-            AMapLocationClient.updatePrivacyAgree(context, false)
-            android.util.Log.w("ExpoGaodeMap", "⚠️ 用户未同意隐私协议，SDK 功能将受限")
-        }
+//        privacyAgreed = hasAgreed
+//
+//        // 先更新隐私信息显示状态
+//        MapsInitializer.updatePrivacyShow(context, true, true)
+//        AMapLocationClient.updatePrivacyShow(context, true, true)
+//
+//        // 根据用户选择更新同意状态
+//        if (hasAgreed) {
+//            MapsInitializer.updatePrivacyAgree(context, true)
+//            AMapLocationClient.updatePrivacyAgree(context, true)
+//            android.util.Log.d("ExpoGaodeMap", "✅ 用户已同意隐私协议，可以使用 SDK")
+//        } else {
+//            MapsInitializer.updatePrivacyAgree(context, false)
+//            AMapLocationClient.updatePrivacyAgree(context, false)
+//            android.util.Log.w("ExpoGaodeMap", "⚠️ 用户未同意隐私协议，SDK 功能将受限")
+//        }
 
         // 持久化状态，供下次启动自动恢复
-        try {
-            prefs(context).edit().putBoolean(KEY_PRIVACY_AGREED, hasAgreed).apply()
-        } catch (e: Exception) {
-            android.util.Log.w("ExpoGaodeMap", "持久化隐私状态失败: ${e.message}")
-        }
+//        try {
+//            prefs(context).edit().putBoolean(KEY_PRIVACY_AGREED, hasAgreed).apply()
+//        } catch (e: Exception) {
+//            android.util.Log.w("ExpoGaodeMap", "持久化隐私状态失败: ${e.message}")
+//        }
     }
     
     /**
@@ -64,16 +65,15 @@ object SDKInitializer {
      */
     fun restorePrivacyState(context: Context) {
         try {
-            val saved = prefs(context).getBoolean(KEY_PRIVACY_AGREED, false)
-            privacyAgreed = saved
+//            val saved = prefs(context).getBoolean(KEY_PRIVACY_AGREED, false)
 
             // 同步到 SDK
             MapsInitializer.updatePrivacyShow(context, true, true)
             AMapLocationClient.updatePrivacyShow(context, true, true)
-            MapsInitializer.updatePrivacyAgree(context, saved)
-            AMapLocationClient.updatePrivacyAgree(context, saved)
+            MapsInitializer.updatePrivacyAgree(context, privacyAgreed)
+            AMapLocationClient.updatePrivacyAgree(context, privacyAgreed)
 
-            android.util.Log.d("ExpoGaodeMap", "🔁 已从缓存恢复隐私状态: $saved")
+            android.util.Log.d("ExpoGaodeMap", "🔁 已从缓存恢复隐私状态: $  privacyAgreed = saved")
         } catch (e: Exception) {
             android.util.Log.w("ExpoGaodeMap", "恢复隐私状态失败: ${e.message}")
         }

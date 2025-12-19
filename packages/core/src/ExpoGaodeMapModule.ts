@@ -68,6 +68,7 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
    * 更新隐私合规状态
    * 必须在用户同意隐私协议后调用
    * @param hasAgreed 用户是否已同意隐私协议
+   * @deprecated 已经弃用，原生里默认为已同意,不用调
    */
   updatePrivacyCompliance(hasAgreed: boolean): void;
   

@@ -24,6 +24,7 @@ import expo.modules.gaodemap.overlays.*
  * - 生命周期管理
  */
 
+@SuppressLint("ViewConstructor")
 class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
     /**

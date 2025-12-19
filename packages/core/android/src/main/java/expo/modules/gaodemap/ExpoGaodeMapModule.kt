@@ -105,7 +105,7 @@ class ExpoGaodeMapModule : Module() {
     
     /**
      * 初始化 SDK（地图 + 定位）
-     * @param config 配置对象,包含 androidKey
+     * @config 配置对象,包含 androidKey
      */
     Function("initSDK") { config: Map<String, String> ->
       val androidKey = config["androidKey"]
