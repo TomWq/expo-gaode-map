@@ -1,7 +1,7 @@
 {
   "name": "expo-gaode-map-monorepo",
   "version": "1.0.0",
-  "private": true,
+  "private": false,
   "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
     "build": "pnpm -r --filter './packages/*' run build",
