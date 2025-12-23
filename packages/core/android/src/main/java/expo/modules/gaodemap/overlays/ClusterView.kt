@@ -13,7 +13,6 @@ import expo.modules.kotlin.views.ExpoView
 /**
  * 点聚合视图
  * 注意：高德 Android SDK 的点聚合功能需要额外依赖，这里提供基础实现
- * 实际使用时可能需要引入 com.amap.api:3dmap-cluster 库
  */
 class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   

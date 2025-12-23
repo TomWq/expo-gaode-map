@@ -56,6 +56,13 @@ class MarkerView: ExpoView {
     var cacheKey: String?
     /// 标记是否正在被移除（防止重复移除）
     private var isRemoving: Bool = false
+    
+    // 平滑移动相关
+    var smoothMovePath: [[String: Double]] = []
+    var smoothMoveDuration: Double = 10.0  // 默认 10 秒
+    var animatedAnnotation: MAAnimatedAnnotation?  // internal: ExpoGaodeMapView 需要访问
+    var animatedAnnotationView: MAAnnotationView?  // 平滑移动的 annotation view
+    private var isAnimating: Bool = false  // 标记是否正在动画中
     /// 标记点视图
     private var annotationView: MAAnnotationView?
     /// 待处理的位置（在 setMap 之前设置）
@@ -188,6 +195,89 @@ class MarkerView: ExpoView {
         mapView.addAnnotation(annotation)
     }
     
+    /**
+     * 获取 animated annotation 视图（由 ExpoGaodeMapView 调用）
+     * 为 MAAnimatedAnnotation 提供图标支持
+     */
+    func getAnimatedAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
+        let reuseId = "animated_marker_\(ObjectIdentifier(self).hashValue)"
+        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+        
+        if annotationView == nil {
+            annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+        }
+        
+        annotationView?.annotation = annotation
+        self.animatedAnnotationView = annotationView
+        
+        // 优先级：children > icon > pinColor
+        
+        // 1. 如果有 children，使用自定义视图
+        if self.subviews.count > 0 {
+            let key = cacheKey ?? "children_\(ObjectIdentifier(self).hashValue)"
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                annotationView?.centerOffset = CGPoint(x: 0, y: 0)
+                return annotationView
+            }
+            
+            // 异步渲染并设置
+            DispatchQueue.main.async { [weak self, weak annotationView] in
+                guard let self = self, let annotationView = annotationView else { return }
+                if let generated = self.createImageFromSubviews() {
+                    IconBitmapCache.shared.setImage(generated, forKey: key)
+                    annotationView.image = generated
+                    annotationView.centerOffset = CGPoint(x: 0, y: 0)
+                }
+            }
+            return annotationView
+        }
+        
+        // 2. 如果有 icon 属性，使用自定义图标
+        if let iconUri = iconUri, !iconUri.isEmpty {
+            let key = cacheKey ?? "icon|\(iconUri)|\(Int(iconWidth))x\(Int(iconHeight))"
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                annotationView?.centerOffset = CGPoint(x: 0, y: -cached.size.height / 2)
+                return annotationView
+            }
+            
+            // 异步加载图标
+            loadIcon(iconUri: iconUri) { [weak self, weak annotationView] image in
+                guard let self = self, let image = image, let annotationView = annotationView else { return }
+                let size = CGSize(width: self.iconWidth, height: self.iconHeight)
+                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+                image.draw(in: CGRect(origin: .zero, size: size))
+                let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                
+                if let img = resizedImage {
+                    IconBitmapCache.shared.setImage(img, forKey: key)
+                    annotationView.image = img
+                    annotationView.centerOffset = CGPoint(x: 0, y: -img.size.height / 2)
+                }
+            }
+            return annotationView
+        }
+        
+        // 3. 使用默认大头针颜色
+        switch pinColor.lowercased() {
+        case "green":
+            // 使用绿色图标
+            let greenIcon = UIImage(named: "map_marker_green") ?? UIImage(systemName: "mappin.circle.fill")
+            annotationView?.image = greenIcon
+        case "purple":
+            let purpleIcon = UIImage(named: "map_marker_purple") ?? UIImage(systemName: "mappin.circle.fill")
+            annotationView?.image = purpleIcon
+        default:
+            // 默认红色
+            let redIcon = UIImage(named: "map_marker_red") ?? UIImage(systemName: "mappin.circle.fill")
+            annotationView?.image = redIcon
+        }
+        
+        return annotationView
+    }
+
     /**
      * 获取 annotation 视图（由 ExpoGaodeMapView 调用）
      */
@@ -648,6 +738,101 @@ class MarkerView: ExpoView {
         self.canShowCallout = show
     }
     
+    // MARK: - 平滑移动相关方法
+    
+    /**
+     * 设置平滑移动路径
+     */
+    func setSmoothMovePath(_ path: [[String: Double]]) {
+        self.smoothMovePath = path
+    }
+    
+    /**
+     * 设置平滑移动时长（秒）
+     */
+    func setSmoothMoveDuration(_ duration: Double) {
+        self.smoothMoveDuration = duration > 0 ? duration : 10.0
+        
+        // 🔑 当路径和时长都设置时，启动平滑移动
+        if !smoothMovePath.isEmpty && mapView != nil {
+            startSmoothMove()
+        }
+    }
+    
+    /**
+     * 启动平滑移动（由 JS 端手动调用）
+     */
+    func startSmoothMove() {
+        guard let mapView = mapView else { return }
+        
+        // 转换路径为 CLLocationCoordinate2D 数组
+        var coordinates = smoothMovePath.compactMap { point -> CLLocationCoordinate2D? in
+            guard let lat = point["latitude"], let lng = point["longitude"] else {
+                return nil
+            }
+            return CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        }
+        
+        guard !coordinates.isEmpty else { return }
+        
+        // 🔑 停止之前的动画（如果存在）
+        if let animAnnotation = animatedAnnotation,
+           let animations = animAnnotation.allMoveAnimations as? [MAAnnotationMoveAnimation] {
+            for animation in animations {
+                animation.cancel()
+            }
+        }
+        
+        // 🔑 重置动画标志
+        isAnimating = false
+        
+        // 创建 MAAnimatedAnnotation（如果还没有）
+        if animatedAnnotation == nil {
+            animatedAnnotation = MAAnimatedAnnotation()
+            
+            // 设置初始位置
+            if let startLat = position["latitude"], let startLng = position["longitude"] {
+                animatedAnnotation?.coordinate = CLLocationCoordinate2D(latitude: startLat, longitude: startLng)
+            }
+            
+            // 隐藏原始 annotation
+            if let existingAnnotation = annotation {
+                mapView.removeAnnotation(existingAnnotation)
+            }
+            
+            // 添加 animated annotation
+            if let anim = animatedAnnotation {
+                mapView.addAnnotation(anim)
+            }
+        }
+        
+        // 添加移动动画
+        guard let animAnnotation = animatedAnnotation else { return }
+        
+        // 复制到局部变量，避免 Swift 内存安全冲突
+        let coordinateCount = coordinates.count
+        let duration = smoothMoveDuration
+        
+        // 🔑 设置动画标志
+        isAnimating = true
+        
+        // 转换为 UnsafeMutablePointer 传递给 C 风格的 API
+        coordinates.withUnsafeMutableBufferPointer { buffer in
+            let coords = buffer.baseAddress!
+            
+            animAnnotation.addMoveAnimation(
+                withKeyCoordinates: coords,
+                count: UInt(coordinateCount),
+                withDuration: CGFloat(duration),
+                withName: nil,
+                completeCallback: { [weak self] isFinished in
+                    // 动画完成时重置标志
+                    self?.isAnimating = false
+                }
+            )
+        }
+    }
+    
     /**
      * 析构函数 - 不执行任何清理
      * 清理工作已在 willMove(toSuperview:) 中完成
@@ -705,4 +890,3 @@ class IconBitmapCache {
         return Int(image.size.width * image.size.height * 4)
     }
 }
-

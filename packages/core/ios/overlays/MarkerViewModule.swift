@@ -67,6 +67,16 @@ public class MarkerViewModule: Module {
              Prop("cacheKey") { (view: MarkerView, key: String) in
                 view.setCacheKey(key)
             }
+            
+            // 平滑移动路径
+            Prop("smoothMovePath") { (view: MarkerView, path: [[String: Double]]) in
+                view.setSmoothMovePath(path)
+            }
+            
+            // 平滑移动时长（秒）
+            Prop("smoothMoveDuration") { (view: MarkerView, duration: Double) in
+                view.setSmoothMoveDuration(duration)
+            }
         }
     }
 }

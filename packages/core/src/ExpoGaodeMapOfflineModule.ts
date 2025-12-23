@@ -175,6 +175,7 @@ declare class ExpoGaodeMapOfflineModule extends NativeModule<OfflineMapEvents> {
    * 恢复所有下载任务
    */
   resumeAllDownloads(): Promise<void>;
+
 }
 
 // 获取原生模块实例

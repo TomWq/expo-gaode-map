@@ -852,6 +852,19 @@ extension ExpoGaodeMapView {
             return nil
         }
         
+        // 🔑 支持 MAAnimatedAnnotation（平滑移动）
+        if annotation.isKind(of: MAAnimatedAnnotation.self) {
+            // 从 overlayViews 数组查找对应的 MarkerView
+            for view in overlayViews {
+                if let markerView = view as? MarkerView,
+                   let animatedAnnotation = markerView.animatedAnnotation,
+                   animatedAnnotation === annotation {
+                    return markerView.getAnimatedAnnotationView(for: mapView, annotation: annotation)
+                }
+            }
+            return nil
+        }
+        
         if annotation.isKind(of: MAPointAnnotation.self) {
             // 🔑 统一从 overlayViews 数组查找 MarkerView（新旧架构统一）
             for view in overlayViews {

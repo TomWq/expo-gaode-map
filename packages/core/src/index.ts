@@ -67,7 +67,7 @@ export type {
 } from './components/FoldableMapView';
 
 // 导出离线地图 API
-export { default as ExpoGaodeMapOfflineModule } from './ExpoGaodeMapOfflineModule';
+export { default as ExpoGaodeMapOfflineModule } from './utils/OfflineMapManager';
 
 export type {
   OfflineMapInfo,

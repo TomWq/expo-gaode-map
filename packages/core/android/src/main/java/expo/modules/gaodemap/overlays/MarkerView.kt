@@ -10,10 +10,13 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import com.amap.api.maps.AMap
+import com.amap.api.maps.model.BitmapDescriptor
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
+import com.amap.api.maps.utils.SpatialRelationUtil
+import com.amap.api.maps.utils.overlay.SmoothMoveMarker
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -144,6 +147,11 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private var pendingIconUri: String? = null
     private var pendingPinColor: String? = null
     private var cacheKey: String? = null
+
+    // 平滑移动相关
+    private var smoothMoveMarker: SmoothMoveMarker? = null
+    private var smoothMovePath: List<LatLng>? = null
+    private var smoothMoveDuration: Double = 10.0  // 默认 10 秒
 
     /**
      * 设置地图实例
@@ -849,9 +857,214 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
 
     /**
+     * 设置平滑移动路径
+     */
+    fun setSmoothMovePath(path: List<Map<String, Double>>) {
+        try {
+            // 转换为 LatLng 列表
+            smoothMovePath = path.mapNotNull { point ->
+                val lat = point["latitude"]
+                val lng = point["longitude"]
+                if (lat != null && lng != null) {
+                    LatLng(lat, lng)
+                } else {
+                    null
+                }
+            }
+
+            // 当路径和时长都设置时，启动平滑移动
+            if (smoothMovePath?.isNotEmpty() == true && smoothMoveDuration > 0 && aMap != null) {
+                startSmoothMove()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MarkerView", "setSmoothMovePath error", e)
+        }
+    }
+
+    /**
+     * 设置平滑移动时长（秒）
+     */
+    fun setSmoothMoveDuration(duration: Double) {
+        smoothMoveDuration = if (duration > 0) duration else 10.0
+
+        // 当路径和时长都设置时，启动平滑移动
+        if (smoothMovePath?.isNotEmpty() == true && aMap != null) {
+            startSmoothMove()
+        }
+    }
+
+    /**
+     * 启动平滑移动
+     */
+    private fun startSmoothMove() {
+        android.util.Log.d("MarkerView", "startSmoothMove called")
+        val path = smoothMovePath ?: run {
+            android.util.Log.e("MarkerView", "smoothMovePath is null")
+            return
+        }
+        val map = aMap ?: run {
+            android.util.Log.e("MarkerView", "aMap is null")
+            return
+        }
+        val duration = (smoothMoveDuration * 1000).toInt()  // 转换为毫秒
+
+        android.util.Log.d("MarkerView", "path size: ${path.size}, duration: $duration")
+
+        mainHandler.post {
+            try {
+                // 创建或获取 SmoothMoveMarker
+                if (smoothMoveMarker == null) {
+                    android.util.Log.d("MarkerView", "Creating SmoothMoveMarker")
+                    smoothMoveMarker = SmoothMoveMarker(map)
+                    
+                    // 设置图标 - 优先使用自定义 icon，其次使用 pinColor
+                    var iconSetSuccessfully = false
+                    try {
+                        // 优先：从原始 Marker 直接获取图标
+                        marker?.let { m ->
+                            android.util.Log.d("MarkerView", "Trying to get icon from existing marker")
+                            // 尝试通过 marker 对象获取图标信息
+                            // 由于高德 SDK 没有直接的 getIcon() 方法，我们尝试其他方式
+                            
+                            // 1. 尝试使用缓存的自定义 icon
+                            if (pendingIconUri != null) {
+                                android.util.Log.d("MarkerView", "Pending icon uri: $pendingIconUri")
+                                
+                                // 尝试不同的缓存 key 格式
+                                val possibleKeys = listOfNotNull(
+                                    cacheKey?.let { "$it|${iconWidth}x${iconHeight}" },
+                                    "icon|$pendingIconUri|${iconWidth}x${iconHeight}",
+                                    // 尝试不带尺寸的 key
+                                    cacheKey,
+                                    "icon|$pendingIconUri"
+                                )
+                                
+                                for (key in possibleKeys) {
+                                    if (iconSetSuccessfully) break
+                                    
+                                    android.util.Log.d("MarkerView", "Trying cache key: $key")
+                                    
+                                    // 先尝试 BitmapDescriptorCache
+                                    BitmapDescriptorCache.get(key)?.let { icon ->
+                                        smoothMoveMarker?.setDescriptor(icon)
+                                        android.util.Log.d("MarkerView", "Icon set from BitmapDescriptorCache with key: $key")
+                                        iconSetSuccessfully = true
+                                    }
+                                    
+                                    if (iconSetSuccessfully) break
+                                    
+                                    // 再尝试 IconBitmapCache
+                                    IconBitmapCache.get(key)?.let { bitmap ->
+                                        val descriptor = BitmapDescriptorFactory.fromBitmap(bitmap)
+                                        smoothMoveMarker?.setDescriptor(descriptor)
+                                        android.util.Log.d("MarkerView", "Icon set from IconBitmapCache with key: $key")
+                                        iconSetSuccessfully = true
+                                    }
+                                }
+                                
+                                if (!iconSetSuccessfully) {
+                                    android.util.Log.w("MarkerView", "Custom icon not found in any cache key")
+                                }
+                            } else {
+                                android.util.Log.d("MarkerView", "No pending icon uri, checking pin color")
+                            }
+                        }
+                        
+                        // 只有当自定义图标未设置成功时，才使用 pinColor
+                        if (!iconSetSuccessfully) {
+                            // 降级：根据 pinColor 选择对应颜色的默认图标
+                            val color = pendingPinColor ?: "red"
+                            android.util.Log.d("MarkerView", "Using pin color: $color")
+                            val hue = when (color.lowercase()) {
+                                "red" -> BitmapDescriptorFactory.HUE_RED
+                                "orange" -> BitmapDescriptorFactory.HUE_ORANGE
+                                "yellow" -> BitmapDescriptorFactory.HUE_YELLOW
+                                "green" -> BitmapDescriptorFactory.HUE_GREEN
+                                "cyan" -> BitmapDescriptorFactory.HUE_CYAN
+                                "blue" -> BitmapDescriptorFactory.HUE_BLUE
+                                "violet" -> BitmapDescriptorFactory.HUE_VIOLET
+                                "magenta" -> BitmapDescriptorFactory.HUE_MAGENTA
+                                "rose" -> BitmapDescriptorFactory.HUE_ROSE
+                                "purple" -> BitmapDescriptorFactory.HUE_VIOLET
+                                else -> BitmapDescriptorFactory.HUE_RED
+                            }
+                            
+                            val icon = BitmapDescriptorFactory.defaultMarker(hue)
+                            smoothMoveMarker?.setDescriptor(icon)
+                            android.util.Log.d("MarkerView", "Icon set with hue: $hue")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MarkerView", "Failed to set icon for smooth move", e)
+                        // 降级：使用默认红色图标
+                        val defaultIcon = BitmapDescriptorFactory.defaultMarker()
+                        smoothMoveMarker?.setDescriptor(defaultIcon)
+                    }
+                }
+
+                // 停止之前的移动
+                smoothMoveMarker?.stopMove()
+
+                // 计算路径的起始点（如果提供了 position，使用它作为起点）
+                val startPoint = if (childCount > 0) {
+                    val currentLat = pendingLatitude ?: marker?.position?.latitude
+                    val currentLng = pendingLongitude ?: marker?.position?.longitude
+                    if (currentLat != null && currentLng != null) {
+                        LatLng(currentLat, currentLng)
+                    } else {
+                        path.first()
+                    }
+                } else {
+                    path.first()
+                }
+
+                android.util.Log.d("MarkerView", "startPoint: $startPoint")
+
+                // 使用 SpatialRelationUtil 计算路径中的最近点
+                val pair = SpatialRelationUtil.calShortestDistancePoint(path, startPoint)
+                val adjustedPath = path.subList(pair.first, path.size)
+
+                android.util.Log.d("MarkerView", "adjustedPath size: ${adjustedPath.size}")
+
+                // 🔑 关键修复：先设置 SmoothMoveMarker 的位置
+                smoothMoveMarker?.setPosition(adjustedPath.first())
+                android.util.Log.d("MarkerView", "SmoothMoveMarker position set to: ${adjustedPath.first()}")
+                
+                // 设置移动路径
+                smoothMoveMarker?.setPoints(adjustedPath)
+                android.util.Log.d("MarkerView", "Points set, count: ${adjustedPath.size}")
+                
+                // 设置总时长（高德 SDK 的 setTotalDuration 需要秒为单位，转为 Int）
+                smoothMoveMarker?.setTotalDuration(smoothMoveDuration.toInt())
+                android.util.Log.d("MarkerView", "Total duration set to: ${smoothMoveDuration.toInt()} seconds")
+                
+                // 开始平滑移动
+                smoothMoveMarker?.startSmoothMove()
+                android.util.Log.d("MarkerView", "startSmoothMove() called")
+
+                // 隐藏原始 Marker，避免重复显示
+                marker?.isVisible = false
+                android.util.Log.d("MarkerView", "Original marker hidden: false")
+            } catch (e: Exception) {
+                android.util.Log.e("MarkerView", "Start smooth move failed", e)
+            }
+        }
+    }
+
+    /**
+     * 停止平滑移动
+     */
+    private fun stopSmoothMove() {
+        smoothMoveMarker?.stopMove()
+        marker?.isVisible = true
+    }
+
+    /**
      * 移除标记
      */
     fun removeMarker() {
+        // 停止平滑移动
+        stopSmoothMove()
+        
         marker?.let {
             unregisterMarker(it)
             it.remove()
@@ -941,4 +1154,3 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         return sb.toString().take(1024)
     }
 }
-

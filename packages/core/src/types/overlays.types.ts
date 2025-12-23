@@ -137,6 +137,18 @@ export interface MarkerProps {
    * 拖拽结束事件
    */
   onMarkerDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
+
+  /**
+   * 平滑移动轨迹点数组
+   * 设置后，Marker 会沿着轨迹平滑移动
+   */
+  smoothMovePath?: LatLng[];
+
+  /**
+   * 平滑移动总时长（秒）
+   * @default 10
+   */
+  smoothMoveDuration?: number;
 }
 
 /**

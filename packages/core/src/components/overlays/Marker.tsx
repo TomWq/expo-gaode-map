@@ -68,6 +68,16 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
     return false;
   }
   
+  // 比较 smoothMovePath (平滑移动路径)
+  if (JSON.stringify(prevProps.smoothMovePath) !== JSON.stringify(nextProps.smoothMovePath)) {
+    return false;
+  }
+  
+  // 比较 smoothMoveDuration (平滑移动时长)
+  if (prevProps.smoothMoveDuration !== nextProps.smoothMoveDuration) {
+    return false;
+  }
+  
   // 其他属性相同,不重新渲染
   return true;
 }
