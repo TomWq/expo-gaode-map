@@ -2,7 +2,7 @@
 
 The Offline Maps API provides complete offline map management functionality, including download, update, delete, and storage management.
 
-## OfflineMapManager
+## ExpoGaodeMapOfflineModule
 
 Offline map manager providing all offline map related functions.
 
@@ -13,7 +13,7 @@ Offline map manager providing all offline map related functions.
 Get list of all downloadable cities.
 
 ```tsx
-const cities = await OfflineMapManager.getAvailableCities();
+const cities = await ExpoGaodeMapOfflineModule.getAvailableCities();
 ```
 
 **Returns**
@@ -21,7 +21,7 @@ const cities = await OfflineMapManager.getAvailableCities();
 
 **Example**
 ```tsx
-const cities = await OfflineMapManager.getAvailableCities();
+const cities = await ExpoGaodeMapOfflineModule.getAvailableCities();
 console.log(`${cities.length} cities available`);
 
 cities.forEach(city => {
@@ -36,7 +36,7 @@ cities.forEach(city => {
 Start downloading offline map.
 
 ```tsx
-await OfflineMapManager.startDownload(options);
+await ExpoGaodeMapOfflineModule.startDownload(options);
 ```
 
 **Parameters**
@@ -46,13 +46,13 @@ await OfflineMapManager.startDownload(options);
 **Example**
 ```tsx
 // WiFi only
-await OfflineMapManager.startDownload({
+await ExpoGaodeMapOfflineModule.startDownload({
   cityCode: '110000', // Beijing
   allowCellular: false,
 });
 
 // Allow cellular
-await OfflineMapManager.startDownload({
+await ExpoGaodeMapOfflineModule.startDownload({
   cityCode: '310000', // Shanghai
   allowCellular: true,
 });
@@ -65,7 +65,7 @@ await OfflineMapManager.startDownload({
 Pause ongoing download.
 
 ```tsx
-await OfflineMapManager.pauseDownload(cityCode);
+await ExpoGaodeMapOfflineModule.pauseDownload(cityCode);
 ```
 
 **Parameters**
@@ -73,7 +73,7 @@ await OfflineMapManager.pauseDownload(cityCode);
 
 **Example**
 ```tsx
-await OfflineMapManager.pauseDownload('110000');
+await ExpoGaodeMapOfflineModule.pauseDownload('110000');
 ```
 
 ---
@@ -83,7 +83,7 @@ await OfflineMapManager.pauseDownload('110000');
 Resume paused download.
 
 ```tsx
-await OfflineMapManager.resumeDownload(cityCode);
+await ExpoGaodeMapOfflineModule.resumeDownload(cityCode);
 ```
 
 **Parameters**
@@ -91,7 +91,7 @@ await OfflineMapManager.resumeDownload(cityCode);
 
 **Example**
 ```tsx
-await OfflineMapManager.resumeDownload('110000');
+await ExpoGaodeMapOfflineModule.resumeDownload('110000');
 ```
 
 ---
@@ -101,7 +101,7 @@ await OfflineMapManager.resumeDownload('110000');
 Delete offline map for specified city.
 
 ```tsx
-await OfflineMapManager.deleteMap(cityCode);
+await ExpoGaodeMapOfflineModule.deleteMap(cityCode);
 ```
 
 **Parameters**
@@ -109,7 +109,7 @@ await OfflineMapManager.deleteMap(cityCode);
 
 **Example**
 ```tsx
-await OfflineMapManager.deleteMap('110000');
+await ExpoGaodeMapOfflineModule.deleteMap('110000');
 console.log('Beijing offline map deleted');
 ```
 
@@ -120,12 +120,12 @@ console.log('Beijing offline map deleted');
 Clear all downloaded offline maps.
 
 ```tsx
-await OfflineMapManager.clearAll();
+await ExpoGaodeMapOfflineModule.clearAll();
 ```
 
 **Example**
 ```tsx
-await OfflineMapManager.clearAll();
+await ExpoGaodeMapOfflineModule.clearAll();
 console.log('All offline maps cleared');
 ```
 
@@ -136,7 +136,7 @@ console.log('All offline maps cleared');
 Get list of downloaded maps.
 
 ```tsx
-const maps = await OfflineMapManager.getDownloadedMaps();
+const maps = await ExpoGaodeMapOfflineModule.getDownloadedMaps();
 ```
 
 **Returns**
@@ -144,7 +144,7 @@ const maps = await OfflineMapManager.getDownloadedMaps();
 
 **Example**
 ```tsx
-const downloaded = await OfflineMapManager.getDownloadedMaps();
+const downloaded = await ExpoGaodeMapOfflineModule.getDownloadedMaps();
 console.log(`${downloaded.length} cities downloaded`);
 
 downloaded.forEach(city => {
@@ -159,7 +159,7 @@ downloaded.forEach(city => {
 Get offline map storage information.
 
 ```tsx
-const storage = await OfflineMapManager.getStorageInfo();
+const storage = await ExpoGaodeMapOfflineModule.getStorageInfo();
 ```
 
 **Returns**
@@ -167,7 +167,7 @@ const storage = await OfflineMapManager.getStorageInfo();
 
 **Example**
 ```tsx
-const storage = await OfflineMapManager.getStorageInfo();
+const storage = await ExpoGaodeMapOfflineModule.getStorageInfo();
 
 console.log('Used:', (storage.usedSpace / 1024 / 1024).toFixed(2), 'MB');
 console.log('Available:', (storage.availableSpace / 1024 / 1024).toFixed(2), 'MB');
@@ -181,7 +181,7 @@ console.log('Total:', (storage.totalSpace / 1024 / 1024).toFixed(2), 'MB');
 Check if map has updates for specified city.
 
 ```tsx
-const hasUpdate = await OfflineMapManager.checkUpdate(cityCode);
+const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate(cityCode);
 ```
 
 **Parameters**
@@ -192,11 +192,11 @@ const hasUpdate = await OfflineMapManager.checkUpdate(cityCode);
 
 **Example**
 ```tsx
-const hasUpdate = await OfflineMapManager.checkUpdate('110000');
+const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate('110000');
 
 if (hasUpdate) {
   console.log('Beijing map has new version');
-  await OfflineMapManager.updateMap('110000');
+  await ExpoGaodeMapOfflineModule.updateMap('110000');
 } else {
   console.log('Beijing map is up to date');
 }
@@ -209,7 +209,7 @@ if (hasUpdate) {
 Update offline map for specified city.
 
 ```tsx
-await OfflineMapManager.updateMap(cityCode);
+await ExpoGaodeMapOfflineModule.updateMap(cityCode);
 ```
 
 **Parameters**
@@ -217,7 +217,7 @@ await OfflineMapManager.updateMap(cityCode);
 
 **Example**
 ```tsx
-await OfflineMapManager.updateMap('110000');
+await ExpoGaodeMapOfflineModule.updateMap('110000');
 console.log('Updating Beijing map');
 ```
 
@@ -230,7 +230,7 @@ console.log('Updating Beijing map');
 Listen to download progress events.
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadProgressListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadProgressListener(callback);
 ```
 
 **Parameters**
@@ -250,7 +250,7 @@ interface OfflineMapProgressEvent {
 
 **Example**
 ```tsx
-const subscription = OfflineMapManager.addDownloadProgressListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadProgressListener((event) => {
   console.log(`${event.cityName}: ${event.progress}%`);
   
   // Update UI progress bar
@@ -268,7 +268,7 @@ return () => subscription.remove();
 Listen to download completion events.
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadCompleteListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCompleteListener(callback);
 ```
 
 **Parameters**
@@ -284,7 +284,7 @@ interface OfflineMapCompleteEvent {
 
 **Example**
 ```tsx
-const subscription = OfflineMapManager.addDownloadCompleteListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCompleteListener((event) => {
   Alert.alert('Download Complete', `${event.cityName} offline map downloaded`);
   loadData(); // Refresh list
 });
@@ -299,7 +299,7 @@ return () => subscription.remove();
 Listen to download error events.
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadErrorListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadErrorListener(callback);
 ```
 
 **Parameters**
@@ -316,7 +316,7 @@ interface OfflineMapErrorEvent {
 
 **Example**
 ```tsx
-const subscription = OfflineMapManager.addDownloadErrorListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadErrorListener((event) => {
   console.error(`${event.cityName} download failed: ${event.error}`);
   Alert.alert('Download Failed', event.error);
 });
@@ -331,7 +331,7 @@ return () => subscription.remove();
 Listen to download pause events.
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadPausedListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadPausedListener(callback);
 ```
 
 **Parameters**
@@ -347,7 +347,7 @@ interface OfflineMapPausedEvent {
 
 **Example**
 ```tsx
-const subscription = OfflineMapManager.addDownloadPausedListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadPausedListener((event) => {
   console.log(`${event.cityName} download paused`);
 });
 
@@ -361,7 +361,7 @@ return () => subscription.remove();
 Listen to download cancellation events.
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadCancelledListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCancelledListener(callback);
 ```
 
 **Parameters**
@@ -377,7 +377,7 @@ interface OfflineMapCancelledEvent {
 
 **Example**
 ```tsx
-const subscription = OfflineMapManager.addDownloadCancelledListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCancelledListener((event) => {
   console.log(`${event.cityName} download cancelled`);
 });
 
@@ -478,13 +478,13 @@ console.log(`Used ${usagePercent.toFixed(1)}%`);
 
 ```tsx
 import { useState, useEffect } from 'react';
-import { OfflineMapManager } from 'expo-gaode-map';
+import { ExpoGaodeMapOfflineModule } from 'expo-gaode-map';
 
 function DownloadExample() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const sub = OfflineMapManager.addDownloadProgressListener((event) => {
+    const sub = ExpoGaodeMapOfflineModule.addDownloadProgressListener((event) => {
       setProgress(event.progress);
     });
 
@@ -492,7 +492,7 @@ function DownloadExample() {
   }, []);
 
   const handleDownload = async () => {
-    await OfflineMapManager.startDownload({
+    await ExpoGaodeMapOfflineModule.startDownload({
       cityCode: '110000',
       allowCellular: false,
     });
@@ -512,7 +512,7 @@ function DownloadExample() {
 ```tsx
 const handleDownload = async (city: OfflineMapInfo) => {
   // Check storage space
-  const storage = await OfflineMapManager.getStorageInfo();
+  const storage = await ExpoGaodeMapOfflineModule.getStorageInfo();
   
   if (storage.availableSpace < city.size) {
     Alert.alert(
@@ -523,7 +523,7 @@ const handleDownload = async (city: OfflineMapInfo) => {
     return;
   }
   
-  await OfflineMapManager.startDownload({
+  await ExpoGaodeMapOfflineModule.startDownload({
     cityCode: city.cityCode,
     allowCellular: false,
   });
@@ -534,11 +534,11 @@ const handleDownload = async (city: OfflineMapInfo) => {
 
 ```tsx
 const checkAllUpdates = async () => {
-  const downloaded = await OfflineMapManager.getDownloadedMaps();
+  const downloaded = await ExpoGaodeMapOfflineModule.getDownloadedMaps();
   const updates: string[] = [];
   
   for (const city of downloaded) {
-    const hasUpdate = await OfflineMapManager.checkUpdate(city.cityCode);
+    const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate(city.cityCode);
     if (hasUpdate) {
       updates.push(city.cityName);
     }

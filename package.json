@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-monorepo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
@@ -34,8 +34,13 @@
     "amap",
     "gaode-map"
   ],
-  "author": "",
+  "author": "TomWq",
   "license": "MIT",
+   "repository": {
+    "type": "git",
+    "url": "https://github.com/TomWq/expo-gaode-map",
+    "directory": "packages/core"
+  },
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo": "^54.0.28",

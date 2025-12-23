@@ -2,7 +2,7 @@
 
 离线地图 API 提供了完整的离线地图管理功能，包括下载、更新、删除和存储管理。
 
-## OfflineMapManager
+## ExpoGaodeMapOfflineModule  
 
 离线地图管理器，提供所有离线地图相关功能。
 
@@ -13,7 +13,7 @@
 获取所有可下载的城市列表。
 
 ```tsx
-const cities = await OfflineMapManager.getAvailableCities();
+const cities = await ExpoGaodeMapOfflineModule.getAvailableCities();
 ```
 
 **返回值**
@@ -21,7 +21,7 @@ const cities = await OfflineMapManager.getAvailableCities();
 
 **示例**
 ```tsx
-const cities = await OfflineMapManager.getAvailableCities();
+const cities = await ExpoGaodeMapOfflineModule.getAvailableCities();
 console.log(`共有 ${cities.length} 个城市可下载`);
 
 cities.forEach(city => {
@@ -36,7 +36,7 @@ cities.forEach(city => {
 开始下载离线地图。
 
 ```tsx
-await OfflineMapManager.startDownload(options);
+await ExpoGaodeMapOfflineModule.startDownload(options);
 ```
 
 **参数**
@@ -46,13 +46,13 @@ await OfflineMapManager.startDownload(options);
 **示例**
 ```tsx
 // 仅 WiFi 下载
-await OfflineMapManager.startDownload({
+await ExpoGaodeMapOfflineModule.startDownload({
   cityCode: '110000', // 北京
   allowCellular: false,
 });
 
 // 允许移动网络
-await OfflineMapManager.startDownload({
+await ExpoGaodeMapOfflineModule.startDownload({
   cityCode: '310000', // 上海
   allowCellular: true,
 });
@@ -65,7 +65,7 @@ await OfflineMapManager.startDownload({
 暂停正在下载的地图。
 
 ```tsx
-await OfflineMapManager.pauseDownload(cityCode);
+await ExpoGaodeMapOfflineModule.pauseDownload(cityCode);
 ```
 
 **参数**
@@ -73,7 +73,7 @@ await OfflineMapManager.pauseDownload(cityCode);
 
 **示例**
 ```tsx
-await OfflineMapManager.pauseDownload('110000');
+await ExpoGaodeMapOfflineModule.pauseDownload('110000');
 ```
 
 ---
@@ -83,7 +83,7 @@ await OfflineMapManager.pauseDownload('110000');
 恢复已暂停的下载。
 
 ```tsx
-await OfflineMapManager.resumeDownload(cityCode);
+await ExpoGaodeMapOfflineModule.resumeDownload(cityCode);
 ```
 
 **参数**
@@ -91,7 +91,7 @@ await OfflineMapManager.resumeDownload(cityCode);
 
 **示例**
 ```tsx
-await OfflineMapManager.resumeDownload('110000');
+await ExpoGaodeMapOfflineModule.resumeDownload('110000');
 ```
 
 ---
@@ -101,7 +101,7 @@ await OfflineMapManager.resumeDownload('110000');
 删除指定城市的离线地图。
 
 ```tsx
-await OfflineMapManager.deleteMap(cityCode);
+await ExpoGaodeMapOfflineModule.deleteMap(cityCode);
 ```
 
 **参数**
@@ -109,7 +109,7 @@ await OfflineMapManager.deleteMap(cityCode);
 
 **示例**
 ```tsx
-await OfflineMapManager.deleteMap('110000');
+await ExpoGaodeMapOfflineModule.deleteMap('110000');
 console.log('北京离线地图已删除');
 ```
 
@@ -120,12 +120,12 @@ console.log('北京离线地图已删除');
 清除所有已下载的离线地图。
 
 ```tsx
-await OfflineMapManager.clearAll();
+await ExpoGaodeMapOfflineModule.clearAll();
 ```
 
 **示例**
 ```tsx
-await OfflineMapManager.clearAll();
+await ExpoGaodeMapOfflineModule.clearAll();
 console.log('所有离线地图已清除');
 ```
 
@@ -136,7 +136,7 @@ console.log('所有离线地图已清除');
 获取已下载的地图列表。
 
 ```tsx
-const maps = await OfflineMapManager.getDownloadedMaps();
+const maps = await ExpoGaodeMapOfflineModule.getDownloadedMaps();
 ```
 
 **返回值**
@@ -144,7 +144,7 @@ const maps = await OfflineMapManager.getDownloadedMaps();
 
 **示例**
 ```tsx
-const downloaded = await OfflineMapManager.getDownloadedMaps();
+const downloaded = await ExpoGaodeMapOfflineModule.getDownloadedMaps();
 console.log(`已下载 ${downloaded.length} 个城市`);
 
 downloaded.forEach(city => {
@@ -159,7 +159,7 @@ downloaded.forEach(city => {
 获取离线地图存储信息。
 
 ```tsx
-const storage = await OfflineMapManager.getStorageInfo();
+const storage = await ExpoGaodeMapOfflineModule.getStorageInfo();
 ```
 
 **返回值**
@@ -167,7 +167,7 @@ const storage = await OfflineMapManager.getStorageInfo();
 
 **示例**
 ```tsx
-const storage = await OfflineMapManager.getStorageInfo();
+const storage = await ExpoGaodeMapOfflineModule.getStorageInfo();
 
 console.log('已用空间:', (storage.usedSpace / 1024 / 1024).toFixed(2), 'MB');
 console.log('可用空间:', (storage.availableSpace / 1024 / 1024).toFixed(2), 'MB');
@@ -181,7 +181,7 @@ console.log('总空间:', (storage.totalSpace / 1024 / 1024).toFixed(2), 'MB');
 检查指定城市的地图是否有更新。
 
 ```tsx
-const hasUpdate = await OfflineMapManager.checkUpdate(cityCode);
+const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate(cityCode);
 ```
 
 **参数**
@@ -192,11 +192,11 @@ const hasUpdate = await OfflineMapManager.checkUpdate(cityCode);
 
 **示例**
 ```tsx
-const hasUpdate = await OfflineMapManager.checkUpdate('110000');
+const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate('110000');
 
 if (hasUpdate) {
   console.log('北京地图有新版本可用');
-  await OfflineMapManager.updateMap('110000');
+  await ExpoGaodeMapOfflineModule.updateMap('110000');
 } else {
   console.log('北京地图已是最新版本');
 }
@@ -209,7 +209,7 @@ if (hasUpdate) {
 更新指定城市的离线地图。
 
 ```tsx
-await OfflineMapManager.updateMap(cityCode);
+await ExpoGaodeMapOfflineModule.updateMap(cityCode);
 ```
 
 **参数**
@@ -217,7 +217,7 @@ await OfflineMapManager.updateMap(cityCode);
 
 **示例**
 ```tsx
-await OfflineMapManager.updateMap('110000');
+await ExpoGaodeMapOfflineModule.updateMap('110000');
 console.log('开始更新北京地图');
 ```
 
@@ -230,7 +230,7 @@ console.log('开始更新北京地图');
 监听下载进度事件。
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadProgressListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadProgressListener(callback);
 ```
 
 **参数**
@@ -250,7 +250,7 @@ interface OfflineMapProgressEvent {
 
 **示例**
 ```tsx
-const subscription = OfflineMapManager.addDownloadProgressListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadProgressListener((event) => {
   console.log(`${event.cityName}: ${event.progress}%`);
   
   // 更新 UI 进度条
@@ -268,7 +268,7 @@ return () => subscription.remove();
 监听下载完成事件。
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadCompleteListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCompleteListener(callback);
 ```
 
 **参数**
@@ -284,7 +284,7 @@ interface OfflineMapCompleteEvent {
 
 **示例**
 ```tsx
-const subscription = OfflineMapManager.addDownloadCompleteListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCompleteListener((event) => {
   Alert.alert('下载完成', `${event.cityName} 离线地图已下载完成`);
   loadData(); // 刷新列表
 });
@@ -299,7 +299,7 @@ return () => subscription.remove();
 监听下载错误事件。
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadErrorListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadErrorListener(callback);
 ```
 
 **参数**
@@ -316,7 +316,7 @@ interface OfflineMapErrorEvent {
 
 **示例**
 ```tsx
-const subscription = OfflineMapManager.addDownloadErrorListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadErrorListener((event) => {
   console.error(`${event.cityName} 下载失败: ${event.error}`);
   Alert.alert('下载失败', event.error);
 });
@@ -331,7 +331,7 @@ return () => subscription.remove();
 监听下载暂停事件。
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadPausedListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadPausedListener(callback);
 ```
 
 **参数**
@@ -347,7 +347,7 @@ interface OfflineMapPausedEvent {
 
 **示例**
 ```tsx
-const subscription = OfflineMapManager.addDownloadPausedListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadPausedListener((event) => {
   console.log(`${event.cityName} 下载已暂停`);
 });
 
@@ -361,7 +361,7 @@ return () => subscription.remove();
 监听下载取消事件。
 
 ```tsx
-const subscription = OfflineMapManager.addDownloadCancelledListener(callback);
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCancelledListener(callback);
 ```
 
 **参数**
@@ -377,7 +377,7 @@ interface OfflineMapCancelledEvent {
 
 **示例**
 ```tsx
-const subscription = OfflineMapManager.addDownloadCancelledListener((event) => {
+const subscription = ExpoGaodeMapOfflineModule.addDownloadCancelledListener((event) => {
   console.log(`${event.cityName} 下载已取消`);
 });
 
@@ -478,13 +478,13 @@ console.log(`已使用 ${usagePercent.toFixed(1)}%`);
 
 ```tsx
 import { useState, useEffect } from 'react';
-import { OfflineMapManager } from 'expo-gaode-map';
+import { ExpoGaodeMapOfflineModule } from 'expo-gaode-map';
 
 function DownloadExample() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const sub = OfflineMapManager.addDownloadProgressListener((event) => {
+    const sub = ExpoGaodeMapOfflineModule.addDownloadProgressListener((event) => {
       setProgress(event.progress);
     });
 
@@ -492,7 +492,7 @@ function DownloadExample() {
   }, []);
 
   const handleDownload = async () => {
-    await OfflineMapManager.startDownload({
+    await ExpoGaodeMapOfflineModule.startDownload({
       cityCode: '110000',
       allowCellular: false,
     });
@@ -512,7 +512,7 @@ function DownloadExample() {
 ```tsx
 const handleDownload = async (city: OfflineMapInfo) => {
   // 检查存储空间
-  const storage = await OfflineMapManager.getStorageInfo();
+  const storage = await ExpoGaodeMapOfflineModule.getStorageInfo();
   
   if (storage.availableSpace < city.size) {
     Alert.alert(
@@ -523,7 +523,7 @@ const handleDownload = async (city: OfflineMapInfo) => {
     return;
   }
   
-  await OfflineMapManager.startDownload({
+  await ExpoGaodeMapOfflineModule.startDownload({
     cityCode: city.cityCode,
     allowCellular: false,
   });
@@ -534,11 +534,11 @@ const handleDownload = async (city: OfflineMapInfo) => {
 
 ```tsx
 const checkAllUpdates = async () => {
-  const downloaded = await OfflineMapManager.getDownloadedMaps();
+  const downloaded = await ExpoGaodeMapOfflineModule.getDownloadedMaps();
   const updates: string[] = [];
   
   for (const city of downloaded) {
-    const hasUpdate = await OfflineMapManager.checkUpdate(city.cityCode);
+    const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate(city.cityCode);
     if (hasUpdate) {
       updates.push(city.cityName);
     }
