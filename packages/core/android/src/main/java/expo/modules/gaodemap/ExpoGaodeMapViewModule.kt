@@ -14,11 +14,10 @@ class ExpoGaodeMapViewModule : Module() {
       Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
       
       // ✅ 关键修复：拦截 React Native 的视图操作异常
-   
-      OnViewDestroys { view: ExpoGaodeMapView ->
-        // 销毁地图实例,释放资源
-        view.onDestroy()
-      }
+      
+      // 移除 OnViewDestroys 回调，让地图在视图真正释放时才销毁
+      // 这样可以避免页面退出动画未完成时地图就变成白屏的问题
+      // 地图会在 finalize() 或 GC 时通过 finalize() 方法自动清理
 
 
       Prop<Int>("mapType") { view, type ->
