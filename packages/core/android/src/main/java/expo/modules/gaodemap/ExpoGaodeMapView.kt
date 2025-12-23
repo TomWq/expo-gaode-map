@@ -524,10 +524,14 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     /**
      * 移除子视图
+     * 延迟移除 Marker，让它们跟随地图一起延迟销毁
      */
     override fun removeView(child: View?) {
         if (child is MarkerView) {
-            child.removeMarker()
+            // 延迟移除 Marker，与地图的延迟销毁时间一致（500ms）
+            mainHandler.postDelayed({
+                child.removeMarker()
+            }, 500)
             super.removeView(child)
             return
         }
@@ -541,6 +545,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     /**
      * 按索引移除视图
+     * 延迟移除 Marker，让它们跟随地图一起延迟销毁
      */
     override fun removeViewAt(index: Int) {
         try {
@@ -551,7 +556,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             }
 
             if (child is MarkerView) {
-                child.removeMarker()
+                // 延迟移除 Marker，与地图的延迟销毁时间一致（500ms）
+                mainHandler.postDelayed({
+                    child.removeMarker()
+                }, 500)
             }
 
             super.removeViewAt(index)
