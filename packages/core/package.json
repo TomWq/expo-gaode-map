@@ -42,7 +42,10 @@
   },
   "author": "<TomWq>(https://github.com/TomWq)",
   "license": "MIT",
-  "homepage": "https://github.com/TomWq/expo-gaode-map",
+  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "supercluster": "^8.0.1"
   },

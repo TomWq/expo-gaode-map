@@ -36,11 +36,6 @@
   ],
   "author": "TomWq",
   "license": "MIT",
-   "repository": {
-    "type": "git",
-    "url": "https://github.com/TomWq/expo-gaode-map",
-    "directory": "packages/core"
-  },
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo": "^54.0.28",
