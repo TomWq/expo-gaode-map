@@ -600,25 +600,4 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
     }
-
-    /**
-     * 析构函数 - 当视图被垃圾回收时调用
-     * 
-     * 类似于 iOS 的 deinit，在视图真正被释放时才销毁地图
-     * 这样可以避免页面退出动画未完成时地图就变成白屏的问题
-     */
-    protected fun finalize() {
-        try {
-            onDestroy()
-        } catch (e: Exception) {
-            // 静默处理 finalize 中的异常
-            android.util.Log.e("ExpoGaodeMapView", "Error in finalize", e)
-        }
-        try {
-            super.finalize()
-        } catch (e: Exception) {
-            // 静默处理异常
-        }
-    }
-
 }
