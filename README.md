@@ -15,7 +15,7 @@
 - [导航功能](https://TomWq.github.io/expo-gaode-map/guide/navigation.html)
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API 参考](https://TomWq.github.io/expo-gaode-map/api/)
-- [使用示例](https://TomWq.github.io/expo-gaode-map/examples/)
+- [使用示例](https://github.com/TomWq/expo-gaode-map-example)
 
 ## ✨ 主要特性
 
@@ -29,8 +29,10 @@
 - ✅ 同时支持 React Native 新旧架构（Paper & Fabric）
 - ✅ 高测试覆盖率（75.7%，207 个单元测试）
 - ✅ 友好的错误提示系统
-- ✅ **高测试覆盖率**（78.82%，164 个单元测试）
-- ✅ **友好的错误提示系统**（v3.0.0+）- 详细的错误信息和解决方案指引
+- ✅ 支持自定义Marker覆盖物
+- ✅ 默认优化地图加载，减少内存占用
+
+
 
 ### 可选模块
 - 🔍 **搜索功能**（expo-gaode-map-search）- POI 搜索、周边搜索、关键字搜索、地理编码等
