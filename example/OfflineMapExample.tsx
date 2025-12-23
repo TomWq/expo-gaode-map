@@ -16,7 +16,8 @@ import {
   StatusBar,
 } from 'react-native';
 import {
-  OfflineMapManager,
+ 
+  ExpoGaodeMapOfflineModule,
   OfflineMapInfo,
   OfflineMapDownloadEvent,
   OfflineMapCompleteEvent,
@@ -47,9 +48,9 @@ export default function OfflineMapExample() {
       
       // 并发加载数据
       const [availableCities, downloaded, storage] = await Promise.all([
-        OfflineMapManager.getAvailableCities(),
-        OfflineMapManager.getDownloadedMaps(),
-        OfflineMapManager.getStorageInfo(),
+        ExpoGaodeMapOfflineModule.getAvailableCities(),
+        ExpoGaodeMapOfflineModule.getDownloadedMaps(),
+        ExpoGaodeMapOfflineModule.getStorageInfo(),
       ]);
 
       console.log('可用城市数量:', availableCities.length);
@@ -74,7 +75,7 @@ export default function OfflineMapExample() {
     let progressFrame: number | null = null;
     let pendingUpdates: { [key: string]: number } = {};
     
-    const progressSub = OfflineMapManager.addDownloadProgressListener((event: OfflineMapDownloadEvent) => {
+    const progressSub = ExpoGaodeMapOfflineModule.addDownloadProgressListener((event: OfflineMapDownloadEvent) => {
       // 收集待更新的进度
       pendingUpdates[event.cityCode] = event.progress;
       
@@ -92,7 +93,7 @@ export default function OfflineMapExample() {
     });
 
     // 监听下载完成
-    const completeSub = OfflineMapManager.addDownloadCompleteListener((event: OfflineMapCompleteEvent) => {
+    const completeSub = ExpoGaodeMapOfflineModule.addDownloadCompleteListener((event: OfflineMapCompleteEvent) => {
       console.log(`${event.cityName} 下载完成`);
       
       Alert.alert('下载完成', `${event.cityName} 离线地图已下载完成`);
@@ -113,7 +114,7 @@ export default function OfflineMapExample() {
     });
 
     // 监听下载错误
-    const errorSub = OfflineMapManager.addDownloadErrorListener((event: OfflineMapErrorEvent) => {
+    const errorSub = ExpoGaodeMapOfflineModule.addDownloadErrorListener((event: OfflineMapErrorEvent) => {
       console.error(`${event.cityName} 下载失败:`, event.error);
       
       Alert.alert('下载失败', `${event.cityName}: ${event.error}`);
@@ -131,7 +132,7 @@ export default function OfflineMapExample() {
     });
 
     // 监听下载暂停
-    const pausedSub = OfflineMapManager.addDownloadPausedListener((event: OfflineMapPausedEvent) => {
+    const pausedSub = ExpoGaodeMapOfflineModule.addDownloadPausedListener((event: OfflineMapPausedEvent) => {
       console.log(`✅ ${event.cityName} 已暂停`);
       
       setDownloadingCities(prev => {
@@ -149,7 +150,7 @@ export default function OfflineMapExample() {
     });
 
     // 监听下载取消
-    const cancelledSub = OfflineMapManager.addDownloadCancelledListener((event: OfflineMapCancelledEvent) => {
+    const cancelledSub = ExpoGaodeMapOfflineModule.addDownloadCancelledListener((event: OfflineMapCancelledEvent) => {
       console.log(`${event.cityName} 已取消`);
       
       setDownloadingCities(prev => {
@@ -202,7 +203,7 @@ export default function OfflineMapExample() {
       setProgress((prev) => ({ ...prev, [city.cityCode]: 0 }));
 
       // 调用原生下载方法
-      await OfflineMapManager.startDownload({
+      await ExpoGaodeMapOfflineModule.startDownload({
         cityCode: city.cityCode,
         allowCellular: false, // 仅 WiFi 下载
       });
@@ -225,7 +226,7 @@ export default function OfflineMapExample() {
       console.log('🔴 暂停下载:', cityCode);
       
       // 调用原生暂停方法
-      await OfflineMapManager.pauseDownload(cityCode);
+      await ExpoGaodeMapOfflineModule.pauseDownload(cityCode);
       
       console.log('✅ 暂停成功');
     } catch (error) {
@@ -238,7 +239,7 @@ export default function OfflineMapExample() {
   const handleResume = async (cityCode: string) => {
     try {
       setDownloadingCities(prev => new Set(prev).add(cityCode));
-      await OfflineMapManager.resumeDownload(cityCode);
+      await ExpoGaodeMapOfflineModule.resumeDownload(cityCode);
     } catch (error) {
       console.error('恢复失败:', error);
       setDownloadingCities(prev => {
@@ -261,7 +262,7 @@ export default function OfflineMapExample() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await OfflineMapManager.deleteMap(city.cityCode);
+              await ExpoGaodeMapOfflineModule.deleteMap(city.cityCode);
               
               // 立即更新 UI,将城市状态改为未下载
               setCities(prevCities => prevCities.map(c =>
@@ -286,7 +287,7 @@ export default function OfflineMapExample() {
   // 检查更新
   const handleCheckUpdate = async (city: OfflineMapInfo) => {
     try {
-      const hasUpdate = await OfflineMapManager.checkUpdate(city.cityCode);
+      const hasUpdate = await ExpoGaodeMapOfflineModule.checkUpdate(city.cityCode);
       if (hasUpdate) {
         Alert.alert(
           '发现更新',
@@ -297,7 +298,7 @@ export default function OfflineMapExample() {
               text: '更新',
               onPress: async () => {
                 setDownloadingCities(prev => new Set(prev).add(city.cityCode));
-                await OfflineMapManager.updateMap(city.cityCode);
+                await ExpoGaodeMapOfflineModule.updateMap(city.cityCode);
               },
             },
           ]
@@ -455,7 +456,7 @@ export default function OfflineMapExample() {
                   style: 'destructive',
                   onPress: async () => {
                     try {
-                      await OfflineMapManager.clearAllMaps();
+                      await ExpoGaodeMapOfflineModule.clearAllMaps();
                       Alert.alert('成功', '所有离线地图已清除');
                       loadData();
                     } catch (error) {

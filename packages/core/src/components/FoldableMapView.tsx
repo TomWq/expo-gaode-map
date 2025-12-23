@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import ExpoGaodeMapView from '../ExpoGaodeMapView';
-import type { MapViewProps } from '../ExpoGaodeMap.types';
+
 import { PlatformDetector, DeviceInfo, FoldState } from '../utils/PlatformDetector';
+import { MapViewProps } from '../types';
 
 /**
  * 折叠屏适配配置

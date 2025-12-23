@@ -2,7 +2,7 @@
 //  ExpoGaodeMapNaviViewModule.swift
 //  expo-gaode-map-navigation
 //
-//  Created by 王强 on 2025/12/05.
+//  
 //
 
 import ExpoModulesCore

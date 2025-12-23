@@ -1,5 +1,3 @@
-
-
 /**
  * 高德地图 Expo Module 类型定义统一导出
  * 基于 Expo Modules API 重新设计
@@ -13,6 +11,8 @@ export type {
   LatLngBounds,
   CameraPosition,
   ColorValue,
+  SDKConfig,
+  PermissionStatus,
 } from './common.types';
 
 export { MapType } from './common.types';
@@ -24,6 +24,7 @@ export type {
   MapViewProps,
   MapViewMethods,
   MapViewRef,
+  ExpoGaodeMapModuleEvents,
 } from './map-view.types';
 
 // 定位类型

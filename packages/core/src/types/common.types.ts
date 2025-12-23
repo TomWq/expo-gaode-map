@@ -3,6 +3,49 @@
  * 基于 Expo Modules API
  */
 
+
+/**
+ * SDK 配置参数
+ */
+export interface SDKConfig {
+  /** Android 平台的高德地图 API Key */
+  androidKey?: string;
+  /** iOS 平台的高德地图 API Key */
+  iosKey?: string;
+  /** web api key 如果要使用expo-gaode-map-web-api相关的功能，需要配置web api key*/
+  webKey?: string;
+}
+
+/**
+ * 权限状态（增强版，支持 Android 14+ 和 iOS 17+）
+ */
+export interface PermissionStatus {
+  /** 是否已授权（前台位置权限） */
+  granted: boolean;
+  
+  // iOS 专用字段
+  /** iOS 权限状态字符串 */
+  status?: 'notDetermined' | 'restricted' | 'denied' | 'authorizedAlways' | 'authorizedWhenInUse' | 'unknown';
+  
+  // Android 专用字段
+  /** Android 精确位置权限 */
+  fineLocation?: boolean;
+  /** Android 粗略位置权限 */
+  coarseLocation?: boolean;
+  /** Android 后台位置权限（Android 10+） */
+  backgroundLocation?: boolean;
+  /** 是否应显示权限说明（Android） */
+  shouldShowRationale?: boolean;
+  /** 权限是否被永久拒绝（Android） */
+  isPermanentlyDenied?: boolean;
+  /** 是否为 Android 14+（Android） */
+  isAndroid14Plus?: boolean;
+  
+  // 其他字段
+  /** 额外的消息说明 */
+  message?: string;
+}
+
 /**
  * 点坐标（屏幕坐标）
  */
@@ -124,3 +167,6 @@ export enum MapType {
  * - 数字格式: 0xAARRGGBB (用于 Android)
  */
 export type ColorValue = string | number;
+
+
+
