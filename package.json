@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-monorepo",
-  "version": "1.0.1",
+  "version": "2.2.10",
   "private": true,
   "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
@@ -28,16 +28,6 @@
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
-  "keywords": [
-    "monorepo",
-    "expo",
-    "amap",
-    "gaode-map",
-    "高德地图",
-    "react-native"
-  ],
-  "author": "TomWq",
-  "license": "MIT",
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo": "^54.0.28",
@@ -47,7 +37,8 @@
     "typescript": "^5.9.3"
   },
   "workspaces": [
-    "packages/*"
+    "packages/core",
+    "example"
   ],
   "dependencies": {
     "expo": "~54.0.28",

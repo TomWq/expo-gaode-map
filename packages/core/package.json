@@ -46,7 +46,7 @@
   },
   "author": "<TomWq>(https://github.com/TomWq)",
   "license": "MIT",
-  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
+  "homepage": "https://tomwq.github.io/expo-gaode-map/",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
