@@ -35,9 +35,7 @@ public class NaviMapModule: Module {
             if saved {
                 // 同步到 SDK
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
-                print("🔁 ExpoGaodeMap: 已从缓存恢复隐私同意状态: true")
             } else {
-                print("ℹ️ ExpoGaodeMap: 未发现已同意记录，等待用户同意后再使用 SDK")
             }
         }
         
@@ -56,21 +54,17 @@ public class NaviMapModule: Module {
             if hasAgreed {
                 // 同步到 SDK
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
-                print("✅ ExpoGaodeMap: 用户已同意隐私协议，可以使用 SDK（状态已持久化）")
                 
                 // 在用户同意后，如果尚未设置 API Key，则尝试从 Info.plist 读取并设置
                 if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
                     if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
                         AMapServices.shared().apiKey = plistKey
                         AMapServices.shared().enableHTTPS = true
-                        print("✅ ExpoGaodeMap: 从 Info.plist 读取并设置 AMapApiKey 成功")
                     } else {
-                        print("⚠️ ExpoGaodeMap: Info.plist 未找到 AMapApiKey，后续需通过 initSDK 提供 iosKey")
                     }
                 }
             } else {
                 MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.notAgree)
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，SDK 功能将受限（状态已持久化）")
             }
         }
         
@@ -83,7 +77,6 @@ public class NaviMapModule: Module {
         Function("initSDK") { (config: [String: String]) in
             // 检查是否已同意隐私协议
             if !NaviMapModule.privacyAgreed {
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法初始化 SDK")
                 return
             }
             
@@ -93,12 +86,10 @@ public class NaviMapModule: Module {
             if finalKey == nil {
                 if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
                     finalKey = plistKey
-                    print("ℹ️ ExpoGaodeMap: initSDK 未提供 iosKey，已从 Info.plist 使用 AMapApiKey")
                 }
             }
             
             guard let keyToUse = finalKey, !keyToUse.isEmpty else {
-                print("⚠️ ExpoGaodeMap: 未提供 iosKey 且 Info.plist 中也无 AMapApiKey，无法初始化 SDK")
                 return
             }
             
@@ -111,7 +102,6 @@ public class NaviMapModule: Module {
             // 初始化定位管理器（触发原生侧懒加载）
             self.getLocationManager()
             
-            print("✅ ExpoGaodeMap: 已设置 API Key 并完成初始化（来源：\(providedKey != nil ? "入参 iosKey" : "Info.plist")）")
         }
         
         /**
@@ -129,13 +119,11 @@ public class NaviMapModule: Module {
         Function("start") {
             // 检查隐私协议状态
             if !NaviMapModule.privacyAgreed {
-                print("⚠️ ExpoGaodeMap: 用户未同意隐私协议，无法开始定位")
                 return
             }
             
             // 检查是否已设置 API Key
             if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
-                print("⚠️ ExpoGaodeMap: 未设置 API Key，无法开始定位")
                 return
             }
             

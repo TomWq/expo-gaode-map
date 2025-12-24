@@ -1,0 +1,250 @@
+# 几何计算 API
+
+完整的几何计算工具 API 文档。
+
+> 💡 **提示**: 几何计算 API 用于处理地图上的距离、面积和点位关系计算,支持多种实用场景。
+
+## API 列表
+
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `distanceBetweenCoordinates` | `from: LatLng, to: LatLng` | `Promise<number>` | 计算两点距离(米) |
+| `calculatePolygonArea` | `coordinates: LatLng[]` | `Promise<number>` | 计算多边形面积(平方米) |
+| `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `Promise<number>` | 计算矩形面积(平方米) |
+| `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `Promise<boolean>` | 判断点是否在多边形内 |
+| `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `Promise<boolean>` | 判断点是否在圆内 |
+
+## 距离计算
+
+### distanceBetweenCoordinates
+
+计算两个坐标点之间的直线距离。
+
+```tsx
+import { ExpoGaodeMapModule } from '@gaomap/core';
+
+const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+  { latitude: 39.90923, longitude: 116.397428 }, // 天安门
+  { latitude: 39.916527, longitude: 116.397545 }  // 故宫
+);
+console.log(`距离: ${distance.toFixed(2)} 米`);
+// 输出: 距离: 823.45 米
+```
+
+**参数说明**:
+- `from`: 起始坐标点 `{ latitude: number, longitude: number }`
+- `to`: 目标坐标点 `{ latitude: number, longitude: number }`
+
+**返回值**: `Promise<number>` - 两点之间的距离(单位:米)
+
+## 面积计算
+
+### calculatePolygonArea
+
+计算任意多边形的面积,支持三角形、四边形及更复杂的多边形。
+
+```tsx
+// 计算不规则四边形面积
+const area = await ExpoGaodeMapModule.calculatePolygonArea([
+  { latitude: 39.923, longitude: 116.391 },  // 西北角
+  { latitude: 39.923, longitude: 116.424 },  // 东北角
+  { latitude: 39.886, longitude: 116.424 },  // 东南角
+  { latitude: 39.886, longitude: 116.391 },  // 西南角
+]);
+console.log(`面积: ${(area / 1000000).toFixed(2)} 平方公里`);
+// 输出: 面积: 13.51 平方公里
+
+// 计算三角形面积
+const triangleArea = await ExpoGaodeMapModule.calculatePolygonArea([
+  { latitude: 39.923, longitude: 116.391 },
+  { latitude: 39.923, longitude: 116.424 },
+  { latitude: 39.886, longitude: 116.408 },
+]);
+```
+
+**参数说明**:
+- `coordinates`: 多边形顶点坐标数组(至少3个点)
+  - 按顺时针或逆时针顺序排列
+  - 自动闭合,无需重复第一个点
+
+**返回值**: `Promise<number>` - 多边形面积(单位:平方米)
+
+### calculateRectangleArea
+
+计算矩形面积的优化方法,比 `calculatePolygonArea` 更简单快捷。
+
+```tsx
+const area = await ExpoGaodeMapModule.calculateRectangleArea(
+  { latitude: 39.886, longitude: 116.391 },  // 西南角
+  { latitude: 39.923, longitude: 116.424 }   // 东北角
+);
+console.log(`矩形面积: ${(area / 1000000).toFixed(2)} 平方公里`);
+// 输出: 矩形面积: 13.51 平方公里
+```
+
+**参数说明**:
+- `southWest`: 矩形西南角坐标
+- `northEast`: 矩形东北角坐标
+
+**返回值**: `Promise<number>` - 矩形面积(单位:平方米)
+
+## 空间关系判断
+
+### isPointInPolygon
+
+判断一个点是否在多边形区域内部。
+
+```tsx
+// 定义多边形区域
+const polygon = [
+  { latitude: 39.923, longitude: 116.391 },
+  { latitude: 39.923, longitude: 116.424 },
+  { latitude: 39.886, longitude: 116.424 },
+  { latitude: 39.886, longitude: 116.391 },
+];
+
+// 检测点是否在区域内
+const point1 = { latitude: 39.9, longitude: 116.4 };
+const isInside1 = await ExpoGaodeMapModule.isPointInPolygon(point1, polygon);
+console.log(`点 (39.9, 116.4) 是否在区域内: ${isInside1}`);
+// 输出: 点 (39.9, 116.4) 是否在区域内: true
+
+// 检测区域外的点
+const point2 = { latitude: 40.0, longitude: 117.0 };
+const isInside2 = await ExpoGaodeMapModule.isPointInPolygon(point2, polygon);
+console.log(`点 (40.0, 117.0) 是否在区域内: ${isInside2}`);
+// 输出: 点 (40.0, 117.0) 是否在区域内: false
+```
+
+**参数说明**:
+- `point`: 要检测的坐标点
+- `polygon`: 多边形顶点坐标数组
+
+**返回值**: `Promise<boolean>` - `true` 表示点在多边形内,`false` 表示不在
+
+### isPointInCircle
+
+判断一个点是否在圆形区域内。
+
+```tsx
+// 定义圆形区域(圆心在天安门,半径1000米)
+const center = { latitude: 39.90923, longitude: 116.397428 };
+const radius = 1000; // 1公里
+
+// 检测故宫是否在1公里范围内
+const gugong = { latitude: 39.916527, longitude: 116.397545 };
+const isNearby = await ExpoGaodeMapModule.isPointInCircle(gugong, center, radius);
+console.log(`故宫是否在1公里范围内: ${isNearby}`);
+// 输出: 故宫是否在1公里范围内: true
+```
+
+**参数说明**:
+- `point`: 要检测的坐标点
+- `center`: 圆心坐标
+- `radius`: 半径(单位:米)
+
+**返回值**: `Promise<boolean>` - `true` 表示点在圆内,`false` 表示不在
+
+## 使用场景
+
+### 1. 距离计算
+- 计算用户到目标地点的距离
+- 显示附近POI的距离信息
+- 路径规划距离估算
+
+### 2. 面积计算
+- 计算地块面积(农田、建筑用地等)
+- 区域规划面积统计
+- 房产面积估算
+
+### 3. 地理围栏
+- 判断用户是否进入/离开某个区域
+- 检测POI是否在服务范围内
+- 区域碰撞检测
+
+### 4. 位置分析
+- 分析用户活动范围
+- 统计区域内的设施数量
+- 热力图数据处理
+
+## 注意事项
+
+1. **坐标系统**: 所有坐标默认使用高德坐标系(GCJ-02)
+2. **性能考虑**: 对于复杂多边形(>100个顶点),计算可能需要较长时间
+3. **精度问题**: 由于地球曲率,超大范围的计算可能存在误差
+4. **边界情况**: 点在多边形边界上时,不同平台可能返回不同结果
+
+## 完整示例
+
+```tsx
+import React, { useState } from 'react';
+import { View, Text, Button, ScrollView } from 'react-native';
+import { ExpoGaodeMapModule } from '@gaomap/core';
+
+export default function GeometryExample() {
+  const [results, setResults] = useState<string[]>([]);
+
+  const runCalculations = async () => {
+    const newResults: string[] = [];
+
+    // 1. 计算两点距离
+    const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+      { latitude: 39.90923, longitude: 116.397428 },
+      { latitude: 39.916527, longitude: 116.397545 }
+    );
+    newResults.push(`天安门到故宫距离: ${distance.toFixed(2)}米`);
+
+    // 2. 计算多边形面积
+    const polygon = [
+      { latitude: 39.923, longitude: 116.391 },
+      { latitude: 39.923, longitude: 116.424 },
+      { latitude: 39.886, longitude: 116.424 },
+      { latitude: 39.886, longitude: 116.391 },
+    ];
+    const polygonArea = await ExpoGaodeMapModule.calculatePolygonArea(polygon);
+    newResults.push(`多边形面积: ${(polygonArea / 1000000).toFixed(2)}平方公里`);
+
+    // 3. 计算矩形面积
+    const rectArea = await ExpoGaodeMapModule.calculateRectangleArea(
+      { latitude: 39.886, longitude: 116.391 },
+      { latitude: 39.923, longitude: 116.424 }
+    );
+    newResults.push(`矩形面积: ${(rectArea / 1000000).toFixed(2)}平方公里`);
+
+    // 4. 判断点是否在多边形内
+    const testPoint = { latitude: 39.9, longitude: 116.4 };
+    const isInPolygon = await ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
+    newResults.push(`点(39.9,116.4)在多边形内: ${isInPolygon}`);
+
+    // 5. 判断点是否在圆内
+    const center = { latitude: 39.90923, longitude: 116.397428 };
+    const isInCircle = await ExpoGaodeMapModule.isPointInCircle(
+      testPoint,
+      center,
+      10000 // 10公里
+    );
+    newResults.push(`点在10公里圆内: ${isInCircle}`);
+
+    setResults(newResults);
+  };
+
+  return (
+    <View style={{ padding: 20 }}>
+      <Button title="运行几何计算" onPress={runCalculations} />
+      <ScrollView style={{ marginTop: 20 }}>
+        {results.map((result, index) => (
+          <Text key={index} style={{ marginTop: 10 }}>
+            {result}
+          </Text>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+```
+
+## 相关文档
+
+- [坐标类型定义](/api/types#latlng)
+- [定位 API](/api/location)
+- [几何计算示例](/examples/geometry)

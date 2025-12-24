@@ -320,22 +320,18 @@ class MarkerView: ExpoView {
                 guard let self = self, let annotationView = annotationView else { return }
                 // 再次检查缓存（避免重复渲染）
                 if let cached = IconBitmapCache.shared.image(forKey: key) {
-                    print("🔄 iOS Marker: 使用缓存图片, key: \(key)")
                     annotationView.image = cached
                     annotationView.centerOffset = CGPoint(x: 0, y: 0)
                     return
                 }
                 
-                print("⏰ iOS Marker: 0.5秒后开始渲染, key: \(key)")
                 // 调用你的原生渲染逻辑（保留空白检测、多次 layout）
                 if let generated = self.createImageFromSubviews() {
                     // 写入缓存（仅当用户传了 cacheKey 才缓存；否则建议仍缓存由 fingerprint 决定）
                     IconBitmapCache.shared.setImage(generated, forKey: key)
                     annotationView.image = generated
                     annotationView.centerOffset = CGPoint(x: 0, y: 0)
-                    print("✅ iOS Marker: 渲染成功并显示, size: \(generated.size)")
                 } else {
-                    print("⚠️ iOS Marker: 渲染失败,图片为空")
                 }
             }
 
@@ -503,33 +499,7 @@ class MarkerView: ExpoView {
             return nil
         }
         
-        // 🔑 检查图片是否真的有内容（不是空白图片）
-        // 暂时禁用空白检测,因为 React Native Image 可能需要额外的渲染时间
-        // guard let cgImage = image.cgImage else {
-        //     print("⚠️ iOS Marker: cgImage 为 nil")
-        //     return nil
-        // }
-        
-        // let dataProvider = cgImage.dataProvider
-        // let data = dataProvider?.data
-        // let buffer = CFDataGetBytePtr(data)
-        
-        // var isBlank = true
-        // if let buffer = buffer {
-        //     let length = CFDataGetLength(data)
-        //     let checkLength = min(100, length)
-        //     for i in 0..<checkLength {
-        //         if buffer[i] != 0 {
-        //             isBlank = false
-        //             break
-        //         }
-        //     }
-        // }
-        
-        // if isBlank {
-        //     print("⚠️ iOS Marker: 渲染的图片是空白的")
-        //     return nil
-        // }
+   
         
         // 🔑 写入缓存
         if let key = cacheKey {

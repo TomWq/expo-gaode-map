@@ -152,7 +152,7 @@ Config Plugin 会自动配置原生项目，包括 API Key、权限、隐私合�
 ### SDK 初始化
 
 ::: tip Config Plugin 自动配置
-如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**initSDK 可以传空对象**（更安全）。但如果需要使用 Web API 功能，仍需传入 `webKey`。
+如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**initSDK 可以不用调用**。但如果需要使用 Web API 功能，仍需传入 `webKey`。
 :::
 
 ```tsx
@@ -161,8 +161,6 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 useEffect(() => {
   // 使用 Config Plugin 时，原生 Key 已自动配置，无需调用也可以除非需要使用 Web API
   ExpoGaodeMapModule.initSDK({
-    androidKey: '',
-    iosKey: '',
     webKey: 'your-web-api-key', // 仅在使用 Web API 服务时需要
   });
 }, []);

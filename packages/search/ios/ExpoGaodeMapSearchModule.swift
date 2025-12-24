@@ -231,7 +231,6 @@ public class ExpoGaodeMapSearchModule: Module {
       searchAPI.delegate = searchDelegate
       
       let apiKey = AMapServices.shared().apiKey
-      print("[ExpoGaodeMapSearch] 搜索 API 已初始化，API Key: \(apiKey ?? "未设置")")
     }
   }
   
@@ -242,7 +241,6 @@ public class ExpoGaodeMapSearchModule: Module {
   private func ensureAPIKeyIsSet() {
     // 1. 检查是否已经设置（通过 initSDK 或 AppDelegate）
     if let existingKey = AMapServices.shared().apiKey, !existingKey.isEmpty {
-      print("[ExpoGaodeMapSearch] ✓ API Key 已设置")
       return
     }
     
@@ -250,16 +248,10 @@ public class ExpoGaodeMapSearchModule: Module {
     if let apiKey = Bundle.main.object(forInfoDictionaryKey: "AMapApiKey") as? String, !apiKey.isEmpty {
       AMapServices.shared().apiKey = apiKey
       AMapServices.shared().enableHTTPS = true
-      print("[ExpoGaodeMapSearch] ✓ 从 Info.plist 读取并设置 API Key")
       return
     }
     
-    // 3. 都没有，提示错误
-    print("[ExpoGaodeMapSearch] ✗ 错误: API Key 未设置！")
-    print("[ExpoGaodeMapSearch] 请通过以下任一方式设置：")
-    print("[ExpoGaodeMapSearch]   1. 在 app.json 的 plugins 中配置 iosApiKey（推荐）")
-    print("[ExpoGaodeMapSearch]   2. 调用 ExpoGaodeMap.initSDK({ iosKey: 'your-key' })")
-    print("[ExpoGaodeMapSearch]   3. 在 AppDelegate 中调用 [AMapServices sharedServices].apiKey = @\"your-key\"")
+   
   }
 }
 

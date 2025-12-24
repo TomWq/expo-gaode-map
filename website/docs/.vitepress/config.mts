@@ -43,6 +43,7 @@ export default defineConfig({
                 { text: 'API 总览', link: '/api/' },
                 { text: 'MapView Props', link: '/api/mapview' },
                 { text: '定位 API', link: '/api/location' },
+                { text: '几何计算', link: '/api/geometry' },
                 { text: '覆盖物', link: '/api/overlays' },
                 { text: '类型定义', link: '/api/types' }
               ]
@@ -64,6 +65,7 @@ export default defineConfig({
                 { text: '示例总览', link: '/examples/' },
                 { text: '基础地图', link: '/examples/basic-map' },
                 { text: '定位追踪', link: '/examples/location-tracking' },
+                { text: '几何计算', link: '/examples/geometry' },
                 { text: '覆盖物', link: '/examples/overlays' },
                 { text: '搜索功能', link: '/examples/search' }
               ]
@@ -112,6 +114,7 @@ export default defineConfig({
                 { text: 'API Overview', link: '/en/api/' },
                 { text: 'MapView Props', link: '/en/api/mapview' },
                 { text: 'Location API', link: '/en/api/location' },
+                { text: 'Geometry Utils', link: '/en/api/geometry' },
                 { text: 'Overlays', link: '/en/api/overlays' },
                 { text: 'Type Definitions', link: '/en/api/types' }
               ]

@@ -51,7 +51,7 @@ public class ExpoGaodeMapModule: Module {
                 let isPreloading = (status["isPreloading"] as? Bool) ?? false
                 
                 if !MapPreloadManager.shared.hasPreloadedMapView() && !isPreloading {
-                    print("🚀 ExpoGaodeMap: 自动启动地图预加载")
+                   
                     MapPreloadManager.shared.startPreload(poolSize: poolSize)
                 }
             }
@@ -569,7 +569,7 @@ public class ExpoGaodeMapModule: Module {
          * @returns 面积（单位：平方米）
          */
         AsyncFunction("calculatePolygonArea") { (polygon: [[String: Double]], promise: Promise) in
-            print("📐 calculatePolygonArea 被调用，参数: \(polygon)")
+         
             
             let polygonCoords = polygon.compactMap { coord -> CLLocationCoordinate2D? in
                 guard let lat = coord["latitude"],
@@ -579,7 +579,7 @@ public class ExpoGaodeMapModule: Module {
                 return CLLocationCoordinate2D(latitude: lat, longitude: lon)
             }
             
-            print("📐 转换后的坐标数: \(polygonCoords.count)")
+   
             
             guard polygonCoords.count >= 3 else {
                 promise.reject("INVALID_ARGUMENT", "多边形至少需要3个顶点")
@@ -590,10 +590,10 @@ public class ExpoGaodeMapModule: Module {
             let area = polygonCoords.withUnsafeBufferPointer { buffer in
                 let mutablePointer = UnsafeMutablePointer<CLLocationCoordinate2D>(mutating: buffer.baseAddress!)
                 let result = MAAreaForPolygon(mutablePointer, Int32(polygonCoords.count))
-                print("📐 MAAreaForPolygon 结果: \(result)")
+              
                 return result
             }
-            print("📐 最终面积: \(area)")
+          
             promise.resolve(area)
         }
         
@@ -604,7 +604,7 @@ public class ExpoGaodeMapModule: Module {
          * @returns 面积（单位：平方米）
          */
         AsyncFunction("calculateRectangleArea") { (southWest: [String: Double], northEast: [String: Double], promise: Promise) in
-            print("📐 calculateRectangleArea 被调用，参数: sw=\(southWest), ne=\(northEast)")
+          
             
             guard let swLat = southWest["latitude"],
                   let swLon = southWest["longitude"],
@@ -624,9 +624,9 @@ public class ExpoGaodeMapModule: Module {
                 MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: neLat, longitude: swLon))
             )
             
-            print("📐 宽: \(width), 高: \(height)")
+            
             let area = width * height
-            print("📐 最终面积: \(area)")
+            
             promise.resolve(area)
         }
         

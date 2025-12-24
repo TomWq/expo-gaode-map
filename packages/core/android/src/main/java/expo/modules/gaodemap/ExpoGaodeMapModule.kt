@@ -575,7 +575,7 @@ class ExpoGaodeMapModule : Module() {
      */
     AsyncFunction("calculatePolygonArea") { polygon: List<Map<String, Double>>, promise: expo.modules.kotlin.Promise ->
       try {
-        android.util.Log.d("ExpoGaodeMap", "📐 calculatePolygonArea 被调用，参数: $polygon")
+        
         
         if (polygon.size < 3) {
           return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Polygon must have at least 3 vertices", null)
@@ -591,7 +591,7 @@ class ExpoGaodeMapModule : Module() {
           }
         }
 
-        android.util.Log.d("ExpoGaodeMap", "📐 转换后的坐标数: ${polygonPoints.size}")
+     
         
         if (polygonPoints.size < 3) {
           return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid polygon coordinates", null)
@@ -599,7 +599,7 @@ class ExpoGaodeMapModule : Module() {
 
         // 使用高德官方 API 计算多边形面积
         val area = AMapUtils.calculateArea(polygonPoints)
-        android.util.Log.d("ExpoGaodeMap", "📐 AMapUtils.calculateArea 结果: $area")
+       
         promise.resolve(area)
       } catch (e: Exception) {
         android.util.Log.e("ExpoGaodeMap", "📐 calculatePolygonArea 错误: ${e.message}", e)
@@ -615,7 +615,6 @@ class ExpoGaodeMapModule : Module() {
      */
     AsyncFunction("calculateRectangleArea") { southWest: Map<String, Double>, northEast: Map<String, Double>, promise: expo.modules.kotlin.Promise ->
       try {
-        android.util.Log.d("ExpoGaodeMap", "📐 calculateRectangleArea 被调用，参数: sw=$southWest, ne=$northEast")
         
         val swLat = southWest["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid southWest latitude", null)
         val swLon = southWest["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid southWest longitude", null)
@@ -631,7 +630,7 @@ class ExpoGaodeMapModule : Module() {
         )
 
         val area = AMapUtils.calculateArea(rectangle)
-        android.util.Log.d("ExpoGaodeMap", "📐 calculateRectangleArea 结果: $area")
+        
         promise.resolve(area)
       } catch (e: Exception) {
         android.util.Log.e("ExpoGaodeMap", "📐 calculateRectangleArea 错误: ${e.message}", e)

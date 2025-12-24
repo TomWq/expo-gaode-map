@@ -24,7 +24,6 @@ public class ExpoGaodeMapNaviView: ExpoView {
         // 从 Info.plist 读取到了 Key,设置到 SDK
         AMapServices.shared().apiKey = infoPlistKey
         apiKey = infoPlistKey
-        print("✅ [ExpoGaodeMapNaviView] 已从 Info.plist 读取并设置高德地图 API Key")
       }
     }
     
@@ -176,7 +175,6 @@ public class ExpoGaodeMapNaviView: ExpoView {
       try checkAMapInitialization()
     } catch {
       let errorMessage = formatError(error)
-      print("⚠️ [ExpoGaodeMapNaviView] 初始化失败: \(errorMessage)")
       // 触发初始化失败事件
       DispatchQueue.main.async {
         self.onNavigationFailed([

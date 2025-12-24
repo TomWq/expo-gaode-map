@@ -37,7 +37,6 @@ public class ExpoGaodeMapNavigationModule: Module {
         // 从 Info.plist 读取到了 Key,设置到 SDK
         AMapServices.shared().apiKey = infoPlistKey
         apiKey = infoPlistKey
-        print("✅ [ExpoGaodeMapNavigation] 已从 Info.plist 读取并设置高德地图 API Key")
       }
     }
     
@@ -96,7 +95,6 @@ public class ExpoGaodeMapNavigationModule: Module {
         return true
       } catch {
         let errorMessage = self.formatError(error)
-        print("⚠️ [ExpoGaodeMapNavigation] 初始化失败: \(errorMessage)")
         throw error
       }
     }
@@ -109,7 +107,6 @@ public class ExpoGaodeMapNavigationModule: Module {
       self.walkRideCalculator = nil
       self.independentRouteService = nil
       self.independentRouteManager.clearAll()
-      print("✅ [ExpoGaodeMapNavigation] 已清理所有路径计算器实例")
     }
     
     // ---------------- 1. 驾车/货车 路线规划 ----------------

@@ -28,7 +28,7 @@ useEffect(() => {
 ```
 
 ::: tip Config Plugin 自动配置
-如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**initSDK 可以传空对象或只传 webKey**（更安全）。
+如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**initSDK 可以不调用或只传 webKey**（更安全）。
 
 ```tsx
 // 使用 Config Plugin 时
@@ -36,8 +36,6 @@ ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
 });
 
-// 或传空对象（如果不使用 Web API）
-ExpoGaodeMapModule.initSDK({});
 ```
 :::
 

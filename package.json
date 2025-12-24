@@ -1,7 +1,7 @@
 {
   "name": "expo-gaode-map-monorepo",
   "version": "1.0.1",
-  "private": false,
+  "private": true,
   "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
     "build": "pnpm -r --filter './packages/*' run build",
@@ -32,7 +32,9 @@
     "monorepo",
     "expo",
     "amap",
-    "gaode-map"
+    "gaode-map",
+    "高德地图",
+    "react-native"
   ],
   "author": "TomWq",
   "license": "MIT",

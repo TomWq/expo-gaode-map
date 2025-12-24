@@ -43,7 +43,7 @@ class MapPreloadManager {
     private var cleanupTimer: Timer?
 
     private init() {
-        print("🔧 [MapPreload] 初始化预加载管理器（自适应版本）")
+     
         
         // 注册内存警告监听
         NotificationCenter.default.addObserver(
@@ -79,13 +79,12 @@ class MapPreloadManager {
         }
         
         if expiredCount > 0 {
-            print("🧹 [MapPreload] 清理了 \(expiredCount) 个过期实例（当前TTL: \(Int(currentTTL))秒）")
         }
     }
     
     /// 处理内存警告
     @objc private func handleMemoryWarning() {
-        print("⚠️ [MapPreload] 收到内存警告，自动清理预加载池")
+      
         clearPool()
     }
     
@@ -93,7 +92,7 @@ class MapPreloadManager {
     /// - Parameter poolSize: 预加载的地图实例数量（会根据内存自适应调整）
     func startPreload(poolSize: Int) {
         guard !isPreloading else {
-            print("⚠️ [MapPreload] 预加载已在进行中")
+         
             return
         }
         
@@ -106,13 +105,12 @@ class MapPreloadManager {
         
         // 检查内存是否充足
         guard hasEnoughMemory() else {
-            print("⚠️ [MapPreload] 内存不足，跳过预加载")
+           
             return
         }
         
         isPreloading = true
         let targetSize = min(poolSize, adaptiveMaxPoolSize)
-        print("🚀 [MapPreload] 开始预加载 \(targetSize) 个地图实例 (自适应池大小: \(adaptiveMaxPoolSize), TTL: \(Int(currentTTL))秒)")
         
         for i in 0..<targetSize {
             preloadGroup.enter()  // 进入预加载队列
@@ -127,7 +125,6 @@ class MapPreloadManager {
                     DispatchQueue.main.async {
                         let instance = PreloadedMapInstance(mapView: mapView, timestamp: Date())
                         self.preloadedMapInstances.append(instance)
-                        print("✅ [MapPreload] 预加载实例 \(i + 1)/\(targetSize) 完成")
                         self.preloadGroup.leave()
                     }
                 }
@@ -137,7 +134,6 @@ class MapPreloadManager {
         // 等待所有实例加载完成
         preloadGroup.notify(queue: DispatchQueue.main) {
             self.isPreloading = false
-            print("🎉 [MapPreload] 所有实例预加载完成")
         }
     }
     
@@ -191,16 +187,12 @@ class MapPreloadManager {
         
         switch availableMB {
         case 500...:
-            print("📊 [MapPreload] 高内存设备 (\(availableMB)MB)，池大小: \(maxPoolSizeHighMemory)")
             return maxPoolSizeHighMemory
         case 300..<500:
-            print("📊 [MapPreload] 中等内存设备 (\(availableMB)MB)，池大小: \(maxPoolSizeMediumMemory)")
             return maxPoolSizeMediumMemory
         case 150..<300:
-            print("📊 [MapPreload] 低内存设备 (\(availableMB)MB)，池大小: \(maxPoolSizeLowMemory)")
             return maxPoolSizeLowMemory
         default:
-            print("⚠️ [MapPreload] 内存极低 (\(availableMB)MB)，禁用预加载")
             return 0
         }
     }
@@ -215,15 +207,12 @@ class MapPreloadManager {
         switch usagePercent {
         case 0..<60:
             memoryPressureLevel = 0
-            print("📊 [MapPreload] 内存充足 (使用率: \(usagePercent)%)，TTL: \(Int(ttlNormal))秒")
             return ttlNormal
         case 60..<80:
             memoryPressureLevel = 1
-            print("📊 [MapPreload] 内存压力 (使用率: \(usagePercent)%)，TTL: \(Int(ttlMemoryPressure))秒")
             return ttlMemoryPressure
         default:
             memoryPressureLevel = 2
-            print("⚠️ [MapPreload] 内存严重不足 (使用率: \(usagePercent)%)，TTL: \(Int(ttlLowMemory))秒")
             return ttlLowMemory
         }
     }
@@ -266,18 +255,15 @@ class MapPreloadManager {
         preloadedMapInstances.removeAll { instance in
             let isExpired = now.timeIntervalSince(instance.timestamp) > currentTTL
             if isExpired {
-                print("🗑️ [MapPreload] 预加载实例已过期（TTL: \(Int(currentTTL))秒），已删除")
             }
             return isExpired
         }
         
         if let instance = preloadedMapInstances.first {
             preloadedMapInstances.removeFirst()
-            print("📤 [MapPreload] 使用预加载实例，剩余: \(preloadedMapInstances.count)")
             return instance.mapView
         }
         
-        print("⚠️ [MapPreload] 预加载池为空，返回 nil")
         return nil
     }
     
@@ -285,7 +271,6 @@ class MapPreloadManager {
     func clearPool() {
         let count = preloadedMapInstances.count
         preloadedMapInstances.removeAll()
-        print("🗑️ [MapPreload] 预加载池已清空，清理了 \(count) 个实例")
     }
     
     /// 获取预加载状态（包含动态配置信息）
@@ -328,7 +313,6 @@ class MapPreloadManager {
         cleanupTimer?.invalidate()
         cleanupTimer = nil
         clearPool()
-        print("🧹 [MapPreload] 预加载管理器已清理")
     }
     
     deinit {
