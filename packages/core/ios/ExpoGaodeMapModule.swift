@@ -2,6 +2,7 @@ import ExpoModulesCore
 import AMapFoundationKit
 import AMapLocationKit
 import MAMapKit
+import CoreLocation
 
 /**
  * 高德地图 Expo 模块
@@ -223,7 +224,6 @@ public class ExpoGaodeMapModule: Module {
                 promise.reject("LOCATION_ERROR", "location unauthorized")
             }
         }
-
         
         /**
          * 坐标转换
@@ -417,25 +417,19 @@ public class ExpoGaodeMapModule: Module {
         }
         
         /**
-         * 打开应用设置页面
-         * 引导用户手动授予权限
+         * 检查是否有可用的预加载实例
+         * @return 是否有可用实例
          */
-        Function("openAppSettings") {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                if UIApplication.shared.canOpenURL(url) {
-                    UIApplication.shared.open(url, options: [:], completionHandler: nil)
-                }
-            }
+        Function("hasPreloadedMapView") {
+            MapPreloadManager.shared.hasPreloadedMapView()
         }
-        
-        // ==================== 地图预加载 ====================
         
         /**
          * 开始预加载地图实例
          * @param config 预加载配置对象,包含 poolSize
          */
         Function("startMapPreload") { (config: [String: Any]) in
-            let poolSize = config["poolSize"] as? Int ?? 2
+            let poolSize = (config["poolSize"] as? Int) ?? 2
             MapPreloadManager.shared.startPreload(poolSize: poolSize)
         }
         
@@ -455,11 +449,175 @@ public class ExpoGaodeMapModule: Module {
         }
         
         /**
-         * 检查是否有可用的预加载实例
-         * @return 是否有可用实例
+         * 获取预加载性能统计
+         * @return 性能统计信息
          */
-        Function("hasPreloadedMapView") {
-            MapPreloadManager.shared.hasPreloadedMapView()
+        Function("getMapPreloadPerformanceMetrics") {
+            MapPreloadManager.shared.getPerformanceMetrics()
+        }
+        
+        /**
+         * 打开应用设置页面（引导用户手动授予权限）
+         */
+        Function("openAppSettings") {
+            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsUrl)
+            }
+        }
+        
+        // ==================== 几何计算工具 ====================
+        
+        /**
+         * 计算两个坐标点之间的距离
+         * @param coordinate1 第一个坐标点
+         * @param coordinate2 第二个坐标点
+         * @returns 两点之间的距离（单位：米）
+         */
+        AsyncFunction("distanceBetweenCoordinates") { (coordinate1: [String: Double], coordinate2: [String: Double], promise: Promise) in
+            guard let lat1 = coordinate1["latitude"],
+                  let lon1 = coordinate1["longitude"],
+                  let lat2 = coordinate2["latitude"],
+                  let lon2 = coordinate2["longitude"] else {
+                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
+                return
+            }
+            
+            let coord1 = CLLocationCoordinate2D(latitude: lat1, longitude: lon1)
+            let coord2 = CLLocationCoordinate2D(latitude: lat2, longitude: lon2)
+            
+            let distance = MAMetersBetweenMapPoints(MAMapPointForCoordinate(coord1), MAMapPointForCoordinate(coord2))
+            promise.resolve(distance)
+        }
+        
+       
+        
+        /**
+         * 判断点是否在圆内
+         * @param point 要判断的点
+         * @param center 圆心坐标
+         * @param radius 圆半径（单位：米）
+         * @returns 是否在圆内
+         */
+        AsyncFunction("isPointInCircle") { (point: [String: Double], center: [String: Double], radius: Double, promise: Promise) in
+            guard let pointLat = point["latitude"],
+                  let pointLon = point["longitude"],
+                  let centerLat = center["latitude"],
+                  let centerLon = center["longitude"] else {
+                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
+                return
+            }
+            
+            let isInside = MACircleContainsCoordinate(
+                CLLocationCoordinate2D(latitude: pointLat, longitude: pointLon),
+                CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
+                radius
+            )
+            promise.resolve(isInside)
+        }
+        
+        /**
+         * 判断点是否在多边形内
+         * @param point 要判断的点
+         * @param polygon 多边形的顶点坐标数组
+         * @returns 是否在多边形内
+         */
+        AsyncFunction("isPointInPolygon") { (point: [String: Double], polygon: [[String: Double]], promise: Promise) in
+            guard let pointLat = point["latitude"],
+                  let pointLon = point["longitude"] else {
+                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
+                return
+            }
+            
+            let polygonCoords = polygon.compactMap { coord -> CLLocationCoordinate2D? in
+                guard let lat = coord["latitude"],
+                      let lon = coord["longitude"] else {
+                    return nil
+                }
+                return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            }
+            
+            guard polygonCoords.count >= 3 else {
+                promise.reject("INVALID_ARGUMENT", "多边形至少需要3个顶点")
+                return
+            }
+            
+            // 使用高德官方 API MAPolygonContainsCoordinate
+            let isInside = polygonCoords.withUnsafeBufferPointer { buffer in
+                let mutablePointer = UnsafeMutablePointer<CLLocationCoordinate2D>(mutating: buffer.baseAddress!)
+                return MAPolygonContainsCoordinate(
+                    CLLocationCoordinate2D(latitude: pointLat, longitude: pointLon),
+                    mutablePointer,
+                    UInt(polygonCoords.count)
+                )
+            }
+            promise.resolve(isInside)
+        }
+        
+        /**
+         * 计算多边形面积
+         * @param polygon 多边形的顶点坐标数组
+         * @returns 面积（单位：平方米）
+         */
+        AsyncFunction("calculatePolygonArea") { (polygon: [[String: Double]], promise: Promise) in
+            print("📐 calculatePolygonArea 被调用，参数: \(polygon)")
+            
+            let polygonCoords = polygon.compactMap { coord -> CLLocationCoordinate2D? in
+                guard let lat = coord["latitude"],
+                      let lon = coord["longitude"] else {
+                    return nil
+                }
+                return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            }
+            
+            print("📐 转换后的坐标数: \(polygonCoords.count)")
+            
+            guard polygonCoords.count >= 3 else {
+                promise.reject("INVALID_ARGUMENT", "多边形至少需要3个顶点")
+                return
+            }
+            
+            // 使用高德官方 API MAAreaForPolygon
+            let area = polygonCoords.withUnsafeBufferPointer { buffer in
+                let mutablePointer = UnsafeMutablePointer<CLLocationCoordinate2D>(mutating: buffer.baseAddress!)
+                let result = MAAreaForPolygon(mutablePointer, Int32(polygonCoords.count))
+                print("📐 MAAreaForPolygon 结果: \(result)")
+                return result
+            }
+            print("📐 最终面积: \(area)")
+            promise.resolve(area)
+        }
+        
+        /**
+         * 计算矩形面积
+         * @param southWest 西南角坐标
+         * @param northEast 东北角坐标
+         * @returns 面积（单位：平方米）
+         */
+        AsyncFunction("calculateRectangleArea") { (southWest: [String: Double], northEast: [String: Double], promise: Promise) in
+            print("📐 calculateRectangleArea 被调用，参数: sw=\(southWest), ne=\(northEast)")
+            
+            guard let swLat = southWest["latitude"],
+                  let swLon = southWest["longitude"],
+                  let neLat = northEast["latitude"],
+                  let neLon = northEast["longitude"] else {
+                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
+                return
+            }
+            
+            // 计算矩形宽高
+            let width = MAMetersBetweenMapPoints(
+                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: swLat, longitude: swLon)),
+                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: swLat, longitude: neLon))
+            )
+            let height = MAMetersBetweenMapPoints(
+                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: swLat, longitude: swLon)),
+                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: neLat, longitude: swLon))
+            )
+            
+            print("📐 宽: \(width), 高: \(height)")
+            let area = width * height
+            print("📐 最终面积: \(area)")
+            promise.resolve(area)
         }
         
         Events("onHeadingUpdate")

@@ -42,6 +42,71 @@
 | `icon` | `string` | - | 自定义图标 |
 | `iconWidth` | `number` | `40` | 图标宽度 |
 | `iconHeight` | `number` | `40` | 图标高度 |
+| `smoothMovePath` | `LatLng[]` | - | 平滑移动路径坐标数组 |
+| `smoothMoveDuration` | `number` | `10` | 平滑移动时长（秒） |
+
+### 平滑移动
+
+Marker 支持沿指定路径平滑移动，适用于车辆追踪、人员移动轨迹等场景。
+
+#### 使用方式
+
+设置 `smoothMovePath` 和 `smoothMoveDuration` 属性即可自动触发平滑移动：
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  smoothMovePath={[
+    { latitude: 39.91, longitude: 116.41 },
+    { latitude: 39.92, longitude: 116.42 },
+    { latitude: 39.93, longitude: 116.43 },
+  ]}
+  smoothMoveDuration={5}
+/>
+```
+
+#### 注意事项
+
+- **路径格式**：`smoothMovePath` 是坐标点数组，Marker 会从当前位置开始，依次经过所有路径点
+- **时长单位**：`smoothMoveDuration` 单位为秒，控制整个移动过程的总时间
+- **自动触发**：当 `smoothMovePath` 和 `smoothMoveDuration` 都设置时，自动开始移动
+- **重复触发**：再次设置相同属性会重新开始移动
+- **图标支持**：移动时保持 `icon`、`children` 等自定义样式，优先级为：`children` > `icon` > `pinColor`
+- **移动起点**：从 Marker 的 `position` 属性指定的位置开始移动
+
+#### 完整示例
+
+```tsx
+import { useState } from 'react';
+import { MapView, Marker } from 'expo-gaode-map';
+
+export default function SmoothMoveExample() {
+  const [isMoving, setIsMoving] = useState(false);
+  
+  const movePath = [
+    { latitude: 39.91, longitude: 116.41 },
+    { latitude: 39.92, longitude: 116.42 },
+    { latitude: 39.93, longitude: 116.43 },
+  ];
+
+  return (
+    <MapView
+      style={{ flex: 1 }}
+      initialCameraPosition={{
+        target: { latitude: 39.9, longitude: 116.4 },
+        zoom: 14,
+      }}
+    >
+      <Marker
+        position={{ latitude: 39.9, longitude: 116.4 }}
+        title="移动的标记"
+        smoothMovePath={isMoving ? movePath : undefined}
+        smoothMoveDuration={isMoving ? 5 : undefined}
+      />
+    </MapView>
+  );
+}
+```
 
 ### 示例
 
@@ -78,7 +143,6 @@ const iconUri = Image.resolveAssetSource(require('./marker.png')).uri;
 ```tsx
 <Marker
   position={{ latitude: 39.9, longitude: 116.4 }}
-
 >
   <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 8 }}>
     <Text>自定义内容</Text>
@@ -165,7 +229,7 @@ import { MapView, Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 export default function OverlaysExample() {
   return (
     <MapView
-      style={{ flex: 1 }}
+      style={{ flex:1 }}
       initialCameraPosition={{
         target: { latitude: 39.9, longitude: 116.4 },
         zoom: 10,

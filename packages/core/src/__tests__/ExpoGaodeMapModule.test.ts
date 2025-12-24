@@ -326,4 +326,86 @@ describe('ExpoGaodeMapModule', () => {
       expect(typeof hasPreloaded).toBe('boolean');
     });
   });
+
+  describe('几何计算', () => {
+    it("应该能够计算点到点的距离", async () => {
+      // 检查方法是否存在
+      expect(ExpoGaodeMapModule.distanceBetweenCoordinates).toBeDefined();
+      
+      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.9, longitude: 116.4 }
+      );
+      
+      expect(distance).toBeDefined();
+      expect(typeof distance).toBe('number');
+      // 相同坐标点的距离应该是0
+      expect(distance).toBe(0);
+    });
+
+    it("应该能够计算两个不同点的距离", async () => {
+      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.91, longitude: 116.41 }
+      );
+      
+      expect(distance).toBeDefined();
+      expect(typeof distance).toBe('number');
+      // 不同坐标的距离应该大于0
+      expect(distance).toBeGreaterThan(0);
+    });
+
+    it("应该判断点是否在圆内", async () => {
+      const inCircle = await ExpoGaodeMapModule.isPointInCircle(
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.9, longitude: 116.4 },
+        1000
+      );
+      
+      expect(inCircle).toBeDefined();
+      expect(typeof inCircle).toBe('boolean');
+      // 坐标点在圆内
+      expect(inCircle).toBe(true);
+    });
+    it("应该判断点是否在多边形内", async () => {
+      const inPolygon = await ExpoGaodeMapModule.isPointInPolygon(
+        { latitude: 39.9, longitude: 116.4 },
+        [
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.9, longitude: 116.41 },
+          { latitude: 39.91, longitude: 116.41 },
+          { latitude: 39.91, longitude: 116.4 },
+        ]
+      );
+      
+      expect(inPolygon).toBeDefined();
+      expect(typeof inPolygon).toBe('boolean');
+      // 坐标点在多边形内
+      expect(inPolygon).toBe(true);
+    });
+    it("应该计算多边形面积", async () => {
+      const area = await ExpoGaodeMapModule.calculatePolygonArea([
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.9, longitude: 116.41 },
+        { latitude: 39.91, longitude: 116.41 },
+        { latitude: 39.91, longitude: 116.4 },
+      ]);
+      
+      expect(area).toBeDefined();
+      expect(typeof area).toBe('number');
+      // 多边形面积应该大于0
+      expect(area).toBeGreaterThan(0);
+    });
+    it("应该计算矩形面积", async () => {
+      const area = await ExpoGaodeMapModule.calculateRectangleArea(
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.91, longitude: 116.41 }
+      );
+      
+      expect(area).toBeDefined();
+      expect(typeof area).toBe('number');
+      // 矩形面积应该大于0
+      expect(area).toBeGreaterThan(0);
+    });
+  });
 });

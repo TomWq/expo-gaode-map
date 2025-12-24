@@ -168,5 +168,3 @@ export enum MapType {
  */
 export type ColorValue = string | number;
 
-
-
