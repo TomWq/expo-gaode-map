@@ -92,7 +92,10 @@ export default function MamScreen() {
     const init = async () => {
       try {
 
-        ExpoGaodeMapModule.updatePrivacyCompliance(true)
+        ExpoGaodeMapModule.initSDK({
+          webKey: '',
+         
+        })
 
 
         // 检查定位权限

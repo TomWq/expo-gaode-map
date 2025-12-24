@@ -47,6 +47,7 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
    */
   getVersion(): string;
 
+
   // ==================== 定位控制 ====================
 
   /**
@@ -267,6 +268,12 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
    */
   hasPreloadedMapView(): boolean;
 
+  /**
+   * 检查原生 SDK 是否已配置 API Key
+   * @returns 是否已配置
+   */
+  isNativeSDKConfigured(): boolean;
+
   // ==================== 便捷方法 ====================
 
   /**
@@ -344,18 +351,31 @@ const ExpoGaodeMapModuleWithHelpers = {
 
   /**
    * 初始化 SDK，并缓存配置（包含 webKey）
+   * 注意：允许不提供任何 API Key，因为原生端可能已通过 Config Plugin 配置
    */
   initSDK(config: SDKConfig): void {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
-
-    // 验证 API Key 配置
-    if (!config.androidKey && !config.iosKey) {
-      throw ErrorHandler.invalidApiKey('both');
-    }
-
     try {
+
+       // 检查是否有任何 key 被提供
+    const hasJSKeys = !!(config.androidKey || config.iosKey);
+    const hasWebKey = !!config.webKey;
+     // 如果 JS 端没有提供 androidKey/iosKey,检查原生端是否已配置
+       if (!hasJSKeys) {
+        const isNativeConfigured =  nativeModule.isNativeSDKConfigured();
+        if (!isNativeConfigured && !hasWebKey){
+          throw ErrorHandler.invalidApiKey('both');
+        }
+         // 如果原生已配置,或者只提供了 webKey,继续初始化
+          ErrorLogger.warn(
+            isNativeConfigured 
+              ? 'SDK 使用原生端配置的 API Key' 
+              : 'SDK 初始化仅使用 webKey',
+            { config }
+          );
+       }
       _sdkConfig = config ?? null;
       nativeModule.initSDK(config);
       _isSDKInitialized = true;

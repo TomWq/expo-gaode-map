@@ -151,11 +151,11 @@ describe('ExpoGaodeMapModule', () => {
   });
 
   describe('配置管理', () => {
-    it('应该验证 API Key 配置', () => {
-      // 没有任何 API Key 应该抛出错误
+    it('允许不提供任何 API Key（原生端可能已配置）', () => {
+      // 允许空配置，因为原生端可能已通过 Config Plugin 配置
       expect(() => {
         ExpoGaodeMapModule.initSDK({});
-      }).toThrow();
+      }).not.toThrow();
     });
 
     it('应该能够获取 webKey', () => {

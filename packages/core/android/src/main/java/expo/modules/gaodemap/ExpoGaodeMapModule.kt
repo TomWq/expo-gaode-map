@@ -103,6 +103,22 @@ class ExpoGaodeMapModule : Module() {
       SDKInitializer.getVersion()
     }
 
+    /**
+    * 检查原生 SDK 是否已配置 API Key
+    */
+    Function("isNativeSDKConfigured") {
+      try {
+        val context = appContext.reactContext!!
+        val apiKey = context.packageManager
+          .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+          .metaData?.getString("com.amap.api.v2.apikey")
+        !apiKey.isNullOrEmpty()
+      } catch (e: Exception) {
+        false
+      }
+    }
+
+
     // ==================== 定位功能 ====================
 
     /**

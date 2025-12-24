@@ -7,6 +7,7 @@
 const createNativeModuleMock = () => ({
   initSDK: jest.fn(),
   getVersion: jest.fn(() => '1.0.0'),
+  isNativeSDKConfigured: jest.fn(() => true),
   getCurrentLocation: jest.fn(() => Promise.resolve({
     latitude: 39.9,
     longitude: 116.4,

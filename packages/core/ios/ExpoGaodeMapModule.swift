@@ -138,6 +138,16 @@ public class ExpoGaodeMapModule: Module {
             "iOS SDK Version"
         }
         
+        /**
+         * 检查原生 SDK 是否已配置 API Key
+         */
+        Function("isNativeSDKConfigured") { () -> Bool in
+            if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
+                return true
+            }
+            return false
+        }
+        
         // ==================== 定位功能 ====================
         
         /**
