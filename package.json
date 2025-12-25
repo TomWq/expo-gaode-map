@@ -2,47 +2,39 @@
   "name": "expo-gaode-map-monorepo",
   "version": "2.2.10",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "example"
+  ],
   "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
-    "build": "pnpm -r --filter './packages/*' run build",
-    "clean": "pnpm -r --filter './packages/*' run clean",
-    "lint": "pnpm -r --filter './packages/*' run lint",
-    "test": "pnpm -r --filter './packages/*' run test",
-    "publish:core": "cd packages/core && pnpm publish --access public",
-    "publish:search": "cd packages/search && pnpm publish --access public",
-    "publish:navigation": "cd packages/navigation && pnpm publish --access public",
-    "publish:web-api": "cd packages/web-api && pnpm publish --access public",
-    "publish:core:beta": "cd packages/core && pnpm publish --access public --tag beta",
-    "publish:search:beta": "cd packages/search && pnpm publish --access public --tag beta",
-    "publish:navigation:beta": "cd packages/navigation && pnpm publish --access public --tag beta",
-    "publish:web-api:beta": "cd packages/web-api && pnpm publish --access public --tag beta",
+    "build": "bun -r --filter './packages/*' run build",
+    "clean": "bun -r --filter './packages/*' run clean",
+    "lint": "bun -r --filter './packages/*' run lint",
+    "test": "bun -r --filter './packages/*' run test",
+    "publish:core": "cd packages/core && bun publish --access public",
+    "publish:search": "cd packages/search && bun publish --access public",
+    "publish:navigation": "cd packages/navigation && bun publish --access public",
+    "publish:web-api": "cd packages/web-api && bun publish --access public",
+    "publish:core:beta": "cd packages/core && bun publish --access public --tag beta",
+    "publish:search:beta": "cd packages/search && bun publish --access public --tag beta",
+    "publish:navigation:beta": "cd packages/navigation && bun publish --access public --tag beta",
+    "publish:web-api:beta": "cd packages/web-api && bun publish --access public --tag beta",
     "publish:interactive": "bash scripts/publish.sh",
-    "version:core": "cd packages/core && pnpm version",
-    "version:search": "cd packages/search && pnpm version",
-    "version:navigation": "cd packages/navigation && pnpm version",
-    "version:web-api": "cd packages/web-api && pnpm version",
-    "version:core:beta": "cd packages/core && pnpm version prerelease --preid=beta --no-git-tag-version",
-    "version:search:beta": "cd packages/search && pnpm version prerelease --preid=beta --no-git-tag-version",
-    "version:navigation:beta": "cd packages/navigation && pnpm version prerelease --preid=beta --no-git-tag-version",
-    "version:web-api:beta": "cd packages/web-api && pnpm version prerelease --preid=beta --no-git-tag-version",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "version:core": "cd packages/core && bun version",
+    "version:search": "cd packages/search && bun version",
+    "version:navigation": "cd packages/navigation && bun version",
+    "version:web-api": "cd packages/web-api && bun version",
+    "version:core:beta": "cd packages/core && bun version prerelease --preid=beta --no-git-tag-version",
+    "version:search:beta": "cd packages/search && bun version prerelease --preid=beta --no-git-tag-version",
+    "version:navigation:beta": "cd packages/navigation && bun version prerelease --preid=beta --no-git-tag-version",
+    "version:web-api:beta": "cd packages/web-api && bun version prerelease --preid=beta --no-git-tag-version",
+    "android": "bun run:android",
+    "ios": "bun run:ios"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "expo": "^54.0.28",
     "expo-module-scripts": "^5.0.8",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
     "typescript": "^5.9.3"
-  },
-  "workspaces": [
-    "packages/core",
-    "example"
-  ],
-  "dependencies": {
-    "expo": "~54.0.28",
-    "react": "19.1.0",
-    "react-native": "0.81.5"
   }
 }

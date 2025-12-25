@@ -58,16 +58,16 @@ features:
 
 ```bash
 # 核心包（地图+定位）
-npm install expo-gaode-map
+bun install expo-gaode-map
 
 # 导航包（包含地图+导航）🆕
-npm install expo-gaode-map-navigation
+bun install expo-gaode-map-navigation
 
 # Web API 服务 🆕
-npm install expo-gaode-map-web-api
+bun install expo-gaode-map-web-api
 
 # 原生搜索（可选）
-npm install expo-gaode-map-search
+bun install expo-gaode-map-search
 ```
 
 ::: tip 包选择建议

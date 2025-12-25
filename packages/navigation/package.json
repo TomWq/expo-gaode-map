@@ -13,12 +13,12 @@
     "plugin/build"
   ],
   "scripts": {
-    "build": "expo-module build && pnpm run build:plugin",
+    "build": "expo-module build && bun run build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
-    "prepare": "expo-module prepare && pnpm run build:plugin",
+    "prepare": "expo-module prepare && bun run build:plugin",
     "prepublishOnly": "expo-module prepublishOnly",
     "expo-module": "expo-module"
   },

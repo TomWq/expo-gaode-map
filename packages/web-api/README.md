@@ -35,11 +35,11 @@
 
 安装本模块：
 ```bash
-npm install expo-gaode-map-web-api
+bun install expo-gaode-map-web-api
 # 或
 yarn add expo-gaode-map-web-api
 # 或
-pnpm add expo-gaode-map-web-api
+npm install expo-gaode-map-web-api
 ```
 注：若未安装上述基础包，安装时或运行时会给出明确提示。
 

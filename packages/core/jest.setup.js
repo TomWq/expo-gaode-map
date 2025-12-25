@@ -83,63 +83,61 @@ jest.mock('expo-modules-core', () => ({
     addListener: jest.fn(() => ({ remove: jest.fn() })),
     removeAllListeners: jest.fn(),
   })),
-    requireNativeViewManager: jest.fn((viewName) => {
+  requireNativeViewManager: jest.fn((viewName) => {
     // 返回一个模拟的 React 组件
     const MockView = (props) => null;
     MockView.displayName = `Mock${viewName}`;
     return MockView;
   }),
-
   NativeModulesProxy: {},
 }));
 
-// 同时 Mock expo package
 // Mock expo package
 jest.mock('expo', () => ({
   requireNativeModule: jest.fn((moduleName) => createNativeModuleMock()),
   NativeModule: class NativeModule {},
 }));
 
-// Mock React Native components
+// Mock React Native components - 在实际模块加载之前，完全替换
 jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  
-  RN.StyleSheet = {
-    create: (styles) => styles,
-    flatten: (style) => style,
-  };
-  
-  RN.Platform = {
-    OS: 'ios',
-    select: (obj) => obj.ios || obj.default,
-  };
-  
-  RN.Dimensions = {
-    get: () => ({ width: 375, height: 667 }),
-  };
-  
-  RN.PixelRatio = {
-    get: () => 2,
-  };
-  
-  // Mock TurboModuleRegistry
-  RN.TurboModuleRegistry = {
-    getEnforcing: (name) => {
-      if (name === 'DeviceInfo') {
-        return {
-          getConstants: () => ({
-            Dimensions: {
-              window: { width: 375, height: 667, scale: 2, fontScale: 1 },
-              screen: { width: 375, height: 667, scale: 2, fontScale: 1 },
-            },
-          }),
-        };
-      }
-      return null;
+  return {
+    StyleSheet: {
+      create: (styles) => styles,
+      flatten: (style) => style,
+    },
+    Platform: {
+      OS: 'ios',
+      select: (obj) => obj.ios || obj.default,
+    },
+    Dimensions: {
+      get: () => ({ width: 375, height: 667 }),
+    },
+    PixelRatio: {
+      get: () => 2,
+    },
+    View: 'View',
+    Text: 'Text',
+    Image: 'Image',
+    ScrollView: 'ScrollView',
+    FlatList: 'FlatList',
+    TouchableOpacity: 'TouchableOpacity',
+    NativeModules: {},
+    TurboModuleRegistry: {
+      getEnforcing: (name) => {
+        if (name === 'DeviceInfo') {
+          return {
+            getConstants: () => ({
+              Dimensions: {
+                window: { width: 375, height: 667, scale: 2, fontScale: 1 },
+                screen: { width: 375, height: 667, scale: 2, fontScale: 1 },
+              },
+            }),
+          };
+        }
+        return null;
+      },
     },
   };
-  
-  return RN;
 });
 
 // 设置 React Native 需要的全局变量

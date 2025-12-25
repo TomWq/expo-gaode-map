@@ -249,7 +249,7 @@ ExpoGaodeMapModule.setDesiredAccuracy(0); // 最佳精度`,
 1️⃣  确认已正确安装：
 npm install expo-gaode-map
 # 或
-pnpm install expo-gaode-map
+bun install expo-gaode-map
 
 2️⃣  重新构建原生代码：
 npx expo prebuild --clean
@@ -411,7 +411,8 @@ const App = () => {
  * 错误日志工具
  */
 export class ErrorLogger {
-  private static isEnabled = __DEV__;
+  // 兼容不同环境：Bun/Jest/Node
+  private static isEnabled = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
 
   /**
    * 启用/禁用错误日志

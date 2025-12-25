@@ -8,11 +8,10 @@
 Web API 服务是**可选的**，需要单独安装：
 
 ```bash
-npm install expo-gaode-map-web-api
+bun install expo-gaode-map-web-api
 # 或
 yarn add expo-gaode-map-web-api
-# 或
-pnpm add expo-gaode-map-web-api
+
 ```
 
 ::: tip 提示

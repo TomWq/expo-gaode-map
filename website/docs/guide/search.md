@@ -7,11 +7,10 @@
 搜索功能是**可选的**，需要单独安装：
 
 ```bash
-npm install expo-gaode-map-search
+bun install expo-gaode-map-search
 # 或
 yarn add expo-gaode-map-search
-# 或
-pnpm add expo-gaode-map-search
+
 ```
 
 ::: tip 提示

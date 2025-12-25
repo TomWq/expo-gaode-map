@@ -4,7 +4,7 @@
 
 ## Monorepo 架构
 
-expo-gaode-map 采用 **pnpm workspaces** 管理的 Monorepo 架构，提供模块化的功能包：
+expo-gaode-map 采用 **Bun workspaces** 管理的 Monorepo 架构，提供模块化的功能包：
 
 ```
 expo-gaode-map/
@@ -31,7 +31,6 @@ expo-gaode-map/
 ├── example/                # 示例应用（使用核心包）
 ├── navigation/             # 导航示例应用
 ├── website/                # 文档网站
-└── pnpm-workspace.yaml     # Workspace 配置
 ```
 
 ### 为什么使用 Monorepo？

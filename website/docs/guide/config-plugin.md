@@ -9,7 +9,7 @@
 ### 1. 安装
 
 ```bash
-npm install expo-gaode-map
+bun install expo-gaode-map
 # 或
 yarn add expo-gaode-map
 ```

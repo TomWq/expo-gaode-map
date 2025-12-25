@@ -1,3 +1,4 @@
+
 module.exports = {
   // 不使用 preset，完全自定义配置
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
@@ -14,8 +15,10 @@ module.exports = {
   // 模块文件扩展名
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   
-  // 转换所有文件（包括 node_modules）
-  transformIgnorePatterns: [],
+  // 忽略 node_modules 中的转换（除了 expo 和相关包）
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native|expo|@expo|@expo/vector-icons|react-navigation)/)',
+  ],
   
   // Babel 转换配置
   transform: {

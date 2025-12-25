@@ -5,9 +5,9 @@
 ## 安装
 
 ```bash
-npm install expo-gaode-map-search
+bun install expo-gaode-map-search
 # 或
-pnpm add expo-gaode-map-search
+yarn add expo-gaode-map-search
 ```
 
 **前置依赖：**

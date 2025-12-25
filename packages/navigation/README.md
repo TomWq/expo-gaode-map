@@ -22,13 +22,11 @@
 
 ```bash
 # npm
-npm install expo-gaode-map-navigation
+bun install expo-gaode-map-navigation
 
 # or yarn
 yarn add expo-gaode-map-navigation
 
-# or pnpm
-pnpm add expo-gaode-map-navigation
 ```
 
 如果项目中已安装过核心地图包，请先移除避免冲突：
@@ -36,7 +34,7 @@ pnpm add expo-gaode-map-navigation
 ```bash
 npm uninstall expo-gaode-map
 # or: yarn remove expo-gaode-map
-# or: pnpm remove expo-gaode-map
+# or: bun remove expo-gaode-map
 ```
 
 ## 初始化

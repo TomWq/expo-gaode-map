@@ -23,11 +23,10 @@ The search module is an **optional** extension package that you can install sepa
 ### 1. Install the Package
 
 ```bash
-npm install expo-gaode-map-search
+bun install expo-gaode-map-search
 # or
 yarn add expo-gaode-map-search
-# or
-pnpm add expo-gaode-map-search
+
 ```
 
 ### 2. Configure API Key

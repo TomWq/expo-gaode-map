@@ -105,25 +105,25 @@ Time:        0.996 s
 
 ```bash
 cd packages/core
-pnpm install
+bun install
 ```
 
 ### 运行所有测试
 
 ```bash
-pnpm test
+bun test
 ```
 
 ### 运行特定测试文件
 
 ```bash
-pnpm test ExpoGaodeMapModule
+bun test ExpoGaodeMapModule
 ```
 
 ### 生成覆盖率报告
 
 ```bash
-pnpm test --coverage
+bun test --coverage
 ```
 
 覆盖率报告将生成在 `coverage/` 目录下，可以在浏览器中打开 `coverage/lcov-report/index.html` 查看详细报告。
@@ -131,7 +131,7 @@ pnpm test --coverage
 ### 监听模式
 
 ```bash
-pnpm test --watch
+bun test --watch
 ```
 
 ## 📝 测试示例
@@ -345,13 +345,13 @@ afterEach(() => {
 ### 查看详细日志
 
 ```bash
-pnpm test --verbose
+bun test --verbose
 ```
 
 ### 调试特定测试
 
 ```bash
-pnpm test --testNamePattern="SDK 初始化"
+bun test --testNamePattern="SDK 初始化"
 ```
 
 ### 使用 VSCode 调试器
