@@ -95,7 +95,7 @@ echo -e "${GREEN}✓ 已登录为: ${NPM_USER}${NC}"
 # 构建所有包
 echo ""
 echo "🔨 构建包..."
-bun build
+bun run build
 
 bump_version() {
   # $1: 当前版本, $2: 标志
