@@ -119,14 +119,22 @@ useEffect(() => {
     return new GaodeMapError({
       type: ErrorType.INVALID_API_KEY,
       message: `${platformText} API Key 配置错误或未配置`,
-      solution: `请检查以下步骤：
+      solution: `⚠️  API Key 与 Bundle ID 不匹配是最常见的原因！
 
-1️⃣  获取 API Key：
+请检查以下步骤：
+
+1️⃣  确认 API Key 的配置：
    • 访问高德开放平台：https://lbs.amap.com/
-   • 注册并创建应用
-   • 获取对应平台的 API Key
+   • 检查您的应用配置中的 Bundle ID 是否与当前项目一致
+   • iOS Bundle ID：在 Xcode → Target → General → Bundle Identifier 查看
+   • Android 包名：在 android/app/build.gradle → applicationId 查看
 
-2️⃣  配置 API Key（推荐使用 Config Plugin）：
+2️⃣  重新创建正确的 API Key（如果 Bundle ID 不同）：
+   • 在高德开放平台创建新应用
+   • 填写正确的 Bundle ID（iOS）或包名（Android）
+   • 获取新的 API Key
+
+3️⃣  配置 API Key（推荐使用 Config Plugin）：
 
 在 app.json 中配置：
 {
@@ -147,7 +155,7 @@ useEffect(() => {
 npx expo prebuild --clean
 npx expo run:${platform === 'ios' ? 'ios' : 'android'}
 
-3️⃣  或在代码中配置：
+4️⃣  或在代码中配置：
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-key',
   iosKey: 'your-ios-key',
@@ -215,15 +223,28 @@ const checkPermission = async () => {
     return new GaodeMapError({
       type: ErrorType.LOCATION_FAILED,
       message: `定位失败${reason ? `：${reason}` : ''}`,
-      solution: `请检查以下问题：
+      solution: `⚠️  最常见原因：API Key 与 Bundle ID 不匹配！
 
-1️⃣  设备 GPS 是否开启
-2️⃣  网络连接是否正常
-3️⃣  定位权限是否已授予
-4️⃣  是否在室内或信号较弱的地方
+请按以下顺序排查：
 
-💡 解决方法：
-// 配置定位参数
+1️⃣  检查 API Key 配置（最常见问题）：
+   • 访问高德开放平台：https://lbs.amap.com/
+   • 确认您的应用的 Bundle ID 与当前项目一致
+   • iOS Bundle ID：在 Xcode → Target → General → Bundle Identifier
+   • Android 包名：在 android/app/build.gradle → applicationId
+   
+   如果 Bundle ID 不同，必须在高德平台重新创建应用并获取新 Key
+
+2️⃣  检查设备 GPS 和网络：
+   • 确认设备 GPS 已开启
+   • 检查网络连接是否正常
+   • 尝试在室外空旷处测试
+
+3️⃣  检查定位权限：
+   • iOS：设置 → 隐私 → 定位服务 → 允许应用访问
+   • Android：设置 → 应用 → 权限管理 → 位置信息
+
+4️⃣  配置定位参数（如果 API Key 正确但定位仍失败）：
 ExpoGaodeMapModule.setLocationTimeout(30); // 增加超时时间
 ExpoGaodeMapModule.setInterval(2000); // 设置定位间隔
 
