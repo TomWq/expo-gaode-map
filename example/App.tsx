@@ -45,7 +45,7 @@ export default function MamScreen() {
 
   const [mSize, setMSize] = useState({ width: 0, height: 0 });
 
-  console.log('mSize', mSize)
+
 
   // 用于测试 Marker 动态添加/删除和位置变化
   const [dynamicMarkers, setDynamicMarkers] = useState<Array<{
@@ -114,8 +114,8 @@ export default function MamScreen() {
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);
         ExpoGaodeMapModule.setInterval(5000);
-        // ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
-        ExpoGaodeMapModule.setDistanceFilter(10);
+        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+        ExpoGaodeMapModule.setDistanceFilter(0);
         ExpoGaodeMapModule.setDesiredAccuracy(3);
         ExpoGaodeMapModule.startUpdatingHeading();
         // 先获取初始位置
