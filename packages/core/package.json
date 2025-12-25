@@ -1,7 +1,7 @@
 {
   "name": "expo-gaode-map",
   "version": "2.2.12",
-  "description": "一个功能完整的高德地图 React Native 组件库，基于 Expo Modules 开发，提供地图显示、定位、覆盖物等功能。",
+  "description": "A full-featured AMap (Gaode Map) React Native component library built with Expo Modules, providing map display, location services, overlays, and more.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "files": [
@@ -31,7 +31,8 @@
     "expo",
     "expo-gaode-map",
     "ExpoGaodeMap",
-    "高德地图"
+    "高德地图",
+    "AMap"
   ],
   "repository": {
     "type": "git",
