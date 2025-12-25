@@ -7,6 +7,7 @@ import {
   Marker,
   Polygon,
   Polyline,
+  useLocationPermissions,
   type CameraPosition,
   type Coordinates,
   type ReGeocode,
@@ -31,6 +32,7 @@ export default function MamScreen() {
   const [cameraInfo, setCameraInfo] = useState<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
+  const [status, requestPermission] = useLocationPermissions()
 
   // 主题与动态色
   const colorScheme = 'dark';
@@ -87,7 +89,7 @@ export default function MamScreen() {
   const [privacyAgreed, setPrivacyAgreed] = useState(true);
 
   // const { isReady, stats } = useMapPreload();
-
+  console.log('status',status?.status)
   useEffect(() => {
     const init = async () => {
       try {
@@ -97,16 +99,17 @@ export default function MamScreen() {
          
         })
 
-
+        await requestPermission()
+        
         // 检查定位权限
-        const status = await ExpoGaodeMapModule.checkLocationPermission();
-        if (!status.granted) {
-          const result = await ExpoGaodeMapModule.requestLocationPermission();
-          if (!result.granted) {
-            setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 16 });
-            return;
-          }
-        }
+        // const status = await ExpoGaodeMapModule.checkLocationPermission();
+        // if (!status.granted) {
+        //   const result = await ExpoGaodeMapModule.requestLocationPermission();
+        //   if (!result.granted) {
+        //     setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 16 });
+        //     return;
+        //   }
+        // }
 
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);

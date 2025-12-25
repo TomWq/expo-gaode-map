@@ -13,7 +13,7 @@ class ExpoGaodeMapViewModule : Module() {
     View(ExpoGaodeMapView::class) {
       Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
       
-      // ✅ 关键修复：拦截 React Native 的视图操作异常
+
       
       // 延迟销毁地图，避免页面退出动画未完成时地图就变成白屏
       OnViewDestroys { view: ExpoGaodeMapView ->

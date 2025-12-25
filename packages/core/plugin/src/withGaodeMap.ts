@@ -5,7 +5,11 @@ import {
   withAppBuildGradle,
   createRunOncePlugin,
   WarningAggregator,
+  AndroidConfig,
+  IOSConfig,
 } from '@expo/config-plugins';
+
+const pkg = require('expo-gaode-map/package.json');
 
 /**
  * 高德地图插件配置类型
@@ -23,8 +27,42 @@ export type GaodeMapPluginProps = {
   enableBackgroundLocation?: boolean;
 };
 
+/** 默认定位权限描述 */
+const DEFAULT_LOCATION_USAGE = '需要访问您的位置信息以提供地图服务';
+
 /**
- * iOS: 修改 Info.plist 添加 API Key 和权限
+ * iOS: 使用 IOSConfig 添加定位权限
+ */
+const withGaodeMapIOSPermissions: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
+  if (props.enableLocation === false) {
+    return config;
+  }
+
+  const description = props.locationDescription || DEFAULT_LOCATION_USAGE;
+
+  // 构建权限配置对象
+  const permissionDefaults: Record<string, string> = {
+    NSLocationWhenInUseUsageDescription: DEFAULT_LOCATION_USAGE,
+  };
+  
+  const permissionValues: Record<string, string> = {
+    NSLocationWhenInUseUsageDescription: description,
+  };
+
+  // 如果启用后台定位，添加额外权限
+  if (props.enableBackgroundLocation) {
+    permissionDefaults.NSLocationAlwaysUsageDescription = DEFAULT_LOCATION_USAGE;
+    permissionDefaults.NSLocationAlwaysAndWhenInUseUsageDescription = DEFAULT_LOCATION_USAGE;
+    permissionValues.NSLocationAlwaysUsageDescription = description;
+    permissionValues.NSLocationAlwaysAndWhenInUseUsageDescription = description;
+  }
+
+  // 使用 IOSConfig.Permissions 简化权限配置
+  return IOSConfig.Permissions.createPermissionsPlugin(permissionDefaults)(config, permissionValues);
+};
+
+/**
+ * iOS: 修改 Info.plist 添加 API Key 和后台模式
  */
 const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withInfoPlist(config, (config) => {
@@ -33,25 +71,13 @@ const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props)
       config.modResults.AMapApiKey = props.iosApiKey;
     }
 
-    // 添加定位相关权限
-    if (props.enableLocation !== false) {
-      const description = props.locationDescription || '需要访问您的位置信息以提供地图服务';
-      
-      // 使用时定位权限（必需）
-      config.modResults.NSLocationWhenInUseUsageDescription = description;
-      
-      // 后台定位权限（可选）
-      if (props.enableBackgroundLocation) {
-        config.modResults.NSLocationAlwaysUsageDescription = description;
-        config.modResults.NSLocationAlwaysAndWhenInUseUsageDescription = description;
-        
-        // 添加后台定位模式
-        if (!config.modResults.UIBackgroundModes) {
-          config.modResults.UIBackgroundModes = [];
-        }
-        if (!config.modResults.UIBackgroundModes.includes('location')) {
-          config.modResults.UIBackgroundModes.push('location');
-        }
+    // 添加后台定位模式（如果启用）
+    if (props.enableBackgroundLocation) {
+      if (!config.modResults.UIBackgroundModes) {
+        config.modResults.UIBackgroundModes = [];
+      }
+      if (!config.modResults.UIBackgroundModes.includes('location')) {
+        config.modResults.UIBackgroundModes.push('location');
       }
     }
 
@@ -70,70 +96,36 @@ const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props)
  */
 
 /**
- * Android: 修改 AndroidManifest.xml 添加 API Key 和权限
+ * Android: 使用 AndroidConfig 添加基础权限
+ */
+const withGaodeMapAndroidPermissions: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
+  // 基础定位权限（高德地图 SDK 必需）
+  const basePermissions = [
+    'android.permission.ACCESS_COARSE_LOCATION',
+    'android.permission.ACCESS_FINE_LOCATION',
+    'android.permission.ACCESS_NETWORK_STATE',
+    'android.permission.ACCESS_WIFI_STATE',
+  ];
+
+  // 后台定位权限（可选）
+  if (props.enableBackgroundLocation) {
+    basePermissions.push(
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_LOCATION'
+    );
+  }
+
+  // 使用 AndroidConfig.Permissions 简化权限配置（自动去重）
+  return AndroidConfig.Permissions.withPermissions(config, basePermissions);
+};
+
+/**
+ * Android: 修改 AndroidManifest.xml 添加 API Key 和服务
  */
 const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withAndroidManifest(config, (config) => {
     const androidManifest = config.modResults.manifest;
-
-    // 基础权限（库中已包含，这里不重复添加）
-    // INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE
-    // ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
-
-
-    // 添加基础权限（高德地图 SDK 必需）
-    const basePermissions = [
-      'android.permission.ACCESS_COARSE_LOCATION',
-      'android.permission.ACCESS_FINE_LOCATION',
-      'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.ACCESS_WIFI_STATE',
-      'android.permission.WRITE_EXTERNAL_STORAGE',
-      'android.permission.READ_PHONE_STATE',
-      'android.permission.BLUETOOTH',
-      'android.permission.BLUETOOTH_ADMIN',
-    ];
-
-    if (!androidManifest['uses-permission']) {
-      androidManifest['uses-permission'] = [];
-    }
-
-    basePermissions.forEach((permission) => {
-      const hasPermission = androidManifest['uses-permission']?.some(
-        (item) => item.$?.['android:name'] === permission
-      );
-      
-      if (!hasPermission) {
-        androidManifest['uses-permission']?.push({
-          $: { 'android:name': permission },
-        });
-      }
-    });
-
-    // 后台定位权限（可选）
-    if (props.enableBackgroundLocation) {
-      const backgroundPermissions = [
-        'android.permission.ACCESS_BACKGROUND_LOCATION',
-        'android.permission.FOREGROUND_SERVICE',
-        'android.permission.FOREGROUND_SERVICE_LOCATION',
-      ];
-
-
-      if (!androidManifest['uses-permission']) {
-        androidManifest['uses-permission'] = [];
-      }
-
-      backgroundPermissions.forEach((permission) => {
-        const hasPermission = androidManifest['uses-permission']?.some(
-          (item) => item.$?.['android:name'] === permission
-        );
-        
-        if (!hasPermission) {
-          androidManifest['uses-permission']?.push({
-            $: { 'android:name': permission },
-          });
-        }
-      });
-    }
 
     // 添加高德定位服务（APSService）- 必需
     const mainApplication = androidManifest.application?.[0];
@@ -234,13 +226,13 @@ const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => 
   }
 
   // 应用 iOS 配置
-  config = withGaodeMapInfoPlist(config, props);
-  // 注意：不再需要修改 AppDelegate，因为：
-  // 1. SDK 会自动从 Info.plist 读取 AMapApiKey
-  // 2. 可以通过 ExpoGaodeMapModule.initSDK() 方法初始化
+  config = withGaodeMapIOSPermissions(config, props);  // 使用 IOSConfig 添加权限
+  config = withGaodeMapInfoPlist(config, props);       // 添加 API Key 和后台模式
+
 
   // 应用 Android 配置
-  config = withGaodeMapAndroidManifest(config, props);
+  config = withGaodeMapAndroidPermissions(config, props);  // 使用 AndroidConfig 添加权限
+  config = withGaodeMapAndroidManifest(config, props);     // 添加服务和 API Key
   config = withGaodeMapAppBuildGradle(config, props);
 
   return config;
@@ -250,4 +242,4 @@ const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => 
  * 导出为可运行一次的插件
  * 这确保插件只会运行一次，即使在配置中被多次引用
  */
-export default createRunOncePlugin(withGaodeMap, 'expo-gaode-map', '1.0.0');
+export default createRunOncePlugin(withGaodeMap, pkg.name, pkg.version);

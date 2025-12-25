@@ -1,3 +1,8 @@
+
+import { createPermissionHook } from 'expo-modules-core';
+import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
+
+
 // 导出类型定义（包含所有通用类型）
 export * from './types';
 // 导出原生模块
@@ -81,6 +86,24 @@ export type {
   OfflineMapStorageInfo,
   OfflineMapEvents,
 } from './types/offline.types';
+
+const requestPermissionsAsync = ExpoGaodeMapModuleWithHelpers.requestLocationPermission
+const getPermissionsAsync = ExpoGaodeMapModuleWithHelpers.checkLocationPermission
+
+
+/**
+ * Check or request permissions to access the location.
+ * This uses both `requestPermissionsAsync` and `getPermissionsAsync` to interact with the permissions.
+ *
+ * @example
+ * ```ts
+ * const [status, requestPermission] = useLocationPermissions();
+ * ```
+ */
+export const useLocationPermissions = createPermissionHook({
+  getMethod: getPermissionsAsync,
+  requestMethod: requestPermissionsAsync,
+})
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';

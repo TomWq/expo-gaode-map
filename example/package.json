@@ -9,7 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~54.0.23",
+    "expo": "~54.0.30",
     "expo-blur": "^15.0.8",
     "expo-gaode-map": "workspace:*",
     "expo-gaode-map-search": "workspace:*",

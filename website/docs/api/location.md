@@ -38,14 +38,74 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 
 ## 权限管理
 
-### 检查权限
+### useLocationPermissions Hook (推荐)
+
+使用 React Hook 简化权限管理，自动处理权限状态和请求：
+
+```tsx
+import { useLocationPermissions } from 'expo-gaode-map';
+
+function MyComponent() {
+  const [status, requestPermission] = useLocationPermissions();
+
+  useEffect(() => {
+    const init = async () => {
+      // 请求权限
+      await requestPermission();
+      
+      // 检查权限状态
+      if (status?.granted) {
+        ExpoGaodeMapModule.start();
+      }
+    };
+    
+    init();
+  }, [status, requestPermission]);
+
+  return (
+    <View>
+      {status?.granted ? (
+        <Text>✅ 权限已授予</Text>
+      ) : (
+        <Button title="请求定位权限" onPress={requestPermission} />
+      )}
+    </View>
+  );
+}
+```
+
+#### 返回值
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `status` | `PermissionStatus \| null` | 当前权限状态对象 |
+| `requestPermission` | `() => Promise<PermissionStatus>` | 请求权限的方法 |
+
+#### PermissionStatus 类型
+
+```typescript
+interface PermissionStatus {
+  granted: boolean;           // 是否已授权
+  status: 'granted' | 'denied' | 'notDetermined'; // 权限状态
+  fineLocation?: boolean;      // Android: 精确位置权限
+  coarseLocation?: boolean;    // Android: 粗略位置权限
+  backgroundLocation?: boolean; // Android: 后台位置权限
+  shouldShowRationale?: boolean; // Android: 是否应显示权限说明
+  isPermanentlyDenied?: boolean; // Android: 权限是否被永久拒绝
+  isAndroid14Plus?: boolean;    // Android: 是否为 Android 14+
+  message?: string;            // 额外的消息说明
+}
+```
+
+### 手动检查权限
 
 ```tsx
 const status = await ExpoGaodeMapModule.checkLocationPermission();
 console.log(status.granted); // true 或 false
+console.log(status.status);  // "granted" | "denied" | "notDetermined"
 ```
 
-### 请求权限
+### 手动请求权限
 
 ```tsx
 const result = await ExpoGaodeMapModule.requestLocationPermission();
@@ -53,6 +113,18 @@ if (result.granted) {
   console.log('权限已授予');
 } else {
   console.log('权限被拒绝');
+}
+```
+
+### 请求后台位置权限（Android 10+）
+
+```tsx
+const result = await ExpoGaodeMapModule.requestBackgroundLocationPermission();
+if (result.granted) {
+  console.log('后台定位权限已授予');
+} else if (result.isPermanentlyDenied) {
+  console.log('权限被永久拒绝，需要引导用户到设置页面');
+  ExpoGaodeMapModule.openAppSettings();
 }
 ```
 
@@ -148,15 +220,31 @@ interface Location {
 
 ## 完整示例
 
+### 使用 useLocationPermissions Hook（推荐）
+
 ```tsx
 import { useEffect, useState } from 'react';
-import { ExpoGaodeMapModule, type Location } from 'expo-gaode-map';
+import { 
+  ExpoGaodeMapModule, 
+  useLocationPermissions,
+  type Location 
+} from 'expo-gaode-map';
 
 export default function LocationExample() {
   const [location, setLocation] = useState<Location | null>(null);
+  const [status, requestPermission] = useLocationPermissions();
 
   useEffect(() => {
     const init = async () => {
+      // 请求定位权限
+      await requestPermission();
+      
+      // 检查权限是否已授予
+      if (!status?.granted) {
+        console.log('未授予定位权限');
+        return;
+      }
+
       // 初始化（使用 Config Plugin 时可传空对象）
       ExpoGaodeMapModule.initSDK({
         webKey: 'your-web-api-key', // 可选
@@ -166,7 +254,7 @@ export default function LocationExample() {
       ExpoGaodeMapModule.setLocatingWithReGeocode(true);
       ExpoGaodeMapModule.setInterval(2000);
 
-      // 监听
+      // 监听位置更新
       const sub = ExpoGaodeMapModule.addLocationListener(
         'onLocationUpdate',
         setLocation
@@ -182,14 +270,101 @@ export default function LocationExample() {
     };
 
     init();
+  }, [status, requestPermission]);
+
+  return (
+    <View>
+      {status?.granted ? (
+        <>
+          <Text>✅ 定位权限已授予</Text>
+          {location && (
+            <Text>
+              位置: {location.latitude}, {location.longitude}
+              {location.address && `\n地址: ${location.address}`}
+            </Text>
+          )}
+        </>
+      ) : (
+        <>
+          <Text>⚠️ 需要定位权限</Text>
+          <Button title="请求权限" onPress={requestPermission} />
+        </>
+      )}
+    </View>
+  );
+}
+```
+
+### 使用手动权限管理
+
+```tsx
+import { useEffect, useState } from 'react';
+import { ExpoGaodeMapModule, type Location } from 'expo-gaode-map';
+
+export default function LocationExample() {
+  const [location, setLocation] = useState<Location | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      // 1. 检查权限
+      const permission = await ExpoGaodeMapModule.checkLocationPermission();
+      
+      if (!permission.granted) {
+        // 2. 请求权限
+        const result = await ExpoGaodeMapModule.requestLocationPermission();
+        
+        if (!result.granted) {
+          setHasPermission(false);
+          return;
+        }
+      }
+
+      setHasPermission(true);
+
+      // 3. 初始化（使用 Config Plugin 时可传空对象）
+      ExpoGaodeMapModule.initSDK({
+        webKey: 'your-web-api-key', // 可选
+      });
+
+      // 4. 配置
+      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+      ExpoGaodeMapModule.setInterval(2000);
+
+      // 5. 监听
+      const sub = ExpoGaodeMapModule.addLocationListener(
+        'onLocationUpdate',
+        setLocation
+      );
+
+      // 6. 开始定位
+      ExpoGaodeMapModule.start();
+
+      return () => {
+        sub.remove();
+        ExpoGaodeMapModule.stop();
+      };
+    };
+
+    init();
   }, []);
 
   return (
     <View>
-      {location && (
-        <Text>
-          位置: {location.latitude}, {location.longitude}
-        </Text>
+      {hasPermission === null ? (
+        <Text>正在检查权限...</Text>
+      ) : hasPermission ? (
+        <>
+          <Text>✅ 定位权限已授予</Text>
+          {location && (
+            <Text>
+              位置: {location.latitude}, {location.longitude}
+              {location.address && `\n地址: ${location.address}`}
+            </Text>
+          )}
+        </>
+      ) : (
+        <Text>❌ 未授予定位权限</Text>
       )}
     </View>
   );

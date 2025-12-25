@@ -40,6 +40,7 @@ object PermissionHelper {
         val fineLocation: Boolean = false,
         val coarseLocation: Boolean = false,
         val backgroundLocation: Boolean = false
+
     )
     
     /**

@@ -341,6 +341,7 @@ class ExpoGaodeMapModule : Module() {
 
       promise.resolve(mapOf(
         "granted" to foregroundStatus.granted,
+        "status" to if (foregroundStatus.granted) "granted" else if (foregroundStatus.isPermanentlyDenied) "denied" else "notDetermined",
         "fineLocation" to foregroundStatus.fineLocation,
         "coarseLocation" to foregroundStatus.coarseLocation,
         "backgroundLocation" to backgroundStatus.backgroundLocation,
@@ -386,6 +387,7 @@ class ExpoGaodeMapModule : Module() {
             handler.removeCallbacks(this)
             promise.resolve(mapOf(
               "granted" to status.granted,
+              "status" to if (status.granted) "granted" else if (status.isPermanentlyDenied) "denied" else "notDetermined",
               "fineLocation" to status.fineLocation,
               "coarseLocation" to status.coarseLocation,
               "shouldShowRationale" to status.shouldShowRationale,
@@ -455,6 +457,7 @@ class ExpoGaodeMapModule : Module() {
             handler.removeCallbacks(this)
             promise.resolve(mapOf(
               "granted" to status.granted,
+              "status" to if (status.granted) "granted" else if (status.isPermanentlyDenied) "denied" else "notDetermined",
               "backgroundLocation" to status.backgroundLocation,
               "shouldShowRationale" to status.shouldShowRationale,
               "isPermanentlyDenied" to status.isPermanentlyDenied

@@ -2,7 +2,7 @@
  * 高德地图通用类型定义
  * 基于 Expo Modules API
  */
-
+import { PermissionResponse } from 'expo-modules-core';
 
 /**
  * SDK 配置参数
@@ -19,13 +19,9 @@ export interface SDKConfig {
 /**
  * 权限状态（增强版，支持 Android 14+ 和 iOS 17+）
  */
-export interface PermissionStatus {
+export interface PermissionStatus extends PermissionResponse{
   /** 是否已授权（前台位置权限） */
   granted: boolean;
-  
-  // iOS 专用字段
-  /** iOS 权限状态字符串 */
-  status?: 'notDetermined' | 'restricted' | 'denied' | 'authorizedAlways' | 'authorizedWhenInUse' | 'unknown';
   
   // Android 专用字段
   /** Android 精确位置权限 */
@@ -167,4 +163,3 @@ export enum MapType {
  * - 数字格式: 0xAARRGGBB (用于 Android)
  */
 export type ColorValue = string | number;
-
