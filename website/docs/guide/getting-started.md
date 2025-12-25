@@ -22,10 +22,11 @@ expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：
 ### 核心包（必需）
 
 ```bash
-bun install expo-gaode-map
+bun add expo-gaode-map
 # 或
 yarn add expo-gaode-map
-
+# 或
+npm install expo-gaode-map
 ```
 
 ### 搜索功能（可选）

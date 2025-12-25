@@ -9,9 +9,11 @@
 ### 1. 安装
 
 ```bash
-bun install expo-gaode-map
+bun add expo-gaode-map
 # 或
 yarn add expo-gaode-map
+# 或
+npm install expo-gaode-map
 ```
 
 ### 2. 配置 app.json

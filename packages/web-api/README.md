@@ -35,7 +35,7 @@
 
 安装本模块：
 ```bash
-bun install expo-gaode-map-web-api
+bun add expo-gaode-map-web-api
 # 或
 yarn add expo-gaode-map-web-api
 # 或

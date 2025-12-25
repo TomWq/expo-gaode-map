@@ -18,10 +18,11 @@
 ## 安装
 
 ```bash
-bun install expo-gaode-map-navigation
+bun add expo-gaode-map-navigation
 # 或
 yarn add expo-gaode-map-navigation
-
+# 或
+npm install expo-gaode-map-navigation
 ```
 
 ## 初始化

@@ -5,10 +5,11 @@ The Search module provides POI (Point of Interest) search functionality based on
 ## Installation
 
 ```bash
-bun install expo-gaode-map-search
+bun add expo-gaode-map-search
 # or
 yarn add expo-gaode-map-search
-
+# or
+npm install expo-gaode-map-search
 ```
 
 ## Import

@@ -8,10 +8,11 @@
 导航包是**独立的一体化解决方案**，不需要同时安装 `expo-gaode-map`：
 
 ```bash
-bun install expo-gaode-map-navigation
+bun add expo-gaode-map-navigation
 # 或
 yarn add expo-gaode-map-navigation
-
+# 或
+npm install expo-gaode-map-navigation
 ```
 
 ::: danger 二进制冲突警告

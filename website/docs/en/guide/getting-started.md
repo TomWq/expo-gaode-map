@@ -11,7 +11,7 @@ Quick start guide to help you integrate expo-gaode-map into your Expo project.
 ## Installation
 
 ```bash
-bun install expo-gaode-map
+bun add expo-gaode-map
 ```
 
 Or using other package managers:
@@ -19,6 +19,9 @@ Or using other package managers:
 ```bash
 # Using yarn
 yarn add expo-gaode-map
+
+# Using npm
+npm install expo-gaode-map
 
 ```
 

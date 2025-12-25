@@ -21,8 +21,8 @@
 仅安装本模块（不要安装 `expo-gaode-map`）：
 
 ```bash
-# npm
-bun install expo-gaode-map-navigation
+# bun
+bun add expo-gaode-map-navigation
 
 # or yarn
 yarn add expo-gaode-map-navigation
