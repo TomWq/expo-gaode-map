@@ -9,9 +9,9 @@
   "description": "高德地图 Expo 模块 Monorepo",
   "scripts": {
     "build": "bun run build:core && bun run build:search && bun run build:navigation && bun run build:web-api",
-    "build:core": "cd packages/core && bun run build",
-    "build:search": "cd packages/search && bun run build",
-    "build:navigation": "cd packages/navigation && bun run build",
+    "build:core": "cd packages/core && expo-module build --no-watch && bun run build:plugin",
+    "build:search": "cd packages/search && expo-module build --no-watch",
+    "build:navigation": "cd packages/navigation && expo-module build --no-watch",
     "build:web-api": "cd packages/web-api && bun run build",
     "clean": "bun run clean:core && bun run clean:search && bun run clean:navigation && bun run clean:web-api",
     "clean:core": "cd packages/core && bun run clean",
