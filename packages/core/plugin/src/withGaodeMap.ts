@@ -73,11 +73,13 @@ const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props)
 
     // 添加后台定位模式（如果启用）
     if (props.enableBackgroundLocation) {
-      if (!config.modResults.UIBackgroundModes) {
-        config.modResults.UIBackgroundModes = [];
-      }
-      if (!config.modResults.UIBackgroundModes.includes('location')) {
-        config.modResults.UIBackgroundModes.push('location');
+      const modes = config.modResults.UIBackgroundModes;
+      if (!modes) {
+        config.modResults.UIBackgroundModes = ['location'];
+      } else if (Array.isArray(modes)) {
+        if (modes.indexOf('location') === -1) {
+          (config.modResults.UIBackgroundModes as string[]).push('location');
+        }
       }
     }
 
