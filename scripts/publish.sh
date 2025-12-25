@@ -95,10 +95,10 @@ echo -e "${GREEN}✓ 已登录为: ${NPM_USER}${NC}"
 # 构建所有包
 echo ""
 echo "🔨 构建包..."
-CI=1 cd packages/core && expo-module build && cd plugin && tsc && cd ../..
-CI=1 cd packages/search && expo-module build && cd ../..
-CI=1 cd packages/navigation && expo-module build && cd ../..
-CI=1 cd packages/web-api && bun run build && cd ../..
+(cd packages/core && CI=1 expo-module build && cd plugin && tsc)
+(cd packages/search && CI=1 expo-module build)
+(cd packages/navigation && CI=1 expo-module build)
+(cd packages/web-api && bun run build)
 
 bump_version() {
   # $1: 当前版本, $2: 标志
