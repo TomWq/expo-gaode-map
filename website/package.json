@@ -1,12 +1,12 @@
 {
   "name": "expo-gaode-map-docs",
-  "version": "2.2.10",
+  "version": "2.2.12",
   "description": "expo-gaode-map 文档网站",
   "type": "module",
   "scripts": {
-    "dev": "vitepress dev docs",
-    "build": "vitepress build docs",
-    "preview": "vitepress preview docs"
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
     "vitepress": "^1.0.0",
