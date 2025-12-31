@@ -154,10 +154,12 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
       }
     } catch (error) {
       if (config.debug) {
-        console.error('[FoldableMapView] 处理折叠状态变化失败:', error);
+        console.error('[FoldableMapView] 处理折叠状态变化失败:');
       }
     }
   };
+
+  
 
   return (
     <ExpoGaodeMapView
@@ -215,7 +217,7 @@ export function useFoldableMap(
               }
             } catch (error) {
               if (mergedConfig.debug) {
-                console.error('[useFoldableMap] 调整失败:', error);
+                console.error('[useFoldableMap] 调整失败:');
               }
             }
           }

@@ -30,7 +30,7 @@
     },
     "packages/core": {
       "name": "expo-gaode-map",
-      "version": "2.2.10",
+      "version": "2.2.12",
       "devDependencies": {
         "@expo/config-plugins": "^9.1.7",
         "@testing-library/react-native": "^13.3.3",

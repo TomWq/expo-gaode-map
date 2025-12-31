@@ -106,7 +106,7 @@ export function createLazyLoader<T>(loader: () => T): () => T | null {
       try {
         cached = loader();
       } catch (error) {
-        console.warn('[expo-gaode-map] 模块加载失败:', error);
+        console.warn('[expo-gaode-map] 模块加载失败:');
         cached = null;
       }
     }

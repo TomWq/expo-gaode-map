@@ -16,6 +16,7 @@
 
 - [MapView Props](/api/mapview)
 - [MapView 方法](/api/mapview#mapview-方法)
+- [组件与 Hooks](/api/components)
 - [定位 API](/api/location)
 - [覆盖物组件](/api/overlays)
 - [类型定义](/api/types)

@@ -116,7 +116,7 @@ public class ExpoGaodeMapModule: Module {
             
             guard let keyToUse = finalKey, !keyToUse.isEmpty else {
                 print("⚠️ ExpoGaodeMap: 未提供 iosKey 且 Info.plist 中也无 AMapApiKey，无法初始化 SDK")
-                return
+                throw Exception(name: "INIT_FAILED", description: "未提供 API Key")
             }
             
             // 设置 API Key（若与现有不同或尚未设置）

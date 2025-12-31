@@ -42,6 +42,7 @@ export default defineConfig({
               items: [
                 { text: 'API 总览', link: '/api/' },
                 { text: 'MapView Props', link: '/api/mapview' },
+                { text: '组件与 Hooks', link: '/api/components' },
                 { text: '定位 API', link: '/api/location' },
                 { text: '几何计算', link: '/api/geometry' },
                 { text: '覆盖物', link: '/api/overlays' },

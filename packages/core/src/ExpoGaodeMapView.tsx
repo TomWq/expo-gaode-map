@@ -10,6 +10,9 @@ import type {
 
 } from './types';
 import { ErrorHandler } from './utils/ErrorHandler';
+import { MapContext } from './components/MapContext';
+import { MapUI } from './components/MapUI';
+import { View, StyleSheet } from 'react-native';
 
 export type { MapViewRef } from './types';
 
@@ -83,12 +86,32 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    */
   React.useImperativeHandle(ref, () => apiRef, [apiRef]);
 
+  // 分离 children：区分原生覆盖物和普通 UI 组件
+  const { children, style, ...otherProps } = props;
+  const overlays: React.ReactNode[] = [];
+  const uiControls: React.ReactNode[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child) && (child.type === MapUI || (child.type as any)?.isMapUI)) {
+      uiControls.push(child);
+    } else {
+      overlays.push(child);
+    }
+  });
+
   return (
-    <NativeView
-        ref={nativeRef}
-          {...props}>
-          {props.children}
-      </NativeView>
+    <MapContext.Provider value={apiRef}>
+      <View style={[{ flex: 1, position: 'relative', overflow: 'hidden' }, style]}>
+        <NativeView
+          ref={nativeRef}
+          style={StyleSheet.absoluteFill}
+          {...otherProps}
+        >
+          {overlays}
+        </NativeView>
+        {uiControls}
+      </View>
+    </MapContext.Provider>
   );
 });
 

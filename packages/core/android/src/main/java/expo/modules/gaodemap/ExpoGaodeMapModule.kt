@@ -87,10 +87,10 @@ class ExpoGaodeMapModule : Module() {
           getLocationManager() // 初始化定位管理器
         } catch (e: SecurityException) {
           android.util.Log.e("ExpoGaodeMap", "隐私协议未同意: ${e.message}")
-          throw e
+          throw expo.modules.kotlin.exception.CodedException("PRIVACY_NOT_AGREED", e.message ?: "用户未同意隐私协议", e)
         } catch (e: Exception) {
           android.util.Log.e("ExpoGaodeMap", "SDK 初始化失败: ${e.message}")
-          throw e
+          throw expo.modules.kotlin.exception.CodedException("INIT_FAILED", e.message ?: "SDK 初始化失败", e)
         }
       }
     }

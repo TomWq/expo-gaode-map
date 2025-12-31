@@ -82,8 +82,12 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
    * 设置是否虚线
    */
   fun setDotted(dotted: Boolean) {
-    isDotted = dotted
-    createOrUpdatePolyline()
+    try {
+      isDotted = dotted
+      createOrUpdatePolyline()
+    } catch (e: Throwable) {
+      android.util.Log.e("PolylineView", "setDotted failed", e)
+    }
   }
   
   /**
@@ -131,64 +135,74 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
    */
   private fun createOrUpdatePolyline() {
     aMap?.let { map ->
-      // 移除旧折线
-      polyline?.remove()
-      polyline = null
-      
-      if (points.isNotEmpty()) {
-        val options = PolylineOptions()
-          .addAll(points)
-          .width(strokeWidth)
-          .color(strokeColor)
-          .geodesic(isGeodesic)
+      try {
+        // 移除旧折线
+        polyline?.remove()
+        polyline = null
+        
+        if (points.isNotEmpty()) {
+          val options = PolylineOptions()
+            .addAll(points)
+            .width(strokeWidth)
+            .color(strokeColor)
+            .geodesic(isGeodesic)
 
-        
-        // 设置虚线样式
-        if (isDotted) {
-            options.dottedLineType = PolylineOptions.DOTTEDLINE_TYPE_SQUARE
-        }
-        
-        // 设置纹理
-        textureUrl?.let { url ->
+          
+          // 设置虚线样式
           try {
-            when {
-              url.startsWith("http://") || url.startsWith("https://") -> {
-                // 网络图片异步加载
-                Thread {
-                  try {
-                    val connection = URL(url).openConnection()
-                    val inputStream = connection.getInputStream()
-                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                    inputStream.close()
-                    post {
-                      polyline?.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+              options.setDottedLine(isDotted)
+              if (isDotted) {
+                  options.setDottedLineType(PolylineOptions.DOTTEDLINE_TYPE_SQUARE)
+              }
+          } catch (e: Throwable) {
+              // 忽略虚线设置错误，防止崩溃
+              android.util.Log.e("PolylineView", "设置虚线失败", e)
+          }
+          
+          // 设置纹理
+          textureUrl?.let { url ->
+            try {
+              when {
+                url.startsWith("http://") || url.startsWith("https://") -> {
+                  // 网络图片异步加载
+                  Thread {
+                    try {
+                      val connection = URL(url).openConnection()
+                      val inputStream = connection.getInputStream()
+                      val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                      inputStream.close()
+                      post {
+                        polyline?.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+                      }
+                    } catch (e: Exception) {
+                      e.printStackTrace()
                     }
-                  } catch (e: Exception) {
-                    e.printStackTrace()
+                  }.start()
+                }
+                url.startsWith("file://") -> {
+                  val path = url.substring(7)
+                  val bitmap = android.graphics.BitmapFactory.decodeFile(path)
+                  bitmap?.let { options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(it)) }
+                }
+                else -> {
+                  val resId = context.resources.getIdentifier(url, "drawable", context.packageName)
+                  if (resId != 0) {
+                    val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                    options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+                  }else{
+                    
                   }
-                }.start()
-              }
-              url.startsWith("file://") -> {
-                val path = url.substring(7)
-                val bitmap = android.graphics.BitmapFactory.decodeFile(path)
-                bitmap?.let { options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(it)) }
-              }
-              else -> {
-                val resId = context.resources.getIdentifier(url, "drawable", context.packageName)
-                if (resId != 0) {
-                  val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
-                  options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
-                }else{
-                  
                 }
               }
+            } catch (e: Exception) {
+              e.printStackTrace()
             }
-          } catch (e: Exception) {
-            e.printStackTrace()
           }
+          
+          polyline = map.addPolyline(options)
         }
-        
-        polyline = map.addPolyline(options)
+      } catch (e: Throwable) {
+        android.util.Log.e("PolylineView", "Error creating/updating polyline", e)
       }
     }
   }

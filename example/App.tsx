@@ -17,6 +17,10 @@ import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import TestNewPermissionMethods from './TestNewPermissionMethods';
+import UseMapExample from './UseMapExample';
+import WebAPIExample from './WebAPIExample';
+
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
 // 从环境变量读取 Key（示例）。生产请用 EXPO_PUBLIC_ 前缀或远端下发
 const WEB_API_KEY = process.env.EXPO_PUBLIC_AMAP_WEB_KEY;
@@ -33,6 +37,8 @@ export default function MamScreen() {
   const [isMapReady, setIsMapReady] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
   const [status, requestPermission] = useLocationPermissions()
+
+  
 
   // 主题与动态色
   const colorScheme = 'dark';
@@ -89,7 +95,7 @@ export default function MamScreen() {
   const [privacyAgreed, setPrivacyAgreed] = useState(true);
 
   // const { isReady, stats } = useMapPreload();
-  console.log('status',status?.status)
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -319,6 +325,13 @@ export default function MamScreen() {
     Alert.alert('成功', `已移除所有 ${total} 个动态覆盖物`);
   };
 
+
+  if (false) {
+    return <TestNewPermissionMethods />;
+  }
+  if (true) {
+    return <UseMapExample />;
+  }
 
   if (!initialPosition) {
     return (
@@ -596,6 +609,7 @@ export default function MamScreen() {
         />}
 
         {isMapReady && <Polyline
+          key="polyline-solid"
           points={[
             { latitude: 39.85, longitude: 116.35 },
             { latitude: 39.87, longitude: 116.37 },
@@ -603,10 +617,12 @@ export default function MamScreen() {
           ]}
           strokeWidth={5}
           strokeColor="#FFFF0000"
+          dotted={false}
           onPolylinePress={() => Alert.alert('折线', '点击了普通折线')}
         />}
 
         {isMapReady && <Polyline
+          key="polyline-dotted"
           points={[
             { latitude: 39.85, longitude: 116.45 },
             { latitude: 39.87, longitude: 116.47 },
