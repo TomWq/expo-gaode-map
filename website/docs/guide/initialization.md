@@ -20,12 +20,19 @@
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 useEffect(() => {
+  // 如果需要开启世界地图（海外地图）
+  // 必须在 initSDK 之前调用
+  // 世界地图为高级服务，需要开通相关权限：
+  // 1.注册成为高德开放平台开发者，并申请 注册 key
+  // 2.通过 工单 联系商务开通
+  ExpoGaodeMapModule.setLoadWorldVectorMap(true);
+
   // 初始化 SDK
   ExpoGaodeMapModule.initSDK({
     webKey: 'your-web-api-key', // 使用 Web API 服务时需要
   });
 }, []);
-```
+``````
 
 ::: tip Config Plugin 自动配置
 如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**initSDK 可以不调用或只传 webKey**（更安全）。

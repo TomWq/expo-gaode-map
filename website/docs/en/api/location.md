@@ -32,6 +32,7 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
 | `initSDK` | `{androidKey, iosKey}` | `void` | Initialize SDK |
+| `setLoadWorldVectorMap` | `enabled: boolean` | `void` | Enable/Disable world vector map (Overseas map). Must be called before initialization |
 | `start` | - | `void` | Start continuous location |
 | `stop` | - | `void` | Stop location |
 | `isStarted` | - | `Promise<boolean>` | Check if location is active |

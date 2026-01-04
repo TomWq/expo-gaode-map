@@ -31,6 +31,7 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
 | `initSDK` | `{androidKey?, iosKey?, webKey?}` | `void` | 初始化 SDK（使用 Config Plugin 时原生 Key 可省略） |
+| `setLoadWorldVectorMap` | `enabled: boolean` | `void` | 开启/关闭世界向量地图（海外地图），需在初始化前调用 |
 | `start` | - | `void` | 开始连续定位 |
 | `stop` | - | `void` | 停止定位 |
 | `isStarted` | - | `Promise<boolean>` | 检查是否正在定位 |

@@ -1,6 +1,7 @@
 package expo.modules.gaodemap
 
 import com.amap.api.maps.AMapUtils
+import com.amap.api.maps.MapsInitializer
 import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -93,6 +94,14 @@ class ExpoGaodeMapModule : Module() {
           throw expo.modules.kotlin.exception.CodedException("INIT_FAILED", e.message ?: "SDK 初始化失败", e)
         }
       }
+    }
+
+    /**
+     * 设置是否加载世界向量地图
+     * @param enable 是否开启
+     */
+    Function("setLoadWorldVectorMap") { enable: Boolean ->
+        MapsInitializer.loadWorldVectorMap(enable)
     }
 
     /**

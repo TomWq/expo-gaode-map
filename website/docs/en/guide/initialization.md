@@ -11,12 +11,16 @@ Initialize the SDK before using any map features:
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
+// Enable World Vector Map (Overseas Map) support
+// Must be called before initSDK
+ExpoGaodeMapModule.setLoadWorldVectorMap(true);
+
 // Initialize SDK
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
 });
-```
+``````
 
 ### Get API Keys
 

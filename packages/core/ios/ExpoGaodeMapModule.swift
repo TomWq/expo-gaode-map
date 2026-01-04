@@ -132,6 +132,14 @@ public class ExpoGaodeMapModule: Module {
         }
         
         /**
+         * 设置是否加载世界向量地图
+         * @param enable 是否开启
+         */
+        Function("setLoadWorldVectorMap") { (enable: Bool) in
+            MAMapView.loadWorldVectorMap = enable
+        }
+        
+        /**
          * 获取 SDK 版本号
          */
         Function("getVersion") {

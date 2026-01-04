@@ -99,7 +99,7 @@ export default function MamScreen() {
   useEffect(() => {
     const init = async () => {
       try {
-
+        
         ExpoGaodeMapModule.initSDK({
           webKey: '',
          
@@ -329,7 +329,7 @@ export default function MamScreen() {
   if (false) {
     return <TestNewPermissionMethods />;
   }
-  if (true) {
+  if (false) {
     return <UseMapExample />;
   }
 

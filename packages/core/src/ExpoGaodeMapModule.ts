@@ -42,6 +42,16 @@ declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> 
   initSDK(config: SDKConfig): void;
 
   /**
+   * 设置是否加载世界向量地图（海外地图）
+   * 必须在地图初始化之前调用
+   * 世界地图为高级服务，需要开通相关权限：
+   * 1.注册成为高德开放平台开发者，并申请 注册 key
+   * 2.通过 工单 联系商务开通
+   * @param enabled 是否开启
+   */
+  setLoadWorldVectorMap(enabled: boolean): void;
+
+  /**
    * 获取高德地图 SDK 版本号
    * @returns SDK 版本字符串
    */
