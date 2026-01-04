@@ -6,6 +6,7 @@ import { GaodeWebAPIClient } from '../utils/client';
 import type {
   RegeocodeParams,
   RegeocodeResponse,
+  BatchRegeocodeResponse,
   GeocodeParams,
   GeocodeResponse,
 } from '../types/geocode.types';
@@ -113,14 +114,14 @@ export class GeocodeService {
   async batchRegeocode(
     locations: string[],
     options?: Omit<RegeocodeParams, 'location' | 'batch'>
-  ): Promise<RegeocodeResponse> {
+  ): Promise<BatchRegeocodeResponse> {
     const params: RegeocodeParams = {
       location: locations.join('|'),
       batch: true,
       ...options,
     };
 
-    return this.client.request<RegeocodeResponse>('/v3/geocode/regeo', params);
+    return this.client.request<BatchRegeocodeResponse>('/v3/geocode/regeo', params);
   }
 
   /**

@@ -397,7 +397,7 @@ async batchGeocode(
 async batchRegeocode(
   locations: Array<string | { longitude: number; latitude: number }>,
   options?: RegeocodeOptions
-): Promise<RegeocodeResponse[]>
+): Promise<BatchRegeocodeResponse>
 ```
 
 最多支持 20 个坐标批量查询。

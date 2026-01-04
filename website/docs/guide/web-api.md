@@ -118,6 +118,19 @@ const result = await api.geocode.regeocode('116.481028,39.989643', {
 });
 ```
 
+### 批量逆地理编码
+
+```typescript
+const result = await api.geocode.batchRegeocode([
+  '116.481028,39.989643',
+  '116.434446,39.90816',
+]);
+
+result.regeocodes.forEach(item => {
+  console.log(item.formatted_address);
+});
+```
+
 ### 驾车路径规划
 
 ```typescript

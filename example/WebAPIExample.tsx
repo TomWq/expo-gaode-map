@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 /**
  * 高德地图 Web API 逆地理编码示例
@@ -18,14 +19,21 @@ export default function WebAPIExample() {
   const [address, setAddress] = useState('北京市朝阳区阜通东大街6号');
   const [geocodeResult, setGeocodeResult] = useState('');
 
+
+  useEffect(()=>{
+    ExpoGaodeMapModule.initSDK({
+      webKey: apiKey,
+    });
+  },[])
+
   // 初始化 API
   const handleInitialize = () => {
-    if (!apiKey.trim()) {
-      Alert.alert('错误', '请输入 Web API Key');
-      return;
-    }
+    // if (!apiKey.trim()) {
+    //   Alert.alert('错误', '请输入 Web API Key');
+    //   return;
+    // }
     
-    const newApi = new GaodeWebAPI({ key: apiKey });
+    const newApi = new GaodeWebAPI();
     setApi(newApi);
     Alert.alert('成功', 'Web API 初始化成功');
   };
@@ -138,7 +146,7 @@ ${result.geocodes.map((geocode, i) => `
         [{ text: '确定' }]
       );
       
-      console.log('批量逆地理编码结果：', result);
+      console.log('批量逆地理编码结果：', JSON.stringify(result.regeocodes));
     } catch (error) {
       Alert.alert('错误', error instanceof Error ? error.message : '未知错误');
     }
@@ -184,7 +192,7 @@ ${result.geocodes.map((geocode, i) => `
         <Button
           title="查询地址"
           onPress={handleRegeocode}
-          disabled={!api}
+          // disabled={!api}
         />
         
         {regeocodeResult ? (
@@ -206,7 +214,7 @@ ${result.geocodes.map((geocode, i) => `
         <Button
           title="查询坐标"
           onPress={handleGeocode}
-          disabled={!api}
+          // disabled={!api}
         />
         
         {geocodeResult ? (
@@ -222,7 +230,7 @@ ${result.geocodes.map((geocode, i) => `
         <Button
           title="批量逆地理编码"
           onPress={handleBatchRegeocode}
-          disabled={!api}
+          // disabled={!api}
         />
       </View>
 

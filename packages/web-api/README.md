@@ -147,7 +147,9 @@ const result = await api.geocode.batchRegeocode([
 ]);
 
 // 处理多个结果
-// 注意：批量查询的结果格式与单个查询略有不同
+result.regeocodes.forEach(item => {
+  console.log(item.formatted_address);
+});
 ```
 
 ### 地理编码

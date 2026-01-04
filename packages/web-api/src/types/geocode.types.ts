@@ -236,17 +236,31 @@ export interface Regeocode {
 }
 
 /**
- * 逆地理编码响应结果
+ * 逆地理编码基础响应结果
  */
-export interface RegeocodeResponse {
+export interface BaseRegeocodeResponse {
   /** 状态码：1-成功，0-失败 */
   status: string;
   /** 状态说明 */
   info: string;
   /** 状态码说明 */
   infocode: string;
+}
+
+/**
+ * 逆地理编码响应结果
+ */
+export interface RegeocodeResponse extends BaseRegeocodeResponse {
   /** 逆地理编码结果 */
   regeocode: Regeocode;
+}
+
+/**
+ * 批量逆地理编码响应结果
+ */
+export interface BatchRegeocodeResponse extends BaseRegeocodeResponse {
+  /** 批量逆地理编码结果列表 */
+  regeocodes: Regeocode[];
 }
 
 /**
