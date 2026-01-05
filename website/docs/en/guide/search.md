@@ -80,12 +80,20 @@ eas build --platform all
 
 ```typescript
 import { 
+  initSearch,
   searchPOI, 
-  searchPOIAround, 
-  searchPOIAlongRoute, 
-  searchInputTips 
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  type POI,
+  type InputTip,
+  type SearchResult,
+  type InputTipsResult,
 } from 'expo-gaode-map-search';
 ```
+
+If you configured keys via Config Plugin, the search module auto-initializes. Otherwise, call `initSearch()` once at startup.
 
 ### Keyword Search
 
@@ -93,13 +101,13 @@ import {
 async function searchPlaces(keyword: string) {
   try {
     const result = await searchPOI({
-      query: keyword,
+      keyword,
       city: 'Beijing',
       pageNum: 1,
-      pageSize: 20
+      pageSize: 20,
     });
     
-    console.log(`Found ${result.totalCount} results`);
+    console.log(`Found ${result.total} results`);
     return result.pois;
   } catch (error) {
     console.error('Search failed:', error);
@@ -113,11 +121,11 @@ async function searchPlaces(keyword: string) {
 ```typescript
 async function searchNearby(location: { latitude: number; longitude: number }) {
   try {
-    const result = await searchPOIAround({
+    const result = await searchNearby({
       center: location,
-      query: 'restaurant',
-      radius: 2000, // 2km
-      pageNum: 1
+      keyword: 'restaurant',
+      radius: 2000,
+      pageNum: 1,
     });
     
     return result.pois;
@@ -133,9 +141,9 @@ async function searchNearby(location: { latitude: number; longitude: number }) {
 ```typescript
 async function getSuggestions(keyword: string) {
   try {
-    const result = await searchInputTips({
+    const result = await getInputTips({
       keyword,
-      city: 'Beijing'
+      city: 'Beijing',
     });
     
     return result.tips;
@@ -155,24 +163,21 @@ Here's a complete example of a search map application:
 ```typescript
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, POIItem } from 'expo-gaode-map-search';
+import { MapView, Marker, type MapViewRef } from 'expo-gaode-map';
+import { searchPOI, type POI } from 'expo-gaode-map-search';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
-  const [results, setResults] = useState<POIItem[]>([]);
-  const [selectedPOI, setSelectedPOI] = useState<POIItem | null>(null);
-  const [mapCenter, setMapCenter] = useState({
-    latitude: 39.908692,
-    longitude: 116.397477
-  });
+  const [results, setResults] = useState<POI[]>([]);
+  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+  const mapRef = React.useRef<MapViewRef>(null);
 
   const handleSearch = async () => {
     if (!keyword.trim()) return;
     
     try {
       const result = await searchPOI({
-        query: keyword,
+        keyword,
         city: 'Beijing',
         pageNum: 1,
         pageSize: 20
@@ -181,17 +186,17 @@ export default function SearchMapScreen() {
       setResults(result.pois);
       
       if (result.pois.length > 0) {
-        setMapCenter(result.pois[0].location);
         setSelectedPOI(result.pois[0]);
+        await mapRef.current?.setCenter(result.pois[0].location, true);
       }
     } catch (error) {
       console.error('Search failed:', error);
     }
   };
 
-  const handleSelectPOI = (poi: POIItem) => {
+  const handleSelectPOI = async (poi: POI) => {
     setSelectedPOI(poi);
-    setMapCenter(poi.location);
+    await mapRef.current?.setCenter(poi.location, true);
   };
 
   return (
@@ -209,17 +214,20 @@ export default function SearchMapScreen() {
 
       {/* Map */}
       <MapView
+        ref={mapRef}
         style={styles.map}
-        center={mapCenter}
-        zoomLevel={15}
+        initialCameraPosition={{
+          target: { latitude: 39.908692, longitude: 116.397477 },
+          zoom: 15,
+        }}
       >
         {results.map((poi) => (
           <Marker
-            key={poi.uid}
-            coordinate={poi.location}
+            key={poi.id}
+            position={poi.location}
             title={poi.name}
-            description={poi.address}
-            onPress={() => handleSelectPOI(poi)}
+            snippet={poi.address}
+            onMarkerPress={() => handleSelectPOI(poi)}
           />
         ))}
       </MapView>
@@ -229,7 +237,7 @@ export default function SearchMapScreen() {
         <View style={styles.results}>
           <FlatList
             data={results}
-            keyExtractor={(item) => item.uid}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
@@ -314,9 +322,9 @@ The search module provides the following methods:
 Search for POIs by keyword.
 
 **Parameters:**
-- `query` - Search keyword
+- `keyword` - Search keyword
 - `city` - City name or code
-- `type` - POI type code
+- `types` - POI type codes joined by `|`
 - `pageNum` - Page number (default: 1)
 - `pageSize` - Results per page (default: 20, max: 50)
 
@@ -324,14 +332,14 @@ Search for POIs by keyword.
 
 ---
 
-### searchPOIAround
+### searchNearby
 
 Search for nearby POIs around a location.
 
 **Parameters:**
 - `center` - Center coordinates
-- `query` - Search keyword (optional)
-- `type` - POI type code
+- `keyword` - Search keyword
+- `types` - POI type codes joined by `|`
 - `radius` - Search radius in meters (default: 1000, max: 50000)
 - `pageNum` - Page number
 - `pageSize` - Results per page
@@ -340,31 +348,28 @@ Search for nearby POIs around a location.
 
 ---
 
-### searchPOIAlongRoute
+### searchAlong
 
 Search for POIs along a route.
 
 **Parameters:**
-- `origin` - Starting point
-- `destination` - Destination
-- `query` - Search keyword
-- `type` - POI type code
-- `range` - Deviation from route in meters (default: 500)
-- `pageNum` - Page number
-- `pageSize` - Results per page
+- `polyline` - Route points (at least 2)
+- `keyword` - Search keyword
+- `types` - POI type codes joined by `|`
+- `range` - Search range in meters (default: 500, max: 1000)
 
 **Returns:** `POISearchResult`
 
 ---
 
-### searchInputTips
+### getInputTips
 
 Get input suggestions (autocomplete).
 
 **Parameters:**
 - `keyword` - Input keyword
-- `city` - City name
-- `type` - POI type code
+- `city` - City name or code
+- `types` - POI type codes joined by `|`
 
 **Returns:** `InputTipsResult`
 
@@ -376,16 +381,16 @@ Get input suggestions (autocomplete).
 
 ```typescript
 import { getCurrentLocation } from 'expo-gaode-map';
-import { searchPOIAround } from 'expo-gaode-map-search';
+import { searchNearby } from 'expo-gaode-map-search';
 
 async function searchNearMe(keyword: string) {
   const location = await getCurrentLocation();
-  const result = await searchPOIAround({
+  const result = await searchNearby({
     center: {
       latitude: location.latitude,
       longitude: location.longitude
     },
-    query: keyword,
+    keyword,
     radius: 5000
   });
   
@@ -396,14 +401,13 @@ async function searchNearMe(keyword: string) {
 ### 2. Search Along Driving Route
 
 ```typescript
-import { searchPOIAlongRoute } from 'expo-gaode-map-search';
+import { searchAlong } from 'expo-gaode-map-search';
 
 async function findGasStationsOnRoute(start: Coordinate, end: Coordinate) {
-  const result = await searchPOIAlongRoute({
-    origin: start,
-    destination: end,
-    query: 'gas station',
-    range: 1000
+  const result = await searchAlong({
+    keyword: 'gas station',
+    polyline: [start, end],
+    range: 1000,
   });
   
   return result.pois;
@@ -418,9 +422,9 @@ import { searchPOI } from 'expo-gaode-map-search';
 async function searchByCategory(category: string, city: string) {
   // 040000 = Dining, 050000 = Shopping, etc.
   const result = await searchPOI({
-    query: '',
+    keyword: '',
     city,
-    type: category,
+    types: category,
     pageSize: 50
   });
   
@@ -440,11 +444,11 @@ async function searchByCategory(category: string, city: string) {
 
 **A:** No, the search module automatically uses the API Key configured in the core module. You only need to configure it once in `app.json`.
 
-### Q: What's the difference between searchPOI and searchPOIAround?
+### Q: What's the difference between searchPOI and searchNearby?
 
 **A:** 
 - `searchPOI` - City-wide search by keyword, suitable for general searches
-- `searchPOIAround` - Search within a specific radius around a point, suitable for "nearby" searches
+- `searchNearby` - Search within a specific radius around a point, suitable for "nearby" searches
 
 ### Q: How do I handle "No results found"?
 

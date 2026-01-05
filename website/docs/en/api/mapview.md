@@ -74,6 +74,39 @@ interface MapViewRef {
 }
 ```
 
+## Components and Hooks
+
+### useMap
+
+```tsx
+import { useMap } from "expo-gaode-map";
+
+function ZoomInButton() {
+  const map = useMap();
+  return (
+    <Button
+      title="Zoom In"
+      onPress={async () => {
+        const current = await map.getCameraPosition();
+        await map.setZoom((current.zoom ?? 10) + 1, true);
+      }}
+    />
+  );
+}
+```
+
+### MapUI
+
+```tsx
+import { MapUI, MapView } from "expo-gaode-map";
+
+<MapView style={{ flex: 1 }}>
+  <MapUI>
+    <Text>Overlay UI</Text>
+  </MapUI>
+</MapView>;
+```
+
 ## Usage Examples
 
 ### Basic Usage

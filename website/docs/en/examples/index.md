@@ -170,27 +170,27 @@ function LocationTracker() {
 ### Search Features
 
 ```tsx
-import { searchPOI, searchPOIAround, searchInputTips } from 'expo-gaode-map-search';
+import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map-search';
 
 // Keyword search
 const result = await searchPOI({
-  query: 'Starbucks',
+  keyword: 'Starbucks',
   city: 'Beijing',
   pageNum: 1,
   pageSize: 20
 });
 
 // Nearby search
-const nearby = await searchPOIAround({
+const nearby = await searchNearby({
   center: { latitude: 39.9, longitude: 116.4 },
-  query: 'restaurant',
-  radius: 2000
+  keyword: 'restaurant',
+  radius: 2000,
 });
 
 // Autocomplete
-const tips = await searchInputTips({
+const tips = await getInputTips({
   keyword: 'Star',
-  city: 'Beijing'
+  city: 'Beijing',
 });
 ```
 

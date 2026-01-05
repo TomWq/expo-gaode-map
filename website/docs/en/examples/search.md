@@ -12,13 +12,13 @@ import { searchPOI } from 'expo-gaode-map-search';
 async function searchStarbucks() {
   try {
     const result = await searchPOI({
-      query: 'Starbucks',
+      keyword: 'Starbucks',
       city: 'Beijing',
       pageNum: 1,
       pageSize: 20
     });
     
-    console.log(`Found ${result.totalCount} results`);
+    console.log(`Found ${result.total} results`);
     result.pois.forEach(poi => {
       console.log(`${poi.name} - ${poi.address}`);
     });
@@ -31,13 +31,13 @@ async function searchStarbucks() {
 ### Nearby Search
 
 ```typescript
-import { searchPOIAround } from 'expo-gaode-map-search';
+import { searchNearby } from 'expo-gaode-map-search';
 
 async function searchNearbyRestaurants(latitude: number, longitude: number) {
   try {
-    const result = await searchPOIAround({
+    const result = await searchNearby({
       center: { latitude, longitude },
-      query: 'restaurant',
+      keyword: 'restaurant',
       radius: 2000, // 2km radius
       pageNum: 1,
       pageSize: 20
@@ -54,19 +54,17 @@ async function searchNearbyRestaurants(latitude: number, longitude: number) {
 ### Route Search
 
 ```typescript
-import { searchPOIAlongRoute } from 'expo-gaode-map-search';
+import { searchAlong } from 'expo-gaode-map-search';
 
 async function searchGasStations(
   origin: { latitude: number; longitude: number },
   destination: { latitude: number; longitude: number }
 ) {
   try {
-    const result = await searchPOIAlongRoute({
-      origin,
-      destination,
-      query: 'gas station',
-      range: 1000, // 1km deviation from route
-      pageNum: 1
+    const result = await searchAlong({
+      keyword: 'gas station',
+      polyline: [origin, destination],
+      range: 1000, // 1km range
     });
     
     return result.pois;
@@ -80,11 +78,11 @@ async function searchGasStations(
 ### Autocomplete Search
 
 ```typescript
-import { searchInputTips } from 'expo-gaode-map-search';
+import { getInputTips } from 'expo-gaode-map-search';
 
 async function getSearchSuggestions(keyword: string) {
   try {
-    const result = await searchInputTips({
+    const result = await getInputTips({
       keyword,
       city: 'Beijing'
     });
@@ -106,26 +104,23 @@ async function getSearchSuggestions(keyword: string) {
 ```typescript
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, searchInputTips, POIItem, TipItem } from 'expo-gaode-map-search';
+import { MapView, Marker, type MapViewRef } from 'expo-gaode-map';
+import { searchPOI, getInputTips, type POI, type InputTip } from 'expo-gaode-map-search';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
-  const [suggestions, setSuggestions] = useState<TipItem[]>([]);
-  const [searchResults, setSearchResults] = useState<POIItem[]>([]);
-  const [selectedPOI, setSelectedPOI] = useState<POIItem | null>(null);
+  const [suggestions, setSuggestions] = useState<InputTip[]>([]);
+  const [searchResults, setSearchResults] = useState<POI[]>([]);
+  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState({
-    latitude: 39.908692,
-    longitude: 116.397477
-  });
+  const mapRef = React.useRef<MapViewRef>(null);
 
   // Autocomplete
   useEffect(() => {
     if (keyword.length > 0) {
       const timer = setTimeout(async () => {
         try {
-          const result = await searchInputTips({
+          const result = await getInputTips({
             keyword,
             city: 'Beijing'
           });
@@ -146,7 +141,7 @@ export default function SearchMapScreen() {
     setLoading(true);
     try {
       const result = await searchPOI({
-        query,
+        keyword: query,
         city: 'Beijing',
         pageNum: 1,
         pageSize: 20
@@ -157,8 +152,8 @@ export default function SearchMapScreen() {
       
       // Center map on first result
       if (result.pois.length > 0) {
-        setMapCenter(result.pois[0].location);
         setSelectedPOI(result.pois[0]);
+        await mapRef.current?.setCenter(result.pois[0].location, true);
       }
     } catch (error) {
       console.error('Search error:', error);
@@ -168,15 +163,15 @@ export default function SearchMapScreen() {
   };
 
   // Select suggestion
-  const handleSelectSuggestion = (tip: TipItem) => {
+  const handleSelectSuggestion = (tip: InputTip) => {
     setKeyword(tip.name);
     handleSearch(tip.name);
   };
 
   // Select POI
-  const handleSelectPOI = (poi: POIItem) => {
+  const handleSelectPOI = async (poi: POI) => {
     setSelectedPOI(poi);
-    setMapCenter(poi.location);
+    await mapRef.current?.setCenter(poi.location, true);
   };
 
   return (
@@ -198,7 +193,7 @@ export default function SearchMapScreen() {
         <View style={styles.suggestionsContainer}>
           <FlatList
             data={suggestions}
-            keyExtractor={(item) => item.uid}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.suggestionItem}
@@ -214,17 +209,20 @@ export default function SearchMapScreen() {
 
       {/* Map */}
       <MapView
+        ref={mapRef}
         style={styles.map}
-        center={mapCenter}
-        zoomLevel={15}
+        initialCameraPosition={{
+          target: { latitude: 39.908692, longitude: 116.397477 },
+          zoom: 15,
+        }}
       >
         {searchResults.map((poi) => (
           <Marker
-            key={poi.uid}
-            coordinate={poi.location}
+            key={poi.id}
+            position={poi.location}
             title={poi.name}
-            description={poi.address}
-            onPress={() => handleSelectPOI(poi)}
+            snippet={poi.address}
+            onMarkerPress={() => handleSelectPOI(poi)}
           />
         ))}
       </MapView>
@@ -235,7 +233,7 @@ export default function SearchMapScreen() {
           <FlatList
             horizontal
             data={searchResults}
-            keyExtractor={(item) => item.uid}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
@@ -249,7 +247,7 @@ export default function SearchMapScreen() {
                   {item.address}
                 </Text>
                 <Text style={styles.resultDistance}>
-                  {(item.distance / 1000).toFixed(2)} km
+                  {item.distance != null ? `${(item.distance / 1000).toFixed(2)} km` : ''}
                 </Text>
               </TouchableOpacity>
             )}
@@ -375,7 +373,7 @@ import { searchPOI } from 'expo-gaode-map-search';
 async function loadMoreResults(query: string, currentPage: number) {
   try {
     const result = await searchPOI({
-      query,
+      keyword: query,
       city: 'Beijing',
       pageNum: currentPage + 1,
       pageSize: 20
@@ -403,9 +401,9 @@ async function searchByType(type: string, city: string) {
     // 040000 = Dining category
     // 050000 = Shopping category
     const result = await searchPOI({
-      query: '',
+      keyword: '',
       city,
-      type,
+      types: type,
       pageSize: 50
     });
     
@@ -429,15 +427,11 @@ import { searchPOI } from 'expo-gaode-map-search';
 async function safeSearch(query: string) {
   try {
     const result = await searchPOI({
-      query,
+      keyword: query,
       city: 'Beijing'
     });
     
     if (result.pois.length === 0) {
-      // No results found
-      if (result.suggestion?.keywords) {
-        console.log('Suggested keywords:', result.suggestion.keywords);
-      }
       return null;
     }
     

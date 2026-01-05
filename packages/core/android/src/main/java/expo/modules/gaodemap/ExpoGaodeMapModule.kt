@@ -42,7 +42,7 @@ class ExpoGaodeMapModule : Module() {
 
       if (!apiKey.isNullOrEmpty()) {
           try {
-            com.amap.api.maps.MapsInitializer.setApiKey(apiKey)
+            MapsInitializer.setApiKey(apiKey)
             com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
             android.util.Log.d("ExpoGaodeMap", "✅ 从 AndroidManifest.xml 读取并设置 API Key 成功")
 

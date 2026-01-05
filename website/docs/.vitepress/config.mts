@@ -102,9 +102,13 @@ export default defineConfig({
                 { text: 'Getting Started', link: '/en/guide/getting-started' },
                 { text: 'Initialization', link: '/en/guide/initialization' },
                 { text: 'Config Plugin', link: '/en/guide/config-plugin' },
+                { text: 'Error Handling', link: '/en/guide/error-handling' },
+                { text: 'Testing & QA', link: '/en/guide/testing' },
                 { text: 'Architecture', link: '/en/guide/architecture' },
                 { text: 'Search Features', link: '/en/guide/search' },
-                { text: 'Offline Maps', link: '/en/guide/offline-map' }
+                { text: 'Navigation', link: '/en/guide/navigation' },
+                { text: 'Offline Maps', link: '/en/guide/offline-map' },
+                { text: 'Web API', link: '/en/guide/web-api' }
               ]
             }
           ],
@@ -113,7 +117,7 @@ export default defineConfig({
               text: 'Core Features',
               items: [
                 { text: 'API Overview', link: '/en/api/' },
-                { text: 'MapView Props', link: '/en/api/mapview' },
+                { text: 'MapView & Components', link: '/en/api/mapview' },
                 { text: 'Location API', link: '/en/api/location' },
                 { text: 'Geometry Utils', link: '/en/api/geometry' },
                 { text: 'Overlays', link: '/en/api/overlays' },
@@ -137,6 +141,7 @@ export default defineConfig({
                 { text: 'Examples Overview', link: '/en/examples/' },
                 { text: 'Basic Map', link: '/en/examples/basic-map' },
                 { text: 'Location Tracking', link: '/en/examples/location-tracking' },
+                { text: 'Geometry', link: '/en/examples/geometry' },
                 { text: 'Overlays', link: '/en/examples/overlays' },
                 { text: 'Search Features', link: '/en/examples/search' }
               ]

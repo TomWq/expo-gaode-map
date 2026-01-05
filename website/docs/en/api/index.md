@@ -14,15 +14,19 @@ Complete API reference documentation.
 
 ### Core Features
 
-- [MapView Props](/en/api/mapview)
-- [MapView Methods](/en/api/mapview#mapview-methods)
+- [MapView Props & Methods](/en/api/mapview)
+- [Components & Hooks](/en/api/mapview#components-and-hooks)
 - [Location API](/en/api/location)
+- [Geometry Utils](/en/api/geometry)
 - [Overlay Components](/en/api/overlays)
 - [Type Definitions](/en/api/types)
 
 ### Extended Features
 
-- [Search API](/en/api/search) - POI search, nearby search, route search, autocomplete
+- [Search API](/en/api/search) - POI search, nearby search, along-route search, input tips
+- [Navigation API](/en/api/navigation) - Route planning and navigation
+- [Offline Maps API](/en/api/offline-map) - City map download and management
+- [Web API](/en/api/web-api) - AMap Web Service API (pure JavaScript)
 
 ## Quick Navigation
 
@@ -70,23 +74,23 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 ### Search Features
 
 ```tsx
-import { searchPOI, searchPOIAround, searchInputTips } from 'expo-gaode-map-search';
+import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map-search';
 
 // Keyword search
 const result = await searchPOI({
-  query: 'Starbucks',
+  keyword: 'Starbucks',
   city: 'Beijing',
 });
 
 // Nearby search
-const nearby = await searchPOIAround({
+const nearby = await searchNearby({
   center: { latitude: 39.9, longitude: 116.4 },
-  query: 'restaurant',
+  keyword: 'restaurant',
   radius: 2000,
 });
 
-// Autocomplete
-const tips = await searchInputTips({
+// Input tips
+const tips = await getInputTips({
   keyword: 'Star',
   city: 'Beijing',
 });

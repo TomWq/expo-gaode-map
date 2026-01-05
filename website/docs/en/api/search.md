@@ -1,6 +1,6 @@
 # Search API
 
-The Search module provides POI (Point of Interest) search functionality based on AMap SDK.
+The Search module provides native POI (Point of Interest) search functionality based on AMap SDK.
 
 ## Installation
 
@@ -15,10 +15,31 @@ npm install expo-gaode-map-search
 ## Import
 
 ```typescript
-import { searchPOI, searchPOIAround, searchPOIAlongRoute, searchInputTips } from 'expo-gaode-map-search';
+import {
+  initSearch,
+  searchPOI,
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  type POI,
+  type SearchResult,
+  type InputTip,
+  type InputTipsResult,
+} from 'expo-gaode-map-search';
 ```
 
 ## API Methods
+
+### initSearch
+
+Optional manual initialization.
+
+If you configured keys via Config Plugin or you already called `ExpoGaodeMapModule.initSDK()`, you can skip this.
+
+```ts
+function initSearch(): void;
+```
 
 ### searchPOI
 
@@ -26,29 +47,33 @@ Search for POIs by keyword.
 
 ```typescript
 async function searchPOI(params: {
-  query: string;
+  keyword: string;
   city?: string;
-  type?: string;
+  types?: string;
   pageNum?: number;
   pageSize?: number;
-}): Promise<POISearchResult>
+  sortByDistance?: boolean;
+  center?: { latitude: number; longitude: number };
+}): Promise<SearchResult>
 ```
 
 **Parameters:**
 
-- `query` (string, required): Search keyword
+ - `keyword` (string, required): Search keyword
 - `city` (string, optional): City name or code, e.g., "Beijing" or "010"
-- `type` (string, optional): POI type code, see [POI Type Codes](#poi-type-codes)
+- `types` (string, optional): POI type codes joined by `|`, see [POI Type Codes](#poi-type-codes)
 - `pageNum` (number, optional): Page number, starting from 1, default is 1
 - `pageSize` (number, optional): Results per page, default is 20, max is 50
+- `sortByDistance` (boolean, optional): Sort by distance (requires `center`)
+- `center` (object, optional): Center point for distance sorting
 
-**Returns:** `POISearchResult`
+**Returns:** `SearchResult`
 
 **Example:**
 
 ```typescript
 const result = await searchPOI({
-  query: 'Starbucks',
+  keyword: 'Starbucks',
   city: 'Beijing',
   pageNum: 1,
   pageSize: 20
@@ -57,22 +82,22 @@ const result = await searchPOI({
 
 ---
 
-### searchPOIAround
+### searchNearby
 
 Search for nearby POIs around a specified location.
 
 ```typescript
-async function searchPOIAround(params: {
+async function searchNearby(params: {
   center: {
     latitude: number;
     longitude: number;
   };
-  query?: string;
-  type?: string;
+  keyword: string;
+  types?: string;
   radius?: number;
   pageNum?: number;
   pageSize?: number;
-}): Promise<POISearchResult>
+}): Promise<SearchResult>
 ```
 
 **Parameters:**
@@ -80,23 +105,23 @@ async function searchPOIAround(params: {
 - `center` (object, required): Center coordinates
   - `latitude` (number): Latitude
   - `longitude` (number): Longitude
-- `query` (string, optional): Search keyword, can be empty to search all POIs
-- `type` (string, optional): POI type code
+- `keyword` (string, required): Search keyword
+- `types` (string, optional): POI type codes
 - `radius` (number, optional): Search radius in meters, default is 1000, max is 50000
 - `pageNum` (number, optional): Page number, default is 1
 - `pageSize` (number, optional): Results per page, default is 20
 
-**Returns:** `POISearchResult`
+**Returns:** `SearchResult`
 
 **Example:**
 
 ```typescript
-const result = await searchPOIAround({
+const result = await searchNearby({
   center: {
     latitude: 39.908692,
     longitude: 116.397477
   },
-  query: 'restaurant',
+  keyword: 'restaurant',
   radius: 2000,
   pageNum: 1
 });
@@ -104,83 +129,83 @@ const result = await searchPOIAround({
 
 ---
 
-### searchPOIAlongRoute
+### searchAlong
 
 Search for POIs along a route.
 
 ```typescript
-async function searchPOIAlongRoute(params: {
-  origin: {
-    latitude: number;
-    longitude: number;
-  };
-  destination: {
-    latitude: number;
-    longitude: number;
-  };
-  query?: string;
-  type?: string;
+async function searchAlong(params: {
+  keyword: string;
+  polyline: Array<{ latitude: number; longitude: number }>;
   range?: number;
-  pageNum?: number;
-  pageSize?: number;
-}): Promise<POISearchResult>
+  types?: string;
+}): Promise<SearchResult>
 ```
 
 **Parameters:**
 
-- `origin` (object, required): Starting point coordinates
-- `destination` (object, required): Destination coordinates
-- `query` (string, optional): Search keyword
-- `type` (string, optional): POI type code
-- `range` (number, optional): Deviation range from the route in meters, default is 500
-- `pageNum` (number, optional): Page number
-- `pageSize` (number, optional): Results per page
+- `keyword` (string, required): Search keyword
+- `polyline` (array, required): Route points (at least 2)
+- `range` (number, optional): Search range in meters, default is 500, max is 1000
+- `types` (string, optional): POI type codes
 
-**Returns:** `POISearchResult`
+**Returns:** `SearchResult`
 
 **Example:**
 
 ```typescript
-const result = await searchPOIAlongRoute({
-  origin: {
-    latitude: 39.908692,
-    longitude: 116.397477
-  },
-  destination: {
-    latitude: 39.989612,
-    longitude: 116.480972
-  },
-  query: 'gas station',
-  range: 1000
+const result = await searchAlong({
+  keyword: 'gas station',
+  polyline: [
+    { latitude: 39.908692, longitude: 116.397477 },
+    { latitude: 39.989612, longitude: 116.480972 },
+  ],
+  range: 1000,
 });
 ```
 
 ---
 
-### searchInputTips
+### searchPolygon
+
+Search POIs inside a polygon.
+
+```ts
+async function searchPolygon(params: {
+  keyword: string;
+  polygon: Array<{ latitude: number; longitude: number }>;
+  types?: string;
+  pageNum?: number;
+  pageSize?: number;
+}): Promise<SearchResult>
+```
+
+---
+
+### getInputTips
 
 Get input suggestions (autocomplete).
 
 ```typescript
-async function searchInputTips(params: {
+async function getInputTips(params: {
   keyword: string;
   city?: string;
-  type?: string;
+  types?: string;
 }): Promise<InputTipsResult>
 ```
 
 **Parameters:**
 
 - `keyword` (string, required): Input keyword
-- `city` (string, optional): City name
-- `type` (string, optional): POI type code
+- `city` (string, optional): City name or code
+- `types` (string, optional): POI type codes
 
 **Returns:** `InputTipsResult`
 
 **Example:**
 
 ```typescript
-const result = await searchInputTips({
+const result = await getInputTips({
   keyword: 'Star',
   city: 'Beijing'
 });
@@ -190,54 +215,38 @@ const result = await searchInputTips({
 
 ## Type Definitions
 
-### POISearchResult
+### SearchResult
 
 ```typescript
-interface POISearchResult {
-  pois: POIItem[];
+interface SearchResult {
+  pois: POI[];
+  total: number;
+  pageNum: number;
+  pageSize: number;
   pageCount: number;
-  totalCount: number;
-  suggestion?: {
-    keywords: string[];
-    cities: CityInfo[];
-  };
 }
 ```
 
-### POIItem
+### POI
 
 ```typescript
-interface POIItem {
-  uid: string;
+interface POI {
+  id: string;
   name: string;
-  type: string;
-  typeDes: string;
   address: string;
   location: {
     latitude: number;
     longitude: number;
   };
-  distance: number;
-  tel: string;
-  businessArea: string;
-  parkingType: string;
-  photos: PhotoInfo[];
-  shopID?: string;
-  postcode?: string;
-  website?: string;
-  email?: string;
-  provinceCode?: string;
+  typeCode: string;
+  typeDes: string;
+  tel?: string;
+  distance?: number;
+  cityName?: string;
   cityCode?: string;
+  provinceName?: string;
+  adName?: string;
   adCode?: string;
-  gridCode?: string;
-  enterLocation?: {
-    latitude: number;
-    longitude: number;
-  };
-  exitLocation?: {
-    latitude: number;
-    longitude: number;
-  };
 }
 ```
 
@@ -245,24 +254,24 @@ interface POIItem {
 
 ```typescript
 interface InputTipsResult {
-  tips: TipItem[];
+  tips: InputTip[];
 }
 ```
 
-### TipItem
+### InputTip
 
 ```typescript
-interface TipItem {
-  uid: string;
+interface InputTip {
+  id: string;
   name: string;
-  district: string;
-  adcode: string;
-  location: {
+  address: string;
+  location?: {
     latitude: number;
     longitude: number;
   };
-  address: string;
-  typeDes: string;
+  typeCode?: string;
+  cityName?: string;
+  adName?: string;
 }
 ```
 
