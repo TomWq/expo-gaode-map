@@ -28,6 +28,12 @@ export interface BaseRouteParams {
    * callback值是用户定义的函数名称，此参数只在output参数设置为JSON时有效
    */
   callback?: string;
+
+  /**
+   * API 版本
+   * @default 'v5'
+   */
+  version?: 'v3' | 'v5';
 }
 
 /**

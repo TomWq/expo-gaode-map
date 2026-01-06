@@ -53,6 +53,12 @@ export interface POISearchParams {
    * 请求第几分页
    */
   page_num?: number;
+
+  /**
+   * API 版本
+   * @default 'v5'
+   */
+  version?: 'v3' | 'v5';
 }
 
 /**
@@ -128,6 +134,12 @@ export interface POIAroundParams {
    * @default 1
    */
   page_num?: number;
+
+  /**
+   * API 版本
+   * @default 'v5'
+   */
+  version?: 'v3' | 'v5';
 }
 
 /**
@@ -176,6 +188,12 @@ export interface POIPolygonParams {
    * @default 1
    */
   page_num?: number;
+
+  /**
+   * API 版本
+   * @default 'v5'
+   */
+  version?: 'v3' | 'v5';
 }
 
 /**
@@ -366,4 +384,10 @@ export interface POIDetailParams {
    * 可选值：children, business, indoor, navi, photos
    */
   show_fields?: string;
+
+  /**
+   * API 版本
+   * @default 'v5'
+   */
+  version?: 'v3' | 'v5';
 }

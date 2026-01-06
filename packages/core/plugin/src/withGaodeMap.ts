@@ -9,7 +9,7 @@ import {
   IOSConfig,
 } from '@expo/config-plugins';
 
-const pkg = require('expo-gaode-map/package.json');
+const pkg = require('../../package.json');
 
 /**
  * 高德地图插件配置类型

@@ -50,12 +50,14 @@ export class POIService {
     keywords?: string,
     options?: Omit<POISearchParams, 'keywords'>
   ): Promise<POISearchResponse> {
-    const params: POISearchParams = {
+    const { version = 'v5', ...rest } = options || {};
+    const params: any = {
       keywords,
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<POISearchResponse>('/v5/place/text', params);
+    const path = `/${version}/place/text`
+    return this.client.request<POISearchResponse>(path, params);
   }
 
   /**
@@ -102,12 +104,14 @@ export class POIService {
       locationStr = `${location.longitude},${location.latitude}`;
     }
 
-    const params: POIAroundParams = {
+    const { version = 'v5', ...rest } = options || {};
+    const params: any = {
       location: locationStr,
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<POISearchResponse>('/v5/place/around', params);
+    const path = `/${version}/place/around`;
+    return this.client.request<POISearchResponse>(path, params);
   }
 
   /**
@@ -133,12 +137,14 @@ export class POIService {
     polygon: string,
     options?: Omit<POIPolygonParams, 'polygon'>
   ): Promise<POISearchResponse> {
-    const params: POIPolygonParams = {
+    const { version = 'v5', ...rest } = options || {};
+    const params: any = {
       polygon,
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<POISearchResponse>('/v5/place/polygon', params);
+    const path = `/${version}/place/polygon`;
+    return this.client.request<POISearchResponse>(path, params);
   }
 
   /**
@@ -161,14 +167,16 @@ export class POIService {
    */
   async getDetail(
     id: string,
-    show_fields?: string
+    show_fields?: string,
+    version: 'v3' | 'v5' = 'v5'
   ): Promise<POISearchResponse> {
     const params: POIDetailParams = {
       id,
       show_fields,
     };
 
-    return this.client.request<POISearchResponse>('/v5/place/detail', params);
+    const path = `/${version}/place/detail`;
+    return this.client.request<POISearchResponse>(path, params);
   }
 
   /**
@@ -188,17 +196,19 @@ export class POIService {
    */
   async batchGetDetail(
     ids: string[],
-    show_fields?: string
+    show_fields?: string,
+    version: 'v3' | 'v5' = 'v5'
   ): Promise<POISearchResponse> {
     if (ids.length > 10) {
       throw new Error('批量查询最多支持10个POI ID');
     }
 
-    const params: POIDetailParams = {
+    const params: any = {
       id: ids.join('|'),
       show_fields,
     };
 
-    return this.client.request<POISearchResponse>('/v5/place/detail', params);
+    const path = `/${version}/place/detail`;
+    return this.client.request<POISearchResponse>(path, params);
   }
 }

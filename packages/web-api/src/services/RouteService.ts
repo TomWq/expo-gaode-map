@@ -64,22 +64,24 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<DrivingRouteParams, 'origin' | 'destination'>
   ): Promise<DrivingRouteResponse> {
+    const { version = 'v5', ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
-      ...options,
+      ...rest,
     };
 
     // 处理途经点
-    if (options?.waypoints) {
-      if (Array.isArray(options.waypoints)) {
-        params.waypoints = options.waypoints.map(wp => this.formatCoordinate(wp)).join(';');
+    if (rest?.waypoints) {
+      if (Array.isArray(rest.waypoints)) {
+        params.waypoints = rest.waypoints.map(wp => this.formatCoordinate(wp)).join(';');
       } else {
-        params.waypoints = this.formatCoordinate(options.waypoints);
+        params.waypoints = this.formatCoordinate(rest.waypoints);
       }
     }
-
-    return this.client.request<DrivingRouteResponse>('/v5/direction/driving', params);
+    
+    const path = `/${version}/direction/driving`;
+    return this.client.request<DrivingRouteResponse>(path, params);
   }
 
   /**
@@ -105,13 +107,15 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<WalkingRouteParams, 'origin' | 'destination'>
   ): Promise<WalkingRouteResponse> {
+    const { version = 'v5', ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<WalkingRouteResponse>('/v5/direction/walking', params);
+    const path = `/${version}/direction/walking`;
+    return this.client.request<WalkingRouteResponse>(path, params);
   }
 
   /**
@@ -138,13 +142,15 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<BicyclingRouteParams, 'origin' | 'destination'>
   ): Promise<BicyclingRouteResponse> {
+    const { version = 'v5', ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<BicyclingRouteResponse>('/v5/direction/bicycling', params);
+    const path = `/${version}/direction/bicycling`;
+    return this.client.request<BicyclingRouteResponse>(path, params);
   }
 
   /**
@@ -167,13 +173,15 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<ElectricBikeRouteParams, 'origin' | 'destination'>
   ): Promise<ElectricBikeRouteResponse> {
+    const { version = 'v5', ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<ElectricBikeRouteResponse>('/v5/direction/electrobike', params);
+    const path = `/${version}/direction/electrobike`;
+    return this.client.request<ElectricBikeRouteResponse>(path, params);
   }
 
   /**
@@ -232,14 +240,16 @@ export class RouteService {
     city2: string,
     options?: Omit<TransitRouteParams, 'origin' | 'destination' | 'city1' | 'city2'>
   ): Promise<TransitRouteResponse> {
+    const { version = 'v5', ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
       city1,
       city2,
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<TransitRouteResponse>('/v5/direction/transit/integrated', params);
+    const path = `/${version}/direction/transit/integrated`;
+    return this.client.request<TransitRouteResponse>(path, params);
   }
 }
