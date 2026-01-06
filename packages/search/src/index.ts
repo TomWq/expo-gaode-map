@@ -17,7 +17,7 @@ import type {
  * 初始化搜索模块（可选）
  *
  * 如果 API Key 已通过以下方式设置，则无需调用此方法：
- * 1. app.json 的 plugins 中配置了 iosApiKey（推荐）
+ * 1. app.json 的 plugins 中配置了 iosKey（推荐）
  * 2. 调用了 ExpoGaodeMap.initSDK()
  * 3. 在 AppDelegate 中手动设置
  *

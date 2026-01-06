@@ -45,8 +45,8 @@ Add to your `app.json`:
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "your-ios-api-key",
-          "androidApiKey": "your-android-api-key",
+          "iosKey": "your-ios-api-key",
+          "androidKey": "your-android-api-key",
           "enableLocation": true,
           "locationDescription": "We need to access your location to provide map services"
         }

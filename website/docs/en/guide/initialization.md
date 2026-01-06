@@ -41,8 +41,8 @@ export default {
       [
         'expo-gaode-map',
         {
-          iosApiKey: process.env.GAODE_IOS_API_KEY,
-          androidApiKey: process.env.GAODE_ANDROID_API_KEY,
+          iosKey: process.env.GAODE_IOS_API_KEY,
+          androidKey: process.env.GAODE_ANDROID_API_KEY,
         }
       ]
     ]
@@ -175,8 +175,8 @@ For Expo projects, you can use Config Plugin to automatically configure:
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "your-ios-api-key",
-          "androidApiKey": "your-android-api-key",
+          "iosKey": "your-ios-api-key",
+          "androidKey": "your-android-api-key",
           "enableLocation": true,
           "locationDescription": "We need to access your location to provide map services"
         }

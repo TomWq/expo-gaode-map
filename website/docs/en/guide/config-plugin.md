@@ -26,8 +26,8 @@ Add plugin configuration to your `app.json` file in the project root:
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "Your iOS Gaode Map API Key",
-          "androidApiKey": "Your Android Gaode Map API Key",
+          "iosKey": "Your iOS Gaode Map API Key",
+          "androidKey": "Your Android Gaode Map API Key",
           "enableLocation": true,
           "enableBackgroundLocation": false,
           "locationDescription": "We need to access your location to provide map services"
@@ -58,8 +58,8 @@ npx expo run:android
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `iosApiKey` | string | No | - | iOS platform Gaode Map API Key |
-| `androidApiKey` | string | No | - | Android platform Gaode Map API Key |
+| `iosKey` | string | No | - | iOS platform Gaode Map API Key |
+| `androidKey` | string | No | - | Android platform Gaode Map API Key |
 | `enableLocation` | boolean | No | true | Enable location functionality |
 | `enableBackgroundLocation` | boolean | No | false | Enable background location (Android & iOS) |
 | `locationDescription` | string | No | "We need to access your location to provide map services" | iOS location permission description |
@@ -159,8 +159,8 @@ If your app needs to continuously access location in the background (e.g., navig
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "Your API Key",
-          "androidApiKey": "Your API Key",
+          "iosKey": "Your API Key",
+          "androidKey": "Your API Key",
           "enableBackgroundLocation": true
         }
       ]
@@ -205,8 +205,8 @@ export default {
       [
         "expo-gaode-map",
         {
-          iosApiKey: process.env.GAODE_IOS_API_KEY,
-          androidApiKey: process.env.GAODE_ANDROID_API_KEY,
+          iosKey: process.env.GAODE_IOS_API_KEY,
+          androidKey: process.env.GAODE_ANDROID_API_KEY,
           enableLocation: true
         }
       ]
@@ -226,10 +226,10 @@ export default {
       [
         "expo-gaode-map",
         {
-          iosApiKey: isDev 
+          iosKey: isDev 
             ? process.env.GAODE_IOS_API_KEY_DEV 
             : process.env.GAODE_IOS_API_KEY_PROD,
-          androidApiKey: isDev 
+          androidKey: isDev 
             ? process.env.GAODE_ANDROID_API_KEY_DEV 
             : process.env.GAODE_ANDROID_API_KEY_PROD
         }

@@ -28,8 +28,8 @@ npm install expo-gaode-map
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "你的iOS高德地图API Key",
-          "androidApiKey": "你的Android高德地图API Key",
+          "iosKey": "你的iOS高德地图API Key",
+          "androidKey": "你的Android高德地图API Key",
           "enableLocation": true,
           "enableBackgroundLocation": false,
           "locationDescription": "我们需要访问您的位置信息以提供地图服务"
@@ -61,8 +61,8 @@ npx expo run:android
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `iosApiKey` | string | 否 | - | iOS 平台的高德地图 API Key |
-| `androidApiKey` | string | 否 | - | Android 平台的高德地图 API Key |
+| `iosKey` | string | 否 | - | iOS 平台的高德地图 API Key |
+| `androidKey` | string | 否 | - | Android 平台的高德地图 API Key |
 | `enableLocation` | boolean | 否 | true | 是否启用定位功能 |
 | `enableBackgroundLocation` | boolean | 否 | false | 是否启用后台定位（Android & iOS） |
 | `locationDescription` | string | 否 | "需要访问您的位置信息以提供地图服务" | iOS 定位权限描述 |
@@ -162,8 +162,8 @@ Config Plugin 会自动完成以下配置:
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "你的API Key",
-          "androidApiKey": "你的API Key",
+          "iosKey": "你的API Key",
+          "androidKey": "你的API Key",
           "enableBackgroundLocation": true
         }
       ]
@@ -208,8 +208,8 @@ export default {
       [
         "expo-gaode-map",
         {
-          iosApiKey: process.env.GAODE_IOS_API_KEY,
-          androidApiKey: process.env.GAODE_ANDROID_API_KEY,
+          iosKey: process.env.GAODE_IOS_API_KEY,
+          androidKey: process.env.GAODE_ANDROID_API_KEY,
           enableLocation: true
         }
       ]
@@ -229,10 +229,10 @@ export default {
       [
         "expo-gaode-map",
         {
-          iosApiKey: isDev 
+          iosKey: isDev 
             ? process.env.GAODE_IOS_API_KEY_DEV 
             : process.env.GAODE_IOS_API_KEY_PROD,
-          androidApiKey: isDev 
+          androidKey: isDev 
             ? process.env.GAODE_ANDROID_API_KEY_DEV 
             : process.env.GAODE_ANDROID_API_KEY_PROD
         }

@@ -29,8 +29,8 @@ Configure native keys via Config Plugin (recommended):
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "your-ios-api-key",
-          "androidApiKey": "your-android-api-key",
+          "iosKey": "your-ios-api-key",
+          "androidKey": "your-android-api-key",
           "enableLocation": true
         }
       ]

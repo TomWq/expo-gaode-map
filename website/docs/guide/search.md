@@ -33,8 +33,8 @@ npm install expo-gaode-map-search
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "your-ios-api-key",
-          "androidApiKey": "your-android-api-key"
+          "iosKey": "your-ios-api-key",
+          "androidKey": "your-android-api-key"
         }
       ]
     ]
@@ -336,7 +336,7 @@ export default function SearchScreen() {
 
 ### iOS 报错 "API Key 未设置"？
 
-1. 确保使用了 Config Plugin 配置 `iosApiKey`
+1. 确保使用了 Config Plugin 配置 `iosKey`
 2. 或者在代码中调用 `ExpoGaodeMapModule.initSDK()`
 3. 重新构建原生代码：`npx expo prebuild --clean`
 

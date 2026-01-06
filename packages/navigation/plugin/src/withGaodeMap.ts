@@ -12,9 +12,9 @@ import {
  */
 export type GaodeMapPluginProps = {
   /** iOS 平台 API Key */
-  iosApiKey?: string;
+  iosKey?: string;
   /** Android 平台 API Key */
-  androidApiKey?: string;
+  androidKey?: string;
   /** 是否启用定位功能 */
   enableLocation?: boolean;
   /** iOS 定位权限描述 */
@@ -29,8 +29,8 @@ export type GaodeMapPluginProps = {
 const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withInfoPlist(config, (config) => {
     // 添加高德地图 API Key
-    if (props.iosApiKey) {
-      config.modResults.AMapApiKey = props.iosApiKey;
+    if (props.iosKey) {
+      config.modResults.AMapApiKey = props.iosKey;
     }
 
     // 添加定位相关权限
@@ -153,7 +153,7 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
     }
 
     // 添加 API Key 到 application 标签
-    if (mainApplication && props.androidApiKey) {
+    if (mainApplication && props.androidKey) {
       if (!mainApplication['meta-data']) {
         mainApplication['meta-data'] = [];
       }
@@ -167,7 +167,7 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
         mainApplication['meta-data'].push({
           $: {
             'android:name': 'com.amap.api.v2.apikey',
-            'android:value': props.androidApiKey,
+            'android:value': props.androidKey,
           },
         });
       } else {
@@ -178,7 +178,7 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
         if (apiKeyIndex !== -1) {
           mainApplication['meta-data'][apiKeyIndex].$ = {
             'android:name': 'com.amap.api.v2.apikey',
-            'android:value': props.androidApiKey,
+            'android:value': props.androidKey,
           };
         }
       }
@@ -204,10 +204,10 @@ const withGaodeMapAppBuildGradle: ConfigPlugin<GaodeMapPluginProps> = (config, p
  */
 const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => {
   // 验证配置
-  if (!props.iosApiKey && !props.androidApiKey) {
+  if (!props.iosKey && !props.androidKey) {
     WarningAggregator.addWarningIOS(
       'expo-gaode-map-navigation',
-      '未配置 API Key。请在 app.json 的 plugins 中配置 iosApiKey 和 androidApiKey'
+      '未配置 API Key。请在 app.json 的 plugins 中配置 iosKey 和 androidKey'
     );
   }
 

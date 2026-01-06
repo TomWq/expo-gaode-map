@@ -86,8 +86,8 @@ npx react-native run-android
       [
         "expo-gaode-map",
         {
-          "iosApiKey": "your-ios-api-key",
-          "androidApiKey": "your-android-api-key",
+          "iosKey": "your-ios-api-key",
+          "androidKey": "your-android-api-key",
           "enableLocation": true,
           "enableBackgroundLocation": false,
           "locationDescription": "我们需要访问您的位置信息以提供地图服务"
