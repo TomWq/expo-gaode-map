@@ -6,7 +6,7 @@
     "packages/*",
     "example"
   ],
-  "description": "高德地图 Expo 模块 Monorepo",
+  "description": "高德地图 Expo 模块 Monorepo 包含核心模块、搜索模块、导航模块和 Web API 模块",
   "scripts": {
     "build": "bun run build:core && bun run build:search && bun run build:navigation && bun run build:web-api",
     "build:core": "cd packages/core && expo-module build && cd plugin && tsc",

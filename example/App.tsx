@@ -365,6 +365,8 @@ export default function MamScreen() {
         // tiltGesturesEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
+        zoomGesturesEnabled
+        scrollGesturesEnabled
         initialCameraPosition={initialPosition as CameraPosition}
         minZoom={3}
         maxZoom={20}
@@ -454,26 +456,6 @@ export default function MamScreen() {
           />
         ))}
 
-        {/* {dynamicMarkers.map((marker) => (
-          <Marker
-            key={marker.id}
-            position={{ latitude: marker.latitude, longitude: marker.longitude }}
-            title={marker.content}
-            pinColor={marker.color}
-            customViewWidth={20}
-            customViewHeight={20}
-            cacheKey={marker.id + marker.content}
-            onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
-          >
-            <View style={styles.markerContainer}>
-              <Image
-                source={require('./assets/positio_icon.png')}
-                style={{width: 20, height: 20}}
-              />
-            </View>
-          </Marker>
-        ))} */}
-
         {dynamicMarkers.map((marker) => (
           <Marker
             key={marker.id}
@@ -509,7 +491,6 @@ export default function MamScreen() {
             </View>
           </Marker>
         ))}
-
 
         {isMapReady && location && (
           <Marker
@@ -557,8 +538,7 @@ export default function MamScreen() {
             </View>
           </Marker>
         )}
-
-
+        
         {isMapReady && <Marker
           key="draggable_marker"
           position={{ latitude: 39.92, longitude: 116.42 }}
