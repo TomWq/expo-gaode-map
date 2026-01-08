@@ -356,6 +356,14 @@ const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
 
 用于展示数据的密度分布。
 
+### Android 注意事项
+
+如果你在 Android 上使用 HeatMap（热力图），需要在项目的 `android/gradle.properties` 中开启 Jetifier（否则可能出现 `java.lang.NoClassDefFoundError: android.support.v4.util.LongSparseArray` 导致热力图无法显示）：
+
+```
+android.enableJetifier=true
+```
+
 ### 属性
 
 | 属性 | 类型 | 默认值 | 说明 |

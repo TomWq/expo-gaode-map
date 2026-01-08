@@ -291,6 +291,14 @@ const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
 
 Used to display data density distribution.
 
+### Android Notes
+
+If you use HeatMap on Android, you must enable Jetifier in your app's `android/gradle.properties` (otherwise you may hit `java.lang.NoClassDefFoundError: android.support.v4.util.LongSparseArray` and the heatmap won't render):
+
+```
+android.enableJetifier=true
+```
+
 ### Properties
 
 | Property | Type | Default | Description |
