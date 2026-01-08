@@ -3,7 +3,7 @@
  * 基于 Expo Modules API
  */
 
-import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent } from 'react-native';
+import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent, TextStyle } from 'react-native';
 import type { ColorValue, LatLng, Point } from './common.types';
 
 /**
@@ -291,6 +291,23 @@ export interface CircleProps {
 }
 
 /**
+ * 热力图渐变配置
+ */
+export interface HeatMapGradient {
+  /**
+   * 颜色数组
+   * 支持 '#RRGGBB', 'rgba()', 'red' 等
+   */
+  colors: ColorValue[];
+  
+  /**
+   * 颜色起始点数组 [0-1]
+   * 必须递增，例如 [0.2, 0.5, 0.9]
+   */
+  startPoints: number[];
+}
+
+/**
  * 热力图属性
  */
 export interface HeatMapProps {
@@ -298,6 +315,11 @@ export interface HeatMapProps {
    * 热力点数据
    */
   data: LatLng[];
+
+  /**
+   * 是否显示热力图（用于避免频繁卸载/重建导致卡顿）
+   */
+  visible?: boolean;
 
   /**
    * 热力半径（米）
@@ -308,6 +330,17 @@ export interface HeatMapProps {
    * 透明度 [0, 1]
    */
   opacity?: number;
+
+  /**
+   * 热力图渐变配置
+   */
+  gradient?: HeatMapGradient;
+
+  /**
+   * 是否开启高清热力图（Retina适配）
+   * @platform ios
+   */
+  allowRetinaAdapting?: boolean;
 }
 
 /**
@@ -332,17 +365,27 @@ export interface MultiPointProps {
   /**
    * 点集合
    */
-  items: MultiPointItem[];
+  points: MultiPointItem[];
 
   /**
    * 图标
    */
-  icon?: ImageSourcePropType;
+  icon?: string | ImageSourcePropType; 
+
+  /**
+   * 图标宽度
+   */
+  iconWidth?: number;
+
+  /**
+   * 图标高度
+   */
+  iconHeight?: number;
 
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{ index: number; item: MultiPointItem }>) => void;
+  onMultiPointPress?: (event: NativeSyntheticEvent<{ index: number; item: MultiPointItem }>) => void;
 }
 
 /**
@@ -350,19 +393,34 @@ export interface MultiPointProps {
  */
 export interface ClusterParams {
   /**
-   * 唯一标识
-   */
-  id: number;
-
-  /**
    * 包含的标记点数量
    */
   count: number;
 
   /**
-   * 聚合点坐标
+   * 纬度
    */
-  position: LatLng;
+  latitude: number;
+
+  /**
+   * 经度
+   */
+  longitude: number;
+
+  /**
+   * 包含的点数据列表
+   */
+  pois?: ClusterPoint[];
+
+  /**
+   * 唯一标识 (兼容性保留)
+   */
+  id?: number;
+
+  /**
+   * 聚合点坐标 (兼容性保留)
+   */
+  position?: LatLng;
 }
 
 /**
@@ -410,9 +468,15 @@ export interface ClusterProps {
   clusterStyle?: ViewStyle;
 
   /**
+   * 分级聚合样式配置
+   * 根据聚合数量动态设置样式
+   */
+  clusterBuckets?: ({ minPoints: number } & ViewStyle)[];
+
+  /**
    * 聚合点文本样式
    */
-  clusterTextStyle?: ViewStyle;
+  clusterTextStyle?: TextStyle;
 
   /**
    * 坐标点列表
@@ -420,17 +484,17 @@ export interface ClusterProps {
   points: ClusterPoint[];
 
   /**
-   * 渲染标记点（仅 JS 实现的 ClusterLayer 需要）
+   * 暂未实现，请勿使用
    */
   renderMarker?: (item: ClusterPoint) => React.ReactNode;
 
   /**
-   * 渲染聚合点（仅 JS 实现的 ClusterLayer 需要）
+   * 暂未实现，请勿使用
    */
   renderCluster?: (params: ClusterParams) => React.ReactNode;
 
   /**
    * 聚合点点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<ClusterParams>) => void;
+  onClusterPress?: (event: NativeSyntheticEvent<ClusterParams>) => void;
 }

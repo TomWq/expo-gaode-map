@@ -145,6 +145,19 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         }
     }
 
+    // 辅助监听器列表
+    private val cameraChangeListeners = mutableListOf<AMap.OnCameraChangeListener>()
+
+    fun addCameraChangeListener(listener: AMap.OnCameraChangeListener) {
+        if (!cameraChangeListeners.contains(listener)) {
+            cameraChangeListeners.add(listener)
+        }
+    }
+
+    fun removeCameraChangeListener(listener: AMap.OnCameraChangeListener) {
+        cameraChangeListeners.remove(listener)
+    }
+
     /**
      * 设置地图事件监听
      */
@@ -152,6 +165,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         // 设置相机移动监听器
         aMap.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
             override fun onCameraChange(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 通知辅助监听器
+                cameraChangeListeners.forEach { it.onCameraChange(cameraPosition) }
+
                 // 相机移动中 - 应用节流优化
                 cameraPosition?.let {
                     val currentTime = System.currentTimeMillis()
@@ -199,6 +215,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             }
 
             override fun onCameraChangeFinish(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 通知辅助监听器
+                cameraChangeListeners.forEach { it.onCameraChangeFinish(cameraPosition) }
+
                 // 相机移动完成
                 cameraPosition?.let {
                     val visibleRegion = aMap.projection.visibleRegion
@@ -229,7 +248,13 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         
         // 设置全局 Marker 点击监听器
         aMap.setOnMarkerClickListener { marker ->
-            MarkerView.handleMarkerClick(marker)
+            if (MarkerView.handleMarkerClick(marker)) {
+                return@setOnMarkerClickListener true
+            }
+            if (ClusterView.handleMarkerClick(marker)) {
+                return@setOnMarkerClickListener true
+            }
+            false
         }
 
         // 设置全局 Marker 拖拽监听器
@@ -246,6 +271,19 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 MarkerView.handleMarkerDragEnd(marker)
             }
         })
+
+        // 设置全局 MultiPoint 点击监听器
+        aMap.setOnMultiPointClickListener { item ->
+            for (i in 0 until childCount) {
+                val child = getChildAt(i)
+                if (child is MultiPointView) {
+                    if (child.handleMultiPointClick(item)) {
+                        return@setOnMultiPointClickListener true
+                    }
+                }
+            }
+            return@setOnMultiPointClickListener false
+        }
 
         aMap.setOnMapClickListener { latLng ->
             // 检查声明式 PolylineView
@@ -465,6 +503,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             aMap.setOnCameraChangeListener(null)
             aMap.setOnMarkerClickListener(null)
             aMap.setOnMarkerDragListener(null)
+            aMap.setOnMultiPointClickListener(null)
 
             // 清除所有覆盖物
             aMap.clear()

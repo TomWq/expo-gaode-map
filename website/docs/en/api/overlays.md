@@ -208,6 +208,112 @@ export default function OverlaysExample() {
 }
 ```
 
+## Cluster
+
+Used to display large amounts of point data, automatically clustering nearby points.
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `points` | `ClusterPoint[]` | - | Cluster point data array (required) |
+| `radius` | `number` | `30` | Cluster radius |
+| `minClusterSize` | `number` | `1` | Minimum cluster size (count >= this value shows cluster style) |
+| `clusterStyle` | `ViewStyle` | - | Base cluster style (backgroundColor, borderColor, borderWidth, width, height) |
+| `clusterTextStyle` | `TextStyle` | - | Cluster text style (color, fontSize, fontWeight) |
+| `clusterBuckets` | `Bucket[]` | - | Tiered style configuration |
+| `onClusterPress` | `function` | - | Press event |
+
+### Tiered Style (clusterBuckets)
+
+The `clusterBuckets` property allows displaying different colors based on the cluster count.
+
+```tsx
+clusterBuckets={[
+  { minPoints: 1, backgroundColor: '#00BFFF' }, // 1: Blue
+  { minPoints: 2, backgroundColor: '#32CD32' }, // 2-4: Green
+  { minPoints: 5, backgroundColor: '#FFA500' }, // 5-9: Orange
+  { minPoints: 10, backgroundColor: '#FF4500' } // 10+: Red
+]}
+```
+
+### Example
+
+```tsx
+<Cluster
+  points={data}
+  radius={30}
+  minClusterSize={1}
+  clusterBuckets={[
+    { minPoints: 1, backgroundColor: '#00BFFF' },
+    { minPoints: 5, backgroundColor: '#FFA500' }
+  ]}
+  clusterStyle={{
+    width: 40,
+    height: 40,
+    borderColor: 'white',
+    borderWidth: 2,
+  }}
+  onClusterPress={(e) => console.log(e.nativeEvent)}
+/>
+```
+
+## MultiPoint (MassPoint)
+
+Used to display thousands of points on the map, with better performance than standard Markers.
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `points` | `MultiPointItem[]` | - | Point data array (required) |
+| `icon` | `string` | - | Icon resource URI |
+| `iconWidth` | `number` | - | Icon width |
+| `iconHeight` | `number` | - | Icon height |
+| `onMultiPointPress` | `function` | - | Press event |
+
+### Example
+
+```tsx
+import { Image } from 'react-native';
+const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
+
+<MultiPoint
+  points={points}
+  icon={iconUri}
+  iconWidth={30}
+  iconHeight={30}
+  onMultiPointPress={(e) => console.log('Clicked index:', e.nativeEvent.index)}
+/>
+```
+
+## HeatMap
+
+Used to display data density distribution.
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `data` | `HeatMapPoint[]` | - | Heat map data (lat, lng, count) |
+| `radius` | `number` | `12` | Heat radius |
+| `opacity` | `number` | `0.6` | Opacity (0-1) |
+| `gradient` | `object` | - | Gradient configuration |
+
+### Example
+
+```tsx
+<HeatMap
+  data={points}
+  radius={30}
+  opacity={0.5}
+  gradient={{
+    colors: ['blue', 'green', 'red'],
+    startPoints: [0.2, 0.5, 0.9]
+  }}
+/>
+```
+
 ## Related Documentation
 
 - [MapView API](/en/api/mapview)

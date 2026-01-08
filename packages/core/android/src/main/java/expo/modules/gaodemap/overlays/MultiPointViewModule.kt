@@ -11,7 +11,7 @@ class MultiPointViewModule : Module() {
     Name("MultiPointView")
 
     View(MultiPointView::class) {
-      Events("onPress")
+      Events("onMultiPointPress")
       
       Prop<List<Map<String, Any>>>("points") { view: MultiPointView, points ->
         view.setPoints(points)
@@ -19,6 +19,14 @@ class MultiPointViewModule : Module() {
 
         Prop<String>("icon") { view: MultiPointView, icon ->
         view.setIcon(icon)
+      }
+
+      Prop<Int?>("iconWidth") { view: MultiPointView, width: Int? ->
+        view.setIconWidth(width)
+      }
+
+      Prop<Int?>("iconHeight") { view: MultiPointView, height: Int? ->
+        view.setIconHeight(height)
       }
 
         Prop<Map<String, Float>>("anchor"){ view: MultiPointView, anchor ->

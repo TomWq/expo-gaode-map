@@ -273,6 +273,112 @@ export default function OverlaysExample() {
 }
 ```
 
+## Cluster (点聚合)
+
+用于展示大量点数据，自动聚合临近的点。
+
+### 属性
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `points` | `ClusterPoint[]` | - | 聚合点数据数组（必需） |
+| `radius` | `number` | `30` | 聚合半径 |
+| `minClusterSize` | `number` | `1` | 最小聚合数量（数量 >= 此值时显示聚合样式） |
+| `clusterStyle` | `ViewStyle` | - | 聚合点基础样式（backgroundColor, borderColor, borderWidth, width, height） |
+| `clusterTextStyle` | `TextStyle` | - | 聚合文字样式（color, fontSize, fontWeight） |
+| `clusterBuckets` | `Bucket[]` | - | 分级样式配置 |
+| `onClusterPress` | `function` | - | 点击事件 |
+
+### 分级样式 (clusterBuckets)
+
+通过 `clusterBuckets` 属性，可以根据聚合点的数量显示不同的颜色。
+
+```tsx
+clusterBuckets={[
+  { minPoints: 1, backgroundColor: '#00BFFF' }, // 1个: 蓝色
+  { minPoints: 2, backgroundColor: '#32CD32' }, // 2-4个: 绿色
+  { minPoints: 5, backgroundColor: '#FFA500' }, // 5-9个: 橙色
+  { minPoints: 10, backgroundColor: '#FF4500' } // 10+个: 红色
+]}
+```
+
+### 示例
+
+```tsx
+<Cluster
+  points={data}
+  radius={30}
+  minClusterSize={1}
+  clusterBuckets={[
+    { minPoints: 1, backgroundColor: '#00BFFF' },
+    { minPoints: 5, backgroundColor: '#FFA500' }
+  ]}
+  clusterStyle={{
+    width: 40,
+    height: 40,
+    borderColor: 'white',
+    borderWidth: 2,
+  }}
+  onClusterPress={(e) => console.log(e.nativeEvent)}
+/>
+```
+
+## MultiPoint (海量点)
+
+用于在地图上展示成千上万个点，性能优于普通 Marker。
+
+### 属性
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `points` | `MultiPointItem[]` | - | 点数据数组（必需） |
+| `icon` | `string` | - | 图标资源 URI |
+| `iconWidth` | `number` | - | 图标宽度 |
+| `iconHeight` | `number` | - | 图标高度 |
+| `onMultiPointPress` | `function` | - | 点击事件 |
+
+### 示例
+
+```tsx
+import { Image } from 'react-native';
+const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
+
+<MultiPoint
+  points={points}
+  icon={iconUri}
+  iconWidth={30}
+  iconHeight={30}
+  onMultiPointPress={(e) => console.log('Clicked index:', e.nativeEvent.index)}
+/>
+```
+
+## HeatMap (热力图)
+
+用于展示数据的密度分布。
+
+### 属性
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `data` | `HeatMapPoint[]` | - | 热力点数据（lat, lng, count） |
+| `radius` | `number` | `12` | 热力半径 |
+| `opacity` | `number` | `0.6` | 透明度 (0-1) |
+| `gradient` | `object` | - | 渐变色配置 |
+
+### 示例
+
+```tsx
+<HeatMap
+  data={points}
+  radius={30}
+  opacity={0.5}
+  gradient={{
+    colors: ['blue', 'green', 'red'],
+    startPoints: [0.2, 0.5, 0.9]
+  }}
+/>
+```
+
 ## 相关文档
 
 - [MapView API](/api/mapview)

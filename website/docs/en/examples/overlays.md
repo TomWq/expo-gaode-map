@@ -458,6 +458,101 @@ const styles = StyleSheet.create({
 });
 ```
 
+## Advanced Overlays
+
+### Cluster
+
+Display large amounts of data points and automatically group them.
+
+```tsx
+import { MapView, Cluster } from 'expo-gaode-map';
+
+export default function ClusterExample() {
+  const points = Array.from({ length: 100 }).map((_, i) => ({
+    latitude: 39.9 + (Math.random() - 0.5) * 0.1,
+    longitude: 116.4 + (Math.random() - 0.5) * 0.1,
+    properties: { id: i }
+  }));
+
+  return (
+    <MapView style={{ flex: 1 }}>
+      <Cluster
+        points={points}
+        radius={30}
+        minClusterSize={1}
+        clusterBuckets={[
+            { minPoints: 1, backgroundColor: '#00BFFF' },
+            { minPoints: 5, backgroundColor: '#FFA500' },
+            { minPoints: 10, backgroundColor: '#FF4500' }
+        ]}
+        onClusterPress={(e) => console.log(e.nativeEvent)}
+      />
+    </MapView>
+  );
+}
+```
+
+### MultiPoint
+
+High-performance display of massive point markers.
+
+```tsx
+import { MapView, MultiPoint } from 'expo-gaode-map';
+import { Image } from 'react-native';
+
+const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
+
+export default function MultiPointExample() {
+  const points = Array.from({ length: 1000 }).map((_, i) => ({
+    latitude: 39.9 + (Math.random() - 0.5) * 0.2,
+    longitude: 116.4 + (Math.random() - 0.5) * 0.2,
+    title: `Point ${i}`
+  }));
+
+  return (
+    <MapView style={{ flex: 1 }}>
+      <MultiPoint
+        points={points}
+        icon={iconUri}
+        iconWidth={20}
+        iconHeight={20}
+        onMultiPointPress={(e) => console.log('Clicked:', e.nativeEvent.index)}
+      />
+    </MapView>
+  );
+}
+```
+
+### HeatMap
+
+Display data density distribution.
+
+```tsx
+import { MapView, HeatMap } from 'expo-gaode-map';
+
+export default function HeatMapExample() {
+  const points = Array.from({ length: 500 }).map(() => ({
+    latitude: 39.9 + (Math.random() - 0.5) * 0.1,
+    longitude: 116.4 + (Math.random() - 0.5) * 0.1,
+    count: Math.random() * 10
+  }));
+
+  return (
+    <MapView style={{ flex: 1 }}>
+      <HeatMap
+        data={points}
+        radius={40}
+        opacity={0.7}
+        gradient={{
+          colors: ['#0000FF', '#00FF00', '#FF0000'],
+          startPoints: [0.1, 0.5, 0.9]
+        }}
+      />
+    </MapView>
+  );
+}
+```
+
 ## Next Steps
 
 - [Overlays API](/en/api/overlays) - Complete overlays API reference

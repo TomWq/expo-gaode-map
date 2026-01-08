@@ -14,6 +14,10 @@ class HeatMapViewModule : Module() {
       Prop<List<Map<String, Any>>>("data") { view: HeatMapView, data ->
         view.setData(data)
       }
+
+      Prop<Boolean>("visible") { view: HeatMapView, visible ->
+        view.setVisible(visible)
+      }
       
       Prop<Int>("radius") { view: HeatMapView, radius ->
         view.setRadius(radius)
@@ -21,6 +25,14 @@ class HeatMapViewModule : Module() {
       
       Prop<Double>("opacity") { view: HeatMapView, opacity ->
         view.setOpacity(opacity)
+      }
+
+      Prop<Map<String, Any>?>("gradient") { view: HeatMapView, gradient ->
+        // view.setGradient(gradient) // TODO: Implement gradient on Android
+      }
+
+      Prop<Boolean>("allowRetinaAdapting") { view: HeatMapView, allow ->
+        // iOS only, ignore on Android
       }
     }
   }

@@ -10,7 +10,6 @@ export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
 
 // 导出地图视图组件
 export { default as MapView } from './ExpoGaodeMapView';
-export type { MapViewRef } from './ExpoGaodeMapView';
 export { useMap } from './components/MapContext';
 export { MapUI } from './components/MapUI';
 

@@ -655,6 +655,13 @@ extension ExpoGaodeMapView {
                 ]
             ]
         ])
+
+        // 这里的 overlayViews 是 [UIView] 类型，可能包含 ClusterView
+        for view in overlayViews {
+            if let clusterView = view as? ClusterView {
+                clusterView.mapRegionDidChange()
+            }
+        }
     }
     
     /**
@@ -873,6 +880,17 @@ extension ExpoGaodeMapView {
                 }
             }
         }
+        
+        // 🔑 支持 ClusterAnnotation
+        if annotation.isKind(of: ClusterAnnotation.self) {
+            for view in overlayViews {
+                if let clusterView = view as? ClusterView,
+                   let annotationView = clusterView.viewForAnnotation(annotation) {
+                    return annotationView
+                }
+            }
+        }
+        
         return nil
     }
     
@@ -891,6 +909,11 @@ extension ExpoGaodeMapView {
                 return polylineView.getRenderer()
             } else if let polygonView = view as? PolygonView, let polygon = polygonView.polygon, polygon === overlay {
                 return polygonView.getRenderer()
+            } else if let heatMapView = view as? HeatMapView, let heatmap = heatMapView.heatmapOverlay, heatmap === overlay {
+                return heatMapView.getRenderer()
+            } else if let multiPointView = view as? MultiPointView, let renderer = multiPointView.getRenderer(), renderer.overlay === overlay {
+                renderer.delegate = self
+                return renderer
             }
         }
         
@@ -917,6 +940,11 @@ extension ExpoGaodeMapView {
                         "longitude": annotation.coordinate.longitude
                     ]
                     markerView.onMarkerPress(eventData)
+                    return
+                }
+            } else if let clusterView = view as? ClusterView {
+                if clusterView.containsAnnotation(annotation) {
+                    clusterView.handleAnnotationTap(annotation)
                     return
                 }
             }
@@ -957,5 +985,21 @@ extension ExpoGaodeMapView {
             }
         }
 
+    }
+}
+
+// MARK: - MAMultiPointOverlayRendererDelegate
+
+extension ExpoGaodeMapView: MAMultiPointOverlayRendererDelegate {
+    public func multiPointOverlayRenderer(_ renderer: MAMultiPointOverlayRenderer!, didItemTapped item: MAMultiPointItem!) {
+        // 查找对应的 MultiPointView
+        for view in overlayViews {
+            if let multiPointView = view as? MultiPointView,
+               let r = multiPointView.getRenderer(),
+               r === renderer {
+                multiPointView.handleMultiPointClick(item: item)
+                return
+            }
+        }
     }
 }

@@ -34,8 +34,13 @@ function arePropsEqual(prevProps: ClusterProps, nextProps: ClusterProps): boolea
     return false;
   }
   
-  // 比较 onPress 回调
-  if (prevProps.onPress !== nextProps.onPress) {
+  // 比较 clusterBuckets
+  if (prevProps.clusterBuckets !== nextProps.clusterBuckets) {
+    return false;
+  }
+  
+  // 比较 onClusterPress 回调
+  if (prevProps.onClusterPress !== nextProps.onClusterPress) {
     return false;
   }
   

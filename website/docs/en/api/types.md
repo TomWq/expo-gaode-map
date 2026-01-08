@@ -263,6 +263,89 @@ interface CircleProps {
 }
 ```
 
+### HeatMapProps
+Heat Map Properties
+
+```typescript
+interface HeatMapPoint {
+  latitude: number;
+  longitude: number;
+  count: number; // Weight
+}
+
+interface HeatMapProps {
+  data: HeatMapPoint[];    // Heat map data
+  radius?: number;         // Heat radius (meters)
+  opacity?: number;        // Opacity [0, 1]
+  gradient?: {             // Gradient config
+    colors: string[];      // Colors array
+    startPoints: number[]; // Start points array [0-1]
+  };
+}
+```
+
+### MultiPointProps
+MassPoint Properties
+
+```typescript
+interface MultiPointItem {
+  latitude: number;
+  longitude: number;
+  title?: string;
+  subtitle?: string;
+  [key: string]: any;
+}
+
+interface MultiPointProps {
+  points: MultiPointItem[];    // Points list
+  icon?: string;               // Icon URI
+  iconWidth?: number;          // Icon width
+  iconHeight?: number;         // Icon height
+  onMultiPointPress?: (event: NativeSyntheticEvent<{
+    index: number;
+  }>) => void;
+}
+```
+
+### ClusterProps
+Cluster Properties
+
+```typescript
+interface ClusterPoint {
+  latitude: number;
+  longitude: number;
+  [key: string]: any;
+}
+
+interface ClusterStyle extends ViewStyle {
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+}
+
+interface ClusterBucket {
+  minPoints: number;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+}
+
+interface ClusterProps {
+  points: ClusterPoint[];      // Point list
+  radius?: number;             // Cluster radius
+  minClusterSize?: number;     // Min cluster size
+  clusterStyle?: ClusterStyle; // Base cluster style
+  clusterTextStyle?: TextStyle;// Cluster text style
+  clusterBuckets?: ClusterBucket[]; // Tiered style
+  onClusterPress?: (event: NativeSyntheticEvent<{
+    count: number;
+    pois: ClusterPoint[];
+  }>) => void;
+}
+```
+
 ## Usage Examples
 
 ### Import Types

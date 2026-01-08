@@ -1,53 +1,132 @@
 package expo.modules.gaodemap.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import java.net.URL
+import expo.modules.gaodemap.utils.BitmapDescriptorCache
+
+import android.graphics.Paint
+
+import android.graphics.Typeface
+import android.os.Handler
+import android.os.Looper
+
 import com.amap.api.maps.AMap
+import com.amap.api.maps.AMapUtils
+import com.amap.api.maps.model.BitmapDescriptor
 import com.amap.api.maps.model.BitmapDescriptorFactory
+import com.amap.api.maps.model.CameraPosition
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
+import expo.modules.gaodemap.ExpoGaodeMapView
+import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
+import kotlinx.coroutines.*
+import java.util.concurrent.ConcurrentHashMap
+
 
 /**
  * 点聚合视图
- * 注意：高德 Android SDK 的点聚合功能需要额外依赖，这里提供基础实现
+ * 实现真正的点聚合逻辑，支持自定义样式和点击事件
  */
-class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, appContext), AMap.OnCameraChangeListener {
   
   private val onPress by EventDispatcher()
   @Suppress("unused")
   private val onClusterPress by EventDispatcher()
   
   private var aMap: AMap? = null
-  private var markers: MutableList<Marker> = mutableListOf()
-  private var points: List<Map<String, Any>> = emptyList()
-  @Suppress("unused")
-  private var radius: Int = 60
-  @Suppress("unused")
-  private var minClusterSize: Int = 2
   
+  // 聚合点数据
+  data class ClusterItem(
+    val latLng: LatLng,
+    val data: Map<String, Any>
+  )
+  
+  // 聚合对象
+  class Cluster(val center: LatLng) {
+    val items = mutableListOf<ClusterItem>()
+    
+    fun add(item: ClusterItem) {
+      items.add(item)
+    }
+    
+    val size: Int get() = items.size
+    val position: LatLng get() = center // 简单处理，使用中心点作为聚合点位置，也可以计算平均位置
+  }
+  
+  private var rawPoints: List<Map<String, Any>> = emptyList()
+  private var clusterItems: List<ClusterItem> = emptyList()
+  private var clusters: List<Cluster> = emptyList()
+  
+  // 当前显示的 Markers
+  private val currentMarkers = mutableListOf<Marker>()
+  
+  // 配置属性
+  private var radius: Int = 60 // dp
+  private var minClusterSize: Int = 1
+  
+  // 样式属性
+  private var clusterStyle: Map<String, Any>? = null
+  private var clusterBuckets: List<Map<String, Any>>? = null
+  private var clusterTextStyle: Map<String, Any>? = null
+
+  private val mainHandler = Handler(Looper.getMainLooper())
+  
+  // 协程作用域
+  private var scope = CoroutineScope(Dispatchers.Main + Job())
+  private var calculationJob: Job? = null
+  
+  // 缓存 BitmapDescriptor
+  private val bitmapCache = ConcurrentHashMap<Int, BitmapDescriptor>()
+  private var currentIconDescriptor: BitmapDescriptor? = null
+  private var pendingIconUri: String? = null
+
   /**
    * 设置地图实例
    */
   @Suppress("unused")
   fun setMap(map: AMap) {
     aMap = map
-    createOrUpdateCluster()
+    // 注册相机监听
+    // 注意：addView 时会自动调用 setMap，此时 parent 已设置
+    (parent as? ExpoGaodeMapView)?.addCameraChangeListener(this)
+    
+    // 如果有待处理的 icon，加载它
+    pendingIconUri?.let { 
+        loadAndSetIcon(it)
+    }
+    
+    updateClusters()
   }
   
   /**
    * 设置聚合点数据
    */
   fun setPoints(pointsList: List<Map<String, Any>>) {
-    // 过滤无效坐标
-    points = pointsList.filter { point ->
-      val lat = (point["latitude"] as? Number)?.toDouble()
-      val lng = (point["longitude"] as? Number)?.toDouble()
-      lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+    rawPoints = pointsList
+    // 预处理数据
+    scope.launch(Dispatchers.Default) {
+      clusterItems = pointsList.mapNotNull { point: Map<String, Any> ->
+        val lat = (point["latitude"] as? Number)?.toDouble()
+        val lng = (point["longitude"] as? Number)?.toDouble()
+        if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          ClusterItem(LatLng(lat, lng), point)
+        } else {
+          null
+        }
+      }
+      withContext(Dispatchers.Main) {
+        updateClusters()
+      }
     }
-    createOrUpdateCluster()
   }
   
   /**
@@ -55,84 +134,371 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    */
   fun setRadius(radiusValue: Int) {
     radius = radiusValue
-    createOrUpdateCluster()
+    updateClusters()
   }
   
   /**
    * 设置最小聚合数量
    */
   fun setMinClusterSize(size: Int) {
+    Log.d("ClusterView", "setMinClusterSize: $size")
     minClusterSize = size
-    createOrUpdateCluster()
+    updateClusters()
   }
   
   /**
-   * 设置图标
+   * 设置聚合样式
+   */
+  fun setClusterStyle(style: Map<String, Any>) {
+    clusterStyle = style
+    bitmapCache.clear() // 样式改变，清除缓存
+    updateClusters()
+  }
+  
+  /**
+   * 设置聚合文字样式
+   */
+  fun setClusterTextStyle(style: Map<String, Any>) {
+    clusterTextStyle = style
+    bitmapCache.clear() // 样式改变，清除缓存
+    updateClusters()
+  }
+
+  fun setClusterBuckets(buckets: List<Map<String, Any>>) {
+    clusterBuckets = buckets
+    bitmapCache.clear()
+    updateClusters()
+  }
+   
+   /**
+    * 设置图标 (保留接口，目前主要使用 clusterStyle)
    */
   @Suppress("UNUSED_PARAMETER")
   fun setIcon(iconUri: String?) {
-    // 简化处理，实际需要实现图片加载
-    createOrUpdateCluster()
+    pendingIconUri = iconUri
+    if (iconUri != null) {
+        loadAndSetIcon(iconUri)
+    } else {
+        currentIconDescriptor = null
+        updateClusters()
+    }
+  }
+
+  private fun loadAndSetIcon(iconUri: String) {
+    // 尝试从缓存获取
+    val cacheKey = "cluster|$iconUri"
+    BitmapDescriptorCache.get(cacheKey)?.let {
+        currentIconDescriptor = it
+        updateClusters()
+        return
+    }
+
+    scope.launch(Dispatchers.IO) {
+        try {
+            val descriptor = when {
+                iconUri.startsWith("http") -> {
+                    val url = URL(iconUri)
+                    val bitmap = BitmapFactory.decodeStream(url.openStream())
+                    BitmapDescriptorFactory.fromBitmap(bitmap)
+                }
+                iconUri.startsWith("file://") -> {
+                    val path = iconUri.substring(7)
+                    BitmapDescriptorFactory.fromPath(path)
+                }
+                else -> {
+                    // 尝试作为资源名称加载
+                    val resId = context.resources.getIdentifier(iconUri, "drawable", context.packageName)
+                    if (resId != 0) {
+                        BitmapDescriptorFactory.fromResource(resId)
+                    } else {
+                        // 尝试作为普通文件路径
+                         BitmapDescriptorFactory.fromPath(iconUri)
+                    }
+                }
+            }
+            
+            if (descriptor != null) {
+                BitmapDescriptorCache.put(cacheKey, descriptor)
+                currentIconDescriptor = descriptor
+                withContext(Dispatchers.Main) {
+                    updateClusters()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+  }
+
+  /**
+   * 相机移动回调
+   */
+  override fun onCameraChange(cameraPosition: CameraPosition?) {
+    // 移动过程中不实时重新计算，以免性能问题
+  }
+
+  override fun onCameraChangeFinish(cameraPosition: CameraPosition?) {
+    updateClusters()
+  }
+  
+  override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
+    // 重新创建协程作用域（如果已被取消）
+    if (!scope.isActive) {
+      scope = CoroutineScope(Dispatchers.Main + Job())
+    }
+    // 重新注册监听器（防止因 detach 导致监听器丢失）
+    (parent as? ExpoGaodeMapView)?.addCameraChangeListener(this)
+    updateClusters()
+  }
+
+  override fun onDetachedFromWindow() {
+    super.onDetachedFromWindow()
+    scope.cancel() // 取消协程
+    (parent as? ExpoGaodeMapView)?.removeCameraChangeListener(this)
+    currentMarkers.forEach { 
+        it.remove()
+        unregisterMarker(it)
+    }
+    currentMarkers.clear()
+    bitmapCache.clear()
   }
   
   /**
-   * 创建或更新聚合
-   * 注意：这是简化实现，完整的点聚合需要使用专门的聚合库
+   * 更新聚合
+   * 使用协程在后台计算
    */
-  private fun createOrUpdateCluster() {
-    aMap?.let { map ->
-      // 清除旧的标记
-      markers.forEach { it.remove() }
-      markers.clear()
+  private fun updateClusters() {
+    val map = aMap ?: return
+    
+    // 取消上一次计算
+    calculationJob?.cancel()
+    
+    // 确保 scope 处于活跃状态
+    if (!scope.isActive) {
+        scope = CoroutineScope(Dispatchers.Main + Job())
+    }
+
+    calculationJob = scope.launch(Dispatchers.Default) {
+      if (clusterItems.isEmpty()) return@launch
       
-      // 简化实现：直接添加所有点作为标记
-      // 实际应用中应该使用点聚合算法
-      points.forEach { point ->
-        val lat = (point["latitude"] as? Number)?.toDouble()
-        val lng = (point["longitude"] as? Number)?.toDouble()
-        
-        if (lat != null && lng != null) {
-          val markerOptions = MarkerOptions()
-            .position(LatLng(lat, lng))
-            .icon(BitmapDescriptorFactory.defaultMarker())
-          
-          val marker = map.addMarker(markerOptions)
-          marker?.let { markers.add(it) }
+      // 获取当前比例尺 (米/像素)
+      val scalePerPixel = withContext(Dispatchers.Main) {
+        // 增加安全性检查
+        if (map.mapType != 0) { // 简单检查 map 是否存活
+            map.scalePerPixel
+        } else {
+            0f
         }
       }
+
+      if (scalePerPixel <= 0) {
+          // 比例尺无效，稍后重试
+          withContext(Dispatchers.Main) {
+              android.util.Log.w("ClusterView", "Invalid scalePerPixel: $scalePerPixel, retrying...")
+              mainHandler.postDelayed({ updateClusters() }, 500)
+          }
+          return@launch
+      }
       
-      // 设置点击监听
-      map.setOnMarkerClickListener { clickedMarker ->
-        if (markers.contains(clickedMarker)) {
-          onPress(mapOf(
-            "latitude" to clickedMarker.position.latitude,
-            "longitude" to clickedMarker.position.longitude
-          ))
-          true
-        } else {
-          false
+      // 计算聚合距离 (米)
+      // radius 是 dp，需要转 px，再转米
+      val density = context.resources.displayMetrics.density
+      val radiusPx = radius * density
+      val radiusMeters = radiusPx * scalePerPixel
+      
+      val newClusters = mutableListOf<Cluster>()
+      val visited = BooleanArray(clusterItems.size)
+      
+      // 简单的距离聚合算法
+      for (i in clusterItems.indices) {
+        if (visited[i]) continue
+        
+        val item = clusterItems[i]
+        val cluster = Cluster(item.latLng)
+        cluster.add(item)
+        visited[i] = true
+        
+        for (j in i + 1 until clusterItems.size) {
+          if (visited[j]) continue
+          
+          val other = clusterItems[j]
+          val distance = AMapUtils.calculateLineDistance(item.latLng, other.latLng)
+          
+          if (distance < radiusMeters) {
+            cluster.add(other)
+            visited[j] = true
+          }
         }
+        
+        newClusters.add(cluster)
+      }
+      
+      // 更新 UI
+      withContext(Dispatchers.Main) {
+        renderClusters(newClusters)
+      }
+    }
+  }
+
+  /**
+   * 渲染聚合点
+   */
+  private fun renderClusters(newClusters: List<Cluster>) {
+    Log.d("ClusterView", "renderClusters: count=${newClusters.size}, minClusterSize=$minClusterSize")
+    val map = aMap ?: return
+    clusters = newClusters
+
+    // 清除旧 Markers
+    currentMarkers.forEach {
+        it.remove()
+        unregisterMarker(it)
+    }
+    currentMarkers.clear()
+
+    // 添加新 Markers
+    newClusters.forEach { cluster ->
+      val markerOptions = MarkerOptions()
+        .position(cluster.center)
+
+      if (cluster.size >= minClusterSize) {
+        // 聚合点
+        markerOptions.icon(generateIcon(cluster.size))
+        markerOptions.zIndex(2.0f) // 聚合点层级高一点
+      } else {
+        // 单个点
+        markerOptions.icon(currentIconDescriptor ?: BitmapDescriptorFactory.defaultMarker())
+        markerOptions.zIndex(1.0f)
+      }
+      
+      val marker = map.addMarker(markerOptions)
+      if (marker != null) {
+        currentMarkers.add(marker)
+        registerMarker(marker, this)
+        // 存储关联的 cluster 数据，以便点击时获取
+        marker.setObject(cluster)
       }
     }
   }
   
   /**
-   * 移除聚合
+   * 生成聚合图标
    */
-  fun removeCluster() {
-    markers.forEach { it.remove() }
-    markers.clear()
-    points = emptyList()
+  @SuppressLint("UseKtx")
+  private fun generateIcon(count: Int): BitmapDescriptor {
+    // 检查缓存
+    // 简单的缓存策略：只根据数量缓存。如果样式变化，会清空缓存。
+    bitmapCache[count]?.let { return it }
+    
+    val density = context.resources.displayMetrics.density
+    
+    // 获取样式配置
+    var activeStyle = clusterStyle ?: emptyMap()
+
+    clusterBuckets?.let { buckets ->
+        val bestBucket = buckets
+            .filter { (it["minPoints"] as? Number)?.toInt() ?: 0 <= count }
+            .maxByOrNull { (it["minPoints"] as? Number)?.toInt() ?: 0 }
+
+        if (bestBucket != null) {
+             activeStyle = activeStyle + bestBucket
+        }
+    }
+
+    val bgColorVal = activeStyle["backgroundColor"]
+    val borderColorVal = activeStyle["borderColor"]
+    val borderWidthVal = (activeStyle["borderWidth"] as? Number)?.toFloat() ?: 2f
+    val textSizeVal = (clusterTextStyle?.get("fontSize") as? Number)?.toFloat() ?: 14f
+    val textColorVal = clusterTextStyle?.get("color")
+    val fontWeightVal = clusterTextStyle?.get("fontWeight") as? String
+    
+    // 解析颜色
+    val bgColor = ColorParser.parseColor(bgColorVal ?: "#F54531") // 默认红色
+    val borderColor = ColorParser.parseColor(borderColorVal ?: "#FFFFFF") // 默认白色
+    val textColor = ColorParser.parseColor(textColorVal ?: "#FFFFFF") // 默认白色
+    
+    // 计算尺寸 (根据 iOS 逻辑：size = 30 + (count.toString().length - 1) * 5)
+    // 这里简单处理，或者根据 count 动态调整
+    // 基础大小 36dp
+    val baseSize = 36
+    val extraSize = (count.toString().length - 1) * 6
+    val sizeDp = baseSize + extraSize
+    val sizePx = (sizeDp * density).toInt()
+    
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    val radius = sizePx / 2f
+    
+    // 绘制边框
+    paint.color = borderColor
+    paint.style = Paint.Style.FILL
+    canvas.drawCircle(radius, radius, radius, paint)
+    
+    // 绘制背景
+    paint.color = bgColor
+    val borderWidthPx = borderWidthVal * density
+    canvas.drawCircle(radius, radius, radius - borderWidthPx, paint)
+    
+    // 绘制文字
+    paint.color = textColor
+    paint.textSize = textSizeVal * density
+    paint.textAlign = Paint.Align.CENTER
+    
+    // 字体粗细
+    if (fontWeightVal == "bold") {
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    
+    // 文字垂直居中
+    val fontMetrics = paint.fontMetrics
+    val baseline = radius - (fontMetrics.bottom + fontMetrics.top) / 2
+    
+    canvas.drawText(count.toString(), radius, baseline, paint)
+    
+    val descriptor = BitmapDescriptorFactory.fromBitmap(bitmap)
+    bitmapCache[count] = descriptor
+    return descriptor
   }
   
-  override fun onDetachedFromWindow() {
-    super.onDetachedFromWindow()
-    // 🔑 关键修复：使用 post 延迟检查
-    post {
-      if (parent == null) {
-        removeCluster()
-        aMap = null
+  /**
+   * 处理 Marker 点击
+   */
+  fun onMarkerClick(marker: Marker) {
+    val cluster = marker.getObject() as? Cluster
+    if (cluster != null) {
+      // 无论聚合数量多少，统一触发 onClusterPress
+      // 这样保证用户在 React Native 端监听 onClusterPress 时总能收到事件
+      // 如果是单点，count 为 1，pois 包含单个点数据
+      val pointsData = cluster.items.map { it.data }
+      onClusterPress(mapOf(
+        "count" to cluster.size,
+        "latitude" to cluster.center.latitude,
+        "longitude" to cluster.center.longitude,
+        "pois" to pointsData,
+        "points" to pointsData // 兼容 iOS 或用户习惯
+      ))
+    }
+  }
+  
+  companion object {
+    private val markerMap = ConcurrentHashMap<Marker, ClusterView>()
+    
+    fun registerMarker(marker: Marker, view: ClusterView) {
+      markerMap[marker] = view
+    }
+    
+    fun unregisterMarker(marker: Marker) {
+      markerMap.remove(marker)
+    }
+    
+    fun handleMarkerClick(marker: Marker): Boolean {
+      markerMap[marker]?.let { view ->
+        view.onMarkerClick(marker)
+        return true
       }
+      return false
     }
   }
 }

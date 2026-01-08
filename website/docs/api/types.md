@@ -267,10 +267,20 @@ interface CircleProps {
 热力图属性
 
 ```typescript
+interface HeatMapPoint {
+  latitude: number;
+  longitude: number;
+  count: number; // 权重
+}
+
 interface HeatMapProps {
-  data: LatLng[];    // 热力点数据
-  radius?: number;   // 热力半径（米）
-  opacity?: number;  // 透明度 [0, 1]
+  data: HeatMapPoint[];    // 热力点数据
+  radius?: number;         // 热力半径（米）
+  opacity?: number;        // 透明度 [0, 1]
+  gradient?: {             // 渐变色配置
+    colors: string[];      // 颜色数组
+    startPoints: number[]; // 起始点数组 [0-1]
+  };
 }
 ```
 
@@ -278,17 +288,21 @@ interface HeatMapProps {
 海量点属性
 
 ```typescript
-interface MultiPointItem extends LatLng {
-  id?: string | number;  // 唯一标识
-  data?: any;            // 自定义数据
+interface MultiPointItem {
+  latitude: number;
+  longitude: number;
+  title?: string;
+  subtitle?: string;
+  [key: string]: any;
 }
 
 interface MultiPointProps {
-  items: MultiPointItem[];   // 点集合
-  icon?: ImageSourcePropType;  // 图标
-  onPress?: (event: NativeSyntheticEvent<{
+  points: MultiPointItem[];    // 点集合
+  icon?: string;               // 图标 URI
+  iconWidth?: number;          // 图标宽度
+  iconHeight?: number;         // 图标高度
+  onMultiPointPress?: (event: NativeSyntheticEvent<{
     index: number;
-    item: MultiPointItem;
   }>) => void;
 }
 ```
@@ -298,22 +312,37 @@ interface MultiPointProps {
 
 ```typescript
 interface ClusterPoint {
-  position: LatLng;     // 坐标
-  properties?: any;     // 自定义数据
+  latitude: number;
+  longitude: number;
+  [key: string]: any;
 }
 
-interface ClusterParams {
-  id: number;           // 唯一标识
-  count: number;        // 包含的标记点数量
-  position: LatLng;     // 聚合点坐标
+interface ClusterStyle extends ViewStyle {
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+}
+
+interface ClusterBucket {
+  minPoints: number;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
 }
 
 interface ClusterProps {
-  radius?: number;                           // 聚合半径
-  points: ClusterPoint[];                    // 坐标点列表
-  renderMarker: (item: ClusterPoint) => React.ReactNode;
-  renderCluster?: (params: ClusterParams) => React.ReactNode;
-  onPress?: (event: NativeSyntheticEvent<ClusterParams>) => void;
+  points: ClusterPoint[];      // 坐标点列表
+  radius?: number;             // 聚合半径
+  minClusterSize?: number;     // 最小聚合数量
+  clusterStyle?: ClusterStyle; // 聚合点基础样式
+  clusterTextStyle?: TextStyle;// 聚合文字样式
+  clusterBuckets?: ClusterBucket[]; // 分级样式
+  onClusterPress?: (event: NativeSyntheticEvent<{
+    count: number;
+    pois: ClusterPoint[];
+  }>) => void;
 }
 ```
 

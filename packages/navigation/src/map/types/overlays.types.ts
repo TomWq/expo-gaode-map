@@ -400,5 +400,5 @@ export interface ClusterProps {
   /**
    * 聚合点点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<ClusterParams>) => void;
+  onClusterPress?: (event: NativeSyntheticEvent<ClusterParams>) => void;
 }
