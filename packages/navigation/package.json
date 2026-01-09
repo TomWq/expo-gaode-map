@@ -2,17 +2,11 @@
   "name": "expo-gaode-map-navigation",
   "version": "1.1.1",
   "description": "高德地图导航功能模块 - 路径规划、导航引导，独立版本包含完整地图功能",
+  "author": "<TomWq> (https://github.com/TomWq)",
+  "repository": "https://github.com/TomWq/expo-gaode-map",
   "main": "build/index.js",
   "types": "build/index.d.ts",
-  "files": [
-    "build",
-    "android",
-    "ios",
-    "app.plugin.js",
-    "expo-module.config.json",
-    "plugin/build"
-  ],
-  "scripts": {
+    "scripts": {
     "build": "expo-module build && bun run build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean",
@@ -22,6 +16,32 @@
     "prepublishOnly": "expo-module prepublishOnly",
     "expo-module": "expo-module"
   },
+  "devDependencies": {
+    "@expo/config-plugins": "~54.0.4",
+    "@types/react": "~19.1.0",
+    "expo": "^54.0.31",
+    "expo-module-scripts": "^5.0.8",
+    "react-native": "0.81.5",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "bugs": {
+    "url": "https://github.com/TomWq/expo-gaode-map/issues"
+  },
+ 
+  "files": [
+    "build",
+    "android",
+    "ios",
+    "app.plugin.js",
+    "expo-module.config.json",
+    "plugin/build"
+  ],
+  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
   "keywords": [
     "react-native",
     "expo",
@@ -32,27 +52,6 @@
     "高德地图",
     "导航"
   ],
-  "repository": "https://github.com/TomWq/expo-gaode-map",
-  "bugs": {
-    "url": "https://github.com/TomWq/expo-gaode-map/issues"
-  },
-  "author": "<TomWq> (https://github.com/TomWq)",
-  "license": "MIT",
-  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
-  "dependencies": {
-    "supercluster": "^8.0.1"
-  },
-  "devDependencies": {
-    "@expo/config-plugins": "^9.1.7",
-    "@types/react": "~19.1.0",
-    "expo": "^54.0.18",
-    "expo-module-scripts": "^5.0.7",
-    "react-native": "0.81.5",
-    "typescript": "^5.9.3"
-  },
-  "peerDependencies": {
-    "expo": "*",
-    "react": "*",
-    "react-native": "*"
-  }
+  "license": "MIT"
+ 
 }
