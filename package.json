@@ -36,6 +36,7 @@
     "publish:search:beta": "cd packages/search && bun publish --access public --tag beta",
     "publish:navigation:beta": "cd packages/navigation && bun publish --access public --tag beta",
     "publish:web-api:beta": "cd packages/web-api && bun publish --access public --tag beta",
+    "npm:login":"npm login --auth-type=web",
     "publish:interactive": "bash scripts/publish.sh",
     "version:core": "cd packages/core && bun version",
     "version:search": "cd packages/search && bun version",
