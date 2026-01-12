@@ -8,7 +8,7 @@
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `center` | `LatLng` | - | 圆心坐标（必需） |
+| `center` | `LatLng` 或 `number[]` | - | 圆心坐标（必需），支持对象 `{latitude, longitude}` 或数组 `[longitude, latitude]` |
 | `radius` | `number` | - | 半径（米） |
 | `fillColor` | `string` | - | 填充颜色 |
 | `strokeColor` | `string` | - | 边框颜色 |
@@ -35,14 +35,14 @@
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `position` | `LatLng` | - | 标记点坐标（必需） |
+| `position` | `LatLng` 或 `number[]` | - | 标记点坐标（必需），支持对象 `{latitude, longitude}` 或数组 `[longitude, latitude]` |
 | `title` | `string` | - | 标题 |
 | `snippet` | `string` | - | 描述信息 |
 | `draggable` | `boolean` | `false` | 是否可拖拽 |
 | `icon` | `string` | - | 自定义图标 |
 | `iconWidth` | `number` | `40` | 图标宽度 |
 | `iconHeight` | `number` | `40` | 图标高度 |
-| `smoothMovePath` | `LatLng[]` | - | 平滑移动路径坐标数组 |
+| `smoothMovePath` | `LatLng[]` 或 `number[][]` | - | 平滑移动路径坐标数组，支持对象数组或二维数组 `[[lon, lat], ...]` |
 | `smoothMoveDuration` | `number` | `10` | 平滑移动时长（秒） |
 
 ### 平滑移动
@@ -156,7 +156,7 @@ const iconUri = Image.resolveAssetSource(require('./marker.png')).uri;
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `points` | `LatLng[]` | - | 折线坐标点数组（必需） |
+| `points` | `LatLng[]` 或 `number[][]` | - | 折线坐标点数组（必需），支持对象数组或二维数组 `[[lon, lat], ...]` |
 | `width` | `number` | `5` | 线宽 |
 | `color` | `string` | - | 线条颜色 |
 | `texture` | `string` | - | 纹理图片 URL |
@@ -368,7 +368,7 @@ android.enableJetifier=true
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `data` | `HeatMapPoint[]` | - | 热力点数据（lat, lng, count） |
+| `data` | `HeatMapPoint[]` 或 `number[][]` | - | 热力点数据（lat, lng, count），支持对象数组或二维数组 `[[lon, lat], ...]` |
 | `radius` | `number` | `12` | 热力半径 |
 | `opacity` | `number` | `0.6` | 透明度 (0-1) |
 | `gradient` | `object` | - | 渐变色配置 |

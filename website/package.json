@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-docs",
-  "version": "2.2.12",
+  "version": "2.2.17",
   "description": "expo-gaode-map 文档网站",
   "type": "module",
   "scripts": {
