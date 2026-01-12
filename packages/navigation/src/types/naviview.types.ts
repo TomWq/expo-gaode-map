@@ -253,6 +253,12 @@ export interface NaviViewProps extends ViewProps {
    * @default false
    */
   isNaviTravelView?:boolean
+
+  /**
+   * 是否显示指南针
+   * @default true
+   */
+  showCompassEnabled?: boolean;
   
   /**
    * 是否显示红绿灯图标

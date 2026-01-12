@@ -428,6 +428,7 @@ function NavigationScreen() {
 | `showTrafficLightView` | `boolean` | `true` | 是否显示红绿灯倒计时（v10.0.5+） |
 | `routeMarkerVisible` | `object` | - | 路线标记点配置（见下文） |
 | `isNaviTravelView` | `boolean` | `false` | 设置是否为骑步行视图 |
+| `showCompassEnabled` | `boolean` | `true` | 是否显示罗盘 |
 | `androidStatusBarPaddingTop` | `number` | `状态栏高度` | 导航试图的顶部 padding 值，用于适配状态栏高度 |
 
 **routeMarkerVisible 配置：**

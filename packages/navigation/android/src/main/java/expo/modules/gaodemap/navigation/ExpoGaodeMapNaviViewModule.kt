@@ -75,6 +75,10 @@ class ExpoGaodeMapNaviViewModule : Module() {
       Prop<Boolean>("showTrafficLights") { view, visible ->
         view.applyTrafficLightsVisible(visible)
       }
+
+      Prop<Boolean>("showCompassEnabled") {view, enabled ->
+          view.applyShowCompassEnabled(enabled)
+      }
       
       Prop<Map<String, Boolean>?>("routeMarkerVisible") { view, config ->
         config?.let {

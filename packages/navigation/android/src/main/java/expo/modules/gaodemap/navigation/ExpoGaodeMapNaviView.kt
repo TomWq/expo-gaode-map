@@ -58,6 +58,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var isAfterRouteAutoGray: Boolean = false
     internal var isVectorLineShow: Boolean = true
     internal var isNaviTravelView : Boolean = false
+    internal var isCompassEnabled: Boolean = true
     private val naviView: AMapNaviView = AMapNaviView(context)
     private var aMapNavi: AMapNavi? = null
     private var startCoordinate: NaviLatLng? = null
@@ -329,7 +330,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             // 设置为 true 将显示导航信息面板（包括距离、时间等）
             options.isLayoutVisible = showUIElements
             options.isSettingMenuEnabled = true // 显示设置菜单按钮
-            options.isCompassEnabled = true // 显示指南针
+            options.isCompassEnabled = isCompassEnabled // 显示指南针
             options.isTrafficBarEnabled = androidTrafficBarEnabled // 显示路况条
             options.isRouteListButtonShow = isRouteListButtonShow // 显示路线全览按钮
 
@@ -843,7 +844,15 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         options.isRealCrossDisplayShow = enabled
         naviView.viewOptions = options
     }
-    
+
+    fun applyShowCompassEnabled(enabled: Boolean){
+        isCompassEnabled = enabled
+        val options = naviView.viewOptions
+        options.isCompassEnabled = enabled
+        naviView.viewOptions = options
+    }
+
+
     fun applyNaviMode(mode: Int) {
         // 0: 车头朝上 1: 正北朝上
         naviView.naviMode = mode
@@ -884,7 +893,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             Log.e("ExpoGaodeMapNaviView", "Failed to set car overlay visibility", e)
         }
     }
-    
+
+
     /**
      * 设置是否显示交通信号灯
      * @param visible true-显示 false-隐藏
