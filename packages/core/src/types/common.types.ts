@@ -66,6 +66,14 @@ export interface LatLng {
 }
 
 /**
+ * 坐标点类型
+ * 支持对象格式 { latitude, longitude }
+ * 或数组格式 [longitude, latitude] (GeoJSON 标准)
+ * 注意：GeoJSON 标准允许数组包含更多元素（如海拔），但本组件只使用前两个
+ */
+export type LatLngPoint = LatLng | [number, number] | number[];
+
+/**
  * 地图标注点（POI）
  */
 export interface MapPoi {

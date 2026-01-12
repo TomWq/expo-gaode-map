@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
 import type { MarkerProps } from '../../types';
+import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 
 const NativeMarkerView = requireNativeViewManager('MarkerView');
 
@@ -16,8 +17,12 @@ const NativeMarkerView = requireNativeViewManager('MarkerView');
  */
 function Marker(props: MarkerProps) {
   // 从 props 中排除 position 属性，避免传递到原生层
-  const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, ...restProps } = props;
+  const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, smoothMovePath, ...restProps } = props;
   
+  // 归一化坐标处理
+  const normalizedPosition = normalizeLatLng(position);
+  const normalizedSmoothMovePath = smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined;
+
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
   
@@ -32,12 +37,13 @@ function Marker(props: MarkerProps) {
   
   return (
     <NativeMarkerView
-      latitude={position.latitude}
-      longitude={position.longitude}
+      latitude={normalizedPosition.latitude}
+      longitude={normalizedPosition.longitude}
       iconWidth={finalIconWidth}
       iconHeight={finalIconHeight}
       customViewWidth={finalIconWidth}
       customViewHeight={finalIconHeight}
+      smoothMovePath={normalizedSmoothMovePath}
       {...restProps}
     >
       {children}
@@ -51,9 +57,12 @@ function Marker(props: MarkerProps) {
  */
 function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean {
   // 快速路径：比较 position (最常变化)
+  const prevPos = normalizeLatLng(prevProps.position);
+  const nextPos = normalizeLatLng(nextProps.position);
+
   if (
-    prevProps.position.latitude !== nextProps.position.latitude ||
-    prevProps.position.longitude !== nextProps.position.longitude
+    prevPos.latitude !== nextPos.latitude ||
+    prevPos.longitude !== nextPos.longitude
   ) {
     return false;
   }

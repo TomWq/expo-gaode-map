@@ -115,6 +115,7 @@ export default function MamScreen() {
     color: 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'purple';
     width?: number;
     height?: number;
+    useArrayPosition?: boolean;
   }>>([]);
   const markerIdCounter = useRef(0);
 
@@ -148,6 +149,26 @@ export default function MamScreen() {
 
   // 隐私协议状态：未同意前不初始化、不渲染地图
   const [privacyAgreed, setPrivacyAgreed] = useState(true);
+
+  // 模拟从后端获取的 GeoJSON 格式轨迹数据 (数组格式 [经度, 纬度])
+  // 这种数据格式在实际开发中非常常见，比如路径规划、历史轨迹回放
+  const mockGeoJsonRoute = {
+    type: "Feature",
+    properties: {
+      name: "模拟轨迹",
+      color: "#FF0000"
+    },
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [116.397428, 39.90923], // 天安门
+        [116.397428, 39.91923], // 向北
+        [116.407428, 39.91923], // 向东
+        [116.407428, 39.90923], // 向南
+        [116.397428, 39.90923]  // 回到起点
+      ]
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -301,26 +322,29 @@ export default function MamScreen() {
       content: `动态标记 #${markerIdCounter.current}`,
       color: randomColor,
       cacheKey: `marker_${markerIdCounter.current++}`,
+      // 添加一个使用数组坐标的测试标记
+      useArrayPosition: Math.random() > 0.5, 
     };
     setDynamicMarkers(prev => [...prev, newMarker]);
   };
 
-  //动态添加折线
+  // 动态添加折线
   const handleAddPolyline = () => {
     if (!location) {
       Alert.alert('提示', '请等待定位完成');
       return;
     }
     const randomOffset = () => (Math.random() - 0.5) * 0.02;
+    // 使用数组格式的坐标点
     const points = [
-      { latitude: location.latitude + randomOffset(), longitude: location.longitude + randomOffset() },
-      { latitude: location.latitude + randomOffset(), longitude: location.longitude + randomOffset() },
-      { latitude: location.latitude + randomOffset(), longitude: location.longitude + randomOffset() },
+      [location.longitude + randomOffset(), location.latitude + randomOffset()],
+      [location.longitude + randomOffset(), location.latitude + randomOffset()],
+      [location.longitude + randomOffset(), location.latitude + randomOffset()],
     ];
     const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
     const newPolyline = {
       id: `polyline_${polylineIdCounter.current++}`,
-      points,
+      points: points as any, // 临时规避类型检查，实际已支持
       color: randomColor,
     };
     setDynamicPolylines(prev => [...prev, newPolyline]);
@@ -554,7 +578,13 @@ export default function MamScreen() {
             <>
                 {isMapReady && location && (
                 <Circle
-                    center={{ latitude: location.latitude, longitude: location.longitude }}
+                    // 故意添加额外的无用数据，验证数组格式解析的健壮性
+                    // 只要前两位是 [经度, 纬度]，后面的数据会被自动忽略
+                    center={[
+                        location.longitude, 
+                        location.latitude, 
+                        100, // 高度 (GeoJSON 标准中允许，但地图组件目前只用前两个)
+                    ]} // 强制转换类型以绕过 TS 检查，仅用于演示运行时兼容性
                     radius={300}
                     fillColor="#4400FF00"
                     strokeColor="#FF00FF00"
@@ -564,10 +594,22 @@ export default function MamScreen() {
                 />
                 )}
 
-                {dynamicCircles.map((circle) => (
+                {/* {dynamicCircles.map((circle) => (
                 <Circle
                     key={circle.id}
                     center={{ latitude: circle.latitude, longitude: circle.longitude }}
+                    radius={circle.radius}
+                    fillColor={circle.fillColor}
+                    strokeColor={circle.strokeColor}
+                    strokeWidth={2}
+                    onCirclePress={() => Alert.alert('圆形', `点击了动态圆形 #${circle.id}`)}
+                />
+                ))} */}
+                {dynamicCircles.map((circle) => (
+                <Circle
+                    key={circle.id}
+                    // 直接使用数组格式 [经度, 纬度]
+                    center={[circle.longitude, circle.latitude]}
                     radius={circle.radius}
                     fillColor={circle.fillColor}
                     strokeColor={circle.strokeColor}
@@ -620,7 +662,7 @@ export default function MamScreen() {
                     <Text
                         style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 10 }]}
                         numberOfLines={2}>
-                        {marker.content}这是文字内容
+                        {marker.content}{marker.useArrayPosition ? ' (数组)' : ''}
                     </Text>
                     </View>
                 </Marker>
@@ -629,7 +671,11 @@ export default function MamScreen() {
                 {isMapReady && location && (
                 <Marker
                     key="fixed_current_location_marker"
-                    position={{ latitude: location.latitude, longitude: location.longitude }}
+                    // 数组格式建议使用 [经度, 纬度] (GeoJSON 标准)
+                    // 如果传入 [纬度, 经度] 会触发自动纠错警告
+                    position={[
+                       location.longitude, location.latitude
+                    ]}
                     zIndex={99}
                     title={location.address}
                     cacheKey="fixed_current_location_marker"
@@ -668,6 +714,21 @@ export default function MamScreen() {
                     </View>
                 </Marker>
                 )}
+
+                {
+                  isMapReady && (
+                    <Polyline
+                      key="polyline"
+                      points={[
+                        { latitude: 39.92, longitude: 116.42 },
+                        { latitude: 39.93, longitude: 116.43 },
+                        { latitude: 39.94, longitude: 116.44 },
+                      ]}
+                      strokeColor="#007AFF"
+                      strokeWidth={4}
+                    />
+                  )
+                }
                 
                 {isMapReady && <Marker
                 key="draggable_marker"
@@ -691,6 +752,18 @@ export default function MamScreen() {
                 iconWidth={40}
                 iconHeight={40}
                 />}
+
+                {isMapReady && (
+                  <Polyline
+                    key="geojson_route"
+                    // 直接使用 GeoJSON 原始数据中的 coordinates 数组，无需任何转换！
+                    points={mockGeoJsonRoute.geometry.coordinates as any}
+                    strokeColor="#FF0000"
+                    strokeWidth={6}
+                    zIndex={100}
+                    onPolylinePress={() => Alert.alert('提示', '这是一条直接使用 GeoJSON 数组数据的轨迹')}
+                  />
+                )}
 
                 {isMapReady && Platform.OS === 'ios' && (
                 <Marker

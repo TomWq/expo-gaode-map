@@ -4,7 +4,7 @@
  */
 
 import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent, TextStyle } from 'react-native';
-import type { ColorValue, LatLng, Point } from './common.types';
+import type { ColorValue, LatLng, LatLngPoint, Point } from './common.types';
 
 /**
  * 标记点属性
@@ -12,8 +12,9 @@ import type { ColorValue, LatLng, Point } from './common.types';
 export interface MarkerProps {
   /**
    * 坐标
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  position: LatLng;
+  position: LatLngPoint;
 
   /**
    * 图标
@@ -157,8 +158,9 @@ export interface MarkerProps {
 export interface PolylineProps {
   /**
    * 节点坐标数组
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  points: LatLng[];
+  points: LatLngPoint[];
 
   /**
    * 线宽
@@ -219,8 +221,9 @@ export interface PolylineProps {
 export interface PolygonProps {
   /**
    * 节点坐标数组
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  points: LatLng[];
+  points: LatLngPoint[];
 
   /**
    * 边线宽度
@@ -254,8 +257,9 @@ export interface PolygonProps {
 export interface CircleProps {
   /**
    * 圆心坐标
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  center: LatLng;
+  center: LatLngPoint;
 
   /**
    * 半径（米）
@@ -313,8 +317,9 @@ export interface HeatMapGradient {
 export interface HeatMapProps {
   /**
    * 热力点数据
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  data: LatLng[];
+  data: LatLngPoint[];
 
   /**
    * 是否显示热力图（用于避免频繁卸载/重建导致卡顿）
@@ -440,7 +445,7 @@ export interface ClusterPoint {
   /**
    * 坐标（JS ClusterLayer 使用）
    */
-  position?: LatLng;
+  position?: LatLngPoint;
 
   /**
    * 自定义数据

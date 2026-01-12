@@ -2,6 +2,7 @@ import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
 import type { HeatMapProps } from '../../types';
+import { normalizeLatLngList } from '../../utils/GeoUtils';
 
 const NativeHeatMap = requireNativeViewManager('HeatMapView');
 
@@ -13,9 +14,13 @@ const NativeHeatMap = requireNativeViewManager('HeatMapView');
  * @returns 渲染高德地图原生热力图组件
  */
 function HeatMap(props: HeatMapProps) {
+  const { data, ...restProps } = props;
+  const normalizedData = normalizeLatLngList(data);
+
   return (
     <NativeHeatMap
-      {...props}
+      data={normalizedData}
+      {...restProps}
       collapsable={false}
       pointerEvents="none"
       style={styles.hidden}

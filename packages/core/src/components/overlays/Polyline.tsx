@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { PolylineProps } from '../../types';
+import { normalizeLatLngList } from '../../utils/GeoUtils';
 
 import { requireNativeViewManager } from 'expo-modules-core';
 const NativePolylineView = requireNativeViewManager<PolylineProps>('PolylineView');
@@ -11,7 +12,11 @@ const NativePolylineView = requireNativeViewManager<PolylineProps>('PolylineView
  * @returns 高德地图原生折线视图组件
  */
 function Polyline(props: PolylineProps) {
-  return <NativePolylineView {...props} />;
+  const { points, ...restProps } = props;
+  // 归一化坐标数组
+  const normalizedPoints = normalizeLatLngList(points);
+  
+  return <NativePolylineView points={normalizedPoints} {...restProps} />;
 }
 
 /**

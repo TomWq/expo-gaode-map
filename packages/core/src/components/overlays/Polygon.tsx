@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { PolygonProps } from '../../types';
+import { normalizeLatLngList } from '../../utils/GeoUtils';
 
 import { requireNativeViewManager } from 'expo-modules-core';
 const NativePolygonView = requireNativeViewManager<PolygonProps>('PolygonView');
@@ -11,7 +12,11 @@ const NativePolygonView = requireNativeViewManager<PolygonProps>('PolygonView');
  * @returns 高德地图原生多边形视图组件
  */
 function Polygon(props: PolygonProps) {
-  return <NativePolygonView {...props} />;
+  const { points, ...restProps } = props;
+  // 归一化坐标数组
+  const normalizedPoints = normalizeLatLngList(points);
+
+  return <NativePolygonView points={normalizedPoints} {...restProps} />;
 }
 
 /**

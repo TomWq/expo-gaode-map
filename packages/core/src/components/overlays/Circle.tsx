@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
 import type { CircleProps } from '../../types';
+import { normalizeLatLng } from '../../utils/GeoUtils';
 
 const NativeCircleView = requireNativeViewManager<CircleProps>('CircleView');
 
@@ -12,7 +13,15 @@ const NativeCircleView = requireNativeViewManager<CircleProps>('CircleView');
  * @returns 渲染原生圆形组件
  */
 function Circle(props: CircleProps) {
-  return <NativeCircleView {...props} />;
+  const { center, ...restProps } = props;
+  const normalizedCenter = normalizeLatLng(center);
+  
+  return (
+    <NativeCircleView 
+      center={normalizedCenter}
+      {...restProps} 
+    />
+  );
 }
 
 /**
@@ -20,8 +29,11 @@ function Circle(props: CircleProps) {
  */
 function arePropsEqual(prevProps: CircleProps, nextProps: CircleProps): boolean {
   // 比较中心点坐标
-  if (prevProps.center.latitude !== nextProps.center.latitude ||
-      prevProps.center.longitude !== nextProps.center.longitude) {
+  const prevCenter = normalizeLatLng(prevProps.center);
+  const nextCenter = normalizeLatLng(nextProps.center);
+
+  if (prevCenter.latitude !== nextCenter.latitude ||
+      prevCenter.longitude !== nextCenter.longitude) {
     return false;
   }
   
