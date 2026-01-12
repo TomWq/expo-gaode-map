@@ -5,6 +5,7 @@
 //  
 //
 
+import Foundation
 import ExpoModulesCore
 import AMapNaviKit
 
@@ -84,6 +85,11 @@ public class ExpoGaodeMapNaviView: ExpoView {
   
   // MARK: - Properties
   private var driveView: AMapNaviDriveView?
+  private var driveViewLoaded: Bool = false
+  private var pendingShowUIElements: Bool?
+  private var pendingShowUIElementsWorkItem: DispatchWorkItem?
+  private var hasStartedNavi: Bool = false
+  private var hasReceivedFirstNaviData: Bool = false
   private var driveManager: AMapNaviDriveManager?
   
   // Props - 通用属性
@@ -136,7 +142,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     didSet { driveView?.showTrafficButton = showTrafficButton }
   }
   var showUIElements: Bool = true {
-    didSet { driveView?.showUIElements = showUIElements }
+    didSet { applyShowUIElementsToDriveViewIfReady() }
   }
   var showGreyAfterPass: Bool = false {
     didSet { driveView?.showGreyAfterPass = showGreyAfterPass }
@@ -152,6 +158,10 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   var lineWidth: CGFloat = 0 {
     didSet { driveView?.lineWidth = lineWidth }
+  }
+
+  func applyShowUIElements(_ visible: Bool) {
+    showUIElements = visible
   }
   
   // 坐标
@@ -222,15 +232,68 @@ public class ExpoGaodeMapNaviView: ExpoView {
     driveView?.showBrowseRouteButton = showBrowseRouteButton
     driveView?.showMoreButton = showMoreButton
     driveView?.showTrafficButton = showTrafficButton
-    driveView?.showUIElements = showUIElements
     driveView?.showGreyAfterPass = showGreyAfterPass
     driveView?.showVectorline = showVectorline
     driveView?.showTrafficLights = showTrafficLights
     if lineWidth > 0 {
       driveView?.lineWidth = lineWidth
     }
+
+    applyShowUIElementsToDriveViewIfReady()
   }
-  
+
+  private func applyShowUIElementsToDriveViewIfReady() {
+    guard driveView != nil else {
+      pendingShowUIElements = showUIElements
+      return
+    }
+
+    guard driveViewLoaded else {
+      pendingShowUIElements = showUIElements
+      return
+    }
+
+    let value = pendingShowUIElements ?? showUIElements
+    pendingShowUIElements = nil
+
+    if value == false && (!hasStartedNavi || !hasReceivedFirstNaviData) {
+      pendingShowUIElements = false
+      pendingShowUIElementsWorkItem?.cancel()
+      let workItem = DispatchWorkItem { [weak self] in
+        guard let self else { return }
+        self.applyDriveViewShowUIElements(true, remainingAttempts: 20)
+      }
+      pendingShowUIElementsWorkItem = workItem
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
+      return
+    }
+
+    pendingShowUIElementsWorkItem?.cancel()
+    let workItem = DispatchWorkItem { [weak self] in
+      guard let self else { return }
+      self.applyDriveViewShowUIElements(value, remainingAttempts: 20)
+    }
+    pendingShowUIElementsWorkItem = workItem
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
+  }
+
+  private func applyDriveViewShowUIElements(_ value: Bool, remainingAttempts: Int) {
+    guard let driveView else { return }
+
+    if driveView.bounds.isEmpty {
+      if remainingAttempts <= 0 {
+        return
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+        self?.applyDriveViewShowUIElements(value, remainingAttempts: remainingAttempts - 1)
+      }
+      return
+    }
+
+    driveView.showUIElements = value
+  }
+
   // MARK: - Prop Setters
   private func applyShowCamera(_ show: Bool) {
     driveView?.showCamera = show
@@ -366,6 +429,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
 extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   
   public func driveManager(onCalculateRouteSuccess driveManager: AMapNaviDriveManager) {
+    hasStartedNavi = true
     onRouteCalculated([
       "success": true,
       "naviType": naviType
@@ -377,6 +441,8 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
     } else {
       driveManager.startGPSNavi()
     }
+
+    applyShowUIElementsToDriveViewIfReady()
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, onCalculateRouteFailure error: Error) {
@@ -387,10 +453,13 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, didStartNavi naviMode: AMapNaviMode) {
+    hasStartedNavi = true
     onNavigationStarted([
       "type": naviMode == .emulator ? 1 : 0,
       "isEmulator": naviMode == .emulator
     ])
+
+    applyShowUIElementsToDriveViewIfReady()
   }
   
   public func driveManagerNavi(_ driveManager: AMapNaviDriveManager, didArrive wayPoint: AMapNaviPoint) {
@@ -404,6 +473,10 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, didUpdate naviLocation: AMapNaviLocation) {
+    if !hasReceivedFirstNaviData {
+      hasReceivedFirstNaviData = true
+      applyShowUIElementsToDriveViewIfReady()
+    }
     onLocationUpdate([
       "latitude": naviLocation.coordinate.latitude,
       "longitude": naviLocation.coordinate.longitude,
@@ -413,6 +486,10 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, didUpdate naviInfo: AMapNaviInfo) {
+    if !hasReceivedFirstNaviData {
+      hasReceivedFirstNaviData = true
+      applyShowUIElementsToDriveViewIfReady()
+    }
     onNavigationInfoUpdate([
       "currentRoadName": naviInfo.currentRoadName ?? "",
       "nextRoadName": naviInfo.nextRoadName ?? "",
@@ -458,6 +535,13 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
 extension ExpoGaodeMapNaviView: AMapNaviDriveViewDelegate {
   
   public func driveViewDidLoad(_ driveView: AMapNaviDriveView) {
+    driveViewLoaded = true
+    applyViewOptions()
+    applyShowUIElementsToDriveViewIfReady()
     onNavigationReady([:])
+  }
+
+  public func driveViewEdgePadding(_ driveView: AMapNaviDriveView) -> UIEdgeInsets {
+    return .zero
   }
 }

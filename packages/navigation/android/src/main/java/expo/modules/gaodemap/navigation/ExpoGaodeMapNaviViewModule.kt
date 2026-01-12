@@ -101,7 +101,41 @@ class ExpoGaodeMapNaviViewModule : Module() {
       Prop<Boolean>("showTrafficLightView") { view, show ->
         view.applyShowTrafficLightView(show)
       }
-      
+
+
+
+      Prop<Double?>("androidStatusBarPaddingTop") { view, topDp ->
+        view.applyAndroidStatusBarPaddingTop(topDp)
+      }
+
+      Prop<Boolean>("showCamera") { view, enabled ->
+          view.applyShowCamera(enabled)
+      }
+
+      Prop<Boolean>("showUIElements") { view, visible ->
+        view.applyShowUIElements(visible)
+      }
+
+      Prop<Boolean>("showTrafficBar") { view, enabled ->
+        view.applyAndroidTrafficBarEnabled(enabled)
+      }
+
+      Prop<Boolean>("showTrafficButton"){ view, enabled ->
+          view.applyShowTrafficButton(enabled)
+      }
+
+      Prop<Boolean>("showBrowseRouteButton") { view, enabled ->
+          view.applyShowBrowseRouteButton(enabled)
+      }
+
+        Prop<Boolean>("showVectorline"){ view, enabled ->
+            view.applyShowVectorline(enabled)
+        }
+
+        Prop<Boolean>("showGreyAfterPass") { view, enabled ->
+            view.applyShowGreyAfterPass(enabled)
+        }
+
       // 方法
       AsyncFunction("startNavigation") { view: ExpoGaodeMapNaviView, startLat: Double, startLng: Double, endLat: Double, endLng: Double, promise: expo.modules.kotlin.Promise ->
         view.startNavigation(startLat, startLng, endLat, endLng, promise)

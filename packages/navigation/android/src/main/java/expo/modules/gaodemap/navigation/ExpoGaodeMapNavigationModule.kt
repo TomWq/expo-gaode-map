@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.navigation
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
@@ -43,6 +44,7 @@ class ExpoGaodeMapNavigationModule : Module() {
   private val independentRouteManager = IndependentRouteManager()
   private var independentRouteService: IndependentRouteService? = null
 
+  @SuppressLint("SuspiciousIndentation")
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMapNavigation")
 

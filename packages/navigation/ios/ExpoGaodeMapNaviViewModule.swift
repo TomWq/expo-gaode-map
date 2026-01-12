@@ -76,7 +76,7 @@ public class ExpoGaodeMapNaviViewModule: Module {
         view.showRoute = value
       }
       
-      Prop("showTurnArrow") { (view: ExpoGaodeMapNaviView, value: Bool) in
+      Prop("naviArrowVisible") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.showTurnArrow = value
       }
       
@@ -97,7 +97,7 @@ public class ExpoGaodeMapNaviViewModule: Module {
       }
       
       Prop("showUIElements") { (view: ExpoGaodeMapNaviView, value: Bool) in
-        view.showUIElements = value
+        view.applyShowUIElements(value)
       }
       
       Prop("showGreyAfterPass") { (view: ExpoGaodeMapNaviView, value: Bool) in

@@ -187,6 +187,14 @@ export interface NaviViewProps extends ViewProps {
    * @since 10.0.5
    */
   showTrafficLightView?: boolean;
+
+
+  /**
+   * 导航界面顶部与状态栏的间距（单位：dp）
+   * @platform android
+   * @default 状态栏高度（单位：dp）
+   */
+  androidStatusBarPaddingTop?: number;
   
   // ========== iOS 特有属性 ==========
   
@@ -197,23 +205,16 @@ export interface NaviViewProps extends ViewProps {
    */
   showRoute?: boolean;
   
-  /**
-   * 是否显示转向箭头
-   * @platform ios
-   * @default true
-   */
-  showTurnArrow?: boolean;
-  
+
   /**
    * 是否显示路况光柱
-   * @platform ios
    * @default true
    */
   showTrafficBar?: boolean;
   
   /**
    * 是否显示全览按钮
-   * @platform ios
+   * 
    * @default true
    */
   showBrowseRouteButton?: boolean;
@@ -227,28 +228,28 @@ export interface NaviViewProps extends ViewProps {
   
   /**
    * 是否显示实时交通按钮
-   * @platform ios
+   *
    * @default true
    */
   showTrafficButton?: boolean;
   
   /**
    * 是否显示界面元素（设为false可完全自定义界面）
-   * @platform ios
+   * 提示：ios 暂时无效，android 有效
    * @default true
    */
   showUIElements?: boolean;
   
   /**
    * 走过的路线是否置灰
-   * @platform ios
+   * 
    * @default false
    */
   showGreyAfterPass?: boolean;
   
   /**
    * 是否显示牵引线（起点到终点的飞线）
-   * @platform ios
+   * 
    * @default true
    */
   showVectorline?: boolean;
@@ -327,4 +328,3 @@ export interface NaviViewProps extends ViewProps {
    */
   onRouteRecalculate?: (event: NativeSyntheticEvent<RouteRecalculateEvent>) => void;
 }
-
