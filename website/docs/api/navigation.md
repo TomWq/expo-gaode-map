@@ -410,17 +410,25 @@ function NavigationScreen() {
 | `naviMode` | `number` | `0` | 视角模式：`0`=车头朝上, `1`=正北朝上 |
 | `showMode` | `number` | `1` | 显示模式：`1`=锁车态, `2`=全览态, `3`=普通态 |
 | `isNightMode` | `boolean` | `false` | 是否开启夜间模式 |
+| `naviArrowVisible` | `boolean` | `true` | 是否显示路线转向箭头 |
+| `showTrafficBar` | `boolean` | `true` | 是否显示路况光柱 |
+| `showBrowseRouteButton` | `boolean` | `true` | 是否显示全览按钮 |
+| `showTrafficButton` | `boolean` | `true` | 是否显示实时交通按钮 |
+| `showUIElements` | `boolean` | `true` | 是否显示界面元素（ios默认不支持，后续支持） |
+| `showVectorline` | `boolean` | `true` | 是否显示牵引线 |
+| `showGreyAfterPass` | `boolean` | `false` | 走过的路线是否置灰 |
+| `showTrafficLights` | `boolean` | `true` | 是否显示红绿灯图标 |
 
 #### Android 特有属性
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `carOverlayVisible` | `boolean` | `true` | 是否显示自车和罗盘 |
-| `trafficLightsVisible` | `boolean` | `true` | 是否显示交通信号灯 |
-| `naviArrowVisible` | `boolean` | `true` | 是否显示路线转向箭头 |
 | `showDriveCongestion` | `boolean` | `true` | 是否显示拥堵气泡（v10.0.5+） |
 | `showTrafficLightView` | `boolean` | `true` | 是否显示红绿灯倒计时（v10.0.5+） |
 | `routeMarkerVisible` | `object` | - | 路线标记点配置（见下文） |
+| `isNaviTravelView` | `boolean` | `false` | 设置是否为骑步行视图 |
+| `androidStatusBarPaddingTop` | `number` | `状态栏高度` | 导航试图的顶部 padding 值，用于适配状态栏高度 |
 
 **routeMarkerVisible 配置：**
 
@@ -441,15 +449,7 @@ function NavigationScreen() {
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `showRoute` | `boolean` | `true` | 是否显示路线 |
-| `showTurnArrow` | `boolean` | `true` | 是否显示转向箭头 |
-| `showTrafficBar` | `boolean` | `true` | 是否显示路况光柱 |
-| `showBrowseRouteButton` | `boolean` | `true` | 是否显示全览按钮 |
 | `showMoreButton` | `boolean` | `true` | 是否显示更多按钮 |
-| `showTrafficButton` | `boolean` | `true` | 是否显示实时交通按钮 |
-| `showUIElements` | `boolean` | `true` | 是否显示界面元素（false=完全自定义） |
-| `showGreyAfterPass` | `boolean` | `false` | 走过的路线是否置灰 |
-| `showVectorline` | `boolean` | `true` | 是否显示牵引线 |
-| `showTrafficLights` | `boolean` | `true` | 是否显示红绿灯图标 |
 | `mapViewModeType` | `number` | `0` | 地图样式：`0`=白天, `1`=黑夜, `2`=自动, `3`=自定义 |
 | `lineWidth` | `number` | - | 路线polyline宽度（0恢复默认） |
 

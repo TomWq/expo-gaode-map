@@ -57,6 +57,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var isNaviArrowVisible : Boolean = true
     internal var isAfterRouteAutoGray: Boolean = false
     internal var isVectorLineShow: Boolean = true
+    internal var isNaviTravelView : Boolean = false
     private val naviView: AMapNaviView = AMapNaviView(context)
     private var aMapNavi: AMapNavi? = null
     private var startCoordinate: NaviLatLng? = null
@@ -318,7 +319,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             
             // 使用内置语音播报功能（v5.6.0+）
             aMapNavi?.setUseInnerVoice(true, true) // 启用内置语音，并回调文字
-            
+           //设置是否为骑步行视图
+            aMapNavi?.isNaviTravelView = isNaviTravelView
             // 设置导航视图选项 - 根据 AMapNaviViewOptions API
             val options = AMapNaviViewOptions()
             
@@ -948,7 +950,12 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             Log.e("ExpoGaodeMapNaviView", "Failed to set traffic light view visibility", e)
         }
     }
-    
+
+    fun applyIsNaviTravelView(enabled: Boolean){
+        isNaviTravelView = enabled
+        aMapNavi?.isNaviTravelView = enabled
+    }
+
     /**
      * 设置路线转向箭头的可见性
      * @param visible true-显示 false-隐藏

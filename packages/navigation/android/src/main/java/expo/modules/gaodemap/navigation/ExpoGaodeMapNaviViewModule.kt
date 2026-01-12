@@ -72,7 +72,7 @@ class ExpoGaodeMapNaviViewModule : Module() {
         view.applyCarOverlayVisible(visible)
       }
       
-      Prop<Boolean>("trafficLightsVisible") { view, visible ->
+      Prop<Boolean>("showTrafficLights") { view, visible ->
         view.applyTrafficLightsVisible(visible)
       }
       
@@ -102,7 +102,10 @@ class ExpoGaodeMapNaviViewModule : Module() {
         view.applyShowTrafficLightView(show)
       }
 
-
+     //设置是否为骑步行视图
+        Prop<Boolean>("isNaviTravelView") { view, isRideStepView ->
+            view.applyIsNaviTravelView(isRideStepView)
+        }
 
       Prop<Double?>("androidStatusBarPaddingTop") { view, topDp ->
         view.applyAndroidStatusBarPaddingTop(topDp)

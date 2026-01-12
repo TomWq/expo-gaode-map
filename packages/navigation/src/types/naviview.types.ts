@@ -137,14 +137,7 @@ export interface NaviViewProps extends ViewProps {
    * @since 6.2.0
    */
   carOverlayVisible?: boolean;
-  
-  /**
-   * 是否显示交通信号灯
-   * @platform android
-   * @default true
-   * @since 7.4.0
-   */
-  trafficLightsVisible?: boolean;
+
   
   /**
    * 路线标记点可见性配置
@@ -253,10 +246,16 @@ export interface NaviViewProps extends ViewProps {
    * @default true
    */
   showVectorline?: boolean;
+
+  /**
+   * 设置是否为骑步行视图
+   * @platform android
+   * @default false
+   */
+  isNaviTravelView?:boolean
   
   /**
    * 是否显示红绿灯图标
-   * @platform ios
    * @default true
    */
   showTrafficLights?: boolean;
