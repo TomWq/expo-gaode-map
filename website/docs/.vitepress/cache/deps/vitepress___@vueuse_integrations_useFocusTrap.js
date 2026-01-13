@@ -3,13 +3,13 @@ import {
   toArray,
   tryOnScopeDispose,
   unrefElement
-} from "./chunk-2CLQ7TTZ.js";
+} from "./chunk-2762AXES.js";
 import {
   computed,
   shallowRef,
   toValue,
   watch
-} from "./chunk-LE5NDSFD.js";
+} from "./chunk-ADVWCYKY.js";
 
 // node_modules/tabbable/dist/index.esm.js
 var candidateSelectors = ["input:not([inert])", "select:not([inert])", "textarea:not([inert])", "a[href]:not([inert])", "button:not([inert])", "[tabindex]:not(slot):not([inert])", "audio[controls]:not([inert])", "video[controls]:not([inert])", '[contenteditable]:not([contenteditable="false"]):not([inert])', "details>summary:first-of-type:not([inert])", "details:not([inert])"];
@@ -1254,7 +1254,7 @@ var createFocusTrap = function createFocusTrap2(elements, userOptions) {
   return trap;
 };
 
-// node_modules/@vueuse/integrations/useFocusTrap.mjs
+// node_modules/@vueuse/integrations/dist/useFocusTrap-lXZ_YG-8.js
 function useFocusTrap(target, options = {}) {
   let trap;
   const { immediate, ...focusTrapOptions } = options;
@@ -1274,36 +1274,32 @@ function useFocusTrap(target, options = {}) {
       isPaused.value = false;
     }
   };
-  const targets = computed(() => {
-    const _targets = toValue(target);
-    return toArray(_targets).map((el) => {
+  watch(computed(() => {
+    return toArray(toValue(target)).map((el) => {
       const _el = toValue(el);
       return typeof _el === "string" ? _el : unrefElement(_el);
     }).filter(notNullish);
-  });
-  watch(
-    targets,
-    (els) => {
-      if (!els.length)
-        return;
+  }), (els) => {
+    if (!els.length) return;
+    if (!trap) {
       trap = createFocusTrap(els, {
         ...focusTrapOptions,
         onActivate() {
           hasFocus.value = true;
-          if (options.onActivate)
-            options.onActivate();
+          if (options.onActivate) options.onActivate();
         },
         onDeactivate() {
           hasFocus.value = false;
-          if (options.onDeactivate)
-            options.onDeactivate();
+          if (options.onDeactivate) options.onDeactivate();
         }
       });
-      if (immediate)
-        activate();
-    },
-    { flush: "post" }
-  );
+      if (immediate) activate();
+    } else {
+      const isActive = trap === null || trap === void 0 ? void 0 : trap.active;
+      trap === null || trap === void 0 || trap.updateContainerElements(els);
+      if (!isActive && immediate) activate();
+    }
+  }, { flush: "post" });
   tryOnScopeDispose(() => deactivate());
   return {
     hasFocus,
@@ -1317,18 +1313,4 @@ function useFocusTrap(target, options = {}) {
 export {
   useFocusTrap
 };
-/*! Bundled license information:
-
-tabbable/dist/index.esm.js:
-  (*!
-  * tabbable 6.3.0
-  * @license MIT, https://github.com/focus-trap/tabbable/blob/master/LICENSE
-  *)
-
-focus-trap/dist/focus-trap.esm.js:
-  (*!
-  * focus-trap 7.7.0
-  * @license MIT, https://github.com/focus-trap/focus-trap/blob/master/LICENSE
-  *)
-*/
 //# sourceMappingURL=vitepress___@vueuse_integrations_useFocusTrap.js.map

@@ -1693,7 +1693,7 @@ var MiniSearch = class _MiniSearch {
     }
   }
 };
-MiniSearch.wildcard = Symbol("*");
+MiniSearch.wildcard = /* @__PURE__ */ Symbol("*");
 var getOwnProperty = (object, property) => Object.prototype.hasOwnProperty.call(object, property) ? object[property] : void 0;
 var combinators = {
   [OR]: (a, b) => {
