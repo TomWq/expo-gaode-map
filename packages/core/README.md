@@ -1,6 +1,6 @@
 # expo-gaode-map
 
-一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，采用 Monorepo 架构，提供地图显示、定位、搜索、导航、Web API 等完整功能。
+一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，提供地图显示、定位、搜索、导航、路线规划、POI搜索等完整功能。
 
 > 💡 本组件使用 [Expo Modules API](https://docs.expo.dev/modules/overview/) 构建，提供了类型安全的原生模块接口和优秀的开发体验。
 
@@ -183,7 +183,8 @@ MIT
 - [在线文档](https://TomWq.github.io/expo-gaode-map/)
 - [错误处理指南](./ERROR_HANDLING_GUIDE.md) 🆕
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map)
-- [示例项目](https://github.com/TomWq/expo-gaode-map-example)
+- [示例项目(地图)](https://github.com/TomWq/expo-gaode-map-example)
+- [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-navigation-example)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 
@@ -202,3 +203,4 @@ MIT
 - 📝 提交 [GitHub Issue](https://github.com/TomWq/expo-gaode-map/issues)
 - 💬 参与 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
 - ⭐ 给项目点个 Star 支持一下
+- 群：952241387 （欢迎加入，交流使用经验、问题反馈等）

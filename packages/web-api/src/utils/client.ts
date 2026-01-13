@@ -4,7 +4,10 @@
 
 import { getErrorInfo, isSuccess, type ErrorInfo } from './errorCodes';
 
-function resolveWebKey(): string | undefined {
+/**
+ * 从核心包解析 getWebKey（运行时解析，避免类型导出时序问题）
+ */
+export function resolveWebKey(): string | undefined {
   // 1) 尝试从核心地图包读取
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -114,6 +117,7 @@ export interface ClientConfig {
  * 高德地图 Web API HTTP 客户端
  */
 export class GaodeWebAPIClient {
+  
   private key: string;
   private baseURL: string;
   private timeout: number;
