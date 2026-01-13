@@ -26,7 +26,7 @@ export default function LBSDemo() {
    const [api, setApi] = useState<GaodeWebAPI | null>(null);
   useEffect(() => {
          ExpoGaodeMapModule.initSDK({
-          webKey: "9f59c9453ccc5e9798983d4922afbd09",
+          webKey: "",
         })
          const newApi = new GaodeWebAPI();
          setApi(newApi);
