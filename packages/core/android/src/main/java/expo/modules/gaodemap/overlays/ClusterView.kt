@@ -7,7 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import java.net.URL
-import expo.modules.gaodemap.utils.BitmapDescriptorCache
+
 
 import android.graphics.Paint
 
@@ -87,8 +87,12 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   // 缓存 BitmapDescriptor
   private val bitmapCache = ConcurrentHashMap<Int, BitmapDescriptor>()
   private var currentIconDescriptor: BitmapDescriptor? = null
+  private var customIconBitmap: Bitmap? = null
   private var pendingIconUri: String? = null
-
+  
+  // 标记样式是否发生变化，用于强制更新图标
+  private var styleChanged = false
+  
   /**
    * 设置地图实例
    */
@@ -152,6 +156,7 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun setClusterStyle(style: Map<String, Any>) {
     clusterStyle = style
     bitmapCache.clear() // 样式改变，清除缓存
+    styleChanged = true
     updateClusters()
   }
   
@@ -161,12 +166,14 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun setClusterTextStyle(style: Map<String, Any>) {
     clusterTextStyle = style
     bitmapCache.clear() // 样式改变，清除缓存
+    styleChanged = true
     updateClusters()
   }
 
   fun setClusterBuckets(buckets: List<Map<String, Any>>) {
     clusterBuckets = buckets
     bitmapCache.clear()
+    styleChanged = true
     updateClusters()
   }
    
@@ -185,41 +192,41 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   }
 
   private fun loadAndSetIcon(iconUri: String) {
-    // 尝试从缓存获取
-    val cacheKey = "cluster|$iconUri"
-    BitmapDescriptorCache.get(cacheKey)?.let {
-        currentIconDescriptor = it
-        updateClusters()
-        return
-    }
-
+    // 尝试从缓存获取 (这里只缓存 Descriptor，Bitmap 需要重新加载或者另外缓存)
+    // 为了简单起见，如果设置了 icon，我们总是重新加载 Bitmap 以便支持绘制文字
+    // 实际生产中应该也缓存 Bitmap
+    
     scope.launch(Dispatchers.IO) {
         try {
-            val descriptor = when {
+            val bitmap = when {
                 iconUri.startsWith("http") -> {
                     val url = URL(iconUri)
-                    val bitmap = BitmapFactory.decodeStream(url.openStream())
-                    BitmapDescriptorFactory.fromBitmap(bitmap)
+                    BitmapFactory.decodeStream(url.openStream())
                 }
                 iconUri.startsWith("file://") -> {
                     val path = iconUri.substring(7)
-                    BitmapDescriptorFactory.fromPath(path)
+                    BitmapFactory.decodeFile(path)
                 }
                 else -> {
                     // 尝试作为资源名称加载
                     val resId = context.resources.getIdentifier(iconUri, "drawable", context.packageName)
                     if (resId != 0) {
-                        BitmapDescriptorFactory.fromResource(resId)
+                        BitmapFactory.decodeResource(context.resources, resId)
                     } else {
                         // 尝试作为普通文件路径
-                         BitmapDescriptorFactory.fromPath(iconUri)
+                        BitmapFactory.decodeFile(iconUri)
                     }
                 }
             }
             
-            if (descriptor != null) {
-                BitmapDescriptorCache.put(cacheKey, descriptor)
+            if (bitmap != null) {
+                customIconBitmap = bitmap
+                val descriptor = BitmapDescriptorFactory.fromBitmap(bitmap)
                 currentIconDescriptor = descriptor
+                
+                // 清空缓存，因为基础图标变了，所有生成的带数字的图标都需要重新生成
+                bitmapCache.clear()
+                
                 withContext(Dispatchers.Main) {
                     updateClusters()
                 }
@@ -343,42 +350,89 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
 
   /**
    * 渲染聚合点
+   * 使用 Diff 算法优化渲染，避免全量刷新导致的闪烁
    */
   private fun renderClusters(newClusters: List<Cluster>) {
     Log.d("ClusterView", "renderClusters: count=${newClusters.size}, minClusterSize=$minClusterSize")
     val map = aMap ?: return
     clusters = newClusters
 
-    // 清除旧 Markers
-    currentMarkers.forEach {
+    // 1. 建立新数据的索引 (基于位置 lat_lng)
+    // 注意：Double 比较存在精度问题，这里简单处理，实际可使用 GeoHash 或容差比较
+    val newClusterMap = newClusters.associateBy { "${it.center.latitude}_${it.center.longitude}" }
+    
+    // 2. 建立当前 Markers 的索引
+    val currentMarkerMap = mutableMapOf<String, Marker>()
+    val markersToRemove = mutableListOf<Marker>()
+    
+    currentMarkers.forEach { marker ->
+        val key = "${marker.position.latitude}_${marker.position.longitude}"
+        // 如果当前 Marker 的位置在新数据中存在，且尚未被匹配（处理位置重叠的罕见情况）
+        if (newClusterMap.containsKey(key) && !currentMarkerMap.containsKey(key)) {
+            currentMarkerMap[key] = marker
+        } else {
+            markersToRemove.add(marker)
+        }
+    }
+    
+    // 3. 移除不再存在的 Markers
+    markersToRemove.forEach {
         it.remove()
         unregisterMarker(it)
+        currentMarkers.remove(it)
     }
-    currentMarkers.clear()
-
-    // 添加新 Markers
+    
+    // 4. 更新或添加 Markers
     newClusters.forEach { cluster ->
-      val markerOptions = MarkerOptions()
-        .position(cluster.center)
+        val key = "${cluster.center.latitude}_${cluster.center.longitude}"
+        val existingMarker = currentMarkerMap[key]
+        
+        if (existingMarker != null) {
+            // --- 更新逻辑 ---
+            // 检查数据是否变化（例如聚合数量变化导致图标变化）
+            val oldCluster = existingMarker.getObject() as? Cluster
+            if (oldCluster?.size != cluster.size || styleChanged) {
+                // 只有数量变化时才更新图标，减少开销
+                if (cluster.size >= minClusterSize) {
+                    existingMarker.setIcon(generateIcon(cluster.size))
+                    existingMarker.zIndex = 2.0f
+                } else {
+                    existingMarker.setIcon(currentIconDescriptor ?: BitmapDescriptorFactory.defaultMarker())
+                    existingMarker.zIndex = 1.0f
+                }
+            }
+            // 总是更新 title，以防 enableCallout 变化
+            existingMarker.title = "${cluster.size}个点"
+            
+            // 更新关联数据
+            existingMarker.setObject(cluster)
+        } else {
+            // --- 新增逻辑 ---
+            val markerOptions = MarkerOptions()
+                .position(cluster.center)
+            
 
-      if (cluster.size >= minClusterSize) {
-        // 聚合点
-        markerOptions.icon(generateIcon(cluster.size))
-        markerOptions.zIndex(2.0f) // 聚合点层级高一点
-      } else {
-        // 单个点
-        markerOptions.icon(currentIconDescriptor ?: BitmapDescriptorFactory.defaultMarker())
-        markerOptions.zIndex(1.0f)
-      }
-      
-      val marker = map.addMarker(markerOptions)
-      if (marker != null) {
-        currentMarkers.add(marker)
-        registerMarker(marker, this)
-        // 存储关联的 cluster 数据，以便点击时获取
-        marker.setObject(cluster)
-      }
+            
+
+            if (cluster.size >= minClusterSize) {
+                markerOptions.icon(generateIcon(cluster.size))
+                markerOptions.zIndex(2.0f)
+            } else {
+                markerOptions.icon(currentIconDescriptor ?: BitmapDescriptorFactory.defaultMarker())
+                markerOptions.zIndex(1.0f)
+            }
+            
+            val marker = map.addMarker(markerOptions)
+            if (marker != null) {
+                currentMarkers.add(marker)
+                registerMarker(marker, this)
+                marker.setObject(cluster)
+            }
+        }
     }
+    
+    // 重置样式变化标记
+    styleChanged = false
   }
   
   /**
@@ -425,21 +479,32 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
     val sizeDp = baseSize + extraSize
     val sizePx = (sizeDp * density).toInt()
     
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val bitmap = if (customIconBitmap != null) {
+        // 如果有自定义图标，将其缩放到目标大小
+        val scaled = Bitmap.createScaledBitmap(customIconBitmap!!, sizePx, sizePx, true)
+        // 复制为可变 Bitmap 以便绘制文字
+        scaled.copy(Bitmap.Config.ARGB_8888, true)
+    } else {
+        Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    }
+
     val canvas = Canvas(bitmap)
     
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     val radius = sizePx / 2f
     
-    // 绘制边框
-    paint.color = borderColor
-    paint.style = Paint.Style.FILL
-    canvas.drawCircle(radius, radius, radius, paint)
-    
-    // 绘制背景
-    paint.color = bgColor
-    val borderWidthPx = borderWidthVal * density
-    canvas.drawCircle(radius, radius, radius - borderWidthPx, paint)
+    // 如果没有自定义图标，绘制默认的圆形背景
+    if (customIconBitmap == null) {
+        // 绘制边框
+        paint.color = borderColor
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(radius, radius, radius, paint)
+        
+        // 绘制背景
+        paint.color = bgColor
+        val borderWidthPx = borderWidthVal * density
+        canvas.drawCircle(radius, radius, radius - borderWidthPx, paint)
+    }
     
     // 绘制文字
     paint.color = textColor

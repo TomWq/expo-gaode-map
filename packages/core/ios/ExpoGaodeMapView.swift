@@ -659,7 +659,10 @@ extension ExpoGaodeMapView {
         // 这里的 overlayViews 是 [UIView] 类型，可能包含 ClusterView
         for view in overlayViews {
             if let clusterView = view as? ClusterView {
-                clusterView.mapRegionDidChange()
+                // 只有当 clusterView 依然在视图树中时才通知
+                if clusterView.superview != nil && clusterView.window != nil {
+                    clusterView.mapRegionDidChange()
+                }
             }
         }
     }

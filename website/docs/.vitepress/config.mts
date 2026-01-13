@@ -64,6 +64,7 @@ export default defineConfig({
               text: '使用示例',
               items: [
                 { text: '示例总览', link: '/examples/' },
+                { text: '场景推荐', link: '/examples/scenarios' },
                 { text: '基础地图', link: '/examples/basic-map' },
                 { text: '定位追踪', link: '/examples/location-tracking' },
                 { text: '几何计算', link: '/examples/geometry' },
@@ -139,6 +140,7 @@ export default defineConfig({
               text: 'Examples',
               items: [
                 { text: 'Examples Overview', link: '/en/examples/' },
+                { text: 'Scenarios', link: '/en/examples/scenarios' },
                 { text: 'Basic Map', link: '/en/examples/basic-map' },
                 { text: 'Location Tracking', link: '/en/examples/location-tracking' },
                 { text: 'Geometry', link: '/en/examples/geometry' },

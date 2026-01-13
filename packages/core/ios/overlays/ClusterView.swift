@@ -22,10 +22,11 @@ class ClusterView: ExpoView {
     
     let onClusterPress = EventDispatcher()
     
-    private var mapView: MAMapView?
+    private weak var mapView: MAMapView?
     private var quadTree = CoordinateQuadTree()
     private var currentAnnotations: [MAAnnotation] = []
     private let quadTreeQueue = DispatchQueue(label: "com.expo.gaode.quadtree")
+    private var isInvalidated = false
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
@@ -121,6 +122,7 @@ class ClusterView: ExpoView {
     // MARK: - Update Logic
     
     func updateClusters() {
+        if isInvalidated { return }
         guard let mapView = mapView else { return }
         
         // 确保地图已布局
@@ -138,6 +140,7 @@ class ClusterView: ExpoView {
             let annotations = self.quadTree.clusteredAnnotations(within: visibleRect, zoomScale: zoomScale, gridSize: currentRadius)
             
             DispatchQueue.main.async {
+                if self.isInvalidated { return }
                 self.updateMapViewAnnotations(with: annotations as [MAAnnotation])
             }
         }
@@ -285,6 +288,7 @@ class ClusterView: ExpoView {
     // MARK: - Lifecycle
     
     override func removeFromSuperview() {
+        isInvalidated = true
         super.removeFromSuperview()
         mapView?.removeAnnotations(currentAnnotations)
     }

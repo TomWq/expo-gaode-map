@@ -45,29 +45,6 @@
  *  - expo-gaode-map-navigation（导航包，内置地图能力）
  * 这样可避免导航与核心包 SDK 冲突时无法使用的问题。
  */
-
-import { GaodeWebAPIClient, ClientConfig, resolveWebKey } from './utils/client';
-import { GeocodeService } from './services/GeocodeService';
-import { RouteService } from './services/RouteService';
-import { POIService } from './services/POIService';
-import { InputTipsService } from './services/InputTipsService';
-
-// 导出类型
-export * from './types/geocode.types';
-export * from './types/route.types';
-export * from './types/inputtips.types';
-
-// POI 类型导出 - 使用具名导出避免与 geocode.types 中的 POI 冲突
-export type {
-  POISearchParams,
-  POIAroundParams,
-  POIPolygonParams,
-  POIDetailParams,
-  POIInfo,
-  POISearchResponse,
-} from './types/poi.types';
-
-
 function ensureBaseInstalled() {
   let installed = false;
   try {
@@ -95,6 +72,56 @@ function ensureBaseInstalled() {
 }
 
 ensureBaseInstalled();
+
+import { GaodeWebAPIClient, ClientConfig } from './utils/client';
+import { GeocodeService } from './services/GeocodeService';
+import { RouteService } from './services/RouteService';
+import { POIService } from './services/POIService';
+import { InputTipsService } from './services/InputTipsService';
+
+/**
+ * 从核心包解析 getWebKey（运行时解析，避免类型导出时序问题）
+ */
+function resolveWebKey(): string | undefined {
+  // 1) 尝试从核心地图包读取
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const core = require('expo-gaode-map');
+    const fn = core?.getWebKey;
+    if (typeof fn === 'function') {
+      return fn();
+    }
+  } catch {
+    // ignore
+  }
+  // 2) 若未安装核心包，则尝试从导航包读取（导航内置地图）
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nav = require('expo-gaode-map-navigation');
+    const fn2 = nav?.getWebKey;
+    if (typeof fn2 === 'function') {
+      return fn2();
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+// 导出类型
+export * from './types/geocode.types';
+export * from './types/route.types';
+export * from './types/inputtips.types';
+
+// POI 类型导出 - 使用具名导出避免与 geocode.types 中的 POI 冲突
+export type {
+  POISearchParams,
+  POIAroundParams,
+  POIPolygonParams,
+  POIDetailParams,
+  POIInfo,
+  POISearchResponse,
+} from './types/poi.types';
 
 // 客户端配置和错误类型导出
 export type { ClientConfig, APIError } from './utils/client';
@@ -127,6 +154,13 @@ export class GaodeWebAPI {
    *
    * @param config 配置选项（可选）
    *
+   * @example
+   * ```typescript
+   * const api = new GaodeWebAPI({
+   *   key: 'your-web-api-key',
+   *   timeout: 10000
+   * });
+   * ```
    */
  constructor(config: ClientConfig = {}) {
    const webKey = resolveWebKey();
@@ -164,4 +198,7 @@ export class GaodeWebAPI {
   }
 }
 
+/**
+ * 创建默认导出，方便使用
+ */
 export default GaodeWebAPI;

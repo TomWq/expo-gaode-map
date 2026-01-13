@@ -28,11 +28,6 @@ export default function WebAPIExample() {
 
   // 初始化 API
   const handleInitialize = () => {
-    // if (!apiKey.trim()) {
-    //   Alert.alert('错误', '请输入 Web API Key');
-    //   return;
-    // }
-    
     const newApi = new GaodeWebAPI();
     setApi(newApi);
     Alert.alert('成功', 'Web API 初始化成功');
