@@ -659,7 +659,7 @@ try {
 - 核心地图模块：`expo-gaode-map`
 
 ## 📚 文档与资源
-- [在线文档](https://TomWq.github.io/expo-gaode-map/)
+- [在线文档](https://tomwq.github.io/expo-gaode-map/api/web-api.html)
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/packages/web-api)
 - [示例项目(地图)](https://github.com/TomWq/expo-gaode-map-example)
 - [高德地图开放平台](https://lbs.amap.com/)

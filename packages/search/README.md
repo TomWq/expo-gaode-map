@@ -1,6 +1,6 @@
 # expo-gaode-map-search
 
-高德地图搜索功能模块，提供 POI 搜索、周边搜索、沿途搜索、多边形搜索和输入提示功能。
+高德地图搜索功能模块，提供 POI 搜索、周边搜索、沿途搜索、多边形搜索、输入提示、逆地理编码和 POI 详情查询功能。
 
 ## 安装
 
@@ -22,6 +22,8 @@ npm install expo-gaode-map-search
 - ✅ 沿途搜索
 - ✅ 多边形区域搜索
 - ✅ 输入提示（自动补全）
+- ✅ 逆地理编码（坐标转地址）
+- ✅ POI 详情查询（评分、营业时间等）
 - ✅ 支持分页
 - ✅ 支持类型过滤
 - ✅ 完整的 TypeScript 类型定义
@@ -105,6 +107,35 @@ result.tips.forEach(tip => {
 });
 ```
 
+### 逆地理编码
+
+```typescript
+import { reGeocode } from 'expo-gaode-map-search';
+
+const result = await reGeocode({
+  location: { latitude: 39.9088, longitude: 116.3975 },
+  radius: 1000,
+  requireExtension: true,
+});
+
+console.log('地址:', result.formattedAddress);
+console.log('兴趣点:', result.pois.length);
+```
+
+### POI 详情查询
+
+```typescript
+import { getPoiDetail } from 'expo-gaode-map-search';
+
+const poi = await getPoiDetail('B000A83M61');
+
+console.log('名称:', poi.name);
+if (poi.business) {
+  console.log('评分:', poi.business.rating);
+  console.log('营业时间:', poi.business.opentime);
+}
+```
+
 ## API 文档
 
 ### searchPOI(options)
@@ -172,6 +203,26 @@ POI 关键词搜索。
 
 **返回：** `Promise<InputTipsResult>`
 
+### reGeocode(options)
+
+逆地理编码（坐标转地址）。
+
+**参数：**
+- `location` (Coordinates, 必需): 经纬度坐标
+- `radius` (number, 可选): 搜索半径，默认 1000 米
+- `requireExtension` (boolean, 可选): 是否返回扩展信息（道路、交叉口、POI等），默认 true
+
+**返回：** `Promise<ReGeocodeResult>`
+
+### getPoiDetail(id)
+
+查询 POI 详细信息。
+
+**参数：**
+- `id` (string, 必需): POI ID
+
+**返回：** `Promise<POI>`
+
 ## 类型定义
 
 ### Coordinates
@@ -187,19 +238,56 @@ interface Coordinates {
 
 ```typescript
 interface POI {
+  /** POI ID */
   id: string;
+  /** 名称 */
   name: string;
+  /** 地址 */
   address: string;
+  /** 坐标 */
   location: Coordinates;
+  /** 类型编码 */
   typeCode: string;
+  /** 类型描述 */
   typeDes: string;
+  /** 电话 */
   tel?: string;
+  /** 距离（米），仅周边搜索返回 */
   distance?: number;
+  /** 城市名称 */
   cityName?: string;
+  /** 城市编码 */
   cityCode?: string;
+  /** 省份名称 */
   provinceName?: string;
+  /** 区域名称 */
   adName?: string;
+  /** 区域编码 */
   adCode?: string;
+  /** 深度信息 (评分、营业时间等) */
+  business?: {
+    opentime?: string;
+    opentimeToday?: string;
+    rating?: string;
+    cost?: string;
+    parkingType?: string;
+    tag?: string;
+    tel?: string;
+    alias?: string;
+    businessArea?: string;
+  };
+  /** 图片信息 */
+  photos?: Array<{
+    title?: string;
+    url?: string;
+  }>;
+  /** 室内地图信息 */
+  indoor?: {
+    floor?: string;
+    floorName?: string;
+    poiId?: string;
+    hasIndoorMap?: boolean;
+  };
 }
 ```
 
@@ -229,11 +317,45 @@ interface InputTip {
 }
 ```
 
-### InputTipsResult
+### ReGeocodeResult
 
 ```typescript
-interface InputTipsResult {
-  tips: InputTip[];
+interface ReGeocodeResult {
+  /** 格式化地址 */
+  formattedAddress: string;
+  /** 地址组成要素 */
+  addressComponent: AddressComponent;
+  /** 兴趣点列表 */
+  pois: POI[];
+  /** 道路列表 */
+  roads: Road[];
+  /** 道路交叉口列表 */
+  roadCrosses: RoadCross[];
+  /** 兴趣区域列表 */
+  aois: AOI[];
+}
+```
+
+### AddressComponent
+
+```typescript
+interface AddressComponent {
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  neighborhood: string;
+  building: string;
+  cityCode: string;
+  adCode: string;
+  streetNumber: {
+    street: string;
+    number: string;
+    location?: Coordinates;
+    direction: string;
+    distance: number;
+  };
+  businessAreas?: BusinessArea[];
 }
 ```
 
@@ -347,7 +469,11 @@ export default function SearchScreen() {
 
 MIT
 
-## 相关链接
+## 📚 文档与资源
 
-- [expo-gaode-map](https://github.com/TomWq/expo-gaode-map)
-- [高德地图搜索 API 文档](https://lbs.amap.com/api/android-sdk/guide/map-data/poi)
+- [在线文档](https://tomwq.github.io/expo-gaode-map/api/search.html)
+- [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/tree/main/packages/search)
+- [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-example)
+- [高德地图开放平台](https://lbs.amap.com/)
+- [Expo Modules API](https://docs.expo.dev/modules/overview/)
+

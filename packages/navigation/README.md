@@ -281,7 +281,7 @@ import { MapView, Circle, Polygon } from 'expo-gaode-map-navigation';
 
 ## 📚 文档与资源
 
-- [在线文档](https://TomWq.github.io/expo-gaode-map/)
+- [在线文档](https://tomwq.github.io/expo-gaode-map/api/navigation.html)
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/packages/navigation)
 - [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-navigation-example)
 - [高德地图开放平台](https://lbs.amap.com/)
