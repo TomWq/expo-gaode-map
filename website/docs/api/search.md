@@ -19,10 +19,13 @@ import {
   searchAlong,
   searchPolygon,
   getInputTips,
+  reGeocode,
+  getPoiDetail,
   initSearch,
   type POI,
   type SearchResult,
   type InputTipsResult,
+  type ReGeocodeResult,
 } from 'expo-gaode-map-search';
 ```
 
@@ -163,6 +166,44 @@ interface InputTipsOptions {
 
 ---
 
+### reGeocode()
+
+逆地理编码（坐标转地址）。
+
+```typescript
+function reGeocode(options: ReGeocodeOptions): Promise<ReGeocodeResult>;
+```
+
+**参数**：
+
+```typescript
+interface ReGeocodeOptions {
+  location: Coordinates;    // 经纬度坐标（必需）
+  radius?: number;          // 搜索半径（米），默认 1000
+  requireExtension?: boolean; // 是否返回扩展信息，默认 true
+}
+```
+
+**返回值**：`Promise<ReGeocodeResult>`
+
+---
+
+### getPoiDetail()
+
+查询 POI 详情（通过 ID）。
+
+```typescript
+function getPoiDetail(id: string): Promise<POI>;
+```
+
+**参数**：
+
+- `id`: POI ID（必需）
+
+**返回值**：`Promise<POI>`
+
+---
+
 ## 类型定义
 
 ### Coordinates
@@ -187,9 +228,34 @@ interface POI {
   tel?: string;              // 电话
   distance?: number;         // 距离（米）
   cityName?: string;         // 城市
+  cityCode?: string;         // 城市编码
   provinceName?: string;     // 省份
   adName?: string;           // 区域名称
   adCode?: string;           // 区域代码
+  // 深度信息 (Android SDK V9.4.0+ 新增)
+  business?: {
+    opentime?: string;       // 营业时间
+    opentimeToday?: string;  // 今日营业时间
+    rating?: string;         // 评分
+    cost?: string;           // 人均消费
+    parkingType?: string;    // 停车场类型
+    tag?: string;            // 标签
+    tel?: string;            // 电话
+    alias?: string;          // 别名
+    businessArea?: string;   // 商圈
+  };
+  // 图片信息
+  photos?: Array<{
+    title?: string;
+    url?: string;
+  }>;
+  // 室内地图信息
+  indoor?: {
+    floor?: string;          // 楼层
+    floorName?: string;      // 楼层名称
+    poiId?: string;          // POI ID
+    hasIndoorMap?: boolean;  // 是否有室内地图
+  };
 }
 ```
 
@@ -224,6 +290,42 @@ interface InputTip {
 ```typescript
 interface InputTipsResult {
   tips: InputTip[];     // 提示列表
+}
+```
+
+### ReGeocodeResult
+
+```typescript
+interface ReGeocodeResult {
+  formattedAddress: string;       // 格式化地址
+  addressComponent: AddressComponent; // 地址组成要素
+  pois: POI[];                    // 兴趣点列表
+  roads: Road[];                  // 道路列表
+  roadCrosses: RoadCross[];       // 道路交叉口列表
+  aois: AOI[];                    // 兴趣区域列表
+}
+```
+
+### AddressComponent
+
+```typescript
+interface AddressComponent {
+  province: string;       // 省名称
+  city: string;           // 市名称
+  district: string;       // 区名称
+  township: string;       // 乡镇名称
+  neighborhood: string;   // 社区名称
+  building: string;       // 建筑名称
+  cityCode: string;       // 城市编码
+  adCode: string;         // 区域编码
+  streetNumber: {         // 门牌信息
+    street: string;       // 街道名称
+    number: string;       // 门牌号
+    location?: Coordinates; // 坐标点
+    direction: string;    // 方向
+    distance: number;     // 距离
+  };
+  businessAreas?: BusinessArea[]; // 商圈列表
 }
 ```
 
@@ -269,6 +371,8 @@ interface InputTipsResult {
 | 沿途搜索 | ✓ | ✓（仅4种类型） |
 | 多边形搜索 | ✓ | ✓ |
 | 输入提示 | ✓ | ✓ |
+| 逆地理编码 | ✓ | ✓ |
+| POI 详情 | ✓ | ✓ |
 
 **Android**: 使用高德 3D 地图统一 SDK（`com.amap.api:3dmap:10.0.600`）
 

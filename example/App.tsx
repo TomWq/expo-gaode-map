@@ -17,6 +17,7 @@ import {
   LatLng,
   ClusterPoint,
 } from 'expo-gaode-map';
+import {reGeocode} from 'expo-gaode-map-search'
 
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -195,7 +196,13 @@ export default function MamScreen() {
           target: { latitude: loc.latitude, longitude: loc.longitude },
           zoom: 16.6
         });
-
+        const result = await reGeocode({
+          location:{
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+          }
+        })
+        console.log(JSON.stringify(result))
         // 使用便捷方法监听连续定位更新
         const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
           console.log('收到定位更新:', location);

@@ -3,19 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert,
 import { createLazyLoader } from 'expo-gaode-map';
 
 // 尝试加载搜索模块
-const loadSearch = createLazyLoader(() => require('expo-gaode-map-search'));
+// const loadSearch = createLazyLoader(() => require('expo-gaode-map-search'));
+import * as SearchModule from 'expo-gaode-map-search';
 
 export default function SearchModuleTest() {
   const [log, setLog] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('餐厅');
   const [city, setCity] = useState('北京');
-  const [tips, setTips] = useState<any[]>([]);
+  const [tips, setTips] = useState<SearchModule.InputTip[]>([]);
   const [showTips, setShowTips] = useState(false);
 
-  useEffect(() => {
-    console.log('[SearchModuleTest] 组件已挂载');
-    addLog('🎯 组件已加载，点击按钮开始测试');
-  }, []);
 
   const addLog = (message: string) => {
     console.log('[SearchModuleTest]', message);
@@ -27,7 +24,7 @@ export default function SearchModuleTest() {
     addLog('═══ 测试搜索模块加载 ═══');
     
     try {
-      const SearchModule = loadSearch();
+   
       console.log('[SearchModuleTest] loadSearch 返回:', SearchModule);
       
       if (SearchModule) {
@@ -52,7 +49,7 @@ export default function SearchModuleTest() {
   const testPOISearch = async () => {
     console.log('[SearchModuleTest] testPOISearch 被调用');
     addLog('═══ 测试 POI 搜索 ═══');
-    const SearchModule = loadSearch();
+   
     
     if (!SearchModule) {
       addLog('❌ 搜索模块未加载');
@@ -74,13 +71,30 @@ export default function SearchModuleTest() {
       addLog(`📊 总数: ${result.total}`);
       addLog(`📍 结果数: ${result.pois.length}`);
       
-      result.pois.slice(0, 3).forEach((poi: any, index: number) => {
+      result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
         addLog(`${index + 1}. ${poi.name}`);
         addLog(`   地址: ${poi.address || '无'}`);
         if (poi.location?.latitude && poi.location?.longitude) {
           addLog(`   坐标: ${poi.location.latitude.toFixed(4)}, ${poi.location.longitude.toFixed(4)}`);
         } else {
           addLog(`   坐标: 暂无`);
+        }
+        
+        if (poi.photos && poi.photos?.length > 0) {
+          addLog(`   图片: ${poi.photos[0].title || '无'}`);
+        } else {
+          addLog(`   图片: 暂无`);
+        }
+        
+        if (poi.indoor) {
+          addLog(`   indoor: 有: ${poi.indoor.floorName || '无'}`);
+        } else {
+          addLog(`   indoor: 无`);
+        }
+        if (poi.business) {
+          addLog(`   business: 有: ${poi.business.tag || '无'}`);
+        } else {
+          addLog(`   business: 无`);
         }
       });
       
@@ -93,7 +107,7 @@ export default function SearchModuleTest() {
   const testNearbySearch = async () => {
     console.log('[SearchModuleTest] testNearbySearch 被调用');
     addLog('═══ 测试周边搜索 ═══');
-    const SearchModule = loadSearch();
+   
     
     if (!SearchModule) {
       addLog('❌ 搜索模块未加载');
@@ -117,7 +131,7 @@ export default function SearchModuleTest() {
       addLog(`📊 总数: ${result.total}`);
       addLog(`📍 结果数: ${result.pois.length}`);
       
-      result.pois.slice(0, 3).forEach((poi: any, index: number) => {
+      result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
         addLog(`${index + 1}. ${poi.name}`);
         addLog(`   距离: ${poi.distance || 0}米`);
       });
@@ -136,7 +150,7 @@ export default function SearchModuleTest() {
       return;
     }
 
-    const SearchModule = loadSearch();
+    
     if (!SearchModule) return;
 
     try {
@@ -166,7 +180,7 @@ export default function SearchModuleTest() {
   const testInputTips = async () => {
     console.log('[SearchModuleTest] testInputTips 被调用');
     addLog('═══ 测试输入提示 ═══');
-    const SearchModule = loadSearch();
+
     
     if (!SearchModule) {
       addLog('❌ 搜索模块未加载');
@@ -185,7 +199,7 @@ export default function SearchModuleTest() {
       addLog(`✅ 获取提示成功!`);
       addLog(`📊 提示数: ${result.tips.length}`);
       
-      result.tips.slice(0, 5).forEach((tip: any, index: number) => {
+      result.tips.slice(0, 5).forEach((tip: SearchModule.InputTip, index: number) => {
         addLog(`${index + 1}. ${tip.name}`);
         if (tip.address) addLog(`   ${tip.address}`);
       });
@@ -199,7 +213,7 @@ export default function SearchModuleTest() {
   const testAlongSearch = async () => {
     console.log('[SearchModuleTest] testAlongSearch 被调用');
     addLog('═══ 测试沿途搜索 ═══');
-    const SearchModule = loadSearch();
+
     
     if (!SearchModule) {
       addLog('❌ 搜索模块未加载');
@@ -224,15 +238,14 @@ export default function SearchModuleTest() {
       const result = await SearchModule.searchAlong({
         keyword: searchKeyword,
         polyline,
-        pageSize: 10,
-        pageNum: 1,
+       
       });
       
       addLog(`✅ 搜索成功!`);
       addLog(`📊 总数: ${result.total}`);
       addLog(`📍 结果数: ${result.pois.length}`);
       
-      result.pois.slice(0, 3).forEach((poi: any, index: number) => {
+      result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
         addLog(`${index + 1}. ${poi.name}`);
         addLog(`   地址: ${poi.address || '无'}`);
         if (poi.distance) {
@@ -249,7 +262,7 @@ export default function SearchModuleTest() {
   const testPolygonSearch = async () => {
     console.log('[SearchModuleTest] testPolygonSearch 被调用');
     addLog('═══ 测试多边形搜索 ═══');
-    const SearchModule = loadSearch();
+
     
     if (!SearchModule) {
       addLog('❌ 搜索模块未加载');
@@ -280,9 +293,10 @@ export default function SearchModuleTest() {
       addLog(`📊 总数: ${result.total}`);
       addLog(`📍 结果数: ${result.pois.length}`);
       
-      result.pois.slice(0, 3).forEach((poi: any, index: number) => {
+      result.pois.forEach((poi: SearchModule.POI, index: number) => {
         addLog(`${index + 1}. ${poi.name}`);
         addLog(`   地址: ${poi.address || '无'}`);
+       
         if (poi.location?.latitude && poi.location?.longitude) {
           addLog(`   坐标: ${poi.location.latitude.toFixed(4)}, ${poi.location.longitude.toFixed(4)}`);
         }
@@ -291,6 +305,95 @@ export default function SearchModuleTest() {
     } catch (error) {
       console.error('[SearchModuleTest] 多边形搜索出错:', error);
       addLog(`❌ 搜索失败: ${error}`);
+    }
+  };
+
+  const testPoiDetail = async () => {
+    console.log('[SearchModuleTest] testPoiDetail 被调用');
+    addLog('═══ 测试 POI 详情 ═══');
+
+    if (!SearchModule) {
+      addLog('❌ 搜索模块未加载');
+      return;
+    }
+
+    try {
+      // 为了演示，先搜索“天安门”获取一个真实的 ID
+      addLog('1. 预搜索"天安门"以获取有效 ID...');
+      const searchResult = await SearchModule.searchPOI({
+        keyword: '天安门',
+        city: '北京',
+        pageSize: 1
+      });
+
+      let targetId = 'B000A83M61'; // 默认备用
+      if (searchResult.pois.length > 0) {
+        targetId = searchResult.pois[0].id;
+        addLog(`✅ 获取到 ID: ${targetId} (${searchResult.pois[0].name})`);
+      } else {
+        addLog(`⚠️ 未搜到结果，使用默认 ID: ${targetId}`);
+      }
+      
+      addLog(`🔍 开始查询 POI 详情...`);
+      const result = await SearchModule.getPoiDetail(targetId);
+      
+      addLog(`✅ 详情查询成功!`);
+      addLog(`📌 名称: ${result.name}`);
+      addLog(`📍 地址: ${result.address}`);
+      addLog(`📞 电话: ${result.tel || '暂无'}`);
+      addLog(`🏷️ 类型: ${result.typeDes}`);
+      
+      if (result.location) {
+        addLog(`🌐 坐标: ${result.location.latitude.toFixed(6)}, ${result.location.longitude.toFixed(6)}`);
+      }
+
+    } catch (error) {
+      console.error('[SearchModuleTest] POI 详情搜索出错:', error);
+      addLog(`❌ 详情查询失败: ${error}`);
+    }
+  };
+
+  const testReGeocode = async () => {
+    console.log('[SearchModuleTest] testReGeocode 被调用');
+    addLog('═══ 测试逆地理编码 ═══');
+ 
+
+    if (!SearchModule) {
+      addLog('❌ 搜索模块未加载');
+      return;
+    }
+
+    try {
+      // 天安门坐标
+      const location = { latitude: 39.908823, longitude: 116.397470 };
+      
+      addLog(`📍 坐标: ${location.latitude}, ${location.longitude}`);
+      addLog(`📏 搜索半径: 1000米`);
+      
+      const result = await SearchModule.reGeocode({
+        location,
+        radius: 1000,
+        requireExtension: true
+      });
+      console.log(JSON.stringify(result));
+      addLog(`✅ 逆地理编码成功!`);
+      addLog(`🏠 格式化地址: ${result.formattedAddress}`);
+      addLog(`🏙️ 所在区: ${result.addressComponent?.district || '未知'}`);
+      
+      if (result.pois && result.pois.length > 0) {
+        addLog(`📍 周边POI数量: ${result.pois.length}`);
+        result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
+          addLog(`   ${index + 1}. ${poi.name} (${poi.typeDes || '未知类型'})`);
+        });
+      }
+
+      if (result.roads && result.roads.length > 0) {
+         addLog(`🛣️ 周边道路: ${result.roads[0].name}`);
+      }
+      
+    } catch (error) {
+      console.error('[SearchModuleTest] 逆地理编码出错:', error);
+      addLog(`❌ 逆地理编码失败: ${error}`);
     }
   };
 
@@ -427,6 +530,26 @@ export default function SearchModuleTest() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            console.log('[SearchModuleTest] 逆地理编码按钮被点击');
+            testReGeocode();
+          }}
+        >
+          <Text style={styles.buttonText}>🗺️ 逆地理编码</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            console.log('[SearchModuleTest] POI详情查询按钮被点击');
+            testPoiDetail();
+          }}
+        >
+          <Text style={styles.buttonText}>📍 POI 详情查询</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.button, styles.clearButton]}
           onPress={() => {
             console.log('[SearchModuleTest] 清空日志按钮被点击');
@@ -451,17 +574,6 @@ export default function SearchModuleTest() {
           )}
         </ScrollView>
       </View>
-
-      {/* <View style={styles.infoContainer}>
-        <Text style={styles.infoTitle}>💡 使用说明</Text>
-        <Text style={styles.infoText}>
-          1. 首先点击"测试模块加载"检查模块是否正确加载{'\n'}
-          2. 如果加载失败，需要运行: npx expo prebuild --clean{'\n'}
-          3. 然后重新编译应用: npx expo run:android{'\n'}
-          4. 模块加载成功后，可以测试各种搜索功能{'\n'}
-          5. 查看控制台(console)获取更多调试信息
-        </Text>
-      </View> */}
     </ScrollView>
   );
 }
@@ -599,7 +711,7 @@ const styles = StyleSheet.create({
   tipAddress: {
     fontSize: 12,
     color: '#666',
-  },
+    },
   tipSeparator: {
     height: 1,
     backgroundColor: '#f0f0f0',

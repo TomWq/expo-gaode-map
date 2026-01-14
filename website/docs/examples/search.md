@@ -420,6 +420,55 @@ const route = [
 searchGasStations(route);
 ```
 
+### 逆地理编码
+
+获取指定坐标的地址信息：
+
+```typescript
+import { reGeocode } from 'expo-gaode-map-search';
+
+const getAddress = async (latitude: number, longitude: number) => {
+  try {
+    const result = await reGeocode({
+      location: { latitude, longitude },
+      radius: 500,
+    });
+    
+    console.log('地址:', result.formattedAddress);
+    return result.formattedAddress;
+  } catch (error) {
+    console.error('逆地理编码失败:', error);
+    return null;
+  }
+};
+```
+
+### POI 详情
+
+获取 POI 的详细信息（包括营业时间、评分等）：
+
+```typescript
+import { getPoiDetail } from 'expo-gaode-map-search';
+
+const showPoiDetail = async (id: string) => {
+  try {
+    const poi = await getPoiDetail(id);
+    
+    console.log('名称:', poi.name);
+    if (poi.business) {
+        console.log('评分:', poi.business.rating);
+        console.log('营业时间:', poi.business.opentime);
+        console.log('人均消费:', poi.business.cost);
+    }
+    if (poi.photos && poi.photos.length > 0) {
+        console.log('图片:', poi.photos[0].url);
+    }
+  } catch (error) {
+    console.error('获取详情失败:', error);
+  }
+};
+```
+
 ## 常见场景
 
 ### 分页搜索

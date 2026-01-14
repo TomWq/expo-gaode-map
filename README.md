@@ -206,3 +206,4 @@ If you encounter any issues or have any suggestions during usage, please feel fr
 - 📝 Submit a [GitHub Issue](https://github.com/TomWq/expo-gaode-map/issues)
 - 💬 Join [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
 - ⭐ Give the project a Star to show your support
+- 群：952241387 （欢迎加入，交流使用经验、问题反馈等）

@@ -121,7 +121,7 @@ expo-gaode-map/
 │   ├── navigation/              # expo-gaode-map-navigation（导航包）
 │   │   └── 地图+导航（替代 core）
 │   └── web-api/                 # expo-gaode-map-web-api（Web API）
-│       └── 纯 JS 实现的路径规划等
+│       └── 纯 JS 实现的POI 搜索、地理编码、路径规划等
 └── 注意：core 和 navigation 不能同时安装
 ```
 
@@ -135,8 +135,8 @@ expo-gaode-map/
 
 ### 2. 搜索功能和 Web API 有什么区别？
 
-- **搜索包**（`expo-gaode-map-search`）：原生实现，性能更好，需要配置原生环境
-- **Web API**（`expo-gaode-map-web-api`）：纯 JavaScript，无需原生配置，跨平台更好
+- **搜索包**（`expo-gaode-map-search`）：原生实现，性能更好，无需网络请求，需要配置原生环境
+- **Web API**（`expo-gaode-map-web-api`）：纯 JavaScript，无需原生配置，跨平台更好，需要网络请求，但功能更加强大和完善
 
 ### 3. 如何配置 API Key？
 

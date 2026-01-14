@@ -7,7 +7,7 @@ import { MapView, Marker, LatLng, CameraPosition ,MapViewRef,Polyline} from 'exp
  * 
  * 演示如何让 Marker 沿着指定的路径平滑移动
  */
-const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
+const iconUri = Image.resolveAssetSource(require('./assets/car.png')).uri;
 
 export default function SmoothMoveExample() {
   const mapRef = useRef<MapViewRef>(null);
@@ -51,14 +51,17 @@ export default function SmoothMoveExample() {
             title="平滑移动演示"
             snippet="点击开始按钮查看效果"
             pinColor="red"
+            // icon={iconUri}
             icon={iconUri}
+            iconWidth={20}
+            iconHeight={200/120 * 20}
             smoothMovePath={isMoving ? movePath : undefined}
             smoothMoveDuration={isMoving ? 5 : undefined}
           />
           <Polyline
             points={movePath}
-            strokeColor="red"
-            strokeWidth={5}
+            strokeColor="#fffeeeß"
+            strokeWidth={15}
           />
         </MapView>
       </View>

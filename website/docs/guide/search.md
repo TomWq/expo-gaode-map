@@ -191,9 +191,16 @@ interface POI {
   tel?: string;            // 电话
   distance?: number;       // 距离（米）
   cityName?: string;       // 城市
+  cityCode?: string;       // 城市编码
   provinceName?: string;   // 省份
   adName?: string;         // 区域
   adCode?: string;         // 区域代码
+  business?: {             // 深度信息
+    rating?: string;
+    cost?: string;
+    opentime?: string;
+    tel?: string;
+  };
 }
 ```
 

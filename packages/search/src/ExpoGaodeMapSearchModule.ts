@@ -1,6 +1,20 @@
 
 import { requireNativeModule } from 'expo-modules-core';
 
+import {
+  AlongSearchOptions,
+  InputTipsOptions,
+  InputTipsResult,
+  NearbySearchOptions,
+  POI,
+  POISearchOptions,
+  PolygonSearchOptions,
+  ReGeocodeOptions,
+  ReGeocodeResult,
+  SearchResult,
+} from './ExpoGaodeMapSearch.types';
+
+
 /**
  * 在加载原生搜索模块前，强制校验基础地图组件是否已安装。
  * 支持两种“基础地图提供者”：expo-gaode-map 或 expo-gaode-map-navigation（导航内置地图）。
@@ -36,11 +50,22 @@ function ensureBaseInstalled() {
 
 ensureBaseInstalled();
 
+declare class ExpoGaodeMapSearchModuleType {
+  initSearch(): void;
+  searchPOI(options: POISearchOptions): Promise<SearchResult>;
+  searchNearby(options: NearbySearchOptions): Promise<SearchResult>;
+  searchAlong(options: AlongSearchOptions): Promise<SearchResult>;
+  searchPolygon(options: PolygonSearchOptions): Promise<SearchResult>;
+  getInputTips(options: InputTipsOptions): Promise<InputTipsResult>;
+  reGeocode(options: ReGeocodeOptions): Promise<ReGeocodeResult>;
+  getPoiDetail(id: string): Promise<POI>;
+}
+
 /**
  * 高德地图搜索模块
  *
  * 提供 POI 搜索、周边搜索、沿途搜索、多边形搜索和输入提示功能
  */
-const ExpoGaodeMapSearchModule = requireNativeModule('ExpoGaodeMapSearch');
+const ExpoGaodeMapSearchModule = requireNativeModule<ExpoGaodeMapSearchModuleType>('ExpoGaodeMapSearch');
 
 export default ExpoGaodeMapSearchModule;

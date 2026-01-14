@@ -11,6 +11,12 @@ import type {
   InputTip,
   SearchResult,
   InputTipsResult,
+  ReGeocodeOptions,
+  ReGeocodeResult,
+  AddressComponent,
+  Road,
+  RoadCross,
+  AOI,
 } from './ExpoGaodeMapSearch.types';
 
 /**
@@ -143,6 +149,41 @@ export async function getInputTips(options: InputTipsOptions): Promise<InputTips
   return await ExpoGaodeMapSearchModule.getInputTips(options);
 }
 
+/**
+ * 逆地理编码（坐标转地址）
+ * 
+ * @param options 逆地理编码选项
+ * @returns 逆地理编码结果
+ * 
+ * @example
+ * ```typescript
+ * const result = await reGeocode({
+ *   location: { latitude: 39.9, longitude: 116.4 },
+ *   radius: 1000,
+ * });
+ * console.log(result.formattedAddress);
+ * ```
+ */
+export async function reGeocode(options: ReGeocodeOptions): Promise<ReGeocodeResult> {
+  return await ExpoGaodeMapSearchModule.reGeocode(options);
+}
+
+/**
+ * POI 详情查询
+ * 
+ * @param id POI ID
+ * @returns POI 详情
+ * 
+ * @example
+ * ```typescript
+ * const poi = await getPoiDetail('B000A83M61');
+ * console.log(poi.name, poi.address);
+ * ```
+ */
+export async function getPoiDetail(id: string): Promise<POI> {
+  return await ExpoGaodeMapSearchModule.getPoiDetail(id);
+}
+
 // 导出类型和枚举
 export type {
   Coordinates,
@@ -155,6 +196,12 @@ export type {
   InputTip,
   SearchResult,
   InputTipsResult,
+  ReGeocodeOptions,
+  ReGeocodeResult,
+  AddressComponent,
+  Road,
+  RoadCross,
+  AOI,
 };
 
 export { SearchType } from './ExpoGaodeMapSearch.types';
@@ -167,4 +214,5 @@ export default {
   searchAlong,
   searchPolygon,
   getInputTips,
+  reGeocode,
 };
