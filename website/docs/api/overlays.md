@@ -42,8 +42,25 @@
 | `icon` | `string` | - | 自定义图标 |
 | `iconWidth` | `number` | `40` | 图标宽度 |
 | `iconHeight` | `number` | `40` | 图标高度 |
+| `growAnimation` | `boolean` | `false` | 是否开启生长动画 (Android/iOS) |
+| `animatesDrop` | `boolean` | `false` | 是否显示掉落动画 (iOS) |
 | `smoothMovePath` | `LatLng[]` 或 `number[][]` | - | 平滑移动路径坐标数组，支持对象数组或二维数组 `[[lon, lat], ...]` |
 | `smoothMoveDuration` | `number` | `10` | 平滑移动时长（秒） |
+
+### Marker 动画
+
+Marker 支持多种动画效果，用于增强交互体验。
+
+- **生长动画** (`growAnimation`): Marker 会从地面“生长”出来。适用于 Marker 首次出现时的入场动画。支持 Android 和 iOS。
+- **掉落动画** (`animatesDrop`): Marker 会从上方掉落到指定位置。仅支持 iOS。
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  growAnimation={true} // 开启生长动画
+  animatesDrop={true}  // 开启掉落动画 (iOS)
+/>
+```
 
 ### 平滑移动
 

@@ -277,6 +277,25 @@ const handleMoveCamera = async () => {
 />
 ```
 
+### 截图功能
+
+使用 `takeSnapshot` 方法可以截取当前地图的画面。
+
+**特性支持：**
+- 支持截取包含在 `<MapUI>` 中的悬浮组件（如自定义按钮、图例等），截图结果将包含地图底图和这些 UI 元素。
+
+
+```tsx
+const handleSnapshot = async () => {
+  try {
+    const uri = await mapRef.current?.takeSnapshot();
+    console.log('截图已保存:', uri);
+  } catch (e) {
+    console.error('截图失败:', e);
+  }
+};
+```
+
 ## 类型定义
 
 ### CameraPosition

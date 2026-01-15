@@ -103,6 +103,13 @@ function ZoomInButton() {
 
 ### MapUI
 
+A container component for placing UI elements on top of the map.
+
+**Features:**
+- Renders above the map layer.
+- Events (press, scroll) are not intercepted by the map.
+- **Snapshot Support**: On Android, components inside `MapUI` are included when taking a snapshot using `MapView.takeSnapshot()`.
+
 ```tsx
 import { MapUI, MapView } from "expo-gaode-map";
 
@@ -157,6 +164,25 @@ const handleMoveCamera = async () => {
     zoom: 10,
   }}
 />
+```
+
+### Snapshot
+
+Use `takeSnapshot` method to capture the current map screen.
+
+**Features:**
+- **Android**: Supports capturing floating components inside `<MapUI>` (e.g., custom buttons, legends). The snapshot will include both the map base and these UI elements.
+- **iOS**: Supports capturing map content and has optimized rendering for transparent background components.
+
+```tsx
+const handleSnapshot = async () => {
+  try {
+    const uri = await mapRef.current?.takeSnapshot();
+    console.log('Snapshot saved:', uri);
+  } catch (e) {
+    console.error('Snapshot failed:', e);
+  }
+};
 ```
 
 ## Type Definitions

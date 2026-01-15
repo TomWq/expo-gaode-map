@@ -42,6 +42,40 @@ Overlay components are used to display various graphic elements on the map.
 | `icon` | `string` | - | Custom icon |
 | `iconWidth` | `number` | `40` | Icon width |
 | `iconHeight` | `number` | `40` | Icon height |
+| `growAnimation` | `boolean` | `false` | Enable grow animation (Android/iOS) |
+| `animatesDrop` | `boolean` | `false` | Enable drop animation (iOS) |
+| `smoothMovePath` | `LatLng[]` or `number[][]` | - | Smooth move path coordinates array |
+| `smoothMoveDuration` | `number` | `10` | Smooth move duration (seconds) |
+
+### Marker Animation
+
+Markers support various animations to enhance interactivity.
+
+- **Grow Animation** (`growAnimation`): The marker grows from the ground. Suitable for entrance animation. Supported on Android and iOS.
+- **Drop Animation** (`animatesDrop`): The marker drops from above. Supported on iOS only.
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  growAnimation={true} // Enable grow animation
+  animatesDrop={true}  // Enable drop animation (iOS)
+/>
+```
+
+### Smooth Movement
+
+Markers support smooth movement along a specified path.
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  smoothMovePath={[
+    { latitude: 39.91, longitude: 116.41 },
+    { latitude: 39.92, longitude: 116.42 }
+  ]}
+  smoothMoveDuration={5}
+/>
+```
 
 ### Example
 
