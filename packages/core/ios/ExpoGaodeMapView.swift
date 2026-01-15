@@ -12,7 +12,7 @@ import CoreLocation
  * - 覆盖物的添加和管理
  * - 地图事件的派发
  */
-class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
+class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate {
     // MARK: - 属性
     
     /// 地图类型 (0:标准 1:卫星 2:夜间 3:导航)
@@ -101,6 +101,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     /// 节流定时器
     private var throttleTimer: Timer?
     
+    /// 缩放手势识别器（用于模拟惯性）
+    private var pinchGesture: UIPinchGestureRecognizer!
+    
+    // 惯性动画相关属性
+    private var displayLink: CADisplayLink?
+    private var zoomVelocity: Double = 0
+    private let friction: Double = 0.92 // 摩擦系数，越接近 1 滑得越远
+    private let velocityThreshold: Double = 0.001 // 停止阈值
+    
     // MARK: - 初始化
     
     required init(appContext: AppContext? = nil) {
@@ -166,6 +175,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         }
         
         setupDefaultConfig()
+        
+        // 添加 Pinch 手势以支持惯性缩放
+        pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        pinchGesture.delegate = self
+        mapView.addGestureRecognizer(pinchGesture)
     }
     
     override func layoutSubviews() {
@@ -495,6 +509,68 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         }
     }
     
+    // MARK: - 手势处理
+    
+    @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        if gesture.state == .began {
+            // 手势开始，立即停止之前的惯性动画，避免冲突
+            stopInertiaAnimation()
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+            let velocity = gesture.velocity
+            
+            // 只有速度足够大才触发惯性
+            // 阈值过滤，避免轻微操作触发滑动
+            if abs(velocity) > 0.1 {
+                // 转换速度：scale/s -> zoomLevel/frame
+                // 0.02 是经验系数，用于将手势速度映射到每帧的 zoomLevel 增量
+                zoomVelocity = Double(velocity) * 0.02
+                startInertiaAnimation()
+            }
+        }
+    }
+    
+    private func startInertiaAnimation() {
+        stopInertiaAnimation()
+        displayLink = CADisplayLink(target: self, selector: #selector(updateInertia))
+        displayLink?.add(to: .main, forMode: .common)
+    }
+    
+    private func stopInertiaAnimation() {
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+    
+    @objc private func updateInertia() {
+        // 应用速度
+        var newZoom = mapView.zoomLevel + zoomVelocity
+        
+        // 边界检查
+        if newZoom < mapView.minZoomLevel || newZoom > mapView.maxZoomLevel {
+            // 碰到边界，停止动画
+            newZoom = max(mapView.minZoomLevel, min(mapView.maxZoomLevel, newZoom))
+            stopInertiaAnimation()
+            mapView.setZoomLevel(newZoom, animated: false)
+            return
+        }
+        
+        // 更新地图缩放级别（animated: false 以保证逐帧控制的流畅性）
+        mapView.setZoomLevel(newZoom, animated: false)
+        
+        // 减速（应用摩擦力）
+        zoomVelocity *= friction
+        
+        // 停止条件
+        if abs(zoomVelocity) < velocityThreshold {
+            stopInertiaAnimation()
+        }
+    }
+    
+    // UIGestureRecognizerDelegate
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // 允许我们的 Pinch 手势与地图内部的手势同时识别
+        return true
+    }
+
     // MARK: - 缩放控制
     
     func setMaxZoom(_ maxZoom: Double) {
