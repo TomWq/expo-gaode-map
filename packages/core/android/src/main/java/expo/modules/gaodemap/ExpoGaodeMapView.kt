@@ -94,9 +94,19 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             MapsInitializer.updatePrivacyShow(context, true, true)
             MapsInitializer.updatePrivacyAgree(context, true)
 
-            // 创建地图视图
-            mapView = MapView(context)
-            mapView.onCreate(null)
+            // 尝试从预加载池获取 MapView
+            val preloadedMapView = MapPreloadManager.getPreloadedMapView()
+            
+            if (preloadedMapView != null) {
+                mapView = preloadedMapView
+                android.util.Log.i("ExpoGaodeMapView", "🚀 使用预加载的 MapView 实例")
+            } else {
+                // 创建地图视图
+                mapView = MapView(context)
+                mapView.onCreate(null)
+                android.util.Log.i("ExpoGaodeMapView", "⚠️ 创建新的 MapView 实例 (未命中预加载池)")
+            }
+            
             aMap = mapView.map
 
             // 初始化管理器

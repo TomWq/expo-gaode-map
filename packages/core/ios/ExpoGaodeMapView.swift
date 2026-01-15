@@ -111,7 +111,13 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)
         
         // 创建 MAMapView
-        mapView = MAMapView(frame: bounds)
+        // 尝试从预加载池获取 MapView
+        if let preloaded = MapPreloadManager.shared.getPreloadedMapView() {
+            mapView = preloaded
+            mapView.frame = bounds
+        } else {
+            mapView = MAMapView(frame: bounds)
+        }
         
         mapView.delegate = self
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
