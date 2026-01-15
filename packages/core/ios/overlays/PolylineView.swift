@@ -133,7 +133,7 @@ class PolylineView: ExpoView {
                 return
             }
             URLSession.shared.dataTask(with: imageUrl) { [weak self] data, _, error in
-                if let error = error {
+                if error != nil {
                     return
                 }
                 guard let data = data, let image = UIImage(data: data) else {

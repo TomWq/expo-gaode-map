@@ -9,6 +9,7 @@ MapView 是地图显示的核心组件。
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `mapType` | `MapType` | `0` | 地图类型（0: 标准, 1: 卫星, 2: 夜间, 3: 导航, 4: 公交） |
+| `worldMapSwitchEnabled` | `boolean` | `false` | 是否启用国内外地图自动切换功能 (iOS) |
 | `initialCameraPosition` | `CameraPosition` | - | 初始相机位置 |
 | `style` | `ViewStyle` | - | 组件样式 |
 
@@ -222,6 +223,11 @@ interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   getLatLng(point: Point): Promise<LatLng>;
+  /**
+   * 截取地图快照
+   * @returns 快照图片文件路径
+   */
+  takeSnapshot(): Promise<string>;
 }
 ```
 

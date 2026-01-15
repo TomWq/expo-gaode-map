@@ -190,10 +190,10 @@ class CoordinateQuadTree {
         // 但是我们的 QuadTree 存储的是经纬度。
         // 方案：将查询到的点转换为 MAMapPoint，然后进行距离聚类。
         
-        var clusters: [ClusterAnnotation] = []
-        var visited = Set<String>() // 存储已处理点的唯一标识（这里用 hash 或 index）
+        var _: [ClusterAnnotation] = []
+        _ = Set<String>() // 存储已处理点的唯一标识（这里用 hash 或 index）
         // 由于 QuadTreePoint 没有 ID，我们用 index
-        var visitedIndices = Set<Int>()
+        _ = Set<Int>()
         
         // 转换 gridSize 到 MAMapPoint 距离
         // 整个地图宽度约 2.68亿 (MAMapSizeWorld.width)

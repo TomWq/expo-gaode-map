@@ -70,6 +70,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     setCenter: createApiMethod<(center: LatLng, animated?: boolean) => Promise<void>>('setCenter'),
     setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
     getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
+    takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
   }), [createApiMethod]);
 
   /**

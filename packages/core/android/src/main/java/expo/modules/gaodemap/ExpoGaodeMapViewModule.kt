@@ -77,6 +77,10 @@ class ExpoGaodeMapViewModule : Module() {
         view.getLatLng(point)
       }
 
+      AsyncFunction("takeSnapshot") { view: ExpoGaodeMapView, promise: expo.modules.kotlin.Promise ->
+        view.takeSnapshot(promise)
+      }
+      
       AsyncFunction("setCenter") { view: ExpoGaodeMapView, center: Map<String, Double>, animated: Boolean ->
         view.setCenter(center, animated)
       }

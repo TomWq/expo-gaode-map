@@ -16,8 +16,10 @@ import {
   type ReGeocode,
   LatLng,
   ClusterPoint,
+  MapUI
 } from 'expo-gaode-map';
-import {reGeocode} from 'expo-gaode-map-search'
+import { reGeocode } from 'expo-gaode-map-search'
+import * as MediaLibrary from 'expo-media-library';
 
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -89,7 +91,7 @@ export default function MamScreen() {
   // 高级覆盖物状态
   const [showHeatMap, setShowHeatMap] = useState(false);
   const [heatMapData, setHeatMapData] = useState<LatLng[]>([]);
-  
+
   const [showMultiPoint, setShowMultiPoint] = useState(false);
   const [multiPointData, setMultiPointData] = useState<any[]>([]);
 
@@ -174,14 +176,14 @@ export default function MamScreen() {
   useEffect(() => {
     const init = async () => {
       try {
-        
+
         ExpoGaodeMapModule.initSDK({
           webKey: '',
-         
+
         })
 
         await requestPermission()
-        
+
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);
         ExpoGaodeMapModule.setInterval(5000);
@@ -197,12 +199,12 @@ export default function MamScreen() {
           zoom: 16.6
         });
         const result = await reGeocode({
-          location:{
+          location: {
             latitude: loc.latitude,
             longitude: loc.longitude,
           }
         })
-        console.log(JSON.stringify(result))
+      
         // 使用便捷方法监听连续定位更新
         const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
           console.log('收到定位更新:', location);
@@ -228,15 +230,15 @@ export default function MamScreen() {
   // 当 location 变化时更新高级覆盖物数据
   useEffect(() => {
     if (location && isMapReady) {
-        if (showHeatMap && heatMapData.length === 0) {
-            setHeatMapData(generateHeatMapData(location, 200));
-        }
-        if (showMultiPoint && multiPointData.length === 0) {
-            setMultiPointData(generateMultiPointData(location, 500));
-        }
-        if (showCluster && clusterData.length === 0) {
-            setClusterData(generateClusterData(location, 50));
-        }
+      if (showHeatMap && heatMapData.length === 0) {
+        setHeatMapData(generateHeatMapData(location, 200));
+      }
+      if (showMultiPoint && multiPointData.length === 0) {
+        setMultiPointData(generateMultiPointData(location, 500));
+      }
+      if (showCluster && clusterData.length === 0) {
+        setClusterData(generateClusterData(location, 50));
+      }
     }
   }, [location, isMapReady, showHeatMap, showMultiPoint, showCluster]);
 
@@ -329,8 +331,7 @@ export default function MamScreen() {
       content: `动态标记 #${markerIdCounter.current}`,
       color: randomColor,
       cacheKey: `marker_${markerIdCounter.current++}`,
-      // 添加一个使用数组坐标的测试标记
-      useArrayPosition: Math.random() > 0.5, 
+
     };
     setDynamicMarkers(prev => [...prev, newMarker]);
   };
@@ -386,7 +387,7 @@ export default function MamScreen() {
     setShowHeatMap(false);
     setShowMultiPoint(false);
     setShowCluster(false);
-    
+
     const total = dynamicCircles.length + dynamicMarkers.length + dynamicPolylines.length + dynamicPolygons.length;
     if (total === 0 && !showHeatMap && !showMultiPoint && !showCluster) {
       Alert.alert('提示', '没有可移除的覆盖物');
@@ -412,7 +413,7 @@ export default function MamScreen() {
           const nextData = generateHeatMapData(location, 400);
           console.log('HeatMap data generated:', { length: nextData.length, sample: nextData[0] });
           setHeatMapData(nextData as any);
-          }
+        }
       }
       return next;
     });
@@ -451,6 +452,46 @@ export default function MamScreen() {
     });
   };
 
+  // 保存图片到相册
+  const saveImageToAlbum = async (uri: string) => {
+    try {
+      // 1. 请求权限
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert('权限不足', '需要访问相册权限才能保存截图');
+        return;
+      }
+
+      // 2. 保存到相册
+      const asset = await MediaLibrary.createAssetAsync(uri);
+
+      // 3. (可选) 创建相册并移动
+      // await MediaLibrary.createAlbumAsync('ExpoGaodeMap', asset, false);
+
+      Alert.alert('保存成功', '截图已保存到系统相册');
+    } catch (error) {
+      console.error('保存相册失败:', error);
+      Alert.alert('保存失败', '保存到相册时发生错误');
+    }
+  };
+
+  //截屏
+  const handleTakeSnapshot = async () => {
+    try {
+      const snapshotPath = await mapRef.current?.takeSnapshot();
+      if (snapshotPath) {
+        //保存到相册
+        await saveImageToAlbum(snapshotPath);
+      } else {
+        Alert.alert('错误', '截图失败');
+      }
+    } catch (error) {
+      console.error('截图错误:', error);
+      Alert.alert('错误', '截图过程中发生错误');
+    }
+  };
+
 
   if (false) {
     return <TestNewPermissionMethods />;
@@ -478,8 +519,10 @@ export default function MamScreen() {
         trafficEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
+        mapType={2}
         zoomGesturesEnabled
         scrollGesturesEnabled
+        worldMapSwitchEnabled
         initialCameraPosition={initialPosition as CameraPosition}
         minZoom={3}
         maxZoom={20}
@@ -520,7 +563,7 @@ export default function MamScreen() {
         }}
       >
         {/* 高级覆盖物：热力图 */}
-        <HeatMap 
+        <HeatMap
           data={heatMapData}
           visible={showHeatMap}
           radius={30}
@@ -533,7 +576,7 @@ export default function MamScreen() {
 
         {/* 高级覆盖物：海量点 */}
         {showMultiPoint && (
-          <MultiPoint 
+          <MultiPoint
             points={multiPointData}
             icon={iconUri} // 复用图标
             iconWidth={30}
@@ -544,64 +587,64 @@ export default function MamScreen() {
 
         {/* 高级覆盖物：原生聚合 */}
         {showCluster && (
-          <Cluster 
+          <Cluster
             points={clusterData}
             radius={30}
             minClusterSize={1}
             // 分级样式配置
             clusterBuckets={[
-                { minPoints: 1, backgroundColor: '#00BFFF' }, // 1个: 蓝色
-                { minPoints: 2, backgroundColor: '#32CD32' }, // 2-4个: 绿色
-                { minPoints: 5, backgroundColor: '#FFA500' }, // 5-9个: 橙色
-                { minPoints: 10, backgroundColor: '#FF4500' } // 10+个: 红色
+              { minPoints: 1, backgroundColor: '#00BFFF' }, // 1个: 蓝色
+              { minPoints: 2, backgroundColor: '#32CD32' }, // 2-4个: 绿色
+              { minPoints: 5, backgroundColor: '#FFA500' }, // 5-9个: 橙色
+              { minPoints: 10, backgroundColor: '#FF4500' } // 10+个: 红色
             ]}
-             // 自定义聚合点样式 (作为兜底)
-              clusterStyle={{
-                backgroundColor: '#999999', 
-                borderColor: 'white',       // 白色边框
-                borderWidth: 3,             // 边框加粗
-                width: 40,
-                height: 40,
-              }}
-              // 自定义文字样式
-              clusterTextStyle={{
-                color: 'white',             // 白色文字
-                fontSize: 16,               // 更大的字体
-              }}
+            // 自定义聚合点样式 (作为兜底)
+            clusterStyle={{
+              backgroundColor: '#999999',
+              borderColor: 'white',       // 白色边框
+              borderWidth: 3,             // 边框加粗
+              width: 40,
+              height: 40,
+            }}
+            // 自定义文字样式
+            clusterTextStyle={{
+              color: 'white',             // 白色文字
+              fontSize: 16,               // 更大的字体
+            }}
             onClusterPress={(e) => {
-                const { count, pois } = e.nativeEvent;
-                console.log('聚合点击:', JSON.stringify(e.nativeEvent));
-                if (count > 1) {
-                    Alert.alert('聚合点点击', `包含 ${count} 个点\n前3个ID: ${pois?.slice(0, 3).map((p: any) => p.properties?.id).join(', ')}...`);
-                } else {
-                    Alert.alert('单点点击', `ID: ${pois?.[0]?.properties?.id ?? 'unknown'}\nTitle: ${pois?.[0]?.properties?.title ?? 'none'}`);
-                }
+              const { count, pois } = e.nativeEvent;
+              console.log('聚合点击:', JSON.stringify(e.nativeEvent));
+              if (count > 1) {
+                Alert.alert('聚合点点击', `包含 ${count} 个点\n前3个ID: ${pois?.slice(0, 3).map((p: any) => p.properties?.id).join(', ')}...`);
+              } else {
+                Alert.alert('单点点击', `ID: ${pois?.[0]?.properties?.id ?? 'unknown'}\nTitle: ${pois?.[0]?.properties?.title ?? 'none'}`);
+              }
             }}
           />
         )}
 
         {/* 基础覆盖物 */}
         {
-            <>
-                {isMapReady && location && (
-                <Circle
-                    // 故意添加额外的无用数据，验证数组格式解析的健壮性
-                    // 只要前两位是 [经度, 纬度]，后面的数据会被自动忽略
-                    center={[
-                        location.longitude, 
-                        location.latitude, 
-                        100, // 高度 (GeoJSON 标准中允许，但地图组件目前只用前两个)
-                    ]} // 强制转换类型以绕过 TS 检查，仅用于演示运行时兼容性
-                    radius={300}
-                    fillColor="#4400FF00"
-                    strokeColor="#FF00FF00"
-                    strokeWidth={3}
-                    zIndex={99}
-                    onCirclePress={() => Alert.alert('圆形', '点击了声明式圆形')}
-                />
-                )}
+          <>
+            {isMapReady && location && (
+              <Circle
+                // 故意添加额外的无用数据，验证数组格式解析的健壮性
+                // 只要前两位是 [经度, 纬度]，后面的数据会被自动忽略
+                center={[
+                  location.longitude,
+                  location.latitude,
+                  100, // 高度 (GeoJSON 标准中允许，但地图组件目前只用前两个)
+                ]} // 强制转换类型以绕过 TS 检查，仅用于演示运行时兼容性
+                radius={300}
+                fillColor="#4400FF00"
+                strokeColor="#FF00FF00"
+                strokeWidth={3}
+                zIndex={99}
+                onCirclePress={() => Alert.alert('圆形', '点击了声明式圆形')}
+              />
+            )}
 
-                {/* {dynamicCircles.map((circle) => (
+            {/* {dynamicCircles.map((circle) => (
                 <Circle
                     key={circle.id}
                     center={{ latitude: circle.latitude, longitude: circle.longitude }}
@@ -612,285 +655,291 @@ export default function MamScreen() {
                     onCirclePress={() => Alert.alert('圆形', `点击了动态圆形 #${circle.id}`)}
                 />
                 ))} */}
-                {dynamicCircles.map((circle) => (
-                <Circle
-                    key={circle.id}
-                    // 直接使用数组格式 [经度, 纬度]
-                    center={[circle.longitude, circle.latitude]}
-                    radius={circle.radius}
-                    fillColor={circle.fillColor}
-                    strokeColor={circle.strokeColor}
-                    strokeWidth={2}
-                    onCirclePress={() => Alert.alert('圆形', `点击了动态圆形 #${circle.id}`)}
-                />
-                ))}
+            {dynamicCircles.map((circle) => (
+              <Circle
+                key={circle.id}
+                // 直接使用数组格式 [经度, 纬度]
+                center={[circle.longitude, circle.latitude]}
+                radius={circle.radius}
+                fillColor={circle.fillColor}
+                strokeColor={circle.strokeColor}
+                strokeWidth={2}
+                onCirclePress={() => Alert.alert('圆形', `点击了动态圆形 #${circle.id}`)}
+              />
+            ))}
 
-                {dynamicPolylines.map((polyline) => (
-                <Polyline key={polyline.id} points={polyline.points} strokeWidth={5} strokeColor={polyline.color} />
-                ))}
+            {dynamicPolylines.map((polyline) => (
+              <Polyline key={polyline.id} points={polyline.points} strokeWidth={5} strokeColor={polyline.color} />
+            ))}
 
-                {dynamicPolygons.map((polygon) => (
-                <Polygon
-                    key={polygon.id}
-                    points={polygon.points}
-                    fillColor={polygon.fillColor}
-                    strokeColor={polygon.strokeColor}
-                    strokeWidth={2}
-                />
-                ))}
+            {dynamicPolygons.map((polygon) => (
+              <Polygon
+                key={polygon.id}
+                points={polygon.points}
+                fillColor={polygon.fillColor}
+                strokeColor={polygon.strokeColor}
+                strokeWidth={2}
+              />
+            ))}
 
-                {dynamicMarkers.map((marker) => (
-                <Marker
-                    key={marker.id}
-                    position={{ latitude: marker.latitude, longitude: marker.longitude }}
-                    title={marker.content}
-                    pinColor={marker.color}
-                    zIndex={99}
-                    customViewWidth={marker.width}
-                    customViewHeight={marker.height}
-                    cacheKey={marker.id}
-                    onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+            {dynamicMarkers.map((marker) => (
+              <Marker
+                key={marker.id}
+                position={{ latitude: marker.latitude, longitude: marker.longitude }}
+                title={marker.content}
+                pinColor={marker.color}
+                zIndex={99}
+                customViewWidth={marker.width}
+                customViewHeight={marker.height}
+                cacheKey={marker.id}
+                growAnimation={true}  
+                onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
+              >
+                <View
+                  style={{ alignSelf: 'flex-start' }}
+                  onLayout={(e) => {
+                    const { width, height } = e.nativeEvent.layout;
+                    if (marker.width !== width || marker.height !== height) {
+                      setDynamicMarkers(prev =>
+                        prev.map(m =>
+                          m.id === marker.id
+                            ? { ...m, width: Math.ceil(width), height: Math.ceil(height) }
+                            : m
+                        )
+                      );
+                    }
+                  }}
                 >
-                    <View
-                    style={{ alignSelf: 'flex-start' }}
-                    onLayout={(e) => {
-                        const { width, height } = e.nativeEvent.layout;
-                        if (marker.width !== width || marker.height !== height) {
-                        setDynamicMarkers(prev =>
-                            prev.map(m =>
-                            m.id === marker.id
-                                ? { ...m, width: Math.ceil(width), height: Math.ceil(height) }
-                                : m
-                            )
-                        );
-                        }
-                    }}
-                    >
-                    <Text
-                        style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 10 }]}
-                        numberOfLines={2}>
-                        {marker.content}{marker.useArrayPosition ? ' (数组)' : ''}
-                    </Text>
-                    </View>
-                </Marker>
-                ))}
+                  <Text
+                    style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 10 }]}
+                    numberOfLines={2}>
+                    {marker.content}
+                  </Text>
+                </View>
+              </Marker>
+            ))}
 
-                {isMapReady && location && (
-                <Marker
-                    key="fixed_current_location_marker"
-                    // 数组格式建议使用 [经度, 纬度] (GeoJSON 标准)
-                    // 如果传入 [纬度, 经度] 会触发自动纠错警告
-                    position={[
-                       location.longitude, location.latitude
+            {isMapReady && location && (
+              <Marker
+                key="fixed_current_location_marker"
+                // 数组格式建议使用 [经度, 纬度] (GeoJSON 标准)
+                // 如果传入 [纬度, 经度] 会触发自动纠错警告
+                position={[
+                  location.longitude, location.latitude
+                ]}
+                zIndex={99}
+                title={location.address}
+                cacheKey="fixed_current_location_marker"
+                customViewWidth={mSize.width}
+                customViewHeight={mSize.height}
+                anchor={{ x: 0.5, y: 0.5 }}
+                onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
+                growAnimation={true}  
+              >
+                <View
+                  style={{
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 6,
+                    paddingVertical: 4,
+                  }}
+                  onLayout={(e) => {
+                    const { width, height } = e.nativeEvent.layout;
+                    if (mSize.width !== width || mSize.height !== height) {
+                      setMSize({ width: Math.ceil(width), height: Math.ceil(height) });
+                    }
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dynamicMarkerText,
+                      {
+                        backgroundColor: '#007AFF',
+                        borderRadius: 10,
+                        textAlign: 'center',
+                      },
                     ]}
-                    zIndex={99}
-                    title={location.address}
-                    cacheKey="fixed_current_location_marker"
-                    customViewWidth={mSize.width}
-                    customViewHeight={mSize.height}
-                    anchor={{ x: 0.5, y: 0.5 }}
-                    onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
-                >
-                    <View
-                    style={{
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        paddingHorizontal: 6,
-                        paddingVertical: 4,
-                    }}
-                    onLayout={(e) => {
-                        const { width, height } = e.nativeEvent.layout;
-                        if (mSize.width !== width || mSize.height !== height) {
-                        setMSize({ width: Math.ceil(width), height: Math.ceil(height) });
-                        }
-                    }}
-                    >
-                    <Text
-                        style={[
-                        styles.dynamicMarkerText,
-                        {
-                            backgroundColor: '#007AFF',
-                            borderRadius: 10,
-                            textAlign: 'center',
-                        },
-                        ]}
-                        numberOfLines={2}
-                    >
-                        这是一个地点标记
-                    </Text>
-                    </View>
-                </Marker>
-                )}
+                    numberOfLines={2}
+                  >
+                    {location.address}
+                  </Text>
+                </View>
+              </Marker>
+            )}
 
-                {
-                  isMapReady && (
-                    <Polyline
-                      key="polyline"
-                      points={[
-                        { latitude: 39.92, longitude: 116.42 },
-                        { latitude: 39.93, longitude: 116.43 },
-                        { latitude: 39.94, longitude: 116.44 },
-                      ]}
-                      strokeColor="#007AFF"
-                      strokeWidth={4}
-                    />
-                  )
-                }
-                
-                {isMapReady && <Marker
-                key="draggable_marker"
-                position={{ latitude: 39.92, longitude: 116.42 }}
-                title="可拖拽标记"
-                draggable={true}
-                cacheKey={"draggable_marker"}
-                pinColor="purple"
-                onMarkerPress={() => Alert.alert('标记', '点击了可拖拽标记')}
-                onMarkerDragEnd={(e) => {
-                    Alert.alert('拖拽结束', `新位置: ${e.nativeEvent.latitude.toFixed(6)}, ${e.nativeEvent.longitude.toFixed(6)}`);
-                }}
-                />}
-
-                {isMapReady && <Marker
-                key="custom_icon_marker"
-                position={{ latitude: 39.93, longitude: 116.43 }}
-                title="自定义图标"
-                snippet="自定义图标描述"
-                icon={iconUri}
-                iconWidth={40}
-                iconHeight={40}
-                />}
-
-                {isMapReady && (
-                  <Polyline
-                    key="geojson_route"
-                    // 直接使用 GeoJSON 原始数据中的 coordinates 数组，无需任何转换！
-                    points={mockGeoJsonRoute.geometry.coordinates as any}
-                    strokeColor="#FF0000"
-                    strokeWidth={6}
-                    zIndex={100}
-                    onPolylinePress={() => Alert.alert('提示', '这是一条直接使用 GeoJSON 数组数据的轨迹')}
-                  />
-                )}
-
-                {isMapReady && Platform.OS === 'ios' && (
-                <Marker
-                    key="ios_animated_marker"
-                    position={{ latitude: 39.94, longitude: 116.44 }}
-                    title="iOS 动画标记"
-                    pinColor="green"
-                    animatesDrop={true}
-                    cacheKey={"ios_animated_marker"}
-                    onMarkerPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
+            {
+              isMapReady && (
+                <Polyline
+                  key="polyline"
+                  points={[
+                    { latitude: 39.92, longitude: 116.42 },
+                    { latitude: 39.93, longitude: 116.43 },
+                    { latitude: 39.94, longitude: 116.44 },
+                  ]}
+                  strokeColor="#007AFF"
+                  strokeWidth={4}
                 />
-                )}
-            </>
+              )
+            }
+
+            {isMapReady && <Marker
+              key="draggable_marker"
+              position={{ latitude: 39.92, longitude: 116.42 }}
+              title="可拖拽标记"
+              draggable={true}
+              cacheKey={"draggable_marker"}
+              pinColor="purple"
+              onMarkerPress={() => Alert.alert('标记', '点击了可拖拽标记')}
+              onMarkerDragEnd={(e) => {
+                Alert.alert('拖拽结束', `新位置: ${e.nativeEvent.latitude.toFixed(6)}, ${e.nativeEvent.longitude.toFixed(6)}`);
+              }}
+            />}
+
+            {isMapReady && <Marker
+              key="custom_icon_marker"
+              position={{ latitude: 39.93, longitude: 116.43 }}
+              title="自定义图标"
+              snippet="自定义图标描述"
+              icon={iconUri}
+              iconWidth={40}
+              iconHeight={40}
+            />}
+
+            {isMapReady && (
+              <Polyline
+                key="geojson_route"
+                // 直接使用 GeoJSON 原始数据中的 coordinates 数组，无需任何转换！
+                points={mockGeoJsonRoute.geometry.coordinates as any}
+                strokeColor="#FF0000"
+                strokeWidth={6}
+                zIndex={100}
+                onPolylinePress={() => Alert.alert('提示', '这是一条直接使用 GeoJSON 数组数据的轨迹')}
+              />
+            )}
+
+            {isMapReady && Platform.OS === 'ios' && (
+              <Marker
+                key="ios_animated_marker"
+                position={{ latitude: 39.94, longitude: 116.44 }}
+                title="iOS 动画标记"
+                pinColor="green"
+                animatesDrop={true}
+                cacheKey={"ios_animated_marker"}
+                onMarkerPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
+              />
+            )}
+          </>
         }
+        <MapUI>
+     
+          {/* 底部悬浮操作面板 */}
+          <View style={[styles.overlayBottom]}>
+            <View style={[styles.panelWrap, { borderColor: hairline }]}>
+              <BlurView
+                intensity={100}
+                tint={colorScheme === 'dark' ? 'dark' : 'light'}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.panelInner}>
+                <Text style={[styles.panelTitle, { color: textColor }]}>常用操作</Text>
+
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      { backgroundColor: isFollowing ? '#4CAF50' : primary }
+                    ]}
+                    onPress={handleGetLocation}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                  >
+                    <Text style={styles.actionBtnText}>
+                      {isFollowing ? '📍跟随' : '🎯定位'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: isLocating ? '#FF6347' : '#4CAF50' }]}
+                    onPress={isLocating ? handleStopLocation : handleStartLocation}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                  >
+                    <Text style={styles.actionBtnText}>{isLocating ? '停止' : '开始'}</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleZoomIn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
+                    <Text style={styles.actionBtnText}>放大</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#FF9800' }]} onPress={handleZoomOut} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
+                    <Text style={styles.actionBtnText}>缩小</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>覆盖物操作</Text>
+
+                <View style={styles.actionRow}>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddCircle}>
+                    <Text style={styles.actionBtnText}>圆形</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleAddMarker}>
+                    <Text style={styles.actionBtnText}>标记</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#9C27B0' }]} onPress={handleAddPolyline}>
+                    <Text style={styles.actionBtnText}>折线</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#FF5722' }]} onPress={handleAddPolygon}>
+                    <Text style={styles.actionBtnText}>多边形</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>高级功能</Text>
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: showHeatMap ? '#F44336' : '#607D8B' }]}
+                    onPress={toggleHeatMap}
+                  >
+                    <Text style={styles.actionBtnText}>热力图</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: showMultiPoint ? '#FF9800' : '#607D8B' }]}
+                    onPress={toggleMultiPoint}
+                  >
+                    <Text style={styles.actionBtnText}>海量点</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: showCluster ? '#3F51B5' : '#607D8B' }]}
+                    onPress={toggleCluster}
+                  >
+                    <Text style={styles.actionBtnText}>聚合</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: '#607D8B' }]} onPress={handleTakeSnapshot}>
+                    <Text style={styles.actionBtnText}>截图</Text>
+                  </Pressable>
+                </View>
+
+                <Pressable style={[styles.removeBtn]} onPress={handleRemoveAllOverlays}>
+                  <Text style={styles.removeBtnText}>重置所有</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </MapUI>
       </MapView>
 
-      {/* 顶部信息 Chip */}
-      <View style={[styles.overlayTop, { top: 100 }]}>
-        {!!cameraInfo && (
-          <View style={[styles.chipWrap, { borderColor: hairline }]}>
-            <BlurView
-              intensity={100}
-              experimentalBlurMethod={'dimezisBlurView'}
-              tint={colorScheme === 'dark' ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
-              📷 {cameraInfo}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* 底部悬浮操作面板 */}
-      <View style={[styles.overlayBottom]}>
-        <View style={[styles.panelWrap, { borderColor: hairline }]}>
-          <BlurView
-            intensity={100}
-            tint={colorScheme === 'dark' ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <View style={styles.panelInner}>
-            <Text style={[styles.panelTitle, { color: textColor }]}>常用操作</Text>
-
-            <View style={styles.actionRow}>
-              <Pressable
-                style={[
-                  styles.actionBtn,
-                  { backgroundColor: isFollowing ? '#4CAF50' : primary }
-                ]}
-                onPress={handleGetLocation}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
-              >
-                <Text style={styles.actionBtnText}>
-                  {isFollowing ? '📍跟随' : '🎯定位'}
+                         {/* 顶部信息 Chip */}
+          <View style={[styles.overlayTop, { top: 100 }]}>
+            {!!cameraInfo && (
+              <View style={[styles.chipWrap, { borderColor: hairline }]}>
+                <BlurView
+                  intensity={100}
+                  experimentalBlurMethod={'dimezisBlurView'}
+                  tint={colorScheme === 'dark' ? 'dark' : 'light'}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+                  📷 {cameraInfo}
                 </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.actionBtn, { backgroundColor: isLocating ? '#FF6347' : '#4CAF50' }]}
-                onPress={isLocating ? handleStopLocation : handleStartLocation}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
-              >
-                <Text style={styles.actionBtnText}>{isLocating ? '停止' : '开始'}</Text>
-              </Pressable>
-              <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleZoomIn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
-                <Text style={styles.actionBtnText}>放大</Text>
-              </Pressable>
-              <Pressable style={[styles.actionBtn, { backgroundColor: '#FF9800' }]} onPress={handleZoomOut} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
-                <Text style={styles.actionBtnText}>缩小</Text>
-              </Pressable>
-            </View>
-
-            <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>覆盖物操作</Text>
-
-            <View style={styles.actionRow}>
-              <Pressable style={[styles.actionBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddCircle}>
-                <Text style={styles.actionBtnText}>圆形</Text>
-              </Pressable>
-              <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleAddMarker}>
-                <Text style={styles.actionBtnText}>标记</Text>
-              </Pressable>
-              <Pressable style={[styles.actionBtn, { backgroundColor: '#9C27B0' }]} onPress={handleAddPolyline}>
-                <Text style={styles.actionBtnText}>折线</Text>
-              </Pressable>
-              <Pressable style={[styles.actionBtn, { backgroundColor: '#FF5722' }]} onPress={handleAddPolygon}>
-                <Text style={styles.actionBtnText}>多边形</Text>
-              </Pressable>
-            </View>
-
-            <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>高级功能</Text>
-            <View style={styles.actionRow}>
-                <Pressable 
-                    style={[styles.actionBtn, { backgroundColor: showHeatMap ? '#F44336' : '#607D8B' }]} 
-                    onPress={toggleHeatMap}
-                >
-                    <Text style={styles.actionBtnText}>热力图</Text>
-                </Pressable>
-                <Pressable 
-                    style={[styles.actionBtn, { backgroundColor: showMultiPoint ? '#FF9800' : '#607D8B' }]} 
-                    onPress={toggleMultiPoint}
-                >
-                    <Text style={styles.actionBtnText}>海量点</Text>
-                </Pressable>
-                <Pressable 
-                    style={[styles.actionBtn, { backgroundColor: showCluster ? '#3F51B5' : '#607D8B' }]} 
-                    onPress={toggleCluster}
-                >
-                    <Text style={styles.actionBtnText}>聚合</Text>
-                </Pressable>
-            </View>
-
-            <Pressable style={[styles.removeBtn]} onPress={handleRemoveAllOverlays}>
-              <Text style={styles.removeBtnText}>重置所有</Text>
-            </Pressable>
+              </View>
+            )}
           </View>
-        </View>
-      </View>
-
     </View>
   );
 }

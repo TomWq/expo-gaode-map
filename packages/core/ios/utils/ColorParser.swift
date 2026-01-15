@@ -97,7 +97,7 @@ class ColorParser {
      */
     private static func parseHexColor(_ hexString: String) -> UIColor? {
         var hex = hexString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var alpha: CGFloat = 1.0
+        let alpha: CGFloat = 1.0
         
         // 处理 #RGB 格式
         if hex.count == 3 {

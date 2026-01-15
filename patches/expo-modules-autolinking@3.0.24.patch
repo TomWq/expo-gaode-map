@@ -1,0 +1,51 @@
+diff --git a/build/commands/generateModulesProviderCommand.js b/build/commands/generateModulesProviderCommand.js
+index 0fe4be55b15dca753a6c4baa659a136a5d8e173a..674fbac2618a1223801c7dcace790cef14c6bd3f 100644
+--- a/build/commands/generateModulesProviderCommand.js
++++ b/build/commands/generateModulesProviderCommand.js
+@@ -10,7 +10,7 @@ function generateModulesProviderCommand(cli) {
+     return (0, autolinkingOptions_1.registerAutolinkingArguments)(cli.command('generate-modules-provider [searchPaths...]'))
+         .option('-t, --target <path>', 'Path to the target file, where the package list should be written to.')
+         .option('--entitlement <path>', 'Path to the Apple code signing entitlements file.')
+-        .option('-p, --packages <packages...>', 'Names of the packages to include in the generated modules provider.')
++        .option('--packages <packages...>', 'Names of the packages to include in the generated modules provider.')
+         .option('--app-root <path>', 'Path to the app root directory.')
+         .action(async (searchPaths, commandArguments) => {
+         const platform = commandArguments.platform ?? 'apple';
+diff --git a/build/commands/reactNativeConfigCommand.js b/build/commands/reactNativeConfigCommand.js
+index a942305a5dac9d85965745d92c6ba1c57eca4dd6..5c1223160f95ebcedd9824b3731dbca0e90289f0 100644
+--- a/build/commands/reactNativeConfigCommand.js
++++ b/build/commands/reactNativeConfigCommand.js
+@@ -6,7 +6,6 @@ const reactNativeConfig_1 = require("../reactNativeConfig");
+ /** The react-native-config command (like RN CLI linking) */
+ function reactNativeConfigCommand(cli) {
+     return (0, autolinkingOptions_1.registerAutolinkingArguments)(cli.command('react-native-config [searchPaths...]'))
+-        .option('-p, --platform [platform]', 'The platform that the resulting modules must support. Available options: "android", "ios"', 'ios')
+         .option('--source-dir <sourceDir>', 'The path to the native source directory')
+         .option('-j, --json', 'Output results in the plain JSON format.', () => true, false)
+         .action(async (searchPaths, commandArguments) => {
+diff --git a/build/commands/verifyCommand.js b/build/commands/verifyCommand.js
+index 32fd027730961ee1e45cccde6167334c0cc0dd7c..2635b08713da0bf43d0ed651fc1248d169038b0e 100644
+--- a/build/commands/verifyCommand.js
++++ b/build/commands/verifyCommand.js
+@@ -16,7 +16,6 @@ function verifyCommand(cli) {
+     return (0, autolinkingOptions_1.registerAutolinkingArguments)(cli.command('verify'))
+         .option('-v, --verbose', 'Output all results instead of just warnings.', () => true, false)
+         .option('-j, --json', 'Output results in the plain JSON format.', () => true, false)
+-        .option('-p, --platform [platform]', 'The platform to validate native modules for. Available options: "android", "ios", "both"', 'both')
+         .action(async (commandArguments) => {
+         const platforms = commandArguments.platform === 'both' ? ['android', 'ios'] : [commandArguments.platform];
+         const autolinkingOptionsLoader = (0, autolinkingOptions_1.createAutolinkingOptionsLoader)(commandArguments);
+diff --git a/build/index.js b/build/index.js
+index 01e83ec60308b361c34782fc32069fa5533be332..c0932f3812bcc763c304dd0a93e2be183d163d79 100644
+--- a/build/index.js
++++ b/build/index.js
+@@ -11,7 +11,8 @@ const resolveCommand_1 = require("./commands/resolveCommand");
+ const searchCommand_1 = require("./commands/searchCommand");
+ const verifyCommand_1 = require("./commands/verifyCommand");
+ async function main(args) {
+-    const cli = commander_1.default
++    const program = commander_1.default.program || commander_1.default;
++    const cli = program
+         .version(require('expo-modules-autolinking/package.json').version)
+         .description('CLI command that searches for native modules to autolink them.');
+     (0, verifyCommand_1.verifyCommand)(cli);

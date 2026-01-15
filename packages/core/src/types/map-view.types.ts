@@ -214,6 +214,15 @@ export interface MapViewProps {
   headingFilter?: number;
 
   /**
+   * 是否启用国内外地图自动切换
+   * - true: 当中心点在国外时自动切换到苹果地图（iOS），国内时切换回高德地图
+   * - false: 始终使用高德地图
+   * @platform ios 当前仅支持 iOS 安卓因为需要使用 Google Maps SDK和谷歌服务
+   * @default false
+   */
+  worldMapSwitchEnabled?: boolean;
+
+  /**
    * 自定义地图样式
    *
    * 支持两种方式：
@@ -325,7 +334,11 @@ export interface MapViewMethods {
    */
   getCameraPosition(): Promise<CameraPosition>;
 
-  
+  /**
+   * 截取地图快照
+   * @returns 快照图片文件路径
+   */
+  takeSnapshot(): Promise<string>;
 }
 
 /**
@@ -337,7 +350,7 @@ export interface MapViewRef {
   setCenter(center: LatLng, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
-
+  takeSnapshot(): Promise<string>;
 }
 
 /**

@@ -112,7 +112,7 @@ class MapPreloadManager {
         isPreloading = true
         let targetSize = min(poolSize, adaptiveMaxPoolSize)
         
-        for i in 0..<targetSize {
+        for _ in 0..<targetSize {
             preloadGroup.enter()  // 进入预加载队列
             
             preloadQueue.async { [weak self] in
@@ -269,7 +269,7 @@ class MapPreloadManager {
     
     /// 清空预加载池
     func clearPool() {
-        let count = preloadedMapInstances.count
+        _ = preloadedMapInstances.count
         preloadedMapInstances.removeAll()
     }
     

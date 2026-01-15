@@ -24,6 +24,7 @@ public class ExpoGaodeMapModule: Module {
      * 尝试从 Info.plist 读取并设置 API Key
      * @return 是否成功设置 API Key
      */
+    @discardableResult
     private func trySetupApiKeyFromPlist() -> Bool {
         if AMapServices.shared().apiKey == nil || AMapServices.shared().apiKey?.isEmpty == true {
             if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
@@ -199,7 +200,7 @@ public class ExpoGaodeMapModule: Module {
                 return
             }
             
-            let status = CLLocationManager.authorizationStatus()
+            let status = self.currentAuthorizationStatus()
             
             if status == .authorizedAlways || status == .authorizedWhenInUse {
                 let manager = self.getLocationManager()
@@ -377,7 +378,7 @@ public class ExpoGaodeMapModule: Module {
          * 检查位置权限状态
          */
         AsyncFunction("checkLocationPermission") { (promise: Promise) in
-            let status = CLLocationManager.authorizationStatus()
+            let status = self.currentAuthorizationStatus()
             let granted = status == .authorizedAlways || status == .authorizedWhenInUse
             
             promise.resolve([
@@ -397,7 +398,7 @@ public class ExpoGaodeMapModule: Module {
             self.permissionManager?.requestPermission { granted, status in
                 // 无论结果如何,都延迟后再次检查最终状态
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    let finalStatus = CLLocationManager.authorizationStatus()
+                    let finalStatus = self.currentAuthorizationStatus()
                     let finalGranted = finalStatus == .authorizedAlways || finalStatus == .authorizedWhenInUse
                     let finalStatusString = self.getAuthorizationStatusString(finalStatus)
                     
@@ -414,7 +415,7 @@ public class ExpoGaodeMapModule: Module {
          * 注意：必须在前台权限已授予后才能请求
          */
         AsyncFunction("requestBackgroundLocationPermission") { (promise: Promise) in
-            let status = CLLocationManager.authorizationStatus()
+            let status = self.currentAuthorizationStatus()
             
             // 检查前台权限是否已授予
             if status != .authorizedWhenInUse && status != .authorizedAlways {
@@ -654,6 +655,7 @@ public class ExpoGaodeMapModule: Module {
      * 获取或创建定位管理器实例
      * 使用懒加载模式,并设置事件回调
      */
+    @discardableResult
     private func getLocationManager() -> LocationManager {
         if locationManager == nil {
             locationManager = LocationManager()
@@ -667,6 +669,17 @@ public class ExpoGaodeMapModule: Module {
         return locationManager!
     }
     
+    /**
+     * 获取当前的权限状态（兼容 iOS 14+）
+     */
+    private func currentAuthorizationStatus() -> CLAuthorizationStatus {
+        if #available(iOS 14.0, *) {
+            return CLLocationManager().authorizationStatus
+        } else {
+            return CLLocationManager.authorizationStatus()
+        }
+    }
+
     /**
      * 将权限状态转换为字符串
      */

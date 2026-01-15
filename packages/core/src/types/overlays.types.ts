@@ -52,6 +52,7 @@ export interface MarkerProps {
 
   /**
    * 是否可拖拽
+   * @default false
    */
   draggable?: boolean;
 
@@ -118,6 +119,12 @@ export interface MarkerProps {
    * 缓存 key 建议使用 提高性能
    */
   cacheKey?: string;
+
+  /**
+   * 是否开启生长动画
+   * @default false
+   */
+  growAnimation?: boolean;
 
   /**
    * 点击事件

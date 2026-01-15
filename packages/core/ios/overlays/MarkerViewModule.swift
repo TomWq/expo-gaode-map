@@ -61,8 +61,12 @@ public class MarkerViewModule: Module {
                 view.setPinColor(color)
             }
             
-            Prop("canShowCallout") { (view: MarkerView, show: Bool) in
-                view.setCanShowCallout(show)
+            Prop("canShowCallout") { (view: MarkerView, canShow: Bool) in
+                view.canShowCallout = canShow
+            }
+
+            Prop("growAnimation") { (view: MarkerView, enabled: Bool) in
+                view.growAnimation = enabled
             }
              Prop("cacheKey") { (view: MarkerView, key: String) in
                 view.setCacheKey(key)

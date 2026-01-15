@@ -56,7 +56,12 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
                 self.locationManager?.delegate = self
             }
             
-            let currentStatus = CLLocationManager.authorizationStatus()
+            var currentStatus: CLAuthorizationStatus
+            if #available(iOS 14.0, *) {
+                currentStatus = self.locationManager?.authorizationStatus ?? .notDetermined
+            } else {
+                currentStatus = CLLocationManager.authorizationStatus()
+            }
             
             // 如果已经有权限,直接返回
             var hasPermission = false
@@ -160,7 +165,7 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         
         if #available(iOS 14.0, *) {
             manager.requestTemporaryFullAccuracyAuthorization(withPurposeKey: purposeKey) { error in
-                if let error = error {
+                if error != nil {
                     callback(false)
                 } else {
                     let hasAccuracy = manager.accuracyAuthorization == .fullAccuracy
@@ -179,7 +184,12 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
      * 获取权限诊断信息
      */
     static func getDiagnosticInfo() -> [String: Any] {
-        let currentStatus = CLLocationManager.authorizationStatus()
+        var currentStatus: CLAuthorizationStatus
+        if #available(iOS 14.0, *) {
+            currentStatus = CLLocationManager().authorizationStatus
+        } else {
+            currentStatus = CLLocationManager.authorizationStatus()
+        }
         let statusString = getStaticAuthorizationStatusString(currentStatus)
         
         var info: [String: Any] = [

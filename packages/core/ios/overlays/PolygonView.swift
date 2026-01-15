@@ -63,7 +63,7 @@ class PolygonView: ExpoView {
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
-        let isNewMap = self.mapView == nil
+        _ = self.mapView == nil
         self.mapView = map
         
         // 无论是否是新地图，都调用 updatePolygon

@@ -9,11 +9,12 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~54.0.30",
+    "expo": "^54.0.31",
     "expo-blur": "^15.0.8",
     "expo-gaode-map": "workspace:*",
     "expo-gaode-map-search": "workspace:*",
     "expo-gaode-map-web-api": "workspace:*",
+    "expo-media-library": "~18.2.1",
     "expo-router": "^6.0.17",
     "react": "19.1.0",
     "react-native": "0.81.5"

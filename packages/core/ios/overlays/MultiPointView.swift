@@ -65,7 +65,7 @@ class MultiPointView: ExpoView {
         guard !points.isEmpty else { return }
         
         var items: [MAMultiPointItem] = []
-        for (index, point) in points.enumerated() {
+        for (_, point) in points.enumerated() {
             guard let latitude = point["latitude"] as? Double,
                   let longitude = point["longitude"] as? Double else {
                 continue

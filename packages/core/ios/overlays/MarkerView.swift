@@ -48,6 +48,8 @@ class MarkerView: ExpoView {
     var pinColor: String = "red"
     /// 是否显示气泡
     var canShowCallout: Bool = true
+    /// 是否开启生长动画
+    var growAnimation: Bool = false
     /// 地图视图引用
     private var mapView: MAMapView?
     /// 标记点对象
@@ -117,7 +119,7 @@ class MarkerView: ExpoView {
             return
         }
         
-        let isNewMap = self.mapView == nil
+        _ = self.mapView == nil
         self.mapView = map
         lastSetMapView = map
         
@@ -200,11 +202,19 @@ class MarkerView: ExpoView {
      * 为 MAAnimatedAnnotation 提供图标支持
      */
     func getAnimatedAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
-        let reuseId = "animated_marker_\(ObjectIdentifier(self).hashValue)"
+        let reuseId = "animated_marker_\(ObjectIdentifier(self).hashValue)" + (growAnimation ? "_grow" : "")
         var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
         
         if annotationView == nil {
-            annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            if growAnimation {
+                annotationView = ExpoGrowAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            } else {
+                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+        }
+        
+        if let growView = annotationView as? ExpoGrowAnnotationView {
+            growView.enableGrowAnimation = true
         }
         
         annotationView?.annotation = annotation
@@ -286,11 +296,20 @@ class MarkerView: ExpoView {
         // 🔑 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
             // 使用 class-level reuseId，便于系统复用 view，减少内存
-            let reuseId = "custom_marker_children"
+            let reuseId = "custom_marker_children" + (growAnimation ? "_grow" : "")
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
             if annotationView == nil {
-                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                if growAnimation {
+                    annotationView = ExpoGrowAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                } else {
+                    annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                }
             }
+            
+            if let growView = annotationView as? ExpoGrowAnnotationView {
+                growView.enableGrowAnimation = true
+            }
+
             annotationView?.annotation = annotation
             annotationView?.canShowCallout = false
             annotationView?.isDraggable = draggable
@@ -341,13 +360,21 @@ class MarkerView: ExpoView {
         
         // 🔑 如果有 icon 属性，使用自定义图标
         if let iconUri = iconUri, !iconUri.isEmpty {
-            let reuseId = "custom_marker_icon_\(ObjectIdentifier(self).hashValue)"
+            let reuseId = "custom_marker_icon_\(ObjectIdentifier(self).hashValue)" + (growAnimation ? "_grow" : "")
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
             
             if annotationView == nil {
-                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                if growAnimation {
+                    annotationView = ExpoGrowAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                } else {
+                    annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                }
             }
             
+            if let growView = annotationView as? ExpoGrowAnnotationView {
+                growView.enableGrowAnimation = true
+            }
+
             annotationView?.annotation = annotation
             // 只有在没有自定义内容时才使用 canShowCallout 设置
             annotationView?.canShowCallout = canShowCallout
@@ -386,11 +413,15 @@ class MarkerView: ExpoView {
         
         // 🔑 既没有 children 也没有 icon，使用系统默认大头针
         // 🔑 性能优化：使用颜色作为 reuseId，让系统复用相同颜色的大头针
-        let reuseId = "pin_marker_\(pinColor)"
+        let reuseId = "pin_marker_\(pinColor)" + (growAnimation ? "_grow" : "")
         var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MAPinAnnotationView
         
         if pinView == nil {
-            pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            if growAnimation {
+                pinView = ExpoGrowPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            } else {
+                pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
             
             // 🔑 创建时设置颜色（只在创建时设置一次）
             switch pinColor.lowercased() {
@@ -401,6 +432,10 @@ class MarkerView: ExpoView {
             default:
                 pinView?.pinColor = .red
             }
+        }
+        
+        if let growView = pinView as? ExpoGrowPinAnnotationView {
+            growView.enableGrowAnimation = true
         }
         
         pinView?.annotation = annotation
@@ -747,7 +782,7 @@ class MarkerView: ExpoView {
         
         // 🔑 停止之前的动画（如果存在）
         if let animAnnotation = animatedAnnotation,
-           let animations = animAnnotation.allMoveAnimations as? [MAAnnotationMoveAnimation] {
+           let animations = animAnnotation.allMoveAnimations() {
             for animation in animations {
                 animation.cancel()
             }
@@ -858,5 +893,51 @@ class IconBitmapCache {
         }
         // fallback estimate
         return Int(image.size.width * image.size.height * 4)
+    }
+}
+
+// MARK: - 自定义 AnnotationView (支持生长动画)
+
+class ExpoGrowAnnotationView: MAAnnotationView, CAAnimationDelegate {
+    var enableGrowAnimation: Bool = false
+    
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        if enableGrowAnimation, let superview = newSuperview {
+            // 检查 superview 是否包含当前 view (其实 willMove 时还没添加，所以使用 center 判断逻辑如用户示例)
+            // 用户示例: if(newSuperview?.bounds.contains(self.center))!
+            // 但此时 self.center 可能还没设置好或者相对于 old superview。
+            // 简单起见，只要 enableGrowAnimation 且 newSuperview 不为 nil (即添加操作)，就执行动画
+            // 为了安全起见，我们还是尽量贴近用户示例
+            
+            let growAnimation = CABasicAnimation(keyPath: "transform.scale")
+            growAnimation.delegate = self
+            growAnimation.duration = 0.8
+            growAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+            growAnimation.fromValue = 0
+            growAnimation.toValue = 1.0
+            
+            self.layer.add(growAnimation, forKey: "growAnimation")
+        }
+    }
+}
+
+class ExpoGrowPinAnnotationView: MAPinAnnotationView, CAAnimationDelegate {
+    var enableGrowAnimation: Bool = false
+    
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        if enableGrowAnimation, let superview = newSuperview {
+            let growAnimation = CABasicAnimation(keyPath: "transform.scale")
+            growAnimation.delegate = self
+            growAnimation.duration = 0.8
+            growAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+            growAnimation.fromValue = 0
+            growAnimation.toValue = 1.0
+            
+            self.layer.add(growAnimation, forKey: "growAnimation")
+        }
     }
 }

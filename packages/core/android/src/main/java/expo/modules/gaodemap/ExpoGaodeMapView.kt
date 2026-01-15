@@ -470,8 +470,80 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         return cameraManager.getCameraPosition()
     }
 
+    /**
+     * 截取地图快照
+     * @param promise Promise
+     */
+    fun takeSnapshot(promise: expo.modules.kotlin.Promise) {
+        aMap.getMapScreenShot(object : AMap.OnMapScreenShotListener {
+            override fun onMapScreenShot(bitmap: android.graphics.Bitmap?) {
+                // 旧版本回调，为了兼容性也处理
+                bitmap?.let { handleSnapshot(it, promise) }
+            }
 
-    // ==================== 生命周期方法 ====================
+            override fun onMapScreenShot(bitmap: android.graphics.Bitmap?, status: Int) {
+                // status != 0 表示失败
+                if (status != 0) {
+                    promise.reject("SNAPSHOT_FAILED", "Failed to take snapshot, status code: $status", null)
+                    return
+                }
+                bitmap?.let { handleSnapshot(it, promise) } ?: run {
+                    promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+                }
+            }
+        })
+    }
+
+    private fun handleSnapshot(mapBitmap: android.graphics.Bitmap, promise: expo.modules.kotlin.Promise) {
+        try {
+            // 创建最终的 Bitmap，大小为当前容器的大小
+            val width = this.width
+            val height = this.height
+            
+            // 如果容器宽高为0，无法截图
+            if (width <= 0 || height <= 0) {
+                promise.reject("SNAPSHOT_FAILED", "View dimensions are invalid", null)
+                return
+            }
+
+            val finalBitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(finalBitmap)
+
+            // 1. 绘制地图底图
+            canvas.drawBitmap(mapBitmap, mapView.left.toFloat(), mapView.top.toFloat(), null)
+
+            // 2. 绘制其他子视图 (React Native Overlays)
+            for (i in 0 until childCount) {
+                val child = getChildAt(i)
+                // 跳过地图本身和隐藏的视图
+                if (child !== mapView && child.visibility == View.VISIBLE) {
+                    // 保存画布状态
+                    canvas.save()
+                    // 移动画布到子视图位置
+                    canvas.translate(child.left.toFloat(), child.top.toFloat())
+                    // 绘制子视图
+                    child.draw(canvas)
+                    // 恢复画布状态
+                    canvas.restore()
+                }
+            }
+
+            // 3. 保存到文件
+            val filename = java.util.UUID.randomUUID().toString() + ".png"
+            val file = java.io.File(context.cacheDir, filename)
+            val stream = java.io.FileOutputStream(file)
+            finalBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+            stream.close()
+
+            // 4. 返回文件路径
+            promise.resolve(file.absolutePath)
+
+        } catch (e: Exception) {
+            promise.reject("SNAPSHOT_ERROR", "Error processing snapshot: ${e.message}", e)
+        }
+    }
+
+    // ==================== 生命周期管理 ====================
 
     /** 恢复地图 */
     @Suppress("unused")

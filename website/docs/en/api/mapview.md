@@ -9,6 +9,7 @@ MapView is the core component for displaying maps.
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `mapType` | `MapType` | `0` | Map type (0: Standard, 1: Satellite, 2: Night, 3: Navi, 4: Bus) |
+| `worldMapSwitchEnabled` | `boolean` | `false` | Whether to enable automatic switching between domestic and foreign maps (iOS) |
 | `initialCameraPosition` | `CameraPosition` | - | Initial camera position |
 | `style` | `ViewStyle` | - | Component style |
 
@@ -71,6 +72,11 @@ interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   getLatLng(point: Point): Promise<LatLng>;
+  /**
+   * Take a snapshot of the map
+   * @returns Path to the snapshot image file
+   */
+  takeSnapshot(): Promise<string>;
 }
 ```
 

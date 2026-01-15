@@ -85,6 +85,10 @@ public class ExpoGaodeMapViewModule: Module {
                 }
             }
             
+            Prop("worldMapSwitchEnabled") { (view: ExpoGaodeMapView, enabled: Bool) in
+                view.enableWorldMapSwitch = enabled
+            }
+            
             OnViewDidUpdateProps { (view: ExpoGaodeMapView) in
                 view.applyProps()
             }
@@ -107,6 +111,18 @@ public class ExpoGaodeMapViewModule: Module {
             
             AsyncFunction("getCameraPosition") { (view: ExpoGaodeMapView) -> [String: Any] in
                 return view.getCameraPosition()
+            }
+            
+            AsyncFunction("takeSnapshot") { (view: ExpoGaodeMapView, promise: Promise) in
+                DispatchQueue.main.async {
+                    view.takeSnapshot { path, error in
+                        if let path = path {
+                            promise.resolve(path)
+                        } else {
+                            promise.reject("SNAPSHOT_FAILED", error?.localizedDescription ?? "Failed to take snapshot")
+                        }
+                    }
+                }
             }
           
         }

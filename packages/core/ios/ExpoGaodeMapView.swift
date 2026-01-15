@@ -1,5 +1,7 @@
 import ExpoModulesCore
 import MAMapKit
+import MapKit
+import CoreLocation
 
 /**
  * 高德地图视图组件
@@ -51,6 +53,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     var showsIndoorMap: Bool = false
     /// 自定义地图样式配置
     var customMapStyleData: [String: Any]?
+    /// 是否启用国内外地图自动切换
+    var enableWorldMapSwitch: Bool = false
     
     // MARK: - 事件派发器
     
@@ -65,6 +69,12 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     
     /// 高德地图视图实例
     var mapView: MAMapView!
+    /// 苹果地图视图实例
+    var appleMapView: MKMapView!
+    /// 苹果地图代理
+    private var appleMapDelegate: AppleMapDelegate!
+    /// 是否正在切换地图
+    private var isSwitching = false
     /// 相机管理器
     private var cameraManager: CameraManager!
     /// UI 管理器
@@ -105,6 +115,13 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         
         mapView.delegate = self
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        // 创建 MKMapView
+        appleMapView = MKMapView(frame: bounds)
+        appleMapDelegate = AppleMapDelegate(parent: self)
+        appleMapView.delegate = appleMapDelegate
+        appleMapView.isHidden = true
+        appleMapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         
         // 创建 MarkerView 隐藏容器
         markerContainer = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
@@ -122,9 +139,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         // 1. self (ExpoGaodeMapView)
         // 2.   - markerContainer (隐藏)
         // 3.   - overlayContainer (隐藏)
-        // 4.   - mapView (可见，在最上层)
+        // 4.   - appleMapView (隐藏)
+        // 5.   - mapView (可见，在最上层)
         addSubview(markerContainer)
         addSubview(overlayContainer)
+        addSubview(appleMapView)
         addSubview(mapView)
         
         cameraManager = CameraManager(mapView: mapView)
@@ -146,6 +165,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     override func layoutSubviews() {
         super.layoutSubviews()
         mapView.frame = bounds
+        appleMapView.frame = bounds
         // 🔑 移除自动调用 setupAllOverlayViews()，避免频繁触发
         // layoutSubviews 会在任何视图变化时调用，导致不必要的批量刷新
     }
@@ -269,7 +289,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
       
         
         // 跳过我们自己创建的容器和地图视图
-        if subview === markerContainer || subview === overlayContainer || subview === mapView {
+        if subview === markerContainer || subview === overlayContainer || subview === mapView || subview === appleMapView {
           
             return
         }
@@ -441,7 +461,32 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
         
+        // 更新苹果地图样式
+        updateAppleMapStyle()
+        
         // applyProps 时不再需要手动收集视图，因为 addSubview 已经处理了
+    }
+
+    /**
+     * 更新苹果地图样式以匹配高德地图设置
+     */
+    private func updateAppleMapStyle() {
+        switch mapType {
+        case 1: // 卫星
+            appleMapView.mapType = .satellite
+            appleMapView.overrideUserInterfaceStyle = .unspecified
+        case 2: // 夜间
+            // 苹果地图没有专门的夜间模式枚举，通过强制 Dark Mode 实现
+            appleMapView.mapType = .standard
+            appleMapView.overrideUserInterfaceStyle = .dark
+        case 3: // 导航
+            appleMapView.mapType = .standard
+            appleMapView.overrideUserInterfaceStyle = .unspecified
+        default: // 标准 (0)
+            appleMapView.mapType = .standard
+            // 标准模式下跟随系统，如果系统是深色则显示深色，否则浅色
+            appleMapView.overrideUserInterfaceStyle = .unspecified
+        }
     }
     
     // MARK: - 缩放控制
@@ -536,6 +581,200 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
     
 
     
+    // MARK: - 地图切换逻辑
+
+    func handleMapviewRegionChange(mapView: UIView) {
+        if !enableWorldMapSwitch {
+            return
+        }
+
+        if mapView.isHidden {
+            return
+        }
+
+        if isSwitching {
+            isSwitching = false
+            return
+        }
+
+        if mapView.isKind(of: MAMapView.self) {
+            if !AMapDataAvailableForCoordinate(self.mapView.centerCoordinate) {
+                showSwitchAlert(message: "是否切换到苹果地图显示", toApple: true)
+            }
+        } else if mapView.isKind(of: MKMapView.self) {
+            if AMapDataAvailableForCoordinate(self.appleMapView.centerCoordinate) {
+                showSwitchAlert(message: "是否切换到高德地图显示", toApple: false)
+            }
+        }
+    }
+
+    func showSwitchAlert(message: String, toApple: Bool) {
+        // Find top controller
+        guard let controller = self.findViewController() else { return }
+        
+        // Check if alert is already presented to avoid stacking
+        if controller.presentedViewController is UIAlertController {
+            return
+        }
+
+        let alert = UIAlertController(title: "", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "确定", style: .default, handler: { _ in
+            self.performSwitching()
+        }))
+        controller.present(alert, animated: true, completion: nil)
+    }
+
+    func performSwitching() {
+        print("[ExpoGaodeMap] performSwitching start. Current Gaode hidden: \(self.mapView.isHidden), Apple hidden: \(self.appleMapView.isHidden)")
+        
+        self.isSwitching = true
+
+        let isGaodeCurrentlyVisible = !self.mapView.isHidden
+        
+        self.mapView.isHidden = isGaodeCurrentlyVisible
+        self.appleMapView.isHidden = !isGaodeCurrentlyVisible
+
+        if !isGaodeCurrentlyVisible {
+            // 切换到高德 (Apple -> Gaode)
+            print("[ExpoGaodeMap] Switching to Gaode Map")
+            let region = self.MARegionForMKRegion(mkRegion: self.appleMapView.region)
+            // 简单的合法性检查
+            if region.span.latitudeDelta > 0 && region.span.longitudeDelta > 0 {
+                self.mapView.region = region
+            }
+            self.mapView.centerCoordinate = self.appleMapView.centerCoordinate
+            self.mapView.rotationDegree = CGFloat(self.appleMapView.camera.heading)
+        } else {
+            // 切换到苹果 (Gaode -> Apple)
+            print("[ExpoGaodeMap] Switching to Apple Map")
+            let gaodeRegion = self.mapView.region
+            let gaodeCenter = self.mapView.centerCoordinate
+            let gaodeHeading = self.mapView.rotationDegree
+            
+            print("[ExpoGaodeMap] Gaode Region: center(\(gaodeCenter.latitude), \(gaodeCenter.longitude)), span(\(gaodeRegion.span.latitudeDelta), \(gaodeRegion.span.longitudeDelta))")
+
+            // 1. 设置 Region
+            let mkRegion = self.MKRegionForMARegion(maRegion: gaodeRegion)
+            // 确保 span 有效
+            if mkRegion.span.latitudeDelta > 0 && mkRegion.span.longitudeDelta > 0 {
+                self.appleMapView.setRegion(mkRegion, animated: false)
+            } else {
+                // 如果 span 无效，至少设置中心点
+                self.appleMapView.setCenter(gaodeCenter, animated: false)
+            }
+            
+            // 2. 尝试同步 Heading (可选，如果导致问题可先注释)
+            // 注意：直接修改 camera.heading 可能无效或导致问题，建议使用 setCamera
+            let currentCamera = self.appleMapView.camera
+            // 调试：打印 altitude
+            print("[ExpoGaodeMap] AppleMap Camera altitude: \(currentCamera.altitude)")
+            
+            // 如果 altitude 为 0，通常意味着地图还没完全初始化好。
+            // 此时可以尝试给一个默认的高度，或者仅仅 setRegion 就够了。
+            // 经验值：如果不设置 altitude，有时视角会极低导致看起来像黑屏。
+            let altitudeToUse = currentCamera.altitude > 0 ? currentCamera.altitude : 10000.0 // 给个默认高度 10000米
+            
+            let newCamera = MKMapCamera(lookingAtCenter: gaodeCenter, fromDistance: altitudeToUse, pitch: currentCamera.pitch, heading: CLLocationDirection(gaodeHeading))
+             self.appleMapView.setCamera(newCamera, animated: false)
+        }
+        
+        // 强制布局更新，确保 Frame 正确
+        self.setNeedsLayout()
+        self.layoutIfNeeded()
+    }
+
+    func MARegionForMKRegion(mkRegion: MKCoordinateRegion) -> MACoordinateRegion {
+        return MACoordinateRegion(center: mkRegion.center, span: MACoordinateSpan(latitudeDelta: mkRegion.span.latitudeDelta, longitudeDelta: mkRegion.span.longitudeDelta))
+    }
+
+    func MKRegionForMARegion(maRegion: MACoordinateRegion) -> MKCoordinateRegion {
+        return MKCoordinateRegion(center: maRegion.center, span: MKCoordinateSpan(latitudeDelta: maRegion.span.latitudeDelta, longitudeDelta: maRegion.span.longitudeDelta))
+    }
+    
+    // MARK: - 截图
+    
+    func takeSnapshot(completion: @escaping (String?, Error?) -> Void) {
+        if !appleMapView.isHidden {
+            // 苹果地图
+            UIGraphicsBeginImageContextWithOptions(bounds.size, true, UIScreen.main.scale)
+            
+            if let superview = self.superview {
+                // 如果有父视图（通常是 React Native 的容器），直接绘制父视图
+                superview.drawHierarchy(in: bounds, afterScreenUpdates: true)
+            } else {
+                // 降级方案：只绘制自己
+                drawHierarchy(in: bounds, afterScreenUpdates: true)
+            }
+            
+            let image = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            
+            saveSnapshot(image: image, completion: completion)
+            return
+        }
+        
+        // 高德地图：使用新的异步 API (takeSnapshotInRect:withCompletionBlock:)
+        mapView.takeSnapshot(in: bounds) { [weak self] (image, state) in
+            guard let self = self else { return }
+            
+            // 检查截图是否成功
+            guard let mapImage = image else {
+                completion(nil, NSError(domain: "ExpoGaodeMap", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to take map snapshot"]))
+                return
+            }
+            
+            // 开始绘制合成图
+            UIGraphicsBeginImageContextWithOptions(self.bounds.size, true, UIScreen.main.scale)
+            
+            // 1. 绘制底图
+            mapImage.draw(in: self.bounds)
+            
+            // 2. 绘制上层 UI 子视图 (React Native 的 UI 组件)
+            if let superview = self.superview {
+                for subview in superview.subviews {
+                    // 跳过自己（ExpoGaodeMapView），因为已经画了底图
+                    if subview != self && !subview.isHidden {
+                        // 绘制兄弟节点
+                        subview.drawHierarchy(in: subview.frame, afterScreenUpdates: true)
+                    }
+                }
+            } else {
+                // 如果没有 superview（不太可能），回退到只绘制自己的子视图
+                for subview in self.subviews {
+                    if subview != self.mapView && subview != self.appleMapView && !subview.isHidden {
+                        subview.drawHierarchy(in: subview.frame, afterScreenUpdates: true)
+                    }
+                }
+            }
+            
+            let finalImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            
+            self.saveSnapshot(image: finalImage, completion: completion)
+        }
+    }
+    
+    private func saveSnapshot(image: UIImage?, completion: @escaping (String?, Error?) -> Void) {
+        guard let finalImage = image,
+              let data = finalImage.pngData() else {
+            completion(nil, NSError(domain: "ExpoGaodeMap", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to generate PNG data"]))
+            return
+        }
+        
+        let filename = UUID().uuidString + ".png"
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent(filename)
+        
+        do {
+            try data.write(to: fileURL)
+            completion(fileURL.absoluteString, nil)
+        } catch {
+            print("Error saving snapshot: \(error)")
+            completion(nil, error)
+        }
+    }
+
     /**
      * 析构函数 - 清理资源
      * 当视图从层级中移除并释放时自动调用
@@ -548,10 +787,14 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         
         // 清理代理,停止接收回调
         mapView?.delegate = nil
+        appleMapView?.delegate = nil
+        appleMapDelegate = nil
         
         // 清除所有覆盖物和标注
         mapView?.removeAnnotations(mapView?.annotations ?? [])
         mapView?.removeOverlays(mapView?.overlays ?? [])
+        appleMapView?.removeAnnotations(appleMapView?.annotations ?? [])
+        appleMapView?.removeOverlays(appleMapView?.overlays ?? [])
         
         // 清空覆盖物数组
         overlayViews.removeAll()
@@ -560,11 +803,40 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
         markerContainer?.removeFromSuperview()
         overlayContainer?.removeFromSuperview()
         mapView?.removeFromSuperview()
+        appleMapView?.removeFromSuperview()
         
         // 释放引用
         mapView = nil
+        appleMapView = nil
         cameraManager = nil
         uiManager = nil
+    }
+}
+
+// MARK: - AppleMapDelegate
+
+class AppleMapDelegate: NSObject, MKMapViewDelegate {
+    weak var parent: ExpoGaodeMapView?
+    
+    init(parent: ExpoGaodeMapView) {
+        self.parent = parent
+        super.init()
+    }
+    
+    func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+        parent?.handleMapviewRegionChange(mapView: mapView)
+    }
+}
+
+extension UIView {
+    func findViewController() -> UIViewController? {
+        if let nextResponder = self.next as? UIViewController {
+            return nextResponder
+        } else if let nextResponder = self.next as? UIView {
+            return nextResponder.findViewController()
+        } else {
+            return nil
+        }
     }
 }
 
@@ -665,6 +937,8 @@ extension ExpoGaodeMapView {
                 }
             }
         }
+        
+        handleMapviewRegionChange(mapView: mapView)
     }
     
     /**
@@ -830,7 +1104,7 @@ extension ExpoGaodeMapView {
         
         let ab = a.distance(from: b)
         let ap = a.distance(from: p)
-        let bp = b.distance(from: p)
+        _ = b.distance(from: p)
         
         if ab == 0 { return ap }
         
