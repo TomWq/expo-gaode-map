@@ -3,6 +3,7 @@ package expo.modules.gaodemap
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
+import android.view.ViewGroup
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import com.amap.api.maps.MapsInitializer
@@ -475,13 +476,23 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      * @param promise Promise
      */
     fun takeSnapshot(promise: expo.modules.kotlin.Promise) {
+        val isSettled = java.util.concurrent.atomic.AtomicBoolean(false)
+        
         aMap.getMapScreenShot(object : AMap.OnMapScreenShotListener {
             override fun onMapScreenShot(bitmap: android.graphics.Bitmap?) {
+                // 如果已经处理过，直接返回
+                if (isSettled.getAndSet(true)) return
+                
                 // 旧版本回调，为了兼容性也处理
-                bitmap?.let { handleSnapshot(it, promise) }
+                bitmap?.let { handleSnapshot(it, promise) } ?: run {
+                     promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+                }
             }
 
             override fun onMapScreenShot(bitmap: android.graphics.Bitmap?, status: Int) {
+                // 如果已经处理过，直接返回
+                if (isSettled.getAndSet(true)) return
+
                 // status != 0 表示失败
                 if (status != 0) {
                     promise.reject("SNAPSHOT_FAILED", "Failed to take snapshot, status code: $status", null)
@@ -512,19 +523,36 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             // 1. 绘制地图底图
             canvas.drawBitmap(mapBitmap, mapView.left.toFloat(), mapView.top.toFloat(), null)
 
-            // 2. 绘制其他子视图 (React Native Overlays)
+            // 2. 绘制内部子视图 (React Native Overlays, e.g. Callout)
             for (i in 0 until childCount) {
                 val child = getChildAt(i)
-                // 跳过地图本身和隐藏的视图
-                if (child !== mapView && child.visibility == View.VISIBLE) {
-                    // 保存画布状态
+                val isMarkerView = child is expo.modules.gaodemap.overlays.MarkerView
+                
+                // 跳过地图本身、隐藏的视图以及 MarkerView
+                if (child !== mapView && child.visibility == View.VISIBLE && !isMarkerView) {
                     canvas.save()
-                    // 移动画布到子视图位置
                     canvas.translate(child.left.toFloat(), child.top.toFloat())
-                    // 绘制子视图
                     child.draw(canvas)
-                    // 恢复画布状态
                     canvas.restore()
+                }
+            }
+
+            // 3. 绘制兄弟视图 (MapUI, 覆盖在地图上的 UI 组件)
+            // 模仿 iOS 的实现：遍历父容器的子视图，绘制那些覆盖在地图上方的兄弟节点
+            (parent as? ViewGroup)?.let { parentGroup ->
+                for (i in 0 until parentGroup.childCount) {
+                    val sibling = parentGroup.getChildAt(i)
+                    // 跳过自己（地图本身）和隐藏的视图
+                    if (sibling !== this && sibling.visibility == View.VISIBLE) {
+                        // 计算相对坐标：兄弟视图相对于父容器的坐标 - 地图相对于父容器的坐标
+                        val dx = sibling.left - this.left
+                        val dy = sibling.top - this.top
+                        
+                        canvas.save()
+                        canvas.translate(dx.toFloat(), dy.toFloat())
+                        sibling.draw(canvas)
+                        canvas.restore()
+                    }
                 }
             }
 

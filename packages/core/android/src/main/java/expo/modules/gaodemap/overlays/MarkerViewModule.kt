@@ -87,6 +87,11 @@ class MarkerViewModule : Module() {
       Prop<Double>("smoothMoveDuration") { view, duration ->
         view.setSmoothMoveDuration(duration)
       }
+
+      // 生长动画
+      Prop<Boolean>("growAnimation") { view, enable ->
+        view.setGrowAnimation(enable)
+      }
     }
   }
 }

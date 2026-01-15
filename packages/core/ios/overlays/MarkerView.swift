@@ -904,21 +904,28 @@ class ExpoGrowAnnotationView: MAAnnotationView, CAAnimationDelegate {
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
         
-        if enableGrowAnimation, let superview = newSuperview {
-            // 检查 superview 是否包含当前 view (其实 willMove 时还没添加，所以使用 center 判断逻辑如用户示例)
-            // 用户示例: if(newSuperview?.bounds.contains(self.center))!
-            // 但此时 self.center 可能还没设置好或者相对于 old superview。
-            // 简单起见，只要 enableGrowAnimation 且 newSuperview 不为 nil (即添加操作)，就执行动画
-            // 为了安全起见，我们还是尽量贴近用户示例
+        if enableGrowAnimation, let _ = newSuperview {
+       
+            // 缩放动画
+            let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
+            scaleAnimation.fromValue = 0
+            scaleAnimation.toValue = 1.0
             
-            let growAnimation = CABasicAnimation(keyPath: "transform.scale")
-            growAnimation.delegate = self
-            growAnimation.duration = 0.8
-            growAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
-            growAnimation.fromValue = 0
-            growAnimation.toValue = 1.0
+            // 透明度动画
+            let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+            opacityAnimation.fromValue = 0
+            opacityAnimation.toValue = 1.0
             
-            self.layer.add(growAnimation, forKey: "growAnimation")
+            // 组合动画
+            let groupAnimation = CAAnimationGroup()
+            groupAnimation.animations = [scaleAnimation, opacityAnimation]
+            groupAnimation.delegate = self
+            groupAnimation.duration = 0.8 // 与 Android 保持一致 (500ms)
+            groupAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+            groupAnimation.fillMode = .forwards
+            groupAnimation.isRemovedOnCompletion = false
+            
+            self.layer.add(groupAnimation, forKey: "growAnimation")
         }
     }
 }
@@ -929,15 +936,27 @@ class ExpoGrowPinAnnotationView: MAPinAnnotationView, CAAnimationDelegate {
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
         
-        if enableGrowAnimation, let superview = newSuperview {
-            let growAnimation = CABasicAnimation(keyPath: "transform.scale")
-            growAnimation.delegate = self
-            growAnimation.duration = 0.8
-            growAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
-            growAnimation.fromValue = 0
-            growAnimation.toValue = 1.0
+        if enableGrowAnimation, let _ = newSuperview {
+            // 缩放动画
+            let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
+            scaleAnimation.fromValue = 0
+            scaleAnimation.toValue = 1.0
             
-            self.layer.add(growAnimation, forKey: "growAnimation")
+            // 透明度动画
+            let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+            opacityAnimation.fromValue = 0
+            opacityAnimation.toValue = 1.0
+            
+            // 组合动画
+            let groupAnimation = CAAnimationGroup()
+            groupAnimation.animations = [scaleAnimation, opacityAnimation]
+            groupAnimation.delegate = self
+            groupAnimation.duration = 0.5 // 与 Android 保持一致 (500ms)
+            groupAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+            groupAnimation.fillMode = .forwards
+            groupAnimation.isRemovedOnCompletion = false
+            
+            self.layer.add(groupAnimation, forKey: "growAnimation")
         }
     }
 }

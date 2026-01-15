@@ -725,7 +725,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate {
             }
             
             // 开始绘制合成图
-            UIGraphicsBeginImageContextWithOptions(self.bounds.size, true, UIScreen.main.scale)
+            // 🔑 将 opaque 设为 false，避免透明背景的 UI 组件在绘制时变黑
+            UIGraphicsBeginImageContextWithOptions(self.bounds.size, false, UIScreen.main.scale)
             
             // 1. 绘制底图
             mapImage.draw(in: self.bounds)

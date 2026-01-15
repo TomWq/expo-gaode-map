@@ -102,7 +102,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
 
   return (
     <MapContext.Provider value={apiRef}>
-      <View style={[{ flex: 1, position: 'relative', overflow: 'hidden' }, style]}>
+      <View style={[{ flex: 1, position: 'relative', overflow: 'hidden' ,}, style]}>
         <NativeView
           ref={nativeRef}
           style={StyleSheet.absoluteFill}

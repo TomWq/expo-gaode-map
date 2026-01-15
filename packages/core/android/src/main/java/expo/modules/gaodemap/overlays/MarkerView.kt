@@ -5,12 +5,12 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
+
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import com.amap.api.maps.AMap
-import com.amap.api.maps.model.BitmapDescriptor
+
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Marker
@@ -26,12 +26,16 @@ import java.net.URL
 import kotlin.concurrent.thread
 import androidx.core.view.isNotEmpty
 import androidx.core.view.contains
-import androidx.core.graphics.createBitmap
+
 import androidx.core.view.isEmpty
 import androidx.core.graphics.scale
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import com.amap.api.maps.model.animation.AlphaAnimation
+import com.amap.api.maps.model.animation.AnimationSet
+import com.amap.api.maps.model.animation.ScaleAnimation
+import android.view.animation.DecelerateInterpolator
 import expo.modules.gaodemap.companion.BitmapDescriptorCache
 import expo.modules.gaodemap.companion.IconBitmapCache
 import kotlin.text.StringBuilder
@@ -152,6 +156,83 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private var smoothMoveMarker: SmoothMoveMarker? = null
     private var smoothMovePath: List<LatLng>? = null
     private var smoothMoveDuration: Double = 10.0  // 默认 10 秒
+    
+    // 生长动画相关
+    private var growAnimation: Boolean = false
+    private var hasAnimated: Boolean = false
+    private var pendingShowMarker: Boolean = false
+
+    private fun isPositionReady(): Boolean {
+        return pendingLatitude == null && pendingLongitude == null && pendingPosition == null
+    }
+
+    /**
+     * 设置生长动画
+     */
+    fun setGrowAnimation(enable: Boolean) {
+        growAnimation = enable
+    }
+
+    /**
+     * 启动显示动画
+     * 组合使用 AlphaAnimation 和微幅 ScaleAnimation
+     * Scale 从 0.5 开始而不是 0，可以显著减少因 SDK 锚点偏移导致的视觉平移感，
+     * 同时配合 Alpha 渐变，达成“柔和生长”的效果。
+     */
+    private fun startGrowAnimation(m: Marker) {
+        try {
+            val set = AnimationSet(true)
+            set.setInterpolator(DecelerateInterpolator())
+            set.setDuration(500)
+
+            // 透明度：0 -> 1
+            val alpha = AlphaAnimation(0f, 1f)
+            set.addAnimation(alpha)
+
+            // 缩放：0.5 -> 1.0 (避免从0开始，减少位移幅度)
+            val scale = ScaleAnimation(0.8f, 1f, 0.8f, 1f)
+            set.addAnimation(scale)
+
+            m.setAnimation(set)
+            m.startAnimation()
+        } catch (e: Exception) {
+            android.util.Log.e("MarkerView", "startGrowAnimation error", e)
+        }
+    }
+
+    /**
+     * 显示标记（统一处理可见性和动画）
+     */
+    private fun showMarker(m: Marker) {
+        if (!isPositionReady()) {
+            pendingShowMarker = true
+            return
+        }
+
+        doShowMarker(m)
+    }
+
+    private fun doShowMarker(m: Marker) {
+
+        val targetAlpha = pendingOpacity ?: 1.0f
+        
+        if (growAnimation && !hasAnimated) {
+            m.isVisible = true
+            // 不再手动设置 alpha=0，交给 startGrowAnimation 处理
+            // 避免时序问题导致的一帧闪烁
+            startGrowAnimation(m)
+            hasAnimated = true
+        } else {
+            m.alpha = targetAlpha
+            m.isVisible = true
+        }
+    }
+
+    private fun flushPendingShowIfNeeded() {
+        if (!pendingShowMarker || !isPositionReady()) return
+        pendingShowMarker = false
+        marker?.let { doShowMarker(it) }
+    }
 
     /**
      * 设置地图实例
@@ -159,12 +240,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     @Suppress("unused")
     fun setMap(map: AMap) {
       aMap = map
-      createOrUpdateMarker()
+      createOrUpdateMarker(pendingPosition)
       
       pendingPosition?.let { pos ->
         marker?.position = pos
         pendingPosition = null
+        pendingLatitude = null
+        pendingLongitude = null
       }
+
+      flushPendingShowIfNeeded()
       
       // 🔑 修复：需要延迟更新图标，等待 children 完成布局
       // 使用 post 延迟到下一帧，确保 children 完成测量和布局
@@ -225,14 +310,20 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 pendingPosition = null
                 pendingLatitude = null
                 pendingLongitude = null
+
+                flushPendingShowIfNeeded()
             } ?: run {
                 if (aMap != null) {
-                    createOrUpdateMarker()
+                    createOrUpdateMarker(latLng)
                     marker?.position = latLng
                     pendingLatitude = null
                     pendingLongitude = null
+
+                    flushPendingShowIfNeeded()
                 } else {
                     pendingPosition = latLng
+                    pendingLatitude = null
+                    pendingLongitude = null
                 }
             }
         } catch (_: Exception) {
@@ -338,6 +429,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             BitmapDescriptorCache.get(fullCacheKey)?.let {
                 marker.setIcon(it)
                 marker.setAnchor(0.5f, 1.0f)
+                showMarker(marker)
                 return
             }
 
@@ -355,10 +447,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                             mainHandler.post {
                                 marker.setIcon(descriptor)
                                 marker.setAnchor(0.5f, 1.0f)
+                                showMarker(marker)
                             }
                         } ?: run {
                             mainHandler.post {
                                 marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+                                showMarker(marker)
                             }
                         }
                     }
@@ -373,8 +467,10 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                         BitmapDescriptorCache.putDescriptor(fullCacheKey, descriptor)
                         marker.setIcon(descriptor)
                         marker.setAnchor(0.5f, 1.0f)
+                        showMarker(marker)
                     } else {
                         marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+                        showMarker(marker)
                     }
                 }
                 else -> { // 本地资源名
@@ -387,13 +483,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                         BitmapDescriptorCache.putDescriptor(fullCacheKey, descriptor)
                         marker.setIcon(descriptor)
                         marker.setAnchor(0.5f, 1.0f)
+                        showMarker(marker)
                     } else {
                         marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+                        showMarker(marker)
                     }
                 }
             }
         } catch (_: Exception) {
             marker.setIcon(BitmapDescriptorFactory.defaultMarker())
+            showMarker(marker)
         }
     }
 
@@ -456,7 +555,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 oldMarker.remove()
                 marker = null
 
-                createOrUpdateMarker()
+                createOrUpdateMarker(position)
                 marker?.position = position
             }
         }
@@ -490,6 +589,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             }
 
             marker.setIcon(descriptor)
+            showMarker(marker)
         } catch (_: Exception) {
             // 忽略异常
         }
@@ -595,10 +695,38 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     /**
      * 创建或更新标记
      */
-    private fun createOrUpdateMarker() {
+    private fun createOrUpdateMarker(initialPosition: LatLng? = null) {
         aMap?.let { map ->
             if (marker == null) {
+                // 🔑 修复：如果没有任何坐标信息，暂不创建 Marker，等待坐标就绪
+                // 这确保 Marker 永远在正确的位置出生，彻底解决动画位移问题
+                val pos = initialPosition ?: pendingPosition ?: if (pendingLatitude != null && pendingLongitude != null) {
+                    LatLng(pendingLatitude!!, pendingLongitude!!)
+                } else null
+                
+                if (pos == null) {
+                    return
+                }
+
+                hasAnimated = false // 重置动画状态
                 val options = MarkerOptions()
+                // 恢复默认的 visible(false)，因为我们已经有了严谨的创建逻辑
+                // 如果需要动画，showMarker 会处理 visible
+                options.visible(false)
+                options.position(pos)
+                
+                // 🔑 修复：设置初始锚点，避免动画时的位置跳变
+                // 如果是自定义 View（非空），默认锚点设为中心 (0.5, 0.5)
+                // 如果是默认大头针（空且无 icon/color），默认锚点设为底部中心 (0.5, 1.0)
+                val isDefaultMarker = isEmpty() && pendingIconUri == null && pendingPinColor == null
+                val defaultAnchorX = 0.5f
+                val defaultAnchorY = if (isDefaultMarker) 1.0f else 0.5f
+                
+                val anchorX = pendingAnchor?.first ?: defaultAnchorX
+                val anchorY = pendingAnchor?.second ?: defaultAnchorY
+                
+                options.anchor(anchorX, anchorY)
+
                 marker = map.addMarker(options)
 
                 // 注册到全局 map
@@ -620,6 +748,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                             loadAndSetIcon(pendingIconUri!!, m)
                         } else if (pendingPinColor != null) {
                             applyPinColor(pendingPinColor!!, m)
+                        } else {
+                            // 延迟检查，如果是默认 Marker 且没有子视图加入，才显示
+                            mainHandler.post {
+                                if (marker != null && isEmpty() && pendingIconUri == null && pendingPinColor == null) {
+                                    showMarker(m)
+                                }
+                            }
                         }
                     }
                 }
@@ -647,8 +782,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val measuredWidth = measuredChild?.measuredWidth ?: 0
         val measuredHeight = measuredChild?.measuredHeight ?: 0
 
-        val finalWidth = if (measuredWidth > 0) measuredWidth else (if (customViewWidth > 0) customViewWidth else 240)
-        val finalHeight = if (measuredHeight > 0) measuredHeight else (if (customViewHeight > 0) customViewHeight else 80)
+        val finalWidth = if (measuredWidth > 0) measuredWidth else (if (customViewWidth > 0) customViewWidth else 0)
+        val finalHeight = if (measuredHeight > 0) measuredHeight else (if (customViewHeight > 0) customViewHeight else 0)
+
+        // 🔑 修复：如果尺寸为 0，说明 View 还没准备好，不要生成 Bitmap，否则会导致动画位置偏移
+        if (finalWidth <= 0 || finalHeight <= 0) {
+            return null
+        }
 
         val fullCacheKey = "$keyPart|${finalWidth}x${finalHeight}"
 
@@ -684,13 +824,33 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         try {
             val childView = if (isNotEmpty()) getChildAt(0) else return null
 
-            // 使用给定的尺寸强制测量布局（更稳定）
-            val widthSpec = MeasureSpec.makeMeasureSpec(finalWidth, MeasureSpec.EXACTLY)
-            val heightSpec = MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY)
+            android.util.Log.d("MarkerView", "renderBitmap: child=${childView.width}x${childView.height} pos=(${childView.left},${childView.top}) final=${finalWidth}x${finalHeight}")
 
-            // measure + layout
-            childView.measure(widthSpec, heightSpec)
-            childView.layout(0, 0, finalWidth, finalHeight)
+            // 🔑 优化：如果 View 尺寸已经符合要求，直接复用现有布局，避免破坏 React Native 的排版
+            if (childView.width != finalWidth || childView.height != finalHeight) {
+                // 🔑 关键修复：如果子 View 还没完成布局（宽高为 0），不要强行 measure，这会导致布局错乱（如 0x0 -> 252x75）。
+                // 直接返回 null，等待下一次 layout（当子 View 准备好时会再次触发）。
+                if (childView.width == 0 || childView.height == 0) {
+                    android.util.Log.d("MarkerView", "renderBitmap: child is 0x0, skipping render to avoid glitch")
+                    return null
+                }
+
+                android.util.Log.d("MarkerView", "renderBitmap: forcing layout")
+                // 使用给定的尺寸强制测量布局
+                val widthSpec = MeasureSpec.makeMeasureSpec(finalWidth, MeasureSpec.EXACTLY)
+                val heightSpec = MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY)
+
+                // measure + layout
+                childView.measure(widthSpec, heightSpec)
+                childView.layout(0, 0, finalWidth, finalHeight)
+            } else {
+                 // 如果复用布局，必须检查 left/top 是否为 0。如果不为 0，绘制到 bitmap 时会发生偏移。
+                 // 很多时候 RN 会给 view 设置 left/top。
+                 if (childView.left != 0 || childView.top != 0) {
+                     android.util.Log.d("MarkerView", "renderBitmap: correcting position from (${childView.left},${childView.top}) to (0,0)")
+                     childView.layout(0, 0, finalWidth, finalHeight)
+                 }
+            }
 
             // 🔑 修复：创建支持透明度的 bitmap 配置
             val bitmap = Bitmap.createBitmap(finalWidth, finalHeight, Bitmap.Config.ARGB_8888)
@@ -719,8 +879,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      */
     private fun updateMarkerIcon() {
         if (isEmpty()) {
+            // 如果确实为空（没有子视图），恢复默认样式
             marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-            marker?.setAnchor(0.5f, 1.0f)
+            // 恢复默认锚点（底部中心），除非用户指定了锚点
+            val anchorX = pendingAnchor?.first ?: 0.5f
+            val anchorY = pendingAnchor?.second ?: 1.0f
+            marker?.setAnchor(anchorX, anchorY)
+            marker?.let { showMarker(it) }
             return
         }
 
@@ -731,18 +896,27 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val measuredHeight = child?.measuredHeight ?: customViewHeight
         val fullCacheKey = "$keyPart|${measuredWidth}x${measuredHeight}"
 
+        // 确定锚点：优先使用用户指定的 pendingAnchor，否则对于自定义 View 使用中心点 (0.5, 0.5)
+        val anchorX = pendingAnchor?.first ?: 0.5f
+        val anchorY = pendingAnchor?.second ?: 0.5f
+
         // 1) 尝试 BitmapDescriptor 缓存
-        BitmapDescriptorCache.get(fullCacheKey)?.let {
+        BitmapDescriptorCache.get(fullCacheKey)?.let { it ->
             marker?.setIcon(it)
-            // 🔑 修复:自定义视图使用中心锚点,不是底部中心
-            marker?.setAnchor(0.5f, 0.5f)
+            marker?.setAnchor(anchorX, anchorY)
+            marker?.let { showMarker(it) }
             return
         }
 
-        // 2) Bitmap 缓存命中则生成 Descriptor
+        // 2) Bitmap 缓存命中则生成 Descriptor，或者重新生成
         val bitmap = IconBitmapCache.get(fullCacheKey) ?: createBitmapFromView() ?: run {
-            marker?.setIcon(BitmapDescriptorFactory.defaultMarker())
-            marker?.setAnchor(0.5f, 1.0f)
+            // 🔑 关键修复：如果生成 Bitmap 失败（例如 View 还没准备好）
+            // 不要急着切回默认 Marker，这会导致闪烁和位置跳变。
+            // 只有在 Marker 从未显示过的情况下，才考虑兜底策略。
+            if (marker?.isVisible != true) {
+                 // 如果从未显示过，可以暂不显示，等待下一次尝试，或者显示默认（取决于需求）
+                 // 这里选择暂不显示，避免闪现蓝点
+            }
             return
         }
 
@@ -752,8 +926,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
 
         // 设置到 Marker
         marker?.setIcon(descriptor)
-        // 🔑 修复:自定义视图使用中心锚点,不是底部中心
-        marker?.setAnchor(0.5f, 0.5f)
+        marker?.setAnchor(anchorX, anchorY)
+        marker?.let { showMarker(it) }
     }
 
 
@@ -846,8 +1020,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
       super.onLayout(changed, left, top, right, bottom)
       // 🔑 修复：布局完成后延迟更新图标
-      // 使用 post 确保所有子视图都完成布局
-      if (changed && !isRemoving && isNotEmpty() && marker != null) {
+      // 即使 changed 为 false，只要有内容，也应该检查是否需要更新（例如子 View 尺寸变化但 MarkerView 没变）
+      if (!isRemoving && isNotEmpty() && marker != null) {
         mainHandler.post {
           if (!isRemoving && marker != null && isNotEmpty()) {
             updateMarkerIcon()
@@ -1026,7 +1200,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 android.util.Log.d("MarkerView", "adjustedPath size: ${adjustedPath.size}")
 
                 // 🔑 关键修复：先设置 SmoothMoveMarker 的位置
-                smoothMoveMarker?.setPosition(adjustedPath.first())
+                smoothMoveMarker?.position = adjustedPath.first()
                 android.util.Log.d("MarkerView", "SmoothMoveMarker position set to: ${adjustedPath.first()}")
                 
                 // 设置移动路径
@@ -1055,7 +1229,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      */
     private fun stopSmoothMove() {
         smoothMoveMarker?.stopMove()
-        marker?.isVisible = true
+        marker?.let { showMarker(it) }
     }
 
     /**
