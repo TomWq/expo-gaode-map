@@ -346,6 +346,117 @@ interface ClusterProps {
 }
 ```
 
+## Native Module Types
+
+### ExpoGaodeMapModule
+
+The native module instance type that defines all available native methods.
+It corresponds to `src/types/native-module.types.ts` and is exported from the
+package entry.
+
+```typescript
+interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
+  addListener(
+    eventName: keyof ExpoGaodeMapModuleEvents | string,
+    listener: (...args: any[]) => void,
+  ): { remove: () => void };
+
+  updatePrivacyCompliance(hasAgreed: boolean): void;
+
+  initSDK(config: SDKConfig): void;
+
+  setLoadWorldVectorMap(enabled: boolean): void;
+
+  getVersion(): string;
+
+  start(): void;
+
+  stop(): void;
+
+  isStarted(): Promise<boolean>;
+
+  getCurrentLocation(): Promise<Coordinates | ReGeocode>;
+
+  coordinateConvert(coordinate: LatLng, type: CoordinateType): Promise<LatLng>;
+
+  setLocatingWithReGeocode(isReGeocode: boolean): void;
+
+  setLocationMode(mode: LocationMode): void;
+
+  setInterval(interval: number): void;
+
+  setOnceLocation(isOnceLocation: boolean): void;
+
+  setSensorEnable(sensorEnable: boolean): void;
+
+  setWifiScan(wifiScan: boolean): void;
+
+  setGpsFirst(gpsFirst: boolean): void;
+
+  setOnceLocationLatest(onceLocationLatest: boolean): void;
+
+  setGeoLanguage(language: string): void;
+
+  setLocationCacheEnable(locationCacheEnable: boolean): void;
+
+  setHttpTimeOut(httpTimeOut: number): void;
+
+  setDesiredAccuracy(accuracy: LocationAccuracy): void;
+
+  setLocationTimeout(timeout: number): void;
+
+  setReGeocodeTimeout(timeout: number): void;
+
+  setDistanceFilter(distance: number): void;
+
+  setPausesLocationUpdatesAutomatically(pauses: boolean): void;
+
+  setAllowsBackgroundLocationUpdates(allows: boolean): void;
+
+  isBackgroundLocationEnabled: boolean;
+
+  setLocationProtocol(protocol: string): void;
+
+  startUpdatingHeading(): void;
+
+  stopUpdatingHeading(): void;
+
+  checkLocationPermission(): Promise<PermissionStatus>;
+
+  requestLocationPermission(): Promise<PermissionStatus>;
+
+  requestBackgroundLocationPermission(): Promise<PermissionStatus>;
+
+  openAppSettings(): void;
+
+  startMapPreload(config: { poolSize?: number }): void;
+
+  getMapPreloadStatus(): {
+    poolSize: number;
+    isPreloading: boolean;
+    maxPoolSize: number;
+  };
+
+  clearMapPreloadPool(): void;
+
+  hasPreloadedMapView(): boolean;
+
+  isNativeSDKConfigured(): boolean;
+
+  addLocationListener(listener: LocationListener): { remove: () => void };
+
+  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): Promise<number>;
+
+  isPointInCircle(point: LatLng, center: LatLng, radius: number): Promise<boolean>;
+
+  isPointInPolygon(point: LatLng, polygon: LatLng[]): Promise<boolean>;
+
+  calculatePolygonArea(polygon: LatLng[]): Promise<number>;
+
+  calculateRectangleArea(southWest: LatLng, northEast: LatLng): Promise<number>;
+}
+```
+
 ## Usage Examples
 
 ### Import Types

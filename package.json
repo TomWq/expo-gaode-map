@@ -52,13 +52,11 @@
   "devDependencies": {
     "@types/react": "~19.1.0",
     "expo-module-scripts": "^5.0.8",
-    "patch-package": "^8.0.1",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "expo-modules-autolinking": "^3.0.24"
-  },
-  "patchedDependencies": {
-    "expo-modules-autolinking@3.0.24": "patches/expo-modules-autolinking@3.0.24.patch"
+    "expo": "~54.0.30",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

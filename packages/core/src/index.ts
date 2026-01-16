@@ -2,7 +2,6 @@
 import { createPermissionHook } from 'expo-modules-core';
 import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
 
-
 // 导出类型定义（包含所有通用类型）
 export * from './types';
 // 导出原生模块

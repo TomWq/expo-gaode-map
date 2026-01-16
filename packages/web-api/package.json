@@ -14,9 +14,7 @@
     "clean": "rm -rf build",
     "lint": "node -e \"const { spawnSync } = require('child_process'); const r = spawnSync('tsc', ['--noEmit', '--pretty', 'false'], { stdio: 'inherit' }); process.exit(r.status ?? 1);\" --",
     "test": "bun test",
-    "prepare": "npm run build",
-    "postinstall": "node -e \"try{require.resolve('expo-gaode-map');process.exit(0)}catch(e1){try{require.resolve('expo-gaode-map-navigation');process.exit(0)}catch(e2){console.error('[expo-gaode-map-web-api] 需要安装基础地图组件：expo-gaode-map 或 expo-gaode-map-navigation 中的任意一个。\\bun add expo-gaode-map 或 bun add expo-gaode-map-navigation');process.exit(1)}}\""
-  },
+    "prepare": "npm run build"  },
   "keywords": [
     "react-native",
     "expo",

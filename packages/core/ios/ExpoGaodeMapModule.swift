@@ -297,6 +297,11 @@ public class ExpoGaodeMapModule: Module {
             self.getLocationManager().setPausesLocationUpdatesAutomatically(pauses)
         }
         
+        Property("isBackgroundLocationEnabled") { () -> Bool in
+            let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+            return backgroundModes?.contains("location") == true
+        }
+        
         Function("setAllowsBackgroundLocationUpdates") { (allows: Bool) in
             self.getLocationManager().setAllowsBackgroundLocationUpdates(allows)
         }

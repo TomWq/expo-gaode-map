@@ -177,17 +177,16 @@ export default function MamScreen() {
     const init = async () => {
       try {
 
-        ExpoGaodeMapModule.initSDK({
-          webKey: '',
-
-        })
+        // ExpoGaodeMapModule.initSDK({
+        //   webKey: '',
+        // })
 
         await requestPermission()
 
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);
         ExpoGaodeMapModule.setInterval(5000);
-        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+        // ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
         ExpoGaodeMapModule.setDistanceFilter(0);
         ExpoGaodeMapModule.setDesiredAccuracy(3);
         ExpoGaodeMapModule.startUpdatingHeading();

@@ -1,6 +1,7 @@
 import Foundation
 import AMapLocationKit
 import CoreLocation
+import ExpoModulesCore
 
 /**
  * 定位管理器
@@ -82,6 +83,13 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     }
 
     func setAllowsBackgroundLocationUpdates(_ allows: Bool) {
+        if allows {
+            let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+            if backgroundModes?.contains("location") != true {
+                log.warn("⚠️ [ExpoGaodeMap] iOS 后台定位未正确配置，setAllowsBackgroundLocationUpdates(true) 可能不会生效，请检查 Info.plist 是否包含 UIBackgroundModes: location，或者在 app.json 中配置 enableBackgroundLocation: true，然后重新执行 npx expo prebuild")
+                return
+            }
+        }
         locationManager?.allowsBackgroundLocationUpdates = allows
     }
 
