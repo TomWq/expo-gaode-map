@@ -36,6 +36,16 @@ android {
   defaultConfig {
     versionCode 1
     versionName "2.2.11"
+    externalNativeBuild {
+      cmake {
+        cppFlags "-std=c++17"
+      }
+    }
+  }
+  externalNativeBuild {
+    cmake {
+      path "src/main/cpp/CMakeLists.txt"
+    }
   }
   lintOptions {
     abortOnError false

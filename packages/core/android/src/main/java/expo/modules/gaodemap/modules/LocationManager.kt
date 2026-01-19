@@ -4,6 +4,7 @@ import android.content.Context
 import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
+import com.amap.api.maps.CoordinateConverter
 import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.Promise
 import expo.modules.gaodemap.services.LocationForegroundService
@@ -135,11 +136,22 @@ class LocationManager(context: Context) {
 
         try {
             val sourceLatLng = LatLng(lat, lng)
-            // 高德 SDK 会自动处理坐标转换
+            val converter = CoordinateConverter(appContext)
+            // 0: GPS/Google, 1: MapBar, 2: Baidu, 3: MapABC/SoSo
+            converter.from(when(type) {
+                0 -> CoordinateConverter.CoordType.GPS
+                1 -> CoordinateConverter.CoordType.MAPBAR
+                2 -> CoordinateConverter.CoordType.BAIDU
+                3 -> CoordinateConverter.CoordType.MAPABC
+                else -> CoordinateConverter.CoordType.GPS
+            })
+            converter.coord(sourceLatLng)
+            val desLatLng = converter.convert()
+            
             promise.resolve(
                 mapOf(
-                    "latitude" to sourceLatLng.latitude,
-                    "longitude" to sourceLatLng.longitude
+                    "latitude" to desLatLng.latitude,
+                    "longitude" to desLatLng.longitude
                 )
             )
         } catch (e: Exception) {

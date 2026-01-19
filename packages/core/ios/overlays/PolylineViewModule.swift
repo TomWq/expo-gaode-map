@@ -26,6 +26,10 @@ public class PolylineViewModule: Module {
             Prop("dotted") { (view: PolylineView, dotted: Bool) in
                 view.setDotted(dotted)
             }
+
+            Prop("simplificationTolerance") { (view: PolylineView, tolerance: Double) in
+                view.setSimplificationTolerance(tolerance)
+            }
             
             OnViewDidUpdateProps { (view: PolylineView) in
                 // 属性更新完成后，如果还没连接地图，尝试连接

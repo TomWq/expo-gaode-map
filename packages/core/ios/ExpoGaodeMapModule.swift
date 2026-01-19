@@ -157,6 +157,15 @@ public class ExpoGaodeMapModule: Module {
             return false
         }
         
+        /**
+         * 手动触发预加载
+         * @param poolSize 预加载池大小 (默认 3)
+         */
+        Function("startPreload") { (poolSize: Int?) in
+            let size = poolSize ?? 3
+            MapPreloadManager.shared.startPreload(poolSize: size)
+        }
+        
         // ==================== 定位功能 ====================
         
         /**
@@ -246,21 +255,195 @@ public class ExpoGaodeMapModule: Module {
         
         /**
          * 坐标转换
-         * iOS 高德地图 SDK 使用 GCJ-02 坐标系,不需要转换
+         * @param coordinate 原始坐标
+         * @param type 坐标类型 (0: GPS/Google, 1: MapBar, 2: Baidu, 3: MapABC/SoSo)
+         * @return 转换后的坐标
          */
         AsyncFunction("coordinateConvert") { (coordinate: [String: Double], type: Int, promise: Promise) in
-            guard let latitude = coordinate["latitude"],
-                  let longitude = coordinate["longitude"] else {
-                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
-                return
+            self.getLocationManager().coordinateConvert(coordinate, type: type, promise: promise)
+        }
+        
+        // ==================== 几何计算 ====================
+        
+        /**
+         * 计算两点之间的距离
+         */
+        Function("distanceBetweenCoordinates") { (p1: [String: Double], p2: [String: Double]) -> Double in
+            guard let lat1 = p1["latitude"], let lon1 = p1["longitude"],
+                  let lat2 = p2["latitude"], let lon2 = p2["longitude"] else {
+                return 0.0
+            }
+            return ClusterNative.calculateDistance(withLat1: lat1, lon1: lon1, lat2: lat2, lon2: lon2)
+        }
+        
+        /**
+         * 计算多边形面积
+         */
+        Function("calculatePolygonArea") { (points: [[String: Double]]) -> Double in
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for point in points {
+                if let lat = point["latitude"], let lon = point["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            return ClusterNative.calculatePolygonArea(withLatitudes: lats, longitudes: lons)
+        }
+        
+        /**
+         * 判断点是否在多边形内
+         */
+        Function("isPointInPolygon") { (point: [String: Double], polygon: [[String: Double]]) -> Bool in
+            guard let lat = point["latitude"], let lon = point["longitude"] else {
+                return false
             }
             
-            // 高德地图 iOS SDK 使用 GCJ-02 坐标系，不需要转换
-            let result: [String: Double] = [
-                "latitude": latitude,
-                "longitude": longitude
-            ]
-            promise.resolve(result)
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for p in polygon {
+                if let lat = p["latitude"], let lon = p["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            return ClusterNative.isPointInPolygon(withPointLat: lat, pointLon: lon, latitudes: lats, longitudes: lons)
+        }
+        
+        /**
+         * 判断点是否在圆内
+         */
+        Function("isPointInCircle") { (point: [String: Double], center: [String: Double], radius: Double) -> Bool in
+            guard let lat = point["latitude"], let lon = point["longitude"],
+                  let centerLat = center["latitude"], let centerLon = center["longitude"] else {
+                return false
+            }
+            return ClusterNative.isPointInCircle(withPointLat: lat, pointLon: lon, centerLat: centerLat, centerLon: centerLon, radiusMeters: radius)
+        }
+
+        /**
+         * 计算矩形面积
+         */
+        Function("calculateRectangleArea") { (southWest: [String: Double], northEast: [String: Double]) -> Double in
+            guard let swLat = southWest["latitude"], let swLon = southWest["longitude"],
+                  let neLat = northEast["latitude"], let neLon = northEast["longitude"] else {
+                return 0.0
+            }
+            return ClusterNative.calculateRectangleArea(withSouthWestLat: swLat, southWestLon: swLon, northEastLat: neLat, northEastLon: neLon)
+        }
+        
+        /**
+         * 计算路径上距离目标点最近的点
+         */
+        Function("getNearestPointOnPath") { (path: [[String: Double]], target: [String: Double]) -> [String: Any]? in
+            guard let targetLat = target["latitude"], let targetLon = target["longitude"] else {
+                return nil
+            }
+            
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for point in path {
+                if let lat = point["latitude"], let lon = point["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            
+            if lats.isEmpty {
+                return nil
+            }
+            
+            return ClusterNative.getNearestPointOnPath(withLatitudes: lats, longitudes: lons, targetLat: targetLat, targetLon: targetLon) as? [String: Any]
+        }
+        
+        /**
+         * 计算多边形质心
+         */
+        Function("calculateCentroid") { (polygon: [[String: Double]]) -> [String: Double]? in
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for point in polygon {
+                if let lat = point["latitude"], let lon = point["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            
+            if lats.count < 3 {
+                return nil
+            }
+            
+            if let result = ClusterNative.calculateCentroid(withLatitudes: lats, longitudes: lons) as? [String: Double] {
+                return result
+            }
+            return nil
+        }
+        
+        /**
+         * GeoHash 编码
+         */
+        Function("encodeGeoHash") { (coordinate: [String: Double], precision: Int) -> String in
+            guard let lat = coordinate["latitude"], let lon = coordinate["longitude"] else {
+                return ""
+            }
+            return ClusterNative.encodeGeoHash(withLat: lat, lon: lon, precision: Int32(precision))
+        }
+
+        /**
+         * 轨迹抽稀 (RDP 算法)
+         */
+        Function("simplifyPolyline") { (points: [[String: Double]], tolerance: Double) -> [[String: Double]] in
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for point in points {
+                if let lat = point["latitude"], let lon = point["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            
+            let result = ClusterNative.simplifyPolyline(withLatitudes: lats, longitudes: lons, toleranceMeters: tolerance)
+            
+            var simplified: [[String: Double]] = []
+            for i in stride(from: 0, to: result.count, by: 2) {
+                if i + 1 < result.count {
+                    simplified.append([
+                        "latitude": result[i].doubleValue,
+                        "longitude": result[i+1].doubleValue
+                    ])
+                }
+            }
+            return simplified
+        }
+        
+        /**
+         * 计算路径总长度
+         */
+        Function("calculatePathLength") { (points: [[String: Double]]) -> Double in
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for point in points {
+                if let lat = point["latitude"], let lon = point["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            return ClusterNative.calculatePathLength(withLatitudes: lats, longitudes: lons)
+        }
+        
+        /**
+         * 获取路径上指定距离的点
+         */
+        Function("getPointAtDistance") { (points: [[String: Double]], distance: Double) -> [String: Any]? in
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            for point in points {
+                if let lat = point["latitude"], let lon = point["longitude"] {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                }
+            }
+            return ClusterNative.getPointAtDistance(withLatitudes: lats, longitudes: lons, distanceMeters: distance) as? [String: Any]
         }
         
         // ==================== 定位配置 ====================
@@ -489,160 +672,7 @@ public class ExpoGaodeMapModule: Module {
             }
         }
         
-        // ==================== 几何计算工具 ====================
-        
-        /**
-         * 计算两个坐标点之间的距离
-         * @param coordinate1 第一个坐标点
-         * @param coordinate2 第二个坐标点
-         * @returns 两点之间的距离（单位：米）
-         */
-        AsyncFunction("distanceBetweenCoordinates") { (coordinate1: [String: Double], coordinate2: [String: Double], promise: Promise) in
-            guard let lat1 = coordinate1["latitude"],
-                  let lon1 = coordinate1["longitude"],
-                  let lat2 = coordinate2["latitude"],
-                  let lon2 = coordinate2["longitude"] else {
-                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
-                return
-            }
-            
-            let coord1 = CLLocationCoordinate2D(latitude: lat1, longitude: lon1)
-            let coord2 = CLLocationCoordinate2D(latitude: lat2, longitude: lon2)
-            
-            let distance = MAMetersBetweenMapPoints(MAMapPointForCoordinate(coord1), MAMapPointForCoordinate(coord2))
-            promise.resolve(distance)
-        }
-        
-       
-        
-        /**
-         * 判断点是否在圆内
-         * @param point 要判断的点
-         * @param center 圆心坐标
-         * @param radius 圆半径（单位：米）
-         * @returns 是否在圆内
-         */
-        AsyncFunction("isPointInCircle") { (point: [String: Double], center: [String: Double], radius: Double, promise: Promise) in
-            guard let pointLat = point["latitude"],
-                  let pointLon = point["longitude"],
-                  let centerLat = center["latitude"],
-                  let centerLon = center["longitude"] else {
-                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
-                return
-            }
-            
-            let isInside = MACircleContainsCoordinate(
-                CLLocationCoordinate2D(latitude: pointLat, longitude: pointLon),
-                CLLocationCoordinate2D(latitude: centerLat, longitude: centerLon),
-                radius
-            )
-            promise.resolve(isInside)
-        }
-        
-        /**
-         * 判断点是否在多边形内
-         * @param point 要判断的点
-         * @param polygon 多边形的顶点坐标数组
-         * @returns 是否在多边形内
-         */
-        AsyncFunction("isPointInPolygon") { (point: [String: Double], polygon: [[String: Double]], promise: Promise) in
-            guard let pointLat = point["latitude"],
-                  let pointLon = point["longitude"] else {
-                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
-                return
-            }
-            
-            let polygonCoords = polygon.compactMap { coord -> CLLocationCoordinate2D? in
-                guard let lat = coord["latitude"],
-                      let lon = coord["longitude"] else {
-                    return nil
-                }
-                return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-            }
-            
-            guard polygonCoords.count >= 3 else {
-                promise.reject("INVALID_ARGUMENT", "多边形至少需要3个顶点")
-                return
-            }
-            
-            // 使用高德官方 API MAPolygonContainsCoordinate
-            let isInside = polygonCoords.withUnsafeBufferPointer { buffer in
-                let mutablePointer = UnsafeMutablePointer<CLLocationCoordinate2D>(mutating: buffer.baseAddress!)
-                return MAPolygonContainsCoordinate(
-                    CLLocationCoordinate2D(latitude: pointLat, longitude: pointLon),
-                    mutablePointer,
-                    UInt(polygonCoords.count)
-                )
-            }
-            promise.resolve(isInside)
-        }
-        
-        /**
-         * 计算多边形面积
-         * @param polygon 多边形的顶点坐标数组
-         * @returns 面积（单位：平方米）
-         */
-        AsyncFunction("calculatePolygonArea") { (polygon: [[String: Double]], promise: Promise) in
-         
-            
-            let polygonCoords = polygon.compactMap { coord -> CLLocationCoordinate2D? in
-                guard let lat = coord["latitude"],
-                      let lon = coord["longitude"] else {
-                    return nil
-                }
-                return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-            }
-            
-   
-            
-            guard polygonCoords.count >= 3 else {
-                promise.reject("INVALID_ARGUMENT", "多边形至少需要3个顶点")
-                return
-            }
-            
-            // 使用高德官方 API MAAreaForPolygon
-            let area = polygonCoords.withUnsafeBufferPointer { buffer in
-                let mutablePointer = UnsafeMutablePointer<CLLocationCoordinate2D>(mutating: buffer.baseAddress!)
-                let result = MAAreaForPolygon(mutablePointer, Int32(polygonCoords.count))
-              
-                return result
-            }
-          
-            promise.resolve(area)
-        }
-        
-        /**
-         * 计算矩形面积
-         * @param southWest 西南角坐标
-         * @param northEast 东北角坐标
-         * @returns 面积（单位：平方米）
-         */
-        AsyncFunction("calculateRectangleArea") { (southWest: [String: Double], northEast: [String: Double], promise: Promise) in
-          
-            
-            guard let swLat = southWest["latitude"],
-                  let swLon = southWest["longitude"],
-                  let neLat = northEast["latitude"],
-                  let neLon = northEast["longitude"] else {
-                promise.reject("INVALID_ARGUMENT", "无效的坐标参数")
-                return
-            }
-            
-            // 计算矩形宽高
-            let width = MAMetersBetweenMapPoints(
-                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: swLat, longitude: swLon)),
-                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: swLat, longitude: neLon))
-            )
-            let height = MAMetersBetweenMapPoints(
-                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: swLat, longitude: swLon)),
-                MAMapPointForCoordinate(CLLocationCoordinate2D(latitude: neLat, longitude: swLon))
-            )
-            
-            
-            let area = width * height
-            
-            promise.resolve(area)
-        }
+
         
         Events("onHeadingUpdate")
         Events("onLocationUpdate")

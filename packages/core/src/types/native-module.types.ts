@@ -55,6 +55,18 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   getVersion(): string;
 
   /**
+   * 检查原生 SDK 是否已配置 API Key
+   * @returns 是否已配置
+   */
+  isNativeSDKConfigured(): boolean;
+
+  /**
+   * 手动触发预加载
+   * @param poolSize 预加载池大小 (默认 3)
+   */
+  startPreload(poolSize?: number): void;
+
+  /**
    * 开始连续定位
    * 启动后会持续接收位置更新，通过 onLocationUpdate 事件回调
    */
@@ -85,6 +97,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @param type 原坐标系类型
    */
   coordinateConvert(coordinate: LatLng, type: CoordinateType): Promise<LatLng>;
+
 
   /**
    * 设置是否返回逆地理编码信息
@@ -285,7 +298,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @param coordinate2 第二个坐标点
    * @returns 两点之间的距离（单位：米）
    */
-  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): Promise<number>;
+  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): number;
 
   /**
    * 判断点是否在圆内
@@ -294,7 +307,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @param radius 圆半径（单位：米）
    * @returns 是否在圆内
    */
-  isPointInCircle(point: LatLng, center: LatLng, radius: number): Promise<boolean>;
+  isPointInCircle(point: LatLng, center: LatLng, radius: number): boolean;
 
   /**
    * 判断点是否在多边形内
@@ -302,14 +315,14 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @param polygon 多边形的顶点坐标数组
    * @returns 是否在多边形内
    */
-  isPointInPolygon(point: LatLng, polygon: LatLng[]): Promise<boolean>;
+  isPointInPolygon(point: LatLng, polygon: LatLng[]): boolean;
 
   /**
    * 计算多边形面积
    * @param polygon 多边形的顶点坐标数组
    * @returns 面积（单位：平方米）
    */
-  calculatePolygonArea(polygon: LatLng[]): Promise<number>;
+  calculatePolygonArea(polygon: LatLng[]): number;
 
   /**
    * 计算矩形面积
@@ -317,5 +330,60 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @param northEast 东北角坐标
    * @returns 面积（单位：平方米）
    */
-  calculateRectangleArea(southWest: LatLng, northEast: LatLng): Promise<number>;
+  calculateRectangleArea(southWest: LatLng, northEast: LatLng): number;
+
+  /**
+   * 获取路径上距离目标点最近的点
+   * @param path 路径点集合
+   * @param target 目标点
+   * @returns 最近点信息，包含坐标、索引和距离
+   */
+  getNearestPointOnPath(path: LatLng[], target: LatLng): {
+    latitude: number;
+    longitude: number;
+    index: number;
+    distanceMeters: number;
+  } | null;
+
+  /**
+   * 计算多边形质心
+   * @param polygon 多边形顶点坐标数组
+   * @returns 质心坐标
+   */
+  calculateCentroid(polygon: LatLng[]): LatLng | null;
+
+  /**
+   * GeoHash 编码
+   * @param coordinate 坐标点
+   * @param precision 精度 (1-12)
+   * @returns GeoHash 字符串
+   */
+  encodeGeoHash(coordinate: LatLng, precision: number): string;
+
+  /**
+   * 轨迹抽稀 (RDP 算法)
+   * @param points 原始轨迹点
+   * @param tolerance 允许误差(米)
+   * @returns 简化后的轨迹点
+   */
+  simplifyPolyline(points: LatLng[], tolerance: number): LatLng[];
+
+  /**
+   * 计算路径总长度
+   * @param points 路径点
+   * @returns 长度(米)
+   */
+  calculatePathLength(points: LatLng[]): number;
+
+  /**
+   * 获取路径上指定距离的点
+   * @param points 路径点
+   * @param distance 距离起点的米数
+   * @returns 点信息(坐标+角度)
+   */
+  getPointAtDistance(points: LatLng[], distance: number): {
+    latitude: number;
+    longitude: number;
+    angle: number;
+  } | null;
 }

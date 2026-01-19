@@ -26,7 +26,8 @@ export default function GeometryUtilsExample() {
       const coord1: LatLng = { latitude: 39.9042, longitude: 116.4074 }; // 北京
       const coord2: LatLng = { latitude: 31.2304, longitude: 121.4737 }; // 上海
 
-      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(coord1, coord2);
+      const distance =  ExpoGaodeMapModule.distanceBetweenCoordinates(coord1, coord2);
+    
       addResult('北京到上海距离', `${distance.toFixed(2)} 米 (${(distance / 1000).toFixed(2)} 公里)`);
     } catch (error) {
       addResult('距离计算错误', String(error));
@@ -42,7 +43,7 @@ export default function GeometryUtilsExample() {
       const center: LatLng = { latitude: 39.9042, longitude: 116.4074 }; // 北京天安门
       const radius = 10000; // 10公里
       setCirclePoints(point)
-      const isInside = await ExpoGaodeMapModule.isPointInCircle(point, center, radius);
+      const isInside =  ExpoGaodeMapModule.isPointInCircle(point, center, radius);
       addResult('天安门10公里圆内', isInside ? '是' : '否');
     } catch (error) {
       addResult('圆判断错误', String(error));
@@ -52,7 +53,7 @@ export default function GeometryUtilsExample() {
   // 示例4: 判断点是否在多边形内
   const testIsPointInPolygon = async () => {
     try {
-      const point: LatLng = { latitude: 39.915, longitude: 116.404 }; // 故宫附近
+      const point: LatLng = { latitude: 39.915, longitude: 11.404 }; // 故宫附近
       const polygon: LatLng[] = [
         { latitude: 39.923, longitude: 116.391 }, // 西北角
         { latitude: 39.923, longitude: 116.424 }, // 东北角
@@ -60,7 +61,7 @@ export default function GeometryUtilsExample() {
         { latitude: 39.886, longitude: 116.391 }, // 西南角
       ];
       setPolygonPoints(polygon)
-      const isInside = await ExpoGaodeMapModule.isPointInPolygon(point, polygon);
+      const isInside =  ExpoGaodeMapModule.isPointInPolygon(point, polygon);
       addResult('故宫区域多边形内', isInside ? '是' : '否');
     } catch (error) {
       addResult('多边形判断错误', String(error));
@@ -77,7 +78,7 @@ export default function GeometryUtilsExample() {
         { latitude: 39.886, longitude: 116.391 },
       ];
 
-      const area = await ExpoGaodeMapModule.calculatePolygonArea(polygon);
+      const area =  ExpoGaodeMapModule.calculatePolygonArea(polygon);
       addResult('矩形区域面积', `${area.toFixed(2)} 平方米 (${(area / 1000000).toFixed(2)} 平方公里)`);
     } catch (error) {
       addResult('面积计算错误', String(error));
@@ -90,7 +91,7 @@ export default function GeometryUtilsExample() {
       const southWest: LatLng = { latitude: 39.886, longitude: 116.391 };
       const northEast: LatLng = { latitude: 39.923, longitude: 116.424 };
 
-      const area = await ExpoGaodeMapModule.calculateRectangleArea(southWest, northEast);
+      const area =  ExpoGaodeMapModule.calculateRectangleArea(southWest, northEast);
       addResult('矩形面积', `${area.toFixed(2)} 平方米 (${(area / 1000000).toFixed(2)} 平方公里)`);
     } catch (error) {
       addResult('矩形面积计算错误', String(error));

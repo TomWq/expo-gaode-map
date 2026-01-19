@@ -379,15 +379,35 @@ object MapPreloadManager : ComponentCallbacks2 {
             instancesUsed.incrementAndGet()
             Log.i(TAG, "📤 使用预加载实例，剩余: ${preloadedMapViews.size}，总使用: ${instancesUsed.get()}")
             
-            // 如果池快空了，记录日志
-            if (preloadedMapViews.isEmpty() && !isPreloading.get()) {
-                Log.w(TAG, "⚠️ 预加载池为空")
-            }
+            // 触发自动补充（延迟执行，避免影响当前页面渲染）
+            triggerRefill()
             
             return instance.mapView
         } else {
             Log.w(TAG, "⚠️ 预加载池为空，返回 null")
+            // 尝试触发补充，以便下次使用
+            triggerRefill()
             return null
+        }
+    }
+
+    /**
+     * 触发自动补充机制
+     */
+    private fun triggerRefill() {
+        if (isPreloading.get()) return
+
+        // 延迟 5 秒后尝试补充，避免抢占当前 UI 资源
+        preloadScope.launch {
+            delay(5000)
+            if (!isPreloading.get() && preloadedMapViews.size < currentMaxPoolSize) {
+                appContext?.let { context ->
+                    Log.i(TAG, "🔄 触发自动补充预加载池")
+                    withContext(Dispatchers.Main) {
+                        startPreload(context, currentMaxPoolSize)
+                    }
+                }
+            }
         }
     }
     

@@ -771,7 +771,43 @@ class MarkerView: ExpoView {
         guard let mapView = mapView else { return }
         
         // 转换路径为 CLLocationCoordinate2D 数组
-        var coordinates = smoothMovePath.compactMap { point -> CLLocationCoordinate2D? in
+        // 使用 C++ 优化计算路径中的最近点
+        var adjustedPath: [[String: Double]]? = nil
+        
+        // 只有当有当前位置时才尝试寻找最近点
+        if let currentLat = position["latitude"], let currentLng = position["longitude"] {
+            // 准备数据给 C++
+            let latitudes = smoothMovePath.compactMap { $0["latitude"] as NSNumber? }
+            let longitudes = smoothMovePath.compactMap { $0["longitude"] as NSNumber? }
+            
+            if latitudes.count == longitudes.count && !latitudes.isEmpty {
+                if let result = ClusterNative.getNearestPointOnPath(withLatitudes: latitudes,
+                                                                  longitudes: longitudes,
+                                                                  targetLat: currentLat,
+                                                                  targetLon: currentLng) {
+                    
+                    if let indexNum = result["index"] as? NSNumber,
+                       let lat = result["latitude"] as? Double,
+                       let lon = result["longitude"] as? Double {
+                        
+                        let index = indexNum.intValue
+                        if index >= 0 && index < smoothMovePath.count - 1 {
+                            // 从 index + 1 开始截取
+                            let subPath = Array(smoothMovePath[(index + 1)...])
+                            // 插入投影点作为起点
+                            var newPath = subPath
+                            newPath.insert(["latitude": lat, "longitude": lon], at: 0)
+                            adjustedPath = newPath
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果没有调整路径（C++计算失败或不需要调整），使用原始路径
+        let finalPath = adjustedPath ?? smoothMovePath
+        
+        var coordinates = finalPath.compactMap { point -> CLLocationCoordinate2D? in
             guard let lat = point["latitude"], let lng = point["longitude"] else {
                 return nil
             }
@@ -900,11 +936,18 @@ class IconBitmapCache {
 
 class ExpoGrowAnnotationView: MAAnnotationView, CAAnimationDelegate {
     var enableGrowAnimation: Bool = false
+    private var didAnimateOnce: Bool = false
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        didAnimateOnce = false
+    }
     
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
         
-        if enableGrowAnimation, let _ = newSuperview {
+        if enableGrowAnimation, let _ = newSuperview, !didAnimateOnce {
+            didAnimateOnce = true
        
             // 缩放动画
             let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
@@ -932,11 +975,18 @@ class ExpoGrowAnnotationView: MAAnnotationView, CAAnimationDelegate {
 
 class ExpoGrowPinAnnotationView: MAPinAnnotationView, CAAnimationDelegate {
     var enableGrowAnimation: Bool = false
+    private var didAnimateOnce: Bool = false
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        didAnimateOnce = false
+    }
     
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
         
-        if enableGrowAnimation, let _ = newSuperview {
+        if enableGrowAnimation, let _ = newSuperview, !didAnimateOnce {
+            didAnimateOnce = true
             // 缩放动画
             let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
             scaleAnimation.fromValue = 0

@@ -44,6 +44,10 @@ class PolylineViewModule : Module() {
       Prop<Boolean>("gradient")  { view: PolylineView, gradient ->
           view.setGradient(gradient)
       }
+
+      Prop<Double>("simplificationTolerance") { view: PolylineView, tolerance ->
+        view.setSimplificationTolerance(tolerance)
+      }
     }
   }
 }

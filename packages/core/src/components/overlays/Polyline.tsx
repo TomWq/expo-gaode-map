@@ -31,7 +31,17 @@ function arePropsEqual(prevProps: PolylineProps, nextProps: PolylineProps): bool
   // 比较样式属性
   if (prevProps.strokeWidth !== nextProps.strokeWidth ||
       prevProps.strokeColor !== nextProps.strokeColor ||
-      prevProps.zIndex !== nextProps.zIndex) {
+      prevProps.zIndex !== nextProps.zIndex ||
+      prevProps.geodesic !== nextProps.geodesic ||
+      prevProps.dotted !== nextProps.dotted ||
+      prevProps.gradient !== nextProps.gradient ||
+      prevProps.simplificationTolerance !== nextProps.simplificationTolerance ||
+      prevProps.texture !== nextProps.texture) {
+    return false;
+  }
+
+  // 比较 colors 数组
+  if (prevProps.colors !== nextProps.colors) {
     return false;
   }
   

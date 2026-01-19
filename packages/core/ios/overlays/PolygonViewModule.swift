@@ -5,7 +5,7 @@ public class PolygonViewModule: Module {
         Name("PolygonView")
         
         View(PolygonView.self) {
-            Events("onPolygonPress")
+            Events("onPolygonPress", "onPolygonSimplified")
             
             Prop("points") { (view: PolygonView, points: [[String: Double]]) in
                 view.setPoints(points)
@@ -21,6 +21,10 @@ public class PolygonViewModule: Module {
             
             Prop("strokeWidth") { (view: PolygonView, width: Double) in
                 view.setStrokeWidth(Float(width))
+            }
+
+            Prop("simplificationTolerance") { (view: PolygonView, tolerance: Double) in
+                view.setSimplificationTolerance(tolerance)
             }
             
             OnViewDidUpdateProps { (view: PolygonView) in

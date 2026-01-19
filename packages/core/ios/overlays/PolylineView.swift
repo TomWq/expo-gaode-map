@@ -20,6 +20,8 @@ class PolylineView: ExpoView {
     var isDotted: Bool = false
     /// 纹理图片 URL
     var textureUrl: String?
+    /// 简化容差 (米)
+    var simplificationTolerance: Double = 0.0
     
     /// 点击事件派发器
     let onPolylinePress = EventDispatcher()
@@ -77,21 +79,59 @@ class PolylineView: ExpoView {
     }
     
     /**
+     * 设置简化容差
+     */
+    func setSimplificationTolerance(_ tolerance: Double) {
+        simplificationTolerance = tolerance
+        updatePolyline()
+    }
+
+    /**
      * 更新折线覆盖物
      */
     private func updatePolyline() {
         guard let mapView = mapView else { return }
         if let old = polyline { mapView.remove(old) }
         
-        // 🔑 坐标验证和过滤
-        var coords = points.compactMap { point -> CLLocationCoordinate2D? in
+        var coords: [CLLocationCoordinate2D] = []
+
+        // 1. 提取有效坐标
+        var latitudes: [NSNumber] = []
+        var longitudes: [NSNumber] = []
+        
+        for point in points {
             guard let lat = point["latitude"],
                   let lng = point["longitude"],
                   lat >= -90 && lat <= 90,
-                  lng >= -180 && lng <= 180 else {
-                return nil
+                  lng >= -180 && lng <= 180 else { continue }
+            latitudes.append(NSNumber(value: lat))
+            longitudes.append(NSNumber(value: lng))
+        }
+        
+        guard latitudes.count >= 2 else { return }
+
+        // 2. 尝试简化
+        if simplificationTolerance > 0 {
+            let simplified = ClusterNative.simplifyPolyline(withLatitudes: latitudes, longitudes: longitudes, toleranceMeters: simplificationTolerance)
+            
+            if !simplified.isEmpty {
+                // ClusterNative 返回 flat array [lat, lon, lat, lon...]
+                for i in stride(from: 0, to: simplified.count, by: 2) {
+                    let lat = simplified[i].doubleValue
+                    let lon = simplified[i+1].doubleValue
+                    coords.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+                }
+            } else {
+                 // Fallback
+                 for i in 0..<latitudes.count {
+                    coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
+                }
             }
-            return CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        } else {
+            // 3. 不简化
+            for i in 0..<latitudes.count {
+                coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
+            }
         }
         
         // 🔑 至少需要2个点才能绘制折线

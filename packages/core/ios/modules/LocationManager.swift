@@ -1,5 +1,6 @@
 import Foundation
 import AMapLocationKit
+import AMapFoundationKit
 import CoreLocation
 import ExpoModulesCore
 
@@ -172,6 +173,41 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
 
     func amapLocationManager(_ manager: AMapLocationManager!, didFailWithError error: Error!) {
         // 定位失败 - 静默处理（连续定位会自动重试）
+    }
+
+    // MARK: - 工具方法
+
+    /**
+     * 坐标转换
+     * @param coordinate 原始坐标
+     * @param type 坐标类型 (0: GPS/Google, 1: MapBar, 2: Baidu, 3: MapABC/SoSo)
+     * @param promise Promise
+     */
+    func coordinateConvert(_ coordinate: [String: Double], type: Int, promise: Promise) {
+        guard let lat = coordinate["latitude"],
+              let lon = coordinate["longitude"] else {
+            promise.reject("INVALID_ARGUMENT", "Invalid coordinate")
+            return
+        }
+        
+        let coord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        var amapType: AMapCoordinateType
+        
+        // 根据文档映射
+        switch type {
+        case 0: amapType = AMapCoordinateType.GPS
+        case 1: amapType = AMapCoordinateType.mapBar
+        case 2: amapType = AMapCoordinateType.baidu
+        case 3: amapType = AMapCoordinateType.mapABC
+        default: amapType = AMapCoordinateType.GPS
+        }
+        
+        let converted = AMapCoordinateConvert(coord, amapType)
+        
+        promise.resolve([
+            "latitude": converted.latitude,
+            "longitude": converted.longitude
+        ])
     }
 
     // MARK: - 销毁

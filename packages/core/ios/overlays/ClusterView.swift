@@ -5,7 +5,8 @@ class ClusterView: ExpoView {
     // 属性
     var points: [[String: Any]] = [] {
         didSet {
-            buildQuadTree()
+            parsePoints()
+            updateClusters()
         }
     }
     var radius: Int = 100 // 聚合范围 (screen points)
@@ -23,13 +24,41 @@ class ClusterView: ExpoView {
     let onClusterPress = EventDispatcher()
     
     private weak var mapView: MAMapView?
-    private var quadTree = CoordinateQuadTree()
+    // private var quadTree = CoordinateQuadTree() // Removed: using C++ ClusterNative
     private var currentAnnotations: [MAAnnotation] = []
     private let quadTreeQueue = DispatchQueue(label: "com.expo.gaode.quadtree")
     private var isInvalidated = false
     
+    // 缓存坐标数据以加速 C++ 调用
+    private var latitudes: [Double] = []
+    private var longitudes: [Double] = []
+    
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
+    }
+    
+    private func parsePoints() {
+        var lats: [Double] = []
+        var lons: [Double] = []
+        
+        for point in points {
+            if let lat = point["latitude"] as? Double,
+               let lon = point["longitude"] as? Double {
+                lats.append(lat)
+                lons.append(lon)
+            } else {
+                // 保持索引一致，无效点填 0 (或者过滤掉，但索引会乱，C++聚类返回的是索引)
+                // 如果 C++ 返回索引，我们需要确保 points[index] 是对应的点
+                // 所以这里最好不要过滤，而是填 NaN 或 0，并在后续处理
+                // 但 C++ 聚类会处理这些点吗？
+                // 简单起见，假设数据都是有效的。如果无效，填 0,0，它们会聚类在一起。
+                lats.append(0)
+                lons.append(0)
+            }
+        }
+        
+        self.latitudes = lats
+        self.longitudes = lons
     }
     
     // MARK: - Setters for Expo Module
@@ -103,25 +132,22 @@ class ClusterView: ExpoView {
         updateClusters()
     }
     
-    // MARK: - QuadTree Logic
+    // MARK: - Update Logic
     
-    private func buildQuadTree() {
-        // 在后台串行队列构建四叉树，保证线程安全
-        quadTreeQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.quadTree.clear()
-            self.quadTree.build(with: self.points)
-            
-            // 构建完成后触发更新
-            DispatchQueue.main.async {
-                self.updateClusters()
-            }
+    private var updateTimer: Timer?
+    private let throttleInterval: TimeInterval = 0.3 // 300ms 节流
+
+    func updateClusters() {
+        if isInvalidated { return }
+        
+        // 节流逻辑：取消上一次的 Timer，重新计时
+        updateTimer?.invalidate()
+        updateTimer = Timer.scheduledTimer(withTimeInterval: throttleInterval, repeats: false) { [weak self] _ in
+            self?.performUpdate()
         }
     }
     
-    // MARK: - Update Logic
-    
-    func updateClusters() {
+    private func performUpdate() {
         if isInvalidated { return }
         guard let mapView = mapView else { return }
         
@@ -129,15 +155,69 @@ class ClusterView: ExpoView {
         if mapView.bounds.size.width == 0 { return }
         
         let visibleRect = mapView.visibleMapRect
-        let boundsWidth = Double(mapView.bounds.size.width)
-        let zoomScale = boundsWidth > 0 ? visibleRect.size.width / boundsWidth : 0
-        let currentRadius = Double(self.radius)
+        let zoomScale = visibleRect.size.width / Double(mapView.bounds.size.width)
+        
+        // 计算当前缩放级别下的物理半径（米）
+        // MAMapView 单位投影：1 map point ≈ 1 meter (at equator)
+        // 实际上需要根据纬度计算 metersPerMapPoint
+        let centerLat = mapView.centerCoordinate.latitude
+        let metersPerMapPoint = MAMetersPerMapPointAtLatitude(centerLat)
+        let mapPointsPerScreenPoint = zoomScale
+        let metersPerScreenPoint = metersPerMapPoint * mapPointsPerScreenPoint
+        let radiusMeters = Double(self.radius) * metersPerScreenPoint
         
         // 在后台串行队列计算聚合
         quadTreeQueue.async { [weak self] in
             guard let self = self else { return }
             
-            let annotations = self.quadTree.clusteredAnnotations(within: visibleRect, zoomScale: zoomScale, gridSize: currentRadius)
+            // 转换为 NSNumber 数组以传递给 Obj-C++
+            let latNums = self.latitudes.map { NSNumber(value: $0) }
+            let lonNums = self.longitudes.map { NSNumber(value: $0) }
+            
+            // 调用 C++ 聚类算法
+            let clusterData = ClusterNative.clusterPoints(withLatitudes: latNums, longitudes: lonNums, radiusMeters: radiusMeters)
+            
+            var annotations: [ClusterAnnotation] = []
+            
+            if clusterData.count > 0 {
+                let clusterCount = clusterData[0].intValue
+                var offset = 1
+                
+                for _ in 0..<clusterCount {
+                    if offset >= clusterData.count { break }
+                    
+                    let centerIndex = clusterData[offset].intValue
+                    offset += 1
+                    
+                    let count = clusterData[offset].intValue
+                    offset += 1
+                    
+                    var pois: [[String: Any]] = []
+                    
+                    for _ in 0..<count {
+                        if offset < clusterData.count {
+                            let idx = clusterData[offset].intValue
+                            if idx >= 0 && idx < self.points.count {
+                                pois.append(self.points[idx])
+                            }
+                            offset += 1
+                        }
+                    }
+                    
+                    if centerIndex >= 0 && centerIndex < self.points.count {
+                        let centerPoint = self.points[centerIndex]
+                        if let lat = centerPoint["latitude"] as? Double,
+                           let lon = centerPoint["longitude"] as? Double {
+                             let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                             // 只有当聚类点数量 >= minClusterSize 时才显示聚类
+                             // 但通常 ClusterView 负责显示所有点（聚合或非聚合）
+                             // 这里如果 count == 1，也是一个 ClusterAnnotation，只是显示样式可能不同
+                             let annotation = ClusterAnnotation(coordinate: coordinate, count: count, pois: pois)
+                             annotations.append(annotation)
+                        }
+                    }
+                }
+            }
             
             DispatchQueue.main.async {
                 if self.isInvalidated { return }
@@ -162,11 +242,11 @@ class ClusterView: ExpoView {
         
         // 只有当有变化时才操作
         if !toRemove.isEmpty {
-            mapView.removeAnnotations(Array(toRemove) as [MAAnnotation])
+            mapView.removeAnnotations(Array(toRemove))
         }
         
         if !toAdd.isEmpty {
-            mapView.addAnnotations(Array(toAdd) as [MAAnnotation])
+            mapView.addAnnotations(Array(toAdd))
         }
         
         // 更新 currentAnnotations
@@ -289,6 +369,7 @@ class ClusterView: ExpoView {
     
     override func removeFromSuperview() {
         isInvalidated = true
+        updateTimer?.invalidate() // 清理定时器
         super.removeFromSuperview()
         mapView?.removeAnnotations(currentAnnotations)
     }

@@ -1,6 +1,5 @@
 package expo.modules.gaodemap
 
-import com.amap.api.maps.AMapUtils
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.modules.Module
@@ -8,6 +7,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.gaodemap.modules.SDKInitializer
 import expo.modules.gaodemap.modules.LocationManager
 import expo.modules.gaodemap.utils.GeometryUtils
+
 import expo.modules.gaodemap.utils.PermissionHelper
 
 /**
@@ -69,7 +69,7 @@ class ExpoGaodeMapModule : Module() {
      * 不用主动调用，下个版本删除
      * 
      */
-    Function("updatePrivacyCompliance") { hasAgreed: Boolean ->
+    Function("updatePrivacyCompliance") { _: Boolean ->
        val context = appContext.reactContext!!
        SDKInitializer.restorePrivacyState(context)
     }
@@ -122,8 +122,22 @@ class ExpoGaodeMapModule : Module() {
           .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
           .metaData?.getString("com.amap.api.v2.apikey")
         !apiKey.isNullOrEmpty()
-      } catch (e: Exception) {
+      } catch (_: Exception) {
         false
+      }
+    }
+
+    /**
+     * 手动触发预加载
+     * @param poolSize 预加载池大小 (默认 3)
+     */
+    Function("startPreload") { poolSize: Int? ->
+      try {
+        val context = appContext.reactContext!!
+        val size = poolSize ?: 3
+        MapPreloadManager.startPreload(context, size)
+      } catch (e: Exception) {
+        android.util.Log.e("ExpoGaodeMap", "手动启动预加载失败", e)
       }
     }
 
@@ -170,11 +184,202 @@ class ExpoGaodeMapModule : Module() {
       getLocationManager().coordinateConvert(coordinate, type, promise)
     }
 
+    // ==================== 几何计算 ====================
+
+    /**
+     * 计算两个坐标点之间的距离
+     * @param coordinate1 第一个坐标点
+     * @param coordinate2 第二个坐标点
+     * @returns 两点之间的距离（单位：米）
+     */
+    Function("distanceBetweenCoordinates") { coordinate1: Map<String, Double>, coordinate2: Map<String, Double> ->
+      val lat1 = coordinate1["latitude"] ?: 0.0
+      val lon1 = coordinate1["longitude"] ?: 0.0
+      val lat2 = coordinate2["latitude"] ?: 0.0
+      val lon2 = coordinate2["longitude"] ?: 0.0
+      GeometryUtils.calculateDistance(LatLng(lat1, lon1), LatLng(lat2, lon2))
+    }
+
+    /**
+     * 计算多边形面积
+     * @param points 多边形顶点坐标数组
+     * @return 面积（平方米）
+     */
+    Function("calculatePolygonArea") { points: List<Map<String, Double>> ->
+      val latLungs = points.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      GeometryUtils.calculatePolygonArea(latLungs)
+    }
+
+    /**
+     * 判断点是否在多边形内
+     * @param point 待判断点
+     * @param polygon 多边形顶点坐标数组
+     * @return 是否在多边形内
+     */
+    Function("isPointInPolygon") { point: Map<String, Double>, polygon: List<Map<String, Double>> ->
+      val pt = LatLng(point["latitude"] ?: 0.0, point["longitude"] ?: 0.0)
+      val poly = polygon.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      GeometryUtils.isPointInPolygon(pt, poly)
+    }
+
+    /**
+     * 判断点是否在圆内
+     * @param point 待判断点
+     * @param center 圆心坐标
+     * @param radius 圆半径（米）
+     * @return 是否在圆内
+     */
+    Function("isPointInCircle") { point: Map<String, Double>, center: Map<String, Double>, radius: Double ->
+      val pt = LatLng(point["latitude"] ?: 0.0, point["longitude"] ?: 0.0)
+      val cn = LatLng(center["latitude"] ?: 0.0, center["longitude"] ?: 0.0)
+      GeometryUtils.isPointInCircle(pt, cn, radius)
+    }
+
+    /**
+     * 计算矩形面积
+     * @param southWest 西南角
+     * @param northEast 东北角
+     * @return 面积（平方米）
+     */
+    Function("calculateRectangleArea") { southWest: Map<String, Double>, northEast: Map<String, Double> ->
+      val sw = LatLng(southWest["latitude"] ?: 0.0, southWest["longitude"] ?: 0.0)
+      val ne = LatLng(northEast["latitude"] ?: 0.0, northEast["longitude"] ?: 0.0)
+      GeometryUtils.calculateRectangleArea(sw, ne)
+    }
+
+    /**
+     * 获取路径上距离目标点最近的点
+     * @param path 路径点集合
+     * @param target 目标点
+     * @return 最近点结果
+     */
+    Function("getNearestPointOnPath") { path: List<Map<String, Double>>, target: Map<String, Double> ->
+      val pathPoints = path.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      val targetPoint = LatLng(target["latitude"] ?: 0.0, target["longitude"] ?: 0.0)
+      
+      val result = GeometryUtils.getNearestPointOnPath(pathPoints, targetPoint)
+      if (result != null) {
+        mapOf(
+          "latitude" to result.point.latitude,
+          "longitude" to result.point.longitude,
+          "index" to result.index,
+          "distanceMeters" to result.distanceMeters
+        )
+      } else {
+        null
+      }
+    }
+
+    /**
+     * 计算多边形质心
+     * @param polygon 多边形顶点坐标数组
+     * @return 质心坐标
+     */
+    Function("calculateCentroid") { polygon: List<Map<String, Double>> ->
+      val poly = polygon.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      val result = GeometryUtils.calculateCentroid(poly)
+      if (result != null) {
+        mapOf(
+          "latitude" to result.latitude,
+          "longitude" to result.longitude
+        )
+      } else {
+        null
+      }
+    }
+
+    /**
+     * GeoHash 编码
+     * @param coordinate 坐标点
+     * @param precision 精度 (1-12)
+     * @return GeoHash 字符串
+     */
+    Function("encodeGeoHash") { coordinate: Map<String, Double>, precision: Int ->
+      val lat = coordinate["latitude"] ?: 0.0
+      val lon = coordinate["longitude"] ?: 0.0
+      GeometryUtils.encodeGeoHash(LatLng(lat, lon), precision)
+    }
+
+    /**
+     * 轨迹抽稀 (RDP 算法)
+     * @param points 原始轨迹点
+     * @param tolerance 允许误差(米)
+     * @return 简化后的轨迹点
+     */
+    Function("simplifyPolyline") { points: List<Map<String, Double>>, tolerance: Double ->
+      val poly = points.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      val simplified = GeometryUtils.simplifyPolyline(poly, tolerance)
+      simplified.map {
+        mapOf(
+          "latitude" to it.latitude,
+          "longitude" to it.longitude
+        )
+      }
+    }
+
+    /**
+     * 计算路径总长度
+     * @param points 路径点
+     * @return 长度(米)
+     */
+    Function("calculatePathLength") { points: List<Map<String, Double>> ->
+      val poly = points.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      GeometryUtils.calculatePathLength(poly)
+    }
+
+    /**
+     * 获取路径上指定距离的点
+     * @param points 路径点
+     * @param distance 距离起点的米数
+     * @return 点信息(坐标+角度)
+     */
+    Function("getPointAtDistance") { points: List<Map<String, Double>>, distance: Double ->
+      val poly = points.mapNotNull {
+        val lat = it["latitude"]
+        val lon = it["longitude"]
+        if (lat != null && lon != null) LatLng(lat, lon) else null
+      }
+      val result = GeometryUtils.getPointAtDistance(poly, distance)
+      if (result != null) {
+        mapOf(
+          "latitude" to result.point.latitude,
+          "longitude" to result.point.longitude,
+          "angle" to result.angle
+        )
+      } else {
+        null
+      }
+    }
+
     // ==================== 定位配置 ====================
 
     /**
      * 设置是否返回逆地理信息
-     * @param isReGeocode 是否返回逆地理信息
+     * @param isReGeocode 是否返回逆地理信息+
      */
     Function("setLocatingWithReGeocode") { isReGeocode: Boolean ->
       getLocationManager().setLocatingWithReGeocode(isReGeocode)
@@ -378,7 +583,7 @@ class ExpoGaodeMapModule : Module() {
       // 使用 WeakReference 避免内存泄露
       val contextRef = java.lang.ref.WeakReference(appContext.reactContext)
       val handler = android.os.Handler(android.os.Looper.getMainLooper())
-      var attempts = 0
+      val attempts = 0
       val maxAttempts = 50 // 增加到 5 秒 / 100ms，给用户足够时间操作
 
       val checkPermission = object : Runnable {
@@ -403,7 +608,7 @@ class ExpoGaodeMapModule : Module() {
               "isPermanentlyDenied" to status.isPermanentlyDenied
             ))
           } else {
-            attempts++
+
             handler.postDelayed(this, 100)
           }
         }
@@ -449,7 +654,7 @@ class ExpoGaodeMapModule : Module() {
       // 轮询检查权限状态
       val contextRef = java.lang.ref.WeakReference(appContext.reactContext)
       val handler = android.os.Handler(android.os.Looper.getMainLooper())
-      var attempts = 0
+      val attempts = 0
       val maxAttempts = 30
 
       val checkPermission = object : Runnable {
@@ -472,7 +677,7 @@ class ExpoGaodeMapModule : Module() {
               "isPermanentlyDenied" to status.isPermanentlyDenied
             ))
           } else {
-            attempts++
+
             handler.postDelayed(this, 100)
           }
         }
@@ -488,169 +693,6 @@ class ExpoGaodeMapModule : Module() {
       val context = appContext.reactContext!!
       PermissionHelper.openAppSettings(context)
     }
-
-    // ==================== 几何计算工具 ====================
-
-    /**
-     * 计算两个坐标点之间的距离
-     * @param coordinate1 第一个坐标点
-     * @param coordinate2 第二个坐标点
-     * @return 两点之间的距离（单位：米）
-     */
-    AsyncFunction("distanceBetweenCoordinates") { coordinate1: Map<String, Double>, coordinate2: Map<String, Double>, promise: expo.modules.kotlin.Promise ->
-      try {
-        val lat1 = coordinate1["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid coordinate1 latitude", null)
-        val lon1 = coordinate1["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid coordinate1 longitude", null)
-        val lat2 = coordinate2["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid coordinate2 latitude", null)
-        val lon2 = coordinate2["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid coordinate2 longitude", null)
-
-        val coord1 = LatLng(lat1, lon1)
-        val coord2 = LatLng(lat2, lon2)
-
-        val distance = AMapUtils.calculateLineDistance(coord1, coord2)
-        promise.resolve(distance)
-      } catch (e: Exception) {
-        promise.reject("ERROR", e.message, e)
-      }
-    }
-
-  
-
-    /**
-     * 判断点是否在圆内
-     * @param point 要判断的点
-     * @param center 圆心坐标
-     * @param radius 圆半径（单位：米）
-     * @return 是否在圆内
-     */
-    AsyncFunction("isPointInCircle") { point: Map<String, Double>, center: Map<String, Double>, radius: Double, promise: expo.modules.kotlin.Promise ->
-      try {
-        val pointLat = point["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid point latitude", null)
-        val pointLon = point["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid point longitude", null)
-        val centerLat = center["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid center latitude", null)
-        val centerLon = center["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid center longitude", null)
-
-        val isInside = GeometryUtils.isPointInCircle(
-          LatLng(pointLat, pointLon),
-          LatLng(centerLat, centerLon),
-          radius
-        )
-        promise.resolve(isInside)
-      } catch (e: Exception) {
-        promise.reject("ERROR", e.message, e)
-      }
-    }
-
-    /**
-     * 判断点是否在多边形内
-     * @param point 要判断的点
-     * @param polygon 多边形的顶点坐标数组
-     * @return 是否在多边形内
-     */
-    AsyncFunction("isPointInPolygon") { point: Map<String, Double>, polygon: List<Map<String, Double>>, promise: expo.modules.kotlin.Promise ->
-      try {
-        val pointLat = point["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid point latitude", null)
-        val pointLon = point["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid point longitude", null)
-
-        if (polygon.size < 3) {
-          return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Polygon must have at least 3 vertices", null)
-        }
-
-        val polygonPoints = polygon.mapNotNull { coord ->
-          val lat = coord["latitude"]
-          val lon = coord["longitude"]
-          if (lat != null && lon != null) {
-            LatLng(lat, lon)
-          } else {
-            null
-          }
-        }
-
-        if (polygonPoints.size < 3) {
-          return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid polygon coordinates", null)
-        }
-
-        val isInside = GeometryUtils.isPointInPolygon(
-          LatLng(pointLat, pointLon),
-          polygonPoints
-        )
-        promise.resolve(isInside)
-      } catch (e: Exception) {
-        promise.reject("ERROR", e.message, e)
-      }
-    }
-
-    /**
-     * 计算多边形面积
-     * @param polygon 多边形的顶点坐标数组
-     * @return 面积（单位：平方米）
-     */
-    AsyncFunction("calculatePolygonArea") { polygon: List<Map<String, Double>>, promise: expo.modules.kotlin.Promise ->
-      try {
-        
-        
-        if (polygon.size < 3) {
-          return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Polygon must have at least 3 vertices", null)
-        }
-
-        val polygonPoints = polygon.mapNotNull { coord ->
-          val lat = coord["latitude"]
-          val lon = coord["longitude"]
-          if (lat != null && lon != null) {
-           LatLng(lat, lon)
-          } else {
-            null
-          }
-        }
-
-     
-        
-        if (polygonPoints.size < 3) {
-          return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid polygon coordinates", null)
-        }
-
-        // 使用高德官方 API 计算多边形面积
-        val area = AMapUtils.calculateArea(polygonPoints)
-       
-        promise.resolve(area)
-      } catch (e: Exception) {
-        android.util.Log.e("ExpoGaodeMap", "📐 calculatePolygonArea 错误: ${e.message}", e)
-        promise.reject("ERROR", e.message, e)
-      }
-    }
-
-    /**
-     * 计算矩形面积
-     * @param southWest 西南角坐标
-     * @param northEast 东北角坐标
-     * @return 面积（单位：平方米）
-     */
-    AsyncFunction("calculateRectangleArea") { southWest: Map<String, Double>, northEast: Map<String, Double>, promise: expo.modules.kotlin.Promise ->
-      try {
-        
-        val swLat = southWest["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid southWest latitude", null)
-        val swLon = southWest["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid southWest longitude", null)
-        val neLat = northEast["latitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid northEast latitude", null)
-        val neLon = northEast["longitude"] ?: return@AsyncFunction promise.reject("INVALID_ARGUMENT", "Invalid northEast longitude", null)
-
-        // 构造矩形多边形来计算面积
-        val rectangle = listOf(
-          LatLng(swLat, swLon),
-          LatLng(swLat, neLon),
-          LatLng(neLat, neLon),
-          LatLng(neLat, swLon)
-        )
-
-        val area = AMapUtils.calculateArea(rectangle)
-        
-        promise.resolve(area)
-      } catch (e: Exception) {
-        android.util.Log.e("ExpoGaodeMap", "📐 calculateRectangleArea 错误: ${e.message}", e)
-        promise.reject("ERROR", e.message, e)
-      }
-    }
-
-
 
     // ==================== 地图预加载 ====================
 

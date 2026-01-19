@@ -246,27 +246,7 @@ class MapPreloadManager {
         return getAvailableMemoryMB() > minMemoryThresholdMB
     }
     
-    /// 获取一个预加载的地图实例（使用动态 TTL）
-    /// - Returns: 预加载的地图视图，如果池为空则返回 nil
-    func getPreloadedMapView() -> MAMapView? {
-        let now = Date()
-        
-        // 检查并移除过期实例（使用动态 TTL）
-        preloadedMapInstances.removeAll { instance in
-            let isExpired = now.timeIntervalSince(instance.timestamp) > currentTTL
-            if isExpired {
-            }
-            return isExpired
-        }
-        
-        if let instance = preloadedMapInstances.first {
-            preloadedMapInstances.removeFirst()
-            return instance.mapView
-        }
-        
-        return nil
-    }
-    
+
     /// 清空预加载池
     func clearPool() {
         _ = preloadedMapInstances.count
@@ -303,6 +283,51 @@ class MapPreloadManager {
         ]
     }
     
+    /// 获取一个预加载的地图实例（使用动态 TTL）
+    /// - Returns: 预加载的地图视图，如果池为空则返回 null
+    func getPreloadedMapView() -> MAMapView? {
+        let now = Date()
+        
+        // 检查并移除过期实例
+        while let instance = preloadedMapInstances.first {
+            if now.timeIntervalSince(instance.timestamp) > currentTTL {
+                preloadedMapInstances.removeFirst()
+                // 可以在这里做一些清理工作，比如清理 delegate
+            } else {
+                break
+            }
+        }
+        
+        if !preloadedMapInstances.isEmpty {
+            let instance = preloadedMapInstances.removeFirst()
+            
+            // 触发自动补充（延迟执行，避免影响当前页面渲染）
+            triggerRefill()
+            
+            return instance.mapView
+        }
+        
+        // 尝试触发补充，以便下次使用
+        triggerRefill()
+        
+        return nil
+    }
+    
+    /// 触发自动补充机制
+    private func triggerRefill() {
+        guard !isPreloading else { return }
+        
+        // 延迟 5 秒后尝试补充，避免抢占当前 UI 资源
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+            guard let self = self else { return }
+            
+            if !self.isPreloading && self.preloadedMapInstances.count < self.currentMaxPoolSize {
+                print("🔄 ExpoGaodeMap: 触发自动补充预加载池")
+                self.startPreload(poolSize: self.currentMaxPoolSize)
+            }
+        }
+    }
+
     /// 检查是否有可用的预加载实例
     /// - Returns: 是否有可用实例
     func hasPreloadedMapView() -> Bool {

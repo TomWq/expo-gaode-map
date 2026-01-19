@@ -9,6 +9,7 @@ import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
 
 import expo.modules.gaodemap.utils.ColorParser
+import expo.modules.gaodemap.utils.GeometryUtils
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -26,6 +27,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   private var isDotted: Boolean = false
   private var isGeodesic: Boolean = false
   private var textureUrl: String? = null
+  private var simplificationTolerance: Double = 0.0
   
   /**
    * 设置地图实例
@@ -129,6 +131,13 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
     textureUrl = url
     createOrUpdatePolyline()
   }
+
+  fun setSimplificationTolerance(tolerance: Double) {
+    simplificationTolerance = tolerance
+    if (points.isNotEmpty()) {
+        createOrUpdatePolyline()
+    }
+  }
   
   /**
    * 创建或更新折线
@@ -141,8 +150,14 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
         polyline = null
         
         if (points.isNotEmpty()) {
+          val displayPoints = if (simplificationTolerance > 0) {
+            GeometryUtils.simplifyPolyline(points, simplificationTolerance)
+          } else {
+            points
+          }
+
           val options = PolylineOptions()
-            .addAll(points)
+            .addAll(displayPoints)
             .width(strokeWidth)
             .color(strokeColor)
             .geodesic(isGeodesic)

@@ -11,7 +11,7 @@ class PolygonViewModule : Module() {
     Name("PolygonView")
 
     View(PolygonView::class) {
-      Events("onPolygonPress")
+      Events("onPolygonPress", "onPolygonSimplified")
       
       Prop<List<Map<String, Double>>>("points") { view: PolygonView, points ->
         view.setPoints(points)
@@ -31,6 +31,10 @@ class PolygonViewModule : Module() {
 
       Prop<Float>("zIndex") { view: PolygonView, zIndex ->
         view.setZIndex(zIndex)
+      }
+
+      Prop<Double>("simplificationTolerance") { view: PolygonView, tolerance ->
+        view.setSimplificationTolerance(tolerance)
       }
     }
   }

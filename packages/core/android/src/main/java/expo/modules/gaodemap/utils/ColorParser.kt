@@ -4,6 +4,16 @@ import android.graphics.Color
 import androidx.core.graphics.toColorInt
 
 object ColorParser {
+    init {
+        try {
+            System.loadLibrary("gaodecluster")
+        } catch (_: Throwable) {
+            // Ignore if already loaded
+        }
+    }
+
+    private external fun nativeParseColor(colorString: String): Int
+
     /**
      * 解析颜色值
      * 支持格式:
@@ -21,6 +31,16 @@ object ColorParser {
     }
     
     private fun parseColorString(color: String): Int {
+        // Try native parser first
+        try {
+            val nativeColor = nativeParseColor(color)
+            if (nativeColor != 0) {
+                return nativeColor
+            }
+        } catch (_: Throwable) {
+            // Fallback to Kotlin implementation
+        }
+
         return try {
             when {
                 color.startsWith("#") -> color.toColorInt()

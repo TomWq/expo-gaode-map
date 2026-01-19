@@ -204,6 +204,13 @@ export interface PolylineProps {
   geodesic?: boolean;
 
   /**
+   * 轨迹抽稀容差（米）
+   * 设置大于 0 的值时启用 RDP 算法简化轨迹点
+   * 建议值为 1.0 - 5.0，值越大简化程度越高
+   */
+  simplificationTolerance?: number;
+
+  /**
    * 是否绘制虚线
    * @platform android
    * @note iOS 不支持
@@ -256,6 +263,18 @@ export interface PolygonProps {
    * 点击事件
    */
   onPolygonPress?: (event: NativeSyntheticEvent<{}>) => void;
+
+  /**
+   * 轨迹抽稀容差（米）
+   * 设置大于 0 的值时启用 RDP 算法简化多边形边界
+   * 建议值为 1.0 - 5.0，值越大简化程度越高
+   */
+  simplificationTolerance?: number;
+
+  /**
+   * 简化完成事件
+   */
+  onPolygonSimplified?: (event: NativeSyntheticEvent<{ originalCount: number; simplifiedCount: number }>) => void;
 }
 
 /**

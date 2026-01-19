@@ -23,10 +23,11 @@ import * as MediaLibrary from 'expo-media-library';
 
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
 import TestNewPermissionMethods from './TestNewPermissionMethods';
 import UseMapExample from './UseMapExample';
+import PolylineExample from './PolylineExample';
 
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
@@ -87,6 +88,7 @@ export default function MamScreen() {
   const [isMapReady, setIsMapReady] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
   const [status, requestPermission] = useLocationPermissions()
+  const [showPolylineExample, setShowPolylineExample] = useState(false);
 
   // 高级覆盖物状态
   const [showHeatMap, setShowHeatMap] = useState(false);
@@ -499,6 +501,34 @@ export default function MamScreen() {
     return <UseMapExample />;
   }
 
+  if (showPolylineExample) {
+    return (
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 50,
+            left: 20,
+            zIndex: 100,
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+          onPress={() => setShowPolylineExample(false)}
+        >
+          <Text style={{ fontWeight: '600' }}>← 返回主页</Text>
+        </TouchableOpacity>
+        <PolylineExample />
+      </View>
+    );
+  }
+
   if (!initialPosition) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -518,7 +548,7 @@ export default function MamScreen() {
         trafficEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
-        mapType={2}
+        // mapType={2}
         zoomGesturesEnabled
         scrollGesturesEnabled
         worldMapSwitchEnabled
@@ -723,9 +753,10 @@ export default function MamScreen() {
                 key="fixed_current_location_marker"
                 // 数组格式建议使用 [经度, 纬度] (GeoJSON 标准)
                 // 如果传入 [纬度, 经度] 会触发自动纠错警告
-                position={[
-                  location.longitude, location.latitude
-                ]}
+                position={{
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                }}
                 zIndex={99}
                 title={location.address}
                 cacheKey="fixed_current_location_marker"
@@ -911,6 +942,16 @@ export default function MamScreen() {
                   </Pressable>
                   <Pressable style={[styles.actionBtn, { backgroundColor: '#607D8B' }]} onPress={handleTakeSnapshot}>
                     <Text style={styles.actionBtnText}>截图</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>更多示例</Text>
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: '#795548' }]}
+                    onPress={() => setShowPolylineExample(true)}
+                  >
+                    <Text style={styles.actionBtnText}>Polyline抽稀</Text>
                   </Pressable>
                 </View>
 

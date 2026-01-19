@@ -24,6 +24,7 @@ import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
 import expo.modules.gaodemap.ExpoGaodeMapView
+import expo.modules.gaodemap.utils.ClusterNative
 import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
@@ -314,38 +315,85 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
       val radiusPx = radius * density
       val radiusMeters = radiusPx * scalePerPixel
       
-      val newClusters = mutableListOf<Cluster>()
-      val visited = BooleanArray(clusterItems.size)
-      
-      // 简单的距离聚合算法
-      for (i in clusterItems.indices) {
-        if (visited[i]) continue
-        
-        val item = clusterItems[i]
-        val cluster = Cluster(item.latLng)
-        cluster.add(item)
-        visited[i] = true
-        
-        for (j in i + 1 until clusterItems.size) {
-          if (visited[j]) continue
-          
-          val other = clusterItems[j]
-          val distance = AMapUtils.calculateLineDistance(item.latLng, other.latLng)
-          
-          if (distance < radiusMeters) {
-            cluster.add(other)
-            visited[j] = true
-          }
-        }
-        
-        newClusters.add(cluster)
-      }
+      val newClusters = buildClustersFromNative(radiusMeters.toDouble()) ?: buildClustersFallback(radiusMeters.toDouble())
       
       // 更新 UI
       withContext(Dispatchers.Main) {
         renderClusters(newClusters)
       }
     }
+  }
+
+  private fun buildClustersFromNative(radiusMeters: Double): List<Cluster>? {
+    return try {
+      val latitudes = DoubleArray(clusterItems.size)
+      val longitudes = DoubleArray(clusterItems.size)
+      for (i in clusterItems.indices) {
+        val item = clusterItems[i]
+        latitudes[i] = item.latLng.latitude
+        longitudes[i] = item.latLng.longitude
+      }
+
+      val encoded = ClusterNative.clusterPoints(latitudes, longitudes, radiusMeters)
+      if (encoded.isEmpty()) return null
+
+      var cursor = 0
+      val clusterCount = encoded[cursor++]
+      if (clusterCount <= 0) return emptyList()
+
+      val newClusters = mutableListOf<Cluster>()
+      for (c in 0 until clusterCount) {
+        if (cursor + 1 >= encoded.size) break
+        val centerIndex = encoded[cursor++]
+        val size = encoded[cursor++]
+        if (centerIndex < 0 || centerIndex >= clusterItems.size) {
+          cursor += size
+          continue
+        }
+        val cluster = Cluster(clusterItems[centerIndex].latLng)
+        for (k in 0 until size) {
+          if (cursor >= encoded.size) break
+          val itemIndex = encoded[cursor++]
+          if (itemIndex >= 0 && itemIndex < clusterItems.size) {
+            cluster.add(clusterItems[itemIndex])
+          }
+        }
+        newClusters.add(cluster)
+      }
+      newClusters
+    } catch (_: Throwable) {
+      null
+    }
+  }
+
+  private fun buildClustersFallback(radiusMeters: Double): List<Cluster> {
+    val newClusters = mutableListOf<Cluster>()
+    val visited = BooleanArray(clusterItems.size)
+
+    for (i in clusterItems.indices) {
+      if (visited[i]) continue
+
+      val item = clusterItems[i]
+      val cluster = Cluster(item.latLng)
+      cluster.add(item)
+      visited[i] = true
+
+      for (j in i + 1 until clusterItems.size) {
+        if (visited[j]) continue
+
+        val other = clusterItems[j]
+        val distance = AMapUtils.calculateLineDistance(item.latLng, other.latLng).toDouble()
+
+        if (distance < radiusMeters) {
+          cluster.add(other)
+          visited[j] = true
+        }
+      }
+
+      newClusters.add(cluster)
+    }
+
+    return newClusters
   }
 
   /**

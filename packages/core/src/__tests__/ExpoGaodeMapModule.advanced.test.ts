@@ -202,12 +202,16 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
         ExpoGaodeMapModule.setDesiredAccuracy?.(0); // 最佳精度
         ExpoGaodeMapModule.setDistanceFilter?.(10); // 10米过滤
         ExpoGaodeMapModule.setLocationTimeout?.(10); // 10秒超时
-        ExpoGaodeMapModule.setReGeocodeTimeout?.(5); // 5秒超时
-        ExpoGaodeMapModule.setPausesLocationUpdatesAutomatically?.(false);
-        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates?.(true);
-        ExpoGaodeMapModule.setLocatingWithReGeocode?.(true);
-        ExpoGaodeMapModule.setGeoLanguage?.('zh-CN');
+        ExpoGaodeMapModule.setReGeocodeTimeout?.(5); // 5秒逆地理超时
+        ExpoGaodeMapModule.setPausesLocationUpdatesAutomatically?.(true); // 自动暂停
+        ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates?.(true); // 后台定位
+        ExpoGaodeMapModule.setLocatingWithReGeocode?.(true); // 逆地理编码
       }).not.toThrow();
+    });
+
+    it('计算距离测试', () => {
+        const d = ExpoGaodeMapModule.calculateDistance(39.9, 116.3, 39.9, 116.4);
+        expect(d).toBeDefined();
     });
 
     it('单次高精度定位配置', () => {

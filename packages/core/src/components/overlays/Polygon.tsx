@@ -32,12 +32,14 @@ function arePropsEqual(prevProps: PolygonProps, nextProps: PolygonProps): boolea
   if (prevProps.strokeWidth !== nextProps.strokeWidth ||
       prevProps.strokeColor !== nextProps.strokeColor ||
       prevProps.fillColor !== nextProps.fillColor ||
-      prevProps.zIndex !== nextProps.zIndex) {
+      prevProps.zIndex !== nextProps.zIndex ||
+      prevProps.simplificationTolerance !== nextProps.simplificationTolerance) {
     return false;
   }
   
   // 比较回调
-  if (prevProps.onPolygonPress !== nextProps.onPolygonPress) {
+  if (prevProps.onPolygonPress !== nextProps.onPolygonPress ||
+      prevProps.onPolygonSimplified !== nextProps.onPolygonSimplified) {
     return false;
   }
   

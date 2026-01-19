@@ -38,6 +38,7 @@ import com.amap.api.maps.model.animation.ScaleAnimation
 import android.view.animation.DecelerateInterpolator
 import expo.modules.gaodemap.companion.BitmapDescriptorCache
 import expo.modules.gaodemap.companion.IconBitmapCache
+import expo.modules.gaodemap.utils.GeometryUtils
 import kotlin.text.StringBuilder
 
 import java.util.concurrent.CountDownLatch
@@ -1193,9 +1194,36 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
 
                 android.util.Log.d("MarkerView", "startPoint: $startPoint")
 
-                // 使用 SpatialRelationUtil 计算路径中的最近点
-                val pair = SpatialRelationUtil.calShortestDistancePoint(path, startPoint)
-                val adjustedPath = path.subList(pair.first, path.size)
+                // 使用 C++ 优化计算路径中的最近点
+                var adjustedPath: List<LatLng>? = null
+                val nearestResult = GeometryUtils.getNearestPointOnPath(path, startPoint)
+                
+                if (nearestResult != null) {
+                    // 如果找到最近点，从该点索引开始截取路径
+                    // 注意：nearestResult.index 是最近点所在的线段的起始点索引
+                    // 如果我们想要从最近点开始移动，我们需要包含该点，以及后续的所有点
+                    
+                    // 这里我们简单处理：从 index + 1 开始，并把投影点作为第一个点插入
+                    // 或者如果 index 刚好是某个点，则直接从那个点开始
+                    
+                    val startIndex = nearestResult.index
+                    if (startIndex >= 0 && startIndex < path.size - 1) {
+                         val subPath = path.subList(startIndex + 1, path.size).toMutableList()
+                         // 插入投影点作为起点
+                         subPath.add(0, nearestResult.point)
+                         adjustedPath = subPath
+                    }
+                }
+
+                // 如果 C++ 计算失败，降级使用 SpatialRelationUtil
+                if (adjustedPath == null) {
+                     val pair = SpatialRelationUtil.calShortestDistancePoint(path, startPoint)
+                     adjustedPath = path.subList(pair.first, path.size)
+                }
+                
+                if (adjustedPath == null || adjustedPath.isEmpty()) {
+                    adjustedPath = path
+                }
 
                 android.util.Log.d("MarkerView", "adjustedPath size: ${adjustedPath.size}")
 

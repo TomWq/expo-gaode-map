@@ -75,6 +75,22 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   /**
+   * 手动触发预加载
+   * @param poolSize 预加载池大小 (默认 3)
+   */
+  startPreload(poolSize?: number): void {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      nativeModule.startPreload(poolSize);
+    } catch (error: any) {
+      ErrorLogger.warn('手动触发预加载失败', error);
+      // 不抛出异常，以免影响业务流程
+    }
+  },
+
+  /**
    * 开始连续定位
    * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
    */
@@ -87,6 +103,24 @@ const ExpoGaodeMapModuleWithHelpers = {
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '开始定位');
     }
+  },
+
+  /**
+   * 计算两点之间的距离
+   * @param lat1 第一点纬度
+   * @param lon1 第一点经度
+   * @param lat2 第二点纬度
+   * @param lon2 第二点经度
+   * @returns 距离（米）
+   */
+  calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    if (!nativeModule) {
+        throw ErrorHandler.nativeModuleUnavailable();
+    }
+    return nativeModule.distanceBetweenCoordinates(
+      { latitude: lat1, longitude: lon1 },
+      { latitude: lat2, longitude: lon2 }
+    );
   },
 
   /**
@@ -251,12 +285,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param coordinate2 第二个坐标点
    * @returns 两点之间的距离（单位：米）
    */
-  async distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): Promise<number> {
+  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.distanceBetweenCoordinates(coordinate1, coordinate2);
+      return nativeModule.distanceBetweenCoordinates(coordinate1, coordinate2);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算距离');
     }
@@ -269,12 +303,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param radius 圆半径（单位：米）
    * @returns 是否在圆内
    */
-  async isPointInCircle(point: LatLng, center: LatLng, radius: number): Promise<boolean> {
+  isPointInCircle(point: LatLng, center: LatLng, radius: number): boolean {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.isPointInCircle(point, center, radius);
+      return nativeModule.isPointInCircle(point, center, radius);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '判断点是否在圆内');
     }
@@ -286,12 +320,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param polygon 多边形的顶点坐标数组
    * @returns 是否在多边形内
    */
-  async isPointInPolygon(point: LatLng, polygon: LatLng[]): Promise<boolean> {
+  isPointInPolygon(point: LatLng, polygon: LatLng[]): boolean {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.isPointInPolygon(point, polygon);
+      return nativeModule.isPointInPolygon(point, polygon);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '判断点是否在多边形内');
     }
@@ -302,12 +336,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param polygon 多边形的顶点坐标数组
    * @returns 面积（单位：平方米）
    */
-  async calculatePolygonArea(polygon: LatLng[]): Promise<number> {
+  calculatePolygonArea(polygon: LatLng[]): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.calculatePolygonArea(polygon);
+      return nativeModule.calculatePolygonArea(polygon);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算多边形面积');
     }
@@ -319,14 +353,123 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param northEast 东北角坐标
    * @returns 面积（单位：平方米）
    */
-  async calculateRectangleArea(southWest: LatLng, northEast: LatLng): Promise<number> {
+  calculateRectangleArea(southWest: LatLng, northEast: LatLng): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.calculateRectangleArea(southWest, northEast);
+      return nativeModule.calculateRectangleArea(southWest, northEast);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算矩形面积');
+    }
+  },
+
+  /**
+   * 获取路径上距离目标点最近的点
+   * @param path 路径点集合
+   * @param target 目标点
+   * @returns 最近点信息，包含坐标、索引和距离
+   */
+  getNearestPointOnPath(path: LatLng[], target: LatLng): {
+    latitude: number;
+    longitude: number;
+    index: number;
+    distanceMeters: number;
+  } | null {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.getNearestPointOnPath(path, target);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, '获取最近点');
+    }
+  },
+
+  /**
+   * 计算多边形质心
+   * @param polygon 多边形顶点坐标数组
+   * @returns 质心坐标
+   */
+  calculateCentroid(polygon: LatLng[]): LatLng | null {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.calculateCentroid(polygon);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, '计算质心');
+    }
+  },
+
+  /**
+   * GeoHash 编码
+   * @param coordinate 坐标点
+   * @param precision 精度 (1-12)
+   * @returns GeoHash 字符串
+   */
+  encodeGeoHash(coordinate: LatLng, precision: number): string {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.encodeGeoHash(coordinate, precision);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, 'GeoHash 编码');
+    }
+  },
+
+  /**
+   * 轨迹抽稀 (RDP 算法)
+   * @param points 原始轨迹点
+   * @param tolerance 允许误差(米)
+   * @returns 简化后的轨迹点
+   */
+  simplifyPolyline(points: LatLng[], tolerance: number): LatLng[] {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.simplifyPolyline(points, tolerance);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, '轨迹抽稀');
+    }
+  },
+
+  /**
+   * 计算路径总长度
+   * @param points 路径点
+   * @returns 长度(米)
+   */
+  calculatePathLength(points: LatLng[]): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.calculatePathLength(points);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, '计算路径长度');
+    }
+  },
+
+  /**
+   * 获取路径上指定距离的点
+   * @param points 路径点
+   * @param distance 距离起点的米数
+   * @returns 点信息(坐标+角度)
+   */
+  getPointAtDistance(points: LatLng[], distance: number): {
+    latitude: number;
+    longitude: number;
+    angle: number;
+  } | null {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.getPointAtDistance(points, distance);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, '获取路径上的点');
     }
   },
 };

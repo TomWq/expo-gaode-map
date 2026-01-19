@@ -20,6 +20,11 @@ class PolygonView: ExpoView {
     var strokeColor: Any?
     /// 边框宽度
     var strokeWidth: Float = 0
+    /// 简化容差 (米)
+    var simplificationTolerance: Double = 0.0
+    
+    /// 简化完成事件派发器
+    let onPolygonSimplified = EventDispatcher()
     
     /// 地图视图引用
     private var mapView: MAMapView?
@@ -79,23 +84,57 @@ class PolygonView: ExpoView {
         if let old = polygon { mapView.remove(old) }
         
         // 🔑 坐标验证和过滤
-        var coords = points.compactMap { point -> CLLocationCoordinate2D? in
+        var latitudes: [NSNumber] = []
+        var longitudes: [NSNumber] = []
+        
+        for point in points {
             guard let lat = point["latitude"],
                   let lng = point["longitude"],
                   lat >= -90 && lat <= 90,
-                  lng >= -180 && lng <= 180 else {
-                return nil
-            }
-            return CLLocationCoordinate2D(latitude: lat, longitude: lng)
+                  lng >= -180 && lng <= 180 else { continue }
+            latitudes.append(NSNumber(value: lat))
+            longitudes.append(NSNumber(value: lng))
         }
         
         // 🔑 至少需要3个点才能绘制多边形
+        guard latitudes.count >= 3 else { return }
+        
+        var coords: [CLLocationCoordinate2D] = []
+        
+        // 尝试简化
+        if simplificationTolerance > 0 {
+            let simplified = ClusterNative.simplifyPolyline(withLatitudes: latitudes, longitudes: longitudes, toleranceMeters: simplificationTolerance)
+            
+            if simplified.count >= 6 { // 至少3个点 (3 * 2 = 6)
+                for i in stride(from: 0, to: simplified.count, by: 2) {
+                    let lat = simplified[i].doubleValue
+                    let lon = simplified[i+1].doubleValue
+                    coords.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+                }
+            } else {
+                // Fallback to original
+                 for i in 0..<latitudes.count {
+                    coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
+                }
+            }
+        } else {
+            for i in 0..<latitudes.count {
+                coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
+            }
+        }
+        
         guard coords.count >= 3 else { return }
         
         polygon = MAPolygon(coordinates: &coords, count: UInt(coords.count))
         mapView.add(polygon!)
         
         renderer = nil
+        
+        // 派发简化事件
+        onPolygonSimplified([
+            "originalCount": latitudes.count,
+            "simplifiedCount": coords.count
+        ])
     }
     
     /**
@@ -150,6 +189,14 @@ class PolygonView: ExpoView {
     func setStrokeWidth(_ width: Float) {
         strokeWidth = width
         renderer = nil
+        updatePolygon()
+    }
+
+    /**
+     * 设置简化容差
+     */
+    func setSimplificationTolerance(_ tolerance: Double) {
+        simplificationTolerance = tolerance
         updatePolygon()
     }
     

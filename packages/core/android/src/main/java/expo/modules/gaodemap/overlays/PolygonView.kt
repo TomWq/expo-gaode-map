@@ -7,6 +7,7 @@ import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polygon
 import com.amap.api.maps.model.PolygonOptions
 import expo.modules.gaodemap.utils.ColorParser
+import expo.modules.gaodemap.utils.GeometryUtils
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -14,11 +15,13 @@ import expo.modules.kotlin.views.ExpoView
 class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
   private val onPolygonPress by EventDispatcher()
+  private val onPolygonSimplified by EventDispatcher()
   
   private var polygon: Polygon? = null
   private var aMap: AMap? = null
   private var points: List<LatLng> = emptyList()
   private var strokeWidth: Float = 10f
+  private var simplificationTolerance: Double = 0.0
 
   private var fillColor: Int = Color.argb(50, 0, 0, 255)
 
@@ -94,15 +97,38 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
       it.zIndex = _zIndex
     } ?: createOrUpdatePolygon()
   }
+
+  /**
+   * 设置简化容差
+   */
+  fun setSimplificationTolerance(tolerance: Double) {
+    simplificationTolerance = tolerance
+    if (points.isNotEmpty()) {
+      createOrUpdatePolygon()
+    }
+  }
   
   /**
    * 创建或更新多边形
    */
   private fun createOrUpdatePolygon() {
     aMap?.let { map ->
-      if (polygon == null && points.isNotEmpty()) {
+      // 移除旧的多边形
+      polygon?.remove()
+      polygon = null
+      
+      if (points.isNotEmpty()) {
+        val displayPoints = if (simplificationTolerance > 0) {
+          GeometryUtils.simplifyPolyline(points, simplificationTolerance)
+        } else {
+          points
+        }
+
+        // 至少3个点
+        if (displayPoints.size < 3) return
+
         val options = PolygonOptions()
-          .addAll(points)
+          .addAll(displayPoints)
           .fillColor(fillColor)
           .strokeColor(strokeColor)
           .strokeWidth(strokeWidth)
@@ -110,8 +136,11 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
         
         polygon = map.addPolygon(options)
         
-        // 注意：高德地图 Android SDK 不直接支持 Polygon 点击事件
-        // 如果需要点击事件，需要通过其他方式实现
+        // 派发简化事件
+        onPolygonSimplified(mapOf(
+          "originalCount" to points.size,
+          "simplifiedCount" to displayPoints.size
+        ))
       }
     }
   }

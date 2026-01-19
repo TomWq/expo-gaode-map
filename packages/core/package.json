@@ -8,6 +8,7 @@
     "build",
     "android",
     "ios",
+    "shared",
     "app.plugin.js",
     "expo-module.config.json",
     "plugin/build"
@@ -51,8 +52,10 @@
   "devDependencies": {
     "@expo/config-plugins": "~54.0.4",
     "@testing-library/react-native": "^13.3.3",
+    "@babel/runtime": "^7.25.7",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",
+    "eslint": "^9.15.0",
     "babel-preset-expo": "^54.0.8",
     "expo": "^54.0.31",
     "expo-module-scripts": "^5.0.8",
