@@ -7,6 +7,9 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.gaodemap.modules.SDKInitializer
 import expo.modules.gaodemap.modules.LocationManager
 import expo.modules.gaodemap.utils.GeometryUtils
+import kotlin.math.max
+import kotlin.math.abs
+import expo.modules.gaodemap.utils.LatLngParser
 
 import expo.modules.gaodemap.utils.PermissionHelper
 
@@ -158,8 +161,14 @@ class ExpoGaodeMapModule : Module() {
      * @param type 坐标类型
      * @return 转换后的坐标
      */
-    AsyncFunction("coordinateConvert") { coordinate: Map<String, Double>, type: Int, promise: expo.modules.kotlin.Promise ->
-      getLocationManager().coordinateConvert(coordinate, type, promise)
+    AsyncFunction("coordinateConvert") { coordinate: Map<String, Any>?, type: Int, promise: expo.modules.kotlin.Promise ->
+      val latLng = LatLngParser.parseLatLng(coordinate)
+      if (latLng != null) {
+        val coordMap = mapOf("latitude" to latLng.latitude, "longitude" to latLng.longitude)
+        getLocationManager().coordinateConvert(coordMap, type, promise)
+      } else {
+        promise.reject("INVALID_COORDINATE", "Invalid coordinate format", null)
+      }
     }
 
     // ==================== 几何计算 ====================
@@ -170,42 +179,64 @@ class ExpoGaodeMapModule : Module() {
      * @param coordinate2 第二个坐标点
      * @returns 两点之间的距离（单位：米）
      */
-    Function("distanceBetweenCoordinates") { coordinate1: Map<String, Double>, coordinate2: Map<String, Double> ->
-      val lat1 = coordinate1["latitude"] ?: 0.0
-      val lon1 = coordinate1["longitude"] ?: 0.0
-      val lat2 = coordinate2["latitude"] ?: 0.0
-      val lon2 = coordinate2["longitude"] ?: 0.0
-      GeometryUtils.calculateDistance(LatLng(lat1, lon1), LatLng(lat2, lon2))
+    Function("distanceBetweenCoordinates") { p1: Map<String, Any>?, p2: Map<String, Any>? ->
+      val coord1 = LatLngParser.parseLatLng(p1)
+      val coord2 = LatLngParser.parseLatLng(p2)
+      if (coord1 != null && coord2 != null) {
+        GeometryUtils.calculateDistance(coord1, coord2)
+      } else {
+        0.0
+      }
     }
 
     /**
      * 计算多边形面积
-     * @param points 多边形顶点坐标数组
+     * @param points 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
      * @return 面积（平方米）
      */
-    Function("calculatePolygonArea") { points: List<Map<String, Double>> ->
-      val latLungs = points.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
+    Function("calculatePolygonArea") { points: List<Any>? ->
+      val rings = LatLngParser.parseLatLngListList(points)
+      if (rings.isEmpty()) return@Function 0.0
+      
+      // 第一项是外轮廓
+      var totalArea = GeometryUtils.calculatePolygonArea(rings[0])
+      
+      // 后续项是内孔，需要减去面积
+      if (rings.size > 1) {
+        for (i in 1 until rings.size) {
+          totalArea -= GeometryUtils.calculatePolygonArea(rings[i])
+        }
       }
-      GeometryUtils.calculatePolygonArea(latLungs)
+      
+      // 确保面积不为负数
+      max(0.0, totalArea)
     }
 
     /**
      * 判断点是否在多边形内
      * @param point 待判断点
-     * @param polygon 多边形顶点坐标数组
+     * @param polygon 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
      * @return 是否在多边形内
      */
-    Function("isPointInPolygon") { point: Map<String, Double>, polygon: List<Map<String, Double>> ->
-      val pt = LatLng(point["latitude"] ?: 0.0, point["longitude"] ?: 0.0)
-      val poly = polygon.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
+    Function("isPointInPolygon") { point: Map<String, Any>?, polygon: List<Any>? ->
+      val pt = LatLngParser.parseLatLng(point) ?: return@Function false
+      val rings = LatLngParser.parseLatLngListList(polygon)
+      if (rings.isEmpty()) return@Function false
+      
+      // 点必须在外轮廓内
+      val inOuter = GeometryUtils.isPointInPolygon(pt, rings[0])
+      if (!inOuter) return@Function false
+      
+      // 点不能在任何内孔内
+      if (rings.size > 1) {
+        for (i in 1 until rings.size) {
+          if (GeometryUtils.isPointInPolygon(pt, rings[i])) {
+            return@Function false
+          }
+        }
       }
-      GeometryUtils.isPointInPolygon(pt, poly)
+      
+      true
     }
 
     /**
@@ -215,10 +246,14 @@ class ExpoGaodeMapModule : Module() {
      * @param radius 圆半径（米）
      * @return 是否在圆内
      */
-    Function("isPointInCircle") { point: Map<String, Double>, center: Map<String, Double>, radius: Double ->
-      val pt = LatLng(point["latitude"] ?: 0.0, point["longitude"] ?: 0.0)
-      val cn = LatLng(center["latitude"] ?: 0.0, center["longitude"] ?: 0.0)
-      GeometryUtils.isPointInCircle(pt, cn, radius)
+    Function("isPointInCircle") { point: Map<String, Any>?, center: Map<String, Any>?, radius: Double ->
+      val pt = LatLngParser.parseLatLng(point)
+      val cn = LatLngParser.parseLatLng(center)
+      if (pt != null && cn != null) {
+        GeometryUtils.isPointInCircle(pt, cn, radius)
+      } else {
+        false
+      }
     }
 
     /**
@@ -227,10 +262,14 @@ class ExpoGaodeMapModule : Module() {
      * @param northEast 东北角
      * @return 面积（平方米）
      */
-    Function("calculateRectangleArea") { southWest: Map<String, Double>, northEast: Map<String, Double> ->
-      val sw = LatLng(southWest["latitude"] ?: 0.0, southWest["longitude"] ?: 0.0)
-      val ne = LatLng(northEast["latitude"] ?: 0.0, northEast["longitude"] ?: 0.0)
-      GeometryUtils.calculateRectangleArea(sw, ne)
+    Function("calculateRectangleArea") { southWest: Map<String, Any>?, northEast: Map<String, Any>? ->
+      val sw = LatLngParser.parseLatLng(southWest)
+      val ne = LatLngParser.parseLatLng(northEast)
+      if (sw != null && ne != null) {
+        GeometryUtils.calculateRectangleArea(sw, ne)
+      } else {
+        0.0
+      }
     }
 
     /**
@@ -239,22 +278,22 @@ class ExpoGaodeMapModule : Module() {
      * @param target 目标点
      * @return 最近点结果
      */
-    Function("getNearestPointOnPath") { path: List<Map<String, Double>>, target: Map<String, Double> ->
-      val pathPoints = path.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
-      }
-      val targetPoint = LatLng(target["latitude"] ?: 0.0, target["longitude"] ?: 0.0)
+    Function("getNearestPointOnPath") { path: List<Any>?, target: Map<String, Any>? ->
+      val pathPoints = LatLngParser.parseLatLngList(path)
+      val targetPoint = LatLngParser.parseLatLng(target)
       
-      val result = GeometryUtils.getNearestPointOnPath(pathPoints, targetPoint)
-      if (result != null) {
-        mapOf(
-          "latitude" to result.point.latitude,
-          "longitude" to result.point.longitude,
-          "index" to result.index,
-          "distanceMeters" to result.distanceMeters
-        )
+      if (targetPoint != null && pathPoints.isNotEmpty()) {
+        val result = GeometryUtils.getNearestPointOnPath(pathPoints, targetPoint)
+        if (result != null) {
+          mapOf(
+            "latitude" to result.point.latitude,
+            "longitude" to result.point.longitude,
+            "index" to result.index,
+            "distanceMeters" to result.distanceMeters
+          )
+        } else {
+          null
+        }
       } else {
         null
       }
@@ -262,20 +301,49 @@ class ExpoGaodeMapModule : Module() {
 
     /**
      * 计算多边形质心
-     * @param polygon 多边形顶点坐标数组
+     * @param polygon 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
      * @return 质心坐标
      */
-    Function("calculateCentroid") { polygon: List<Map<String, Double>> ->
-      val poly = polygon.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
+    Function("calculateCentroid") { polygon: List<Any>? ->
+      val rings = LatLngParser.parseLatLngListList(polygon)
+      if (rings.isEmpty()) return@Function null
+      
+      if (rings.size == 1) {
+        val result = GeometryUtils.calculateCentroid(rings[0])
+        return@Function result?.let {
+          mapOf(
+            "latitude" to it.latitude,
+            "longitude" to it.longitude
+          )
+        }
       }
-      val result = GeometryUtils.calculateCentroid(poly)
-      if (result != null) {
+      
+      // 带孔多边形的质心计算: Σ(Area_i * Centroid_i) / Σ(Area_i)
+      // 注意: 这里的 Area 是带符号的，或者我们手动减去孔的贡献
+      var totalArea = 0.0
+      var sumLat = 0.0
+      var sumLon = 0.0
+      
+      for (i in rings.indices) {
+        val ring = rings[i]
+        val area = GeometryUtils.calculatePolygonArea(ring)
+        val centroid = GeometryUtils.calculateCentroid(ring)
+        
+        if (centroid != null) {
+          // 第一项是外轮廓(正)，后续是内孔(负)
+          val factor = if (i == 0) 1.0 else -1.0
+          val signedArea = area * factor
+          
+          totalArea += signedArea
+          sumLat += centroid.latitude * signedArea
+          sumLon += centroid.longitude * signedArea
+        }
+      }
+      
+      if (abs(totalArea) > 1e-9) {
         mapOf(
-          "latitude" to result.latitude,
-          "longitude" to result.longitude
+          "latitude" to sumLat / totalArea,
+          "longitude" to sumLon / totalArea
         )
       } else {
         null
@@ -288,10 +356,13 @@ class ExpoGaodeMapModule : Module() {
      * @param precision 精度 (1-12)
      * @return GeoHash 字符串
      */
-    Function("encodeGeoHash") { coordinate: Map<String, Double>, precision: Int ->
-      val lat = coordinate["latitude"] ?: 0.0
-      val lon = coordinate["longitude"] ?: 0.0
-      GeometryUtils.encodeGeoHash(LatLng(lat, lon), precision)
+    Function("encodeGeoHash") { coordinate: Map<String, Any>?, precision: Int ->
+      val latLng = LatLngParser.parseLatLng(coordinate)
+      if (latLng != null) {
+        GeometryUtils.encodeGeoHash(latLng, precision)
+      } else {
+        ""
+      }
     }
 
     /**
@@ -300,12 +371,8 @@ class ExpoGaodeMapModule : Module() {
      * @param tolerance 允许误差(米)
      * @return 简化后的轨迹点
      */
-    Function("simplifyPolyline") { points: List<Map<String, Double>>, tolerance: Double ->
-      val poly = points.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
-      }
+    Function("simplifyPolyline") { points: List<Any>?, tolerance: Double ->
+      val poly = LatLngParser.parseLatLngList(points)
       val simplified = GeometryUtils.simplifyPolyline(poly, tolerance)
       simplified.map {
         mapOf(
@@ -320,12 +387,8 @@ class ExpoGaodeMapModule : Module() {
      * @param points 路径点
      * @return 长度(米)
      */
-    Function("calculatePathLength") { points: List<Map<String, Double>> ->
-      val poly = points.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
-      }
+    Function("calculatePathLength") { points: List<Any>? ->
+      val poly = LatLngParser.parseLatLngList(points)
       GeometryUtils.calculatePathLength(poly)
     }
 
@@ -335,12 +398,8 @@ class ExpoGaodeMapModule : Module() {
      * @param distance 距离起点的米数
      * @return 点信息(坐标+角度)
      */
-    Function("getPointAtDistance") { points: List<Map<String, Double>>, distance: Double ->
-      val poly = points.mapNotNull {
-        val lat = it["latitude"]
-        val lon = it["longitude"]
-        if (lat != null && lon != null) LatLng(lat, lon) else null
-      }
+    Function("getPointAtDistance") { points: List<Any>?, distance: Double ->
+      val poly = LatLngParser.parseLatLngList(points)
       val result = GeometryUtils.getPointAtDistance(poly, distance)
       if (result != null) {
         mapOf(

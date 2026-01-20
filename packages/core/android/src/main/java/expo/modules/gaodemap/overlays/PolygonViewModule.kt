@@ -13,15 +13,15 @@ class PolygonViewModule : Module() {
     View(PolygonView::class) {
       Events("onPolygonPress", "onPolygonSimplified")
       
-      Prop<List<Map<String, Double>>>("points") { view: PolygonView, points ->
+      Prop<List<Any>?>("points") { view: PolygonView, points ->
         view.setPoints(points)
       }
       
-      Prop<Any>("fillColor") { view: PolygonView, color ->
+      Prop<String?>("fillColor") { view: PolygonView, color ->
         view.setFillColor(color)
       }
       
-      Prop<Any>("strokeColor") { view: PolygonView, color ->
+      Prop<String?>("strokeColor") { view: PolygonView, color ->
         view.setStrokeColor(color)
       }
       

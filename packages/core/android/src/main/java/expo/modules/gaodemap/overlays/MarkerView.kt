@@ -45,7 +45,7 @@ import kotlin.text.StringBuilder
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import androidx.core.graphics.createBitmap
-
+import expo.modules.gaodemap.utils.LatLngParser
 
 class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
@@ -262,6 +262,15 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
           }
         }
       }
+    }
+
+    /**
+     * 设置位置（支持多种格式）
+     */
+    fun setPosition(positionData: Map<String, Any>?) {
+        LatLngParser.parseLatLng(positionData)?.let {
+            updatePosition(it.latitude, it.longitude)
+        }
     }
 
     /**
@@ -1026,21 +1035,15 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       }
     }
 
+  
+
     /**
      * 设置平滑移动路径
      */
-    fun setSmoothMovePath(path: List<Map<String, Double>>) {
+    fun setSmoothMovePath(path: List<Any>?) {
         try {
             // 转换为 LatLng 列表
-            smoothMovePath = path.mapNotNull { point ->
-                val lat = point["latitude"]
-                val lng = point["longitude"]
-                if (lat != null && lng != null) {
-                    LatLng(lat, lng)
-                } else {
-                    null
-                }
-            }
+            smoothMovePath = LatLngParser.parseLatLngList(path)
 
             // 当路径和时长都设置时，启动平滑移动
             if (smoothMovePath?.isNotEmpty() == true && smoothMoveDuration > 0 && aMap != null) {

@@ -13,6 +13,7 @@ import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.views.ExpoView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import expo.modules.gaodemap.utils.LatLngParser
 
 class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
@@ -38,18 +39,14 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
     scheduleUpdate()
   }
   
+ 
+
   /**
    * 设置热力图数据
    */
-  fun setData(data: List<Map<String, Any>>) {
+  fun setData(data: List<Any>?) {
     dataList.clear()
-    data.forEach { point ->
-      val lat = (point["latitude"] as? Number)?.toDouble()
-      val lng = (point["longitude"] as? Number)?.toDouble()
-      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        dataList.add(LatLng(lat, lng))
-      }
-    }
+    dataList.addAll(LatLngParser.parseLatLngList(data))
     needsRebuild = true
     scheduleUpdate()
   }

@@ -26,6 +26,7 @@ import com.amap.api.maps.model.MarkerOptions
 import expo.modules.gaodemap.ExpoGaodeMapView
 import expo.modules.gaodemap.utils.ClusterNative
 import expo.modules.gaodemap.utils.ColorParser
+import expo.modules.gaodemap.utils.LatLngParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -113,25 +114,19 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   }
   
   /**
-   * 设置聚合点数据
+   * 设置聚合点
    */
-  fun setPoints(pointsList: List<Map<String, Any>>) {
-    rawPoints = pointsList
-    // 预处理数据
-    scope.launch(Dispatchers.Default) {
-      clusterItems = pointsList.mapNotNull { point: Map<String, Any> ->
-        val lat = (point["latitude"] as? Number)?.toDouble()
-        val lng = (point["longitude"] as? Number)?.toDouble()
-        if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          ClusterItem(LatLng(lat, lng), point)
-        } else {
-          null
-        }
-      }
-      withContext(Dispatchers.Main) {
-        updateClusters()
+  fun setPoints(points: List<Map<String, Any>>) {
+    rawPoints = points
+    clusterItems = points.mapNotNull { pointData ->
+      LatLngParser.parseLatLng(pointData)?.let { latLng ->
+        ClusterItem(latLng, pointData)
       }
     }
+    
+    // 强制重新计算
+    styleChanged = true
+    updateClusters()
   }
   
   /**

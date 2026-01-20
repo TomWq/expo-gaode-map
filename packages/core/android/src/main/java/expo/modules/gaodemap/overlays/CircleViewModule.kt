@@ -13,19 +13,19 @@ class CircleViewModule : Module() {
     View(CircleView::class) {
       Events("onCirclePress")
       
-      Prop<Map<String, Double>>("center") { view, center ->
+      Prop<Map<String, Any>?>("center") { view: CircleView, center ->
         view.setCenter(center)
       }
       
-      Prop<Double>("radius") { view, radius ->
+      Prop<Double>("radius") { view: CircleView, radius ->
         view.setRadius(radius)
       }
       
-      Prop<Any>("fillColor") { view, color ->
+      Prop<String?>("fillColor") { view: CircleView, color ->
         view.setFillColor(color)
       }
       
-      Prop<Any>("strokeColor") { view, color ->
+      Prop<String?>("strokeColor") { view: CircleView, color ->
         view.setStrokeColor(color)
       }
       

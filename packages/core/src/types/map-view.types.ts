@@ -4,7 +4,7 @@
  */
 
 import type { StyleProp, ViewStyle, NativeSyntheticEvent } from 'react-native';
-import type { CameraPosition, LatLng, LatLngBounds, MapPoi, MapType, Point } from './common.types';
+import type { CameraPosition, LatLng, LatLngBounds, MapPoi, MapType, Point, LatLngPoint } from './common.types';
 import { Coordinates, ReGeocode } from './location.types';
 
 /**
@@ -319,7 +319,7 @@ export interface MapViewMethods {
    * @param center 中心点
    * @param animated 是否启用动画
    */
-  setCenter(center: LatLng, animated?: boolean): void;
+  setCenter(center: LatLngPoint, animated?: boolean): void;
 
   /**
    * 设置地图缩放级别
@@ -347,7 +347,7 @@ export interface MapViewMethods {
 export interface MapViewRef {
   moveCamera(position: CameraPosition, duration?: number): Promise<void>;
   getLatLng(point: Point): Promise<LatLng>;
-  setCenter(center: LatLng, animated?: boolean): Promise<void>;
+  setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   takeSnapshot(): Promise<string>;

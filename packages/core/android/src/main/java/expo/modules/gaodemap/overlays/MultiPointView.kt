@@ -6,7 +6,7 @@ import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 
-
+import expo.modules.gaodemap.utils.LatLngParser
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.BitmapDescriptor
 import com.amap.api.maps.model.BitmapDescriptorFactory
@@ -51,20 +51,22 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
     createOrUpdateMultiPoint()
   }
   
+
+
   /**
    * 设置海量点数据
    */
-  fun setPoints(pointsList: List<Map<String, Any>>) {
+  fun setPoints(pointsList: List<Any>) {
     points.clear()
-    pointsList.forEach { point ->
-      val lat = (point["latitude"] as? Number)?.toDouble()
-      val lng = (point["longitude"] as? Number)?.toDouble()
-      val id = point["customerId"] as? String ?: point["id"] as? String ?: ""
-      
-      // 坐标验证
-      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        val multiPointItem = MultiPointItem(LatLng(lat, lng))
-        multiPointItem.customerId = id
+    pointsList.forEach { pointData ->
+      val latLng = LatLngParser.parseLatLng(pointData)
+      if (latLng != null) {
+        val multiPointItem = MultiPointItem(latLng)
+        // 如果是 Map，尝试获取 ID
+        if (pointData is Map<*, *>) {
+          val id = pointData["customerId"] as? String ?: pointData["id"] as? String ?: ""
+          multiPointItem.customerId = id
+        }
         points.add(multiPointItem)
       }
     }

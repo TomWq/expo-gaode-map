@@ -7,6 +7,7 @@
 export type {
   Point,
   LatLng,
+  LatLngPoint,
   MapPoi,
   LatLngBounds,
   CameraPosition,

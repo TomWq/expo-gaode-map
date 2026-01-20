@@ -1,15 +1,18 @@
 import { requireNativeModule } from 'expo';
 import { Platform } from 'react-native';
 
-import type {
+import {
   LatLng,
   Coordinates,
   ReGeocode,
   LocationListener,
+  LatLngPoint,
+  CoordinateType,
 } from './types';
 import type { ExpoGaodeMapModule } from './types/native-module.types';
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
 import { SDKConfig, PermissionStatus } from './types/common.types';
+import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 // 获取原生模块实例 - 添加容错处理
 let nativeModule: ExpoGaodeMapModule | null = null;
@@ -90,7 +93,23 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   /**
-   * 计算两点之间的距离
+   * 计算两个坐标点之间的距离
+   * @param p1 第一个坐标点 (LatLngPoint)
+   * @param p2 第二个坐标点 (LatLngPoint)
+   * @returns 距离（米）
+   */
+  calculateDistanceBetweenPoints(p1: LatLngPoint, p2: LatLngPoint): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    return nativeModule.distanceBetweenCoordinates(
+      normalizeLatLng(p1),
+      normalizeLatLng(p2)
+    );
+  },
+
+  /**
+   * 计算两点之间的距离 (支持经纬度数值)
    * @param lat1 第一点纬度
    * @param lon1 第一点经度
    * @param lat2 第二点纬度
@@ -99,7 +118,7 @@ const ExpoGaodeMapModuleWithHelpers = {
    */
   calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     if (!nativeModule) {
-        throw ErrorHandler.nativeModuleUnavailable();
+      throw ErrorHandler.nativeModuleUnavailable();
     }
     return nativeModule.distanceBetweenCoordinates(
       { latitude: lat1, longitude: lon1 },
@@ -133,6 +152,23 @@ const ExpoGaodeMapModuleWithHelpers = {
       return await nativeModule.getCurrentLocation();
     } catch (error: any) {
       throw ErrorHandler.locationFailed(error?.message);
+    }
+  },
+
+  /**
+   * 坐标转换
+   * 将其他坐标系的坐标转换为高德地图使用的 GCJ-02 坐标系
+   * @param coordinate 需要转换的坐标
+   * @param type 原坐标系类型
+   */
+  async coordinateConvert(coordinate: LatLngPoint, type: CoordinateType): Promise<LatLng> {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return await nativeModule.coordinateConvert(normalizeLatLng(coordinate), type);
+    } catch (error: any) {
+      throw ErrorHandler.wrapNativeError(error, '坐标转换');
     }
   },
 
@@ -269,12 +305,15 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param coordinate2 第二个坐标点
    * @returns 两点之间的距离（单位：米）
    */
-  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): number {
+  distanceBetweenCoordinates(coordinate1: LatLngPoint, coordinate2: LatLngPoint): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.distanceBetweenCoordinates(coordinate1, coordinate2);
+      return nativeModule.distanceBetweenCoordinates(
+        normalizeLatLng(coordinate1),
+        normalizeLatLng(coordinate2)
+      );
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算距离');
     }
@@ -287,12 +326,16 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param radius 圆半径（单位：米）
    * @returns 是否在圆内
    */
-  isPointInCircle(point: LatLng, center: LatLng, radius: number): boolean {
+  isPointInCircle(point: LatLngPoint, center: LatLngPoint, radius: number): boolean {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.isPointInCircle(point, center, radius);
+      return nativeModule.isPointInCircle(
+        normalizeLatLng(point),
+        normalizeLatLng(center),
+        radius
+      );
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '判断点是否在圆内');
     }
@@ -304,12 +347,15 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param polygon 多边形的顶点坐标数组
    * @returns 是否在多边形内
    */
-  isPointInPolygon(point: LatLng, polygon: LatLng[]): boolean {
+  isPointInPolygon(point: LatLngPoint, polygon: LatLngPoint[]): boolean {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.isPointInPolygon(point, polygon);
+      return nativeModule.isPointInPolygon(
+        normalizeLatLng(point),
+        normalizeLatLngList(polygon)
+      );
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '判断点是否在多边形内');
     }
@@ -320,12 +366,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param polygon 多边形的顶点坐标数组
    * @returns 面积（单位：平方米）
    */
-  calculatePolygonArea(polygon: LatLng[]): number {
+  calculatePolygonArea(polygon: LatLngPoint[]): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.calculatePolygonArea(polygon);
+      return nativeModule.calculatePolygonArea(normalizeLatLngList(polygon));
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算多边形面积');
     }
@@ -337,12 +383,15 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param northEast 东北角坐标
    * @returns 面积（单位：平方米）
    */
-  calculateRectangleArea(southWest: LatLng, northEast: LatLng): number {
+  calculateRectangleArea(southWest: LatLngPoint, northEast: LatLngPoint): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.calculateRectangleArea(southWest, northEast);
+      return nativeModule.calculateRectangleArea(
+        normalizeLatLng(southWest),
+        normalizeLatLng(northEast)
+      );
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算矩形面积');
     }
@@ -354,7 +403,7 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param target 目标点
    * @returns 最近点信息，包含坐标、索引和距离
    */
-  getNearestPointOnPath(path: LatLng[], target: LatLng): {
+  getNearestPointOnPath(path: LatLngPoint[], target: LatLngPoint): {
     latitude: number;
     longitude: number;
     index: number;
@@ -364,7 +413,10 @@ const ExpoGaodeMapModuleWithHelpers = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.getNearestPointOnPath(path, target);
+      return nativeModule.getNearestPointOnPath(
+        normalizeLatLngList(path),
+        normalizeLatLng(target)
+      );
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '获取最近点');
     }
@@ -375,12 +427,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param polygon 多边形顶点坐标数组
    * @returns 质心坐标
    */
-  calculateCentroid(polygon: LatLng[]): LatLng | null {
+  calculateCentroid(polygon: LatLngPoint[]): LatLng | null {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.calculateCentroid(polygon);
+      return nativeModule.calculateCentroid(normalizeLatLngList(polygon));
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算质心');
     }
@@ -392,12 +444,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param precision 精度 (1-12)
    * @returns GeoHash 字符串
    */
-  encodeGeoHash(coordinate: LatLng, precision: number): string {
+  encodeGeoHash(coordinate: LatLngPoint, precision: number): string {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.encodeGeoHash(coordinate, precision);
+      return nativeModule.encodeGeoHash(normalizeLatLng(coordinate), precision);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, 'GeoHash 编码');
     }
@@ -409,12 +461,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param tolerance 允许误差(米)
    * @returns 简化后的轨迹点
    */
-  simplifyPolyline(points: LatLng[], tolerance: number): LatLng[] {
+  simplifyPolyline(points: LatLngPoint[], tolerance: number): LatLng[] {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.simplifyPolyline(points, tolerance);
+      return nativeModule.simplifyPolyline(normalizeLatLngList(points), tolerance);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '轨迹抽稀');
     }
@@ -425,12 +477,12 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param points 路径点
    * @returns 长度(米)
    */
-  calculatePathLength(points: LatLng[]): number {
+  calculatePathLength(points: LatLngPoint[]): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.calculatePathLength(points);
+      return nativeModule.calculatePathLength(normalizeLatLngList(points));
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '计算路径长度');
     }
@@ -442,7 +494,7 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @param distance 距离起点的米数
    * @returns 点信息(坐标+角度)
    */
-  getPointAtDistance(points: LatLng[], distance: number): {
+  getPointAtDistance(points: LatLngPoint[], distance: number): {
     latitude: number;
     longitude: number;
     angle: number;
@@ -451,7 +503,7 @@ const ExpoGaodeMapModuleWithHelpers = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return nativeModule.getPointAtDistance(points, distance);
+      return nativeModule.getPointAtDistance(normalizeLatLngList(points), distance);
     } catch (error: any) {
       throw ErrorHandler.wrapNativeError(error, '获取路径上的点');
     }

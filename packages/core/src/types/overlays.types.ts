@@ -236,8 +236,10 @@ export interface PolygonProps {
   /**
    * 节点坐标数组
    * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
+   * 同时也支持嵌套数组格式 [[p1, p2, ...], [p3, p4, ...]]，用于定义带孔的多边形
+   * 其中第一个数组为外轮廓，后续数组为内孔
    */
-  points: LatLngPoint[];
+  points: LatLngPoint[] | LatLngPoint[][];
 
   /**
    * 边线宽度

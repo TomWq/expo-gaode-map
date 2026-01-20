@@ -8,7 +8,8 @@ import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
-
+  
+import expo.modules.gaodemap.utils.LatLngParser
 import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.gaodemap.utils.GeometryUtils
 import expo.modules.kotlin.AppContext
@@ -41,19 +42,13 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
     }
 
   }
-  
+
+
   /**
    * 设置折线点集合
    */
-  fun setPoints(pointsList: List<Map<String, Double>>) {
-    points = pointsList.mapNotNull { point ->
-      val lat = point["latitude"]
-      val lng = point["longitude"]
-      // 坐标验证
-      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        LatLng(lat, lng)
-      } else null
-    }
+  fun setPoints(pointsList: List<Any>?) {
+    points = LatLngParser.parseLatLngList(pointsList)
     polyline?.let {
       it.points = points
     } ?: createOrUpdatePolyline()
@@ -74,7 +69,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置线条颜色
    */
-  fun setStrokeColor(color: Any) {
+  fun setStrokeColor(color: String?) {
     strokeColor = ColorParser.parseColor(color)
     polyline?.let {
       it.color = strokeColor

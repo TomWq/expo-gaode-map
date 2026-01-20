@@ -11,7 +11,7 @@ class HeatMapViewModule : Module() {
     Name("HeatMapView")
 
     View(HeatMapView::class) {
-      Prop<List<Map<String, Any>>>("data") { view: HeatMapView, data ->
+      Prop<List<Any>?>("data") { view: HeatMapView, data ->
         view.setData(data)
       }
 

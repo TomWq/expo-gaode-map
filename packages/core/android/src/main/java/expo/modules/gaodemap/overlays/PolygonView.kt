@@ -5,9 +5,12 @@ import android.graphics.Color
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polygon
+import com.amap.api.maps.model.PolygonHoleOptions
 import com.amap.api.maps.model.PolygonOptions
+import com.amap.api.maps.model.BaseHoleOptions
 import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.gaodemap.utils.GeometryUtils
+import expo.modules.gaodemap.utils.LatLngParser
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -20,6 +23,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   private var polygon: Polygon? = null
   private var aMap: AMap? = null
   private var points: List<LatLng> = emptyList()
+  private var holes: List<List<LatLng>> = emptyList()
   private var strokeWidth: Float = 10f
   private var simplificationTolerance: Double = 0.0
 
@@ -42,24 +46,28 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   /**
    * 设置多边形点集合
    */
-  fun setPoints(pointsList: List<Map<String, Double>>) {
-    points = pointsList.mapNotNull { point ->
-      val lat = point["latitude"]
-      val lng = point["longitude"]
-      // 坐标验证
-      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        LatLng(lat, lng)
-      } else null
+  fun setPoints(pointsList: List<Any>?) {
+    val nestedPoints = LatLngParser.parseLatLngListList(pointsList)
+    if (nestedPoints.isNotEmpty()) {
+      points = nestedPoints[0]
+      holes = if (nestedPoints.size > 1) nestedPoints.subList(1, nestedPoints.size) else emptyList()
+    } else {
+      points = emptyList()
+      holes = emptyList()
     }
+    
     polygon?.let {
       it.points = points
+      it.holeOptions = holes.map { holePoints ->
+        PolygonHoleOptions().addAll(holePoints)
+      }
     } ?: createOrUpdatePolygon()
   }
   
   /**
    * 设置填充颜色
    */
-  fun setFillColor(color: Any) {
+  fun setFillColor(color: String?) {
     fillColor = ColorParser.parseColor(color)
     polygon?.let {
       it.fillColor = fillColor
@@ -69,7 +77,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   /**
    * 设置边框颜色
    */
-  fun setStrokeColor(color: Any) {
+  fun setStrokeColor(color: String?) {
    strokeColor = ColorParser.parseColor(color)
     polygon?.let {
       it.strokeColor = strokeColor
@@ -133,6 +141,12 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
           .strokeColor(strokeColor)
           .strokeWidth(strokeWidth)
           .zIndex(_zIndex)
+        
+        if (holes.isNotEmpty()) {
+          holes.forEach { holePoints ->
+            options.addHoles(PolygonHoleOptions().addAll(holePoints))
+          }
+        }
         
         polygon = map.addPolygon(options)
         

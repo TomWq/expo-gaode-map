@@ -21,6 +21,10 @@ class MarkerViewModule : Module() {
       Prop<Double>("longitude") { view, lng ->
         view.setLongitude(lng)
       }
+      // 位置
+      Prop<Map<String, Any>?>("position") { view, position ->
+        view.setPosition(position)
+      }
       // 标题
       Prop<String>("title") { view, title ->
         view.setTitle(title)
@@ -79,7 +83,7 @@ class MarkerViewModule : Module() {
       }
 
       // 平滑移动路径
-      Prop<List<Map<String, Double>>>("smoothMovePath") { view, path ->
+      Prop<List<Any>?>("smoothMovePath") { view: MarkerView, path ->
         view.setSmoothMovePath(path)
       }
 

@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import MAMapKit
+import CoreLocation
 
 /**
  * 折线覆盖物视图
@@ -15,7 +16,7 @@ class PolylineView: ExpoView {
     /// 线宽
     var strokeWidth: Float = 0
     /// 线条颜色
-    var strokeColor: Any?
+    var strokeColor: String?
     /// 是否虚线
     var isDotted: Bool = false
     /// 纹理图片 URL
@@ -93,45 +94,12 @@ class PolylineView: ExpoView {
         guard let mapView = mapView else { return }
         if let old = polyline { mapView.remove(old) }
         
-        var coords: [CLLocationCoordinate2D] = []
-
-        // 1. 提取有效坐标
-        var latitudes: [NSNumber] = []
-        var longitudes: [NSNumber] = []
+        // 🔑 使用统一的坐标解析器
+        var coords = LatLngParser.parseLatLngList(points)
         
-        for point in points {
-            guard let lat = point["latitude"],
-                  let lng = point["longitude"],
-                  lat >= -90 && lat <= 90,
-                  lng >= -180 && lng <= 180 else { continue }
-            latitudes.append(NSNumber(value: lat))
-            longitudes.append(NSNumber(value: lng))
-        }
-        
-        guard latitudes.count >= 2 else { return }
-
-        // 2. 尝试简化
-        if simplificationTolerance > 0 {
-            let simplified = ClusterNative.simplifyPolyline(withLatitudes: latitudes, longitudes: longitudes, toleranceMeters: simplificationTolerance)
-            
-            if !simplified.isEmpty {
-                // ClusterNative 返回 flat array [lat, lon, lat, lon...]
-                for i in stride(from: 0, to: simplified.count, by: 2) {
-                    let lat = simplified[i].doubleValue
-                    let lon = simplified[i+1].doubleValue
-                    coords.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
-                }
-            } else {
-                 // Fallback
-                 for i in 0..<latitudes.count {
-                    coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
-                }
-            }
-        } else {
-            // 3. 不简化
-            for i in 0..<latitudes.count {
-                coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
-            }
+        // 🔑 坐标简化 (如果设置了容差)
+        if simplificationTolerance > 0 && coords.count > 2 {
+            coords = GeometryUtils.simplifyPolyline(coords, tolerance: simplificationTolerance)
         }
         
         // 🔑 至少需要2个点才能绘制折线
@@ -235,7 +203,7 @@ class PolylineView: ExpoView {
      * 设置线条颜色
      * @param color 颜色值
      */
-    func setStrokeColor(_ color: Any?) {
+    func setStrokeColor(_ color: String?) {
         strokeColor = color
         renderer = nil
         forceRerender()

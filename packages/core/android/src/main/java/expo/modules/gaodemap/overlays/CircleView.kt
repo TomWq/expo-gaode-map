@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.overlays
 
+import expo.modules.gaodemap.utils.LatLngParser
 import android.content.Context
 import android.graphics.Color
 import com.amap.api.maps.AMap
@@ -36,19 +37,15 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
     post { createOrUpdateCircle() }
   }
   
+
+
   /**
    * 设置圆心
    */
-  fun setCenter(centerMap: Map<String, Double>) {
-    val lat = centerMap["latitude"]
-    val lng = centerMap["longitude"]
-    if (lat != null && lng != null) {
-      // 坐标验证
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        return
-      }
-      center = LatLng(lat, lng)
-      circle?.center = center
+  fun setCenter(centerData: Map<String, Any>?) {
+    center = LatLngParser.parseLatLng(centerData)
+    center?.let {
+      circle?.center = it
     }
   }
   
@@ -67,7 +64,7 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   /**
    * 设置填充颜色
    */
-  fun setFillColor(color: Any) {
+  fun setFillColor(color: String?) {
     fillColor = ColorParser.parseColor(color)
      circle?.let {
          it.fillColor = fillColor
@@ -78,7 +75,7 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
   /**
    * 设置边框颜色
    */
-  fun setStrokeColor(color: Any) {
+  fun setStrokeColor(color: String?) {
     strokeColor =  ColorParser.parseColor(color)
     circle?.let {
         it.strokeColor = strokeColor

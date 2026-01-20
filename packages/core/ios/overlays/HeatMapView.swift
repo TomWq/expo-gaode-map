@@ -11,7 +11,7 @@ import MAMapKit
  */
 class HeatMapView: ExpoView {
     /// 热力图数据点数组
-    var data: [[String: Any]] = []
+    var dataPoints: [[String: Any]] = []
     /// 热力图半径
     var radius: Int = 50
     /// 透明度
@@ -72,10 +72,10 @@ class HeatMapView: ExpoView {
     
     /**
      * 设置热力图数据
-     * @param data 数据点数组，每个点包含 latitude、longitude
+     * @param data 数据点数组
      */
     func setData(_ data: [[String: Any]]) {
-        self.data = data
+        self.dataPoints = data
         print("HeatMap: setData count=\(data.count)")
         createOrUpdateHeatMap()
     }
@@ -144,42 +144,31 @@ class HeatMapView: ExpoView {
             return
         }
         
+        // 🔑 使用统一的坐标解析器
+        let coords = LatLngParser.parseLatLngList(dataPoints)
+        
+        guard !coords.isEmpty else {
+            if let old = heatmapOverlay {
+                mapView.remove(old)
+                heatmapOverlay = nil
+                renderer = nil
+            }
+            return
+        }
+        
+        // 转换为 MAHeatMapNode
+        let heatmapData = coords.map { coord -> MAHeatMapNode in
+            let node = MAHeatMapNode()
+            node.coordinate = coord
+            node.intensity = 1.0 // 默认强度为 1.0
+            return node
+        }
+
         // 移除旧的热力图
         if let oldHeatmap = heatmapOverlay {
             mapView.remove(oldHeatmap)
             heatmapOverlay = nil
             renderer = nil
-        }
-        
-        // 验证数据有效性
-        guard !data.isEmpty else { return }
-        
-        // 创建热力图数据
-        var heatmapData: [MAHeatMapNode] = []
-        for point in data {
-            guard let latitude = point["latitude"] as? Double,
-                  let longitude = point["longitude"] as? Double,
-                  latitude >= -90 && latitude <= 90,
-                  longitude >= -180 && longitude <= 180 else {
-                continue
-            }
-            
-            let node = MAHeatMapNode()
-            node.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            // 支持自定义强度，默认为 1.0
-            if let count = point["count"] as? Double {
-                node.intensity = Float(max(0, count))
-            } else if let intensity = point["intensity"] as? Double {
-                node.intensity = Float(max(0, min(1, intensity)))
-            } else {
-                node.intensity = 1.0
-            }
-            heatmapData.append(node)
-        }
-        
-        guard !heatmapData.isEmpty else {
-            print("HeatMap: No valid data points found")
-            return
         }
         
         print("HeatMap: Creating overlay with \(heatmapData.count) points")

@@ -7,7 +7,7 @@ public class CircleViewModule: Module {
         View(CircleView.self) {
             Events("onCirclePress")
             
-            Prop("center") { (view: CircleView, center: [String: Double]) in
+            Prop("center") { (view: CircleView, center: [String: Double]?) in
                 view.setCenter(center)
             }
             
@@ -15,11 +15,11 @@ public class CircleViewModule: Module {
                 view.setRadius(radius)
             }
             
-            Prop("fillColor") { (view: CircleView, color: String) in
+            Prop("fillColor") { (view: CircleView, color: String?) in
                 view.setFillColor(color)
             }
             
-            Prop("strokeColor") { (view: CircleView, color: String) in
+            Prop("strokeColor") { (view: CircleView, color: String?) in
                 view.setStrokeColor(color)
             }
             

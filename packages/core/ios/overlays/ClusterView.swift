@@ -42,16 +42,11 @@ class ClusterView: ExpoView {
         var lons: [Double] = []
         
         for point in points {
-            if let lat = point["latitude"] as? Double,
-               let lon = point["longitude"] as? Double {
-                lats.append(lat)
-                lons.append(lon)
+            if let coord = LatLngParser.parseLatLng(point) {
+                lats.append(coord.latitude)
+                lons.append(coord.longitude)
             } else {
-                // 保持索引一致，无效点填 0 (或者过滤掉，但索引会乱，C++聚类返回的是索引)
-                // 如果 C++ 返回索引，我们需要确保 points[index] 是对应的点
-                // 所以这里最好不要过滤，而是填 NaN 或 0，并在后续处理
-                // 但 C++ 聚类会处理这些点吗？
-                // 简单起见，假设数据都是有效的。如果无效，填 0,0，它们会聚类在一起。
+                // 保持索引一致，无效点填 0
                 lats.append(0)
                 lons.append(0)
             }

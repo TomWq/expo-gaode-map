@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import MAMapKit
+import CoreLocation
 
 /**
  * 多边形覆盖物视图
@@ -13,11 +14,11 @@ class PolygonView: ExpoView {
     let onPolygonPress = EventDispatcher()
     
     /// 多边形点数组
-    var points: [[String: Double]] = []
+    var points: [Any] = []
     /// 填充颜色
-    var fillColor: Any?
+    var fillColor: String?
     /// 边框颜色
-    var strokeColor: Any?
+    var strokeColor: String?
     /// 边框宽度
     var strokeWidth: Float = 0
     /// 简化容差 (米)
@@ -68,11 +69,7 @@ class PolygonView: ExpoView {
      * @param map 地图视图
      */
     func setMap(_ map: MAMapView) {
-        _ = self.mapView == nil
         self.mapView = map
-        
-        // 无论是否是新地图，都调用 updatePolygon
-        // 这确保了即使在 setMap 之前设置了 props，覆盖物也能被正确创建
         updatePolygon()
     }
     
@@ -83,58 +80,53 @@ class PolygonView: ExpoView {
         guard let mapView = mapView else { return }
         if let old = polygon { mapView.remove(old) }
         
-        // 🔑 坐标验证和过滤
-        var latitudes: [NSNumber] = []
-        var longitudes: [NSNumber] = []
+        // 🔑 使用支持嵌套列表的坐标解析器
+        let nestedCoords = LatLngParser.parseLatLngListList(points)
+        guard !nestedCoords.isEmpty else { return }
         
-        for point in points {
-            guard let lat = point["latitude"],
-                  let lng = point["longitude"],
-                  lat >= -90 && lat <= 90,
-                  lng >= -180 && lng <= 180 else { continue }
-            latitudes.append(NSNumber(value: lat))
-            longitudes.append(NSNumber(value: lng))
+        // 第一项是外轮廓
+        var outerCoords = nestedCoords[0]
+        
+        // 🔑 坐标简化 (如果设置了容差)
+        if simplificationTolerance > 0 {
+            let originalCount = outerCoords.count
+            outerCoords = GeometryUtils.simplifyPolyline(outerCoords, tolerance: simplificationTolerance)
+            
+            // 派发简化事件
+            onPolygonSimplified([
+                "originalCount": originalCount,
+                "simplifiedCount": outerCoords.count
+            ])
         }
         
         // 🔑 至少需要3个点才能绘制多边形
-        guard latitudes.count >= 3 else { return }
+        guard outerCoords.count >= 3 else { return }
         
-        var coords: [CLLocationCoordinate2D] = []
-        
-        // 尝试简化
-        if simplificationTolerance > 0 {
-            let simplified = ClusterNative.simplifyPolyline(withLatitudes: latitudes, longitudes: longitudes, toleranceMeters: simplificationTolerance)
-            
-            if simplified.count >= 6 { // 至少3个点 (3 * 2 = 6)
-                for i in stride(from: 0, to: simplified.count, by: 2) {
-                    let lat = simplified[i].doubleValue
-                    let lon = simplified[i+1].doubleValue
-                    coords.append(CLLocationCoordinate2D(latitude: lat, longitude: lon))
+        // 处理内孔 (hollowShapes)
+        var hollowShapes: [MAOverlay] = []
+        if nestedCoords.count > 1 {
+            for i in 1..<nestedCoords.count {
+                var ring = nestedCoords[i]
+                if ring.count >= 3 {
+                    if let hole = MAPolygon(coordinates: &ring, count: UInt(ring.count)) {
+                        hollowShapes.append(hole)
+                    }
                 }
-            } else {
-                // Fallback to original
-                 for i in 0..<latitudes.count {
-                    coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
-                }
-            }
-        } else {
-            for i in 0..<latitudes.count {
-                coords.append(CLLocationCoordinate2D(latitude: latitudes[i].doubleValue, longitude: longitudes[i].doubleValue))
             }
         }
         
-        guard coords.count >= 3 else { return }
-        
-        polygon = MAPolygon(coordinates: &coords, count: UInt(coords.count))
-        mapView.add(polygon!)
+        // 创建主多边形
+        if let mainPolygon = MAPolygon(coordinates: &outerCoords, count: UInt(outerCoords.count)) {
+            // 如果有内孔，设置 hollowShapes 属性
+            if !hollowShapes.isEmpty {
+                mainPolygon.hollowShapes = hollowShapes
+            }
+            
+            self.polygon = mainPolygon
+            mapView.add(mainPolygon)
+        }
         
         renderer = nil
-        
-        // 派发简化事件
-        onPolygonSimplified([
-            "originalCount": latitudes.count,
-            "simplifiedCount": coords.count
-        ])
     }
     
     /**
@@ -157,7 +149,7 @@ class PolygonView: ExpoView {
      * 设置多边形点数组
      * @param points 点数组
      */
-    func setPoints(_ points: [[String: Double]]) {
+    func setPoints(_ points: [Any]) {
         self.points = points
         updatePolygon()
     }
@@ -166,7 +158,7 @@ class PolygonView: ExpoView {
      * 设置填充颜色
      * @param color 颜色值
      */
-    func setFillColor(_ color: Any?) {
+    func setFillColor(_ color: String?) {
         fillColor = color
         renderer = nil
         updatePolygon()
@@ -176,7 +168,7 @@ class PolygonView: ExpoView {
      * 设置边框颜色
      * @param color 颜色值
      */
-    func setStrokeColor(_ color: Any?) {
+    func setStrokeColor(_ color: String?) {
         strokeColor = color
         renderer = nil
         updatePolygon()

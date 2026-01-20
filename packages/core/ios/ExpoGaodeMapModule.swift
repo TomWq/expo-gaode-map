@@ -237,8 +237,13 @@ public class ExpoGaodeMapModule: Module {
          * @param type 坐标类型 (0: GPS/Google, 1: MapBar, 2: Baidu, 3: MapABC/SoSo)
          * @return 转换后的坐标
          */
-        AsyncFunction("coordinateConvert") { (coordinate: [String: Double], type: Int, promise: Promise) in
-            self.getLocationManager().coordinateConvert(coordinate, type: type, promise: promise)
+        AsyncFunction("coordinateConvert") { (coordinate: [String: Double]?, type: Int, promise: Promise) in
+            if let coord = LatLngParser.parseLatLng(coordinate) {
+                let coordDict = ["latitude": coord.latitude, "longitude": coord.longitude]
+                self.getLocationManager().coordinateConvert(coordDict, type: type, promise: promise)
+            } else {
+                promise.reject("INVALID_COORDINATE", "Invalid coordinate format")
+            }
         }
         
         // ==================== 几何计算 ====================
@@ -246,181 +251,216 @@ public class ExpoGaodeMapModule: Module {
         /**
          * 计算两点之间的距离
          */
-        Function("distanceBetweenCoordinates") { (p1: [String: Double], p2: [String: Double]) -> Double in
-            guard let lat1 = p1["latitude"], let lon1 = p1["longitude"],
-                  let lat2 = p2["latitude"], let lon2 = p2["longitude"] else {
+        Function("distanceBetweenCoordinates") { (p1: [String: Double]?, p2: [String: Double]?) -> Double in
+            guard let coord1 = LatLngParser.parseLatLng(p1),
+                  let coord2 = LatLngParser.parseLatLng(p2) else {
                 return 0.0
             }
-            return ClusterNative.calculateDistance(withLat1: lat1, lon1: lon1, lat2: lat2, lon2: lon2)
+            return ClusterNative.calculateDistance(withLat1: coord1.latitude, lon1: coord1.longitude, lat2: coord2.latitude, lon2: coord2.longitude)
         }
         
         /**
          * 计算多边形面积
+         * @param points 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
          */
-        Function("calculatePolygonArea") { (points: [[String: Double]]) -> Double in
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for point in points {
-                if let lat = point["latitude"], let lon = point["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
+        Function("calculatePolygonArea") { (points: [Any]?) -> Double in
+            let rings = LatLngParser.parseLatLngListList(points)
+            if rings.isEmpty { return 0.0 }
+            
+            // 第一项是外轮廓
+            let outerCoords = rings[0]
+            var totalArea = ClusterNative.calculatePolygonArea(
+                withLatitudes: outerCoords.map { NSNumber(value: $0.latitude) },
+                longitudes: outerCoords.map { NSNumber(value: $0.longitude) }
+            )
+            
+            // 后续项是内孔，需要减去面积
+            if rings.count > 1 {
+                for i in 1..<rings.count {
+                    let ring = rings[i]
+                    totalArea -= ClusterNative.calculatePolygonArea(
+                        withLatitudes: ring.map { NSNumber(value: $0.latitude) },
+                        longitudes: ring.map { NSNumber(value: $0.longitude) }
+                    )
                 }
             }
-            return ClusterNative.calculatePolygonArea(withLatitudes: lats, longitudes: lons)
+            
+            return Swift.max(0.0, totalArea)
         }
         
         /**
          * 判断点是否在多边形内
+         * @param point 待判断点
+         * @param polygon 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
          */
-        Function("isPointInPolygon") { (point: [String: Double], polygon: [[String: Double]]) -> Bool in
-            guard let lat = point["latitude"], let lon = point["longitude"] else {
+        Function("isPointInPolygon") { (point: [String: Double]?, polygon: [Any]?) -> Bool in
+            guard let coord = LatLngParser.parseLatLng(point) else {
                 return false
             }
             
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for p in polygon {
-                if let lat = p["latitude"], let lon = p["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
+            let rings = LatLngParser.parseLatLngListList(polygon)
+            if rings.isEmpty { return false }
+            
+            // 点必须在外轮廓内
+            let outerCoords = rings[0]
+            let inOuter = ClusterNative.isPointInPolygon(
+                withPointLat: coord.latitude,
+                pointLon: coord.longitude,
+                latitudes: outerCoords.map { NSNumber(value: $0.latitude) },
+                longitudes: outerCoords.map { NSNumber(value: $0.longitude) }
+            )
+            
+            if !inOuter { return false }
+            
+            // 点不能在任何内孔内
+            if rings.count > 1 {
+                for i in 1..<rings.count {
+                    let ring = rings[i]
+                    let inHole = ClusterNative.isPointInPolygon(
+                        withPointLat: coord.latitude,
+                        pointLon: coord.longitude,
+                        latitudes: ring.map { NSNumber(value: $0.latitude) },
+                        longitudes: ring.map { NSNumber(value: $0.longitude) }
+                    )
+                    if inHole { return false }
                 }
             }
-            return ClusterNative.isPointInPolygon(withPointLat: lat, pointLon: lon, latitudes: lats, longitudes: lons)
+            
+            return true
         }
         
         /**
          * 判断点是否在圆内
          */
-        Function("isPointInCircle") { (point: [String: Double], center: [String: Double], radius: Double) -> Bool in
-            guard let lat = point["latitude"], let lon = point["longitude"],
-                  let centerLat = center["latitude"], let centerLon = center["longitude"] else {
+        Function("isPointInCircle") { (point: [String: Double]?, center: [String: Double]?, radius: Double) -> Bool in
+            guard let coord = LatLngParser.parseLatLng(point),
+                  let centerCoord = LatLngParser.parseLatLng(center) else {
                 return false
             }
-            return ClusterNative.isPointInCircle(withPointLat: lat, pointLon: lon, centerLat: centerLat, centerLon: centerLon, radiusMeters: radius)
+            return ClusterNative.isPointInCircle(withPointLat: coord.latitude, pointLon: coord.longitude, centerLat: centerCoord.latitude, centerLon: centerCoord.longitude, radiusMeters: radius)
         }
-
+        
         /**
          * 计算矩形面积
          */
-        Function("calculateRectangleArea") { (southWest: [String: Double], northEast: [String: Double]) -> Double in
-            guard let swLat = southWest["latitude"], let swLon = southWest["longitude"],
-                  let neLat = northEast["latitude"], let neLon = northEast["longitude"] else {
+        Function("calculateRectangleArea") { (southWest: [String: Double]?, northEast: [String: Double]?) -> Double in
+            guard let sw = LatLngParser.parseLatLng(southWest),
+                  let ne = LatLngParser.parseLatLng(northEast) else {
                 return 0.0
             }
-            return ClusterNative.calculateRectangleArea(withSouthWestLat: swLat, southWestLon: swLon, northEastLat: neLat, northEastLon: neLon)
+            return ClusterNative.calculateRectangleArea(withSouthWestLat: sw.latitude, southWestLon: sw.longitude, northEastLat: ne.latitude, northEastLon: ne.longitude)
         }
         
         /**
          * 计算路径上距离目标点最近的点
          */
-        Function("getNearestPointOnPath") { (path: [[String: Double]], target: [String: Double]) -> [String: Any]? in
-            guard let targetLat = target["latitude"], let targetLon = target["longitude"] else {
+        Function("getNearestPointOnPath") { (path: [[String: Double]]?, target: [String: Double]?) -> [String: Any]? in
+            guard let targetCoord = LatLngParser.parseLatLng(target) else {
                 return nil
             }
             
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for point in path {
-                if let lat = point["latitude"], let lon = point["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
-                }
-            }
-            
-            if lats.isEmpty {
+            let coords = LatLngParser.parseLatLngList(path)
+            if coords.isEmpty {
                 return nil
             }
             
-            return ClusterNative.getNearestPointOnPath(withLatitudes: lats, longitudes: lons, targetLat: targetLat, targetLon: targetLon) as? [String: Any]
+            let lats = coords.map { NSNumber(value: $0.latitude) }
+            let lons = coords.map { NSNumber(value: $0.longitude) }
+            
+            return ClusterNative.getNearestPointOnPath(withLatitudes: lats, longitudes: lons, targetLat: targetCoord.latitude, targetLon: targetCoord.longitude) as? [String: Any]
         }
         
         /**
          * 计算多边形质心
+         * @param polygon 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
          */
-        Function("calculateCentroid") { (polygon: [[String: Double]]) -> [String: Double]? in
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for point in polygon {
-                if let lat = point["latitude"], let lon = point["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
+        Function("calculateCentroid") { (polygon: [Any]?) -> [String: Double]? in
+            let rings = LatLngParser.parseLatLngListList(polygon)
+            if rings.isEmpty { return nil }
+            
+            if rings.count == 1 {
+                let coords = rings[0]
+                let lats = coords.map { NSNumber(value: $0.latitude) }
+                let lons = coords.map { NSNumber(value: $0.longitude) }
+                return ClusterNative.calculateCentroid(withLatitudes: lats, longitudes: lons) as? [String: Double]
+            }
+            
+            // 带孔多边形的质心计算: Σ(Area_i * Centroid_i) / Σ(Area_i)
+            var totalArea = 0.0
+            var sumLat = 0.0
+            var sumLon = 0.0
+            
+            for i in 0..<rings.count {
+                let coords = rings[i]
+                let lats = coords.map { NSNumber(value: $0.latitude) }
+                let lons = coords.map { NSNumber(value: $0.longitude) }
+                
+                let area = ClusterNative.calculatePolygonArea(withLatitudes: lats, longitudes: lons)
+                if let centroid = ClusterNative.calculateCentroid(withLatitudes: lats, longitudes: lons) as? [String: Double],
+                   let cLat = centroid["latitude"], let cLon = centroid["longitude"] {
+                    
+                    // 第一项是外轮廓(正)，后续是内孔(负)
+                    let factor = (i == 0) ? 1.0 : -1.0
+                    let signedArea = area * factor
+                    
+                    totalArea += signedArea
+                    sumLat += cLat * signedArea
+                    sumLon += cLon * signedArea
                 }
             }
             
-            if lats.count < 3 {
-                return nil
+            if abs(totalArea) > 1e-9 {
+                return [
+                    "latitude": sumLat / totalArea,
+                    "longitude": sumLon / totalArea
+                ]
             }
             
-            if let result = ClusterNative.calculateCentroid(withLatitudes: lats, longitudes: lons) as? [String: Double] {
-                return result
-            }
             return nil
         }
         
         /**
          * GeoHash 编码
          */
-        Function("encodeGeoHash") { (coordinate: [String: Double], precision: Int) -> String in
-            guard let lat = coordinate["latitude"], let lon = coordinate["longitude"] else {
+        Function("encodeGeoHash") { (coordinate: [String: Double]?, precision: Int) -> String in
+            guard let coord = LatLngParser.parseLatLng(coordinate) else {
                 return ""
             }
-            return ClusterNative.encodeGeoHash(withLat: lat, lon: lon, precision: Int32(precision))
+            return ClusterNative.encodeGeoHash(withLat: coord.latitude, lon: coord.longitude, precision: Int32(precision))
         }
 
         /**
          * 轨迹抽稀 (RDP 算法)
          */
-        Function("simplifyPolyline") { (points: [[String: Double]], tolerance: Double) -> [[String: Double]] in
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for point in points {
-                if let lat = point["latitude"], let lon = point["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
-                }
-            }
+        Function("simplifyPolyline") { (points: [[String: Double]]?, tolerance: Double) -> [[String: Double]] in
+            let coords = LatLngParser.parseLatLngList(points)
+            let simplified = GeometryUtils.simplifyPolyline(coords, tolerance: tolerance)
             
-            let result = ClusterNative.simplifyPolyline(withLatitudes: lats, longitudes: lons, toleranceMeters: tolerance)
-            
-            var simplified: [[String: Double]] = []
-            for i in stride(from: 0, to: result.count, by: 2) {
-                if i + 1 < result.count {
-                    simplified.append([
-                        "latitude": result[i].doubleValue,
-                        "longitude": result[i+1].doubleValue
-                    ])
-                }
+            return simplified.map {
+                [
+                    "latitude": $0.latitude,
+                    "longitude": $0.longitude
+                ]
             }
-            return simplified
         }
         
         /**
          * 计算路径总长度
          */
-        Function("calculatePathLength") { (points: [[String: Double]]) -> Double in
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for point in points {
-                if let lat = point["latitude"], let lon = point["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
-                }
-            }
+        Function("calculatePathLength") { (points: [[String: Double]]?) -> Double in
+            let coords = LatLngParser.parseLatLngList(points)
+            let lats = coords.map { NSNumber(value: $0.latitude) }
+            let lons = coords.map { NSNumber(value: $0.longitude) }
             return ClusterNative.calculatePathLength(withLatitudes: lats, longitudes: lons)
         }
         
         /**
          * 获取路径上指定距离的点
          */
-        Function("getPointAtDistance") { (points: [[String: Double]], distance: Double) -> [String: Any]? in
-            var lats: [NSNumber] = []
-            var lons: [NSNumber] = []
-            for point in points {
-                if let lat = point["latitude"], let lon = point["longitude"] {
-                    lats.append(NSNumber(value: lat))
-                    lons.append(NSNumber(value: lon))
-                }
-            }
+        Function("getPointAtDistance") { (points: [[String: Double]]?, distance: Double) -> [String: Any]? in
+            let coords = LatLngParser.parseLatLngList(points)
+            let lats = coords.map { NSNumber(value: $0.latitude) }
+            let lons = coords.map { NSNumber(value: $0.longitude) }
             return ClusterNative.getPointAtDistance(withLatitudes: lats, longitudes: lons, distanceMeters: distance) as? [String: Any]
         }
         

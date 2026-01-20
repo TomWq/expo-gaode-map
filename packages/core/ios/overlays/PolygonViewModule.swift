@@ -7,15 +7,15 @@ public class PolygonViewModule: Module {
         View(PolygonView.self) {
             Events("onPolygonPress", "onPolygonSimplified")
             
-            Prop("points") { (view: PolygonView, points: [[String: Double]]) in
-                view.setPoints(points)
-            }
+            Prop("points") { (view: PolygonView, points: [Any]) in
+            view.setPoints(points)
+        }
             
-            Prop("fillColor") { (view: PolygonView, color: String) in
+            Prop("fillColor") { (view: PolygonView, color: String?) in
                 view.setFillColor(color)
             }
             
-            Prop("strokeColor") { (view: PolygonView, color: String) in
+            Prop("strokeColor") { (view: PolygonView, color: String?) in
                 view.setStrokeColor(color)
             }
             

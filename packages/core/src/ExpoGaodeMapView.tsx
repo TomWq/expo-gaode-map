@@ -7,8 +7,9 @@ import type {
   CameraPosition,
   LatLng,
   Point,
-
+  LatLngPoint,
 } from './types';
+import { normalizeLatLng } from './utils/GeoUtils';
 import { ErrorHandler } from './utils/ErrorHandler';
 import { MapContext } from './components/MapContext';
 import { MapUI } from './components/MapUI';
@@ -65,9 +66,23 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    * 所有方法共享相同的错误处理逻辑
    */
   const apiRef: MapViewRef = React.useMemo(() => ({
-    moveCamera: createApiMethod<(position: CameraPosition, duration?: number) => Promise<void>>('moveCamera'),
+    moveCamera: (position: CameraPosition, duration?: number) => {
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('moveCamera');
+      }
+      const normalizedPosition = {
+        ...position,
+        target: position.target ? normalizeLatLng(position.target) : undefined,
+      };
+      return nativeRef.current.moveCamera(normalizedPosition, duration);
+    },
     getLatLng: createApiMethod<(point: Point) => Promise<LatLng>>('getLatLng'),
-    setCenter: createApiMethod<(center: LatLng, animated?: boolean) => Promise<void>>('setCenter'),
+    setCenter: (center: LatLngPoint, animated?: boolean) => {
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('setCenter');
+      }
+      return nativeRef.current.setCenter(normalizeLatLng(center), animated);
+    },
     setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
     getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
     takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),

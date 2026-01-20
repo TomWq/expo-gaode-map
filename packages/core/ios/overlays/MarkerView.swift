@@ -19,7 +19,7 @@ class MarkerView: ExpoView {
     var onMarkerDragEnd = EventDispatcher()
     
     /// 标记点位置
-    var position: [String: Double] = [:]
+    var position: [String: Double]?
     /// 临时存储的纬度
     private var pendingLatitude: Double?
     /// 临时存储的经度
@@ -155,14 +155,7 @@ class MarkerView: ExpoView {
      */
     private func performUpdateAnnotation() {
         guard let mapView = mapView,
-              let latitude = position["latitude"],
-              let longitude = position["longitude"] else {
-            return
-        }
-        
-        // 🔑 坐标验证：防止无效坐标导致崩溃
-        guard latitude >= -90 && latitude <= 90,
-              longitude >= -180 && longitude <= 180 else {
+              let coordinate = LatLngParser.parseLatLng(position) else {
             return
         }
         
@@ -170,25 +163,17 @@ class MarkerView: ExpoView {
         pendingAddTask?.cancel()
         pendingAddTask = nil
         
-        // 移除旧的标记
-//        if let oldAnnotation = annotation {
-//            mapView.removeAnnotation(oldAnnotation)
-//        }
-//        
-//        // 创建新的标记
-//        let annotation = MAPointAnnotation()
         // 如果已有 annotation，尝试更新坐标与属性，避免 remove/add
         if let existing = annotation {
-            existing.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            existing.coordinate = coordinate
             existing.title = title
             existing.subtitle = markerDescription
-            // 如果 annotationView 已存在且需要刷新图片（比如 cacheKey 改变或 children 变化），我们后面会处理
             return
         }
 
         // 如果没有，则创建并添加
         let annotation = MAPointAnnotation()
-        annotation.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        annotation.coordinate = coordinate
         annotation.title = title
         annotation.subtitle = markerDescription
         self.annotation = annotation
@@ -684,14 +669,17 @@ class MarkerView: ExpoView {
      * 设置位置（兼容旧的 API）
      * @param position 位置坐标 {latitude, longitude}
      */
-    func setPosition(_ position: [String: Double]) {
-        if mapView != nil {
-            // 地图已设置，直接更新
-            self.position = position
-            updateAnnotation()
-        } else {
-            // 地图还未设置，保存位置待后续应用
-            pendingPosition = position
+    func setPosition(_ position: [String: Double]?) {
+        if let coord = LatLngParser.parseLatLng(position) {
+            let pos = ["latitude": coord.latitude, "longitude": coord.longitude]
+            if mapView != nil {
+                // 地图已设置，直接更新
+                self.position = pos
+                updateAnnotation()
+            } else {
+                // 地图还未设置，保存位置待后续应用
+                pendingPosition = pos
+            }
         }
     }
     
@@ -747,6 +735,7 @@ class MarkerView: ExpoView {
     
     /**
      * 设置平滑移动路径
+     * @param path 坐标点数组
      */
     func setSmoothMovePath(_ path: [[String: Double]]) {
         self.smoothMovePath = path
@@ -775,7 +764,7 @@ class MarkerView: ExpoView {
         var adjustedPath: [[String: Double]]? = nil
         
         // 只有当有当前位置时才尝试寻找最近点
-        if let currentLat = position["latitude"], let currentLng = position["longitude"] {
+        if let pos = position, let currentLat = pos["latitude"], let currentLng = pos["longitude"] {
             // 准备数据给 C++
             let latitudes = smoothMovePath.compactMap { $0["latitude"] as NSNumber? }
             let longitudes = smoothMovePath.compactMap { $0["longitude"] as NSNumber? }
@@ -807,12 +796,7 @@ class MarkerView: ExpoView {
         // 如果没有调整路径（C++计算失败或不需要调整），使用原始路径
         let finalPath = adjustedPath ?? smoothMovePath
         
-        var coordinates = finalPath.compactMap { point -> CLLocationCoordinate2D? in
-            guard let lat = point["latitude"], let lng = point["longitude"] else {
-                return nil
-            }
-            return CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        }
+        var coordinates = LatLngParser.parseLatLngList(finalPath)
         
         guard !coordinates.isEmpty else { return }
         
@@ -832,7 +816,7 @@ class MarkerView: ExpoView {
             animatedAnnotation = MAAnimatedAnnotation()
             
             // 设置初始位置
-            if let startLat = position["latitude"], let startLng = position["longitude"] {
+            if let pos = position, let startLat = pos["latitude"], let startLng = pos["longitude"] {
                 animatedAnnotation?.coordinate = CLLocationCoordinate2D(latitude: startLat, longitude: startLng)
             }
             

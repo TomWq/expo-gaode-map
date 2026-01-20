@@ -8,8 +8,8 @@ public class MultiPointViewModule: Module {
             Events("onMultiPointPress")
 
             Prop("points") { (view: MultiPointView, points: [[String: Any]]) in
-                view.setPoints(points)
-            }
+            view.setPoints(points)
+        }
             
             Prop("icon") { (view: MultiPointView, icon: String?) in
                 view.setIcon(icon)

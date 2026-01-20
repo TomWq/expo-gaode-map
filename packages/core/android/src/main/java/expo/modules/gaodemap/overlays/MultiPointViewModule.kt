@@ -13,7 +13,7 @@ class MultiPointViewModule : Module() {
     View(MultiPointView::class) {
       Events("onMultiPointPress")
       
-      Prop<List<Map<String, Any>>>("points") { view: MultiPointView, points ->
+      Prop<List<Any>>("points") { view: MultiPointView, points ->
         view.setPoints(points)
       }
 

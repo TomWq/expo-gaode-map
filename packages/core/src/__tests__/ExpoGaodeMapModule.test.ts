@@ -296,7 +296,7 @@ describe('ExpoGaodeMapModule', () => {
       // 检查方法是否存在
       expect(ExpoGaodeMapModule.distanceBetweenCoordinates).toBeDefined();
       
-      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+      const distance =  ExpoGaodeMapModule.distanceBetweenCoordinates(
         { latitude: 39.9, longitude: 116.4 },
         { latitude: 39.9, longitude: 116.4 }
       );
@@ -308,7 +308,7 @@ describe('ExpoGaodeMapModule', () => {
     });
 
     it("应该能够计算两个不同点的距离", async () => {
-      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+      const distance =  ExpoGaodeMapModule.distanceBetweenCoordinates(
         { latitude: 39.9, longitude: 116.4 },
         { latitude: 39.91, longitude: 116.41 }
       );
@@ -320,7 +320,7 @@ describe('ExpoGaodeMapModule', () => {
     });
 
     it("应该判断点是否在圆内", async () => {
-      const inCircle = await ExpoGaodeMapModule.isPointInCircle(
+      const inCircle =  ExpoGaodeMapModule.isPointInCircle(
         { latitude: 39.9, longitude: 116.4 },
         { latitude: 39.9, longitude: 116.4 },
         1000
@@ -331,8 +331,9 @@ describe('ExpoGaodeMapModule', () => {
       // 坐标点在圆内
       expect(inCircle).toBe(true);
     });
-    it("应该判断点是否在多边形内", async () => {
-      const inPolygon = await ExpoGaodeMapModule.isPointInPolygon(
+    it("应该判断点是否在多边形内 (支持各种 LatLngPoint 格式)", async () => {
+      // 测试对象格式
+      const inPolygon1 =  ExpoGaodeMapModule.isPointInPolygon(
         { latitude: 39.9, longitude: 116.4 },
         [
           { latitude: 39.9, longitude: 116.4 },
@@ -341,14 +342,34 @@ describe('ExpoGaodeMapModule', () => {
           { latitude: 39.91, longitude: 116.4 },
         ]
       );
-      
-      expect(inPolygon).toBeDefined();
-      expect(typeof inPolygon).toBe('boolean');
-      // 坐标点在多边形内
-      expect(inPolygon).toBe(true);
+      expect(inPolygon1).toBe(true);
+
+      // 测试 [number, number] 数组格式
+      const inPolygon2 =  ExpoGaodeMapModule.isPointInPolygon(
+        [116.4, 39.9],
+        [
+          [116.4, 39.9],
+          [116.41, 39.9],
+          [116.41, 39.91],
+          [116.4, 39.91],
+        ]
+      );
+      expect(inPolygon2).toBe(true);
+
+      // 测试 number[] 格式
+      const inPolygon3 =  ExpoGaodeMapModule.isPointInPolygon(
+        [116.4, 39.9, 0],
+        [
+          [116.4, 39.9, 0],
+          [116.41, 39.9, 0],
+          [116.41, 39.91, 0],
+          [116.4, 39.91, 0],
+        ]
+      );
+      expect(inPolygon3).toBe(true);
     });
     it("应该计算多边形面积", async () => {
-      const area = await ExpoGaodeMapModule.calculatePolygonArea([
+      const area =  ExpoGaodeMapModule.calculatePolygonArea([
         { latitude: 39.9, longitude: 116.4 },
         { latitude: 39.9, longitude: 116.41 },
         { latitude: 39.91, longitude: 116.41 },
@@ -361,7 +382,7 @@ describe('ExpoGaodeMapModule', () => {
       expect(area).toBeGreaterThan(0);
     });
     it("应该计算矩形面积", async () => {
-      const area = await ExpoGaodeMapModule.calculateRectangleArea(
+      const area =  ExpoGaodeMapModule.calculateRectangleArea(
         { latitude: 39.9, longitude: 116.4 },
         { latitude: 39.91, longitude: 116.41 }
       );

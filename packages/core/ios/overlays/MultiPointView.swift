@@ -5,7 +5,7 @@ import UIKit
 class MultiPointView: ExpoView {
     let onMultiPointPress = EventDispatcher()
     
-    var points: [[String: Any]] = []
+    var pointsData: [[String: Any]] = []
     var iconUri: String?
     var iconWidth: Double?
     var iconHeight: Double?
@@ -26,7 +26,7 @@ class MultiPointView: ExpoView {
     }
     
     func setPoints(_ points: [[String: Any]]) {
-        self.points = points
+        self.pointsData = points
         updateMultiPoint()
     }
     
@@ -62,27 +62,25 @@ class MultiPointView: ExpoView {
         }
         
         // 验证数据有效性
-        guard !points.isEmpty else { return }
+        guard !pointsData.isEmpty else { return }
         
         var items: [MAMultiPointItem] = []
-        for (_, point) in points.enumerated() {
-            guard let latitude = point["latitude"] as? Double,
-                  let longitude = point["longitude"] as? Double else {
+        for point in pointsData {
+            guard let coordinate = LatLngParser.parseLatLng(point) else {
                 continue
             }
             
             let item = MAMultiPointItem()
-            item.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            // 存储 index 和 customerId 到 item 中，这里利用 customID 或者 title 属性
-            // MAMultiPointItem 有 customID 属性
-            if let customerId = point["customerId"] as? String {
-                item.customID = customerId
-            } else if let id = point["id"] as? String {
-                item.customID = id
-            }
+            item.coordinate = coordinate
             
-            // 也可以存 title，这里为了方便查找 index，我们可以把 index 存到 title 或者 subtitle
-            // 但最好是通过 customID 查找
+            // 如果是 Map，尝试获取 ID
+            if let pointDict = point as? [String: Any] {
+                if let customerId = pointDict["customerId"] as? String {
+                    item.customID = customerId
+                } else if let id = pointDict["id"] as? String {
+                    item.customID = id
+                }
+            }
             
             items.append(item)
         }
@@ -187,20 +185,24 @@ class MultiPointView: ExpoView {
         
         // 优先通过 customID 查找
         if let customID = item.customID {
-            index = points.firstIndex { ($0["customerId"] as? String) == customID || ($0["id"] as? String) == customID } ?? -1
+            index = pointsData.firstIndex { point in
+                guard let dict = point as? [String: Any] else { return false }
+                return (dict["customerId"] as? String) == customID || (dict["id"] as? String) == customID
+            } ?? -1
         }
         
         // 如果没找到，尝试通过坐标查找（不够精确，但作为备选）
         if index == -1 {
-            index = points.firstIndex { point in
-                guard let lat = point["latitude"] as? Double,
-                      let lng = point["longitude"] as? Double else { return false }
+            index = pointsData.firstIndex { point in
+                guard let dict = point as? [String: Any],
+                      let lat = dict["latitude"] as? Double,
+                      let lng = dict["longitude"] as? Double else { return false }
                 return abs(lat - item.coordinate.latitude) < 0.000001 && abs(lng - item.coordinate.longitude) < 0.000001
             } ?? -1
         }
         
         if index != -1 {
-            pointData = points[index]
+            pointData = pointsData[index] as? [String: Any]
             onMultiPointPress([
                 "index": index,
                 "customerId": pointData?["customerId"] ?? pointData?["id"] ?? "",

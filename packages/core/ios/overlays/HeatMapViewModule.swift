@@ -6,8 +6,8 @@ public class HeatMapViewModule: Module {
         
         View(HeatMapView.self) {
             Prop("data") { (view: HeatMapView, data: [[String: Any]]) in
-                view.setData(data)
-            }
+            view.setData(data)
+        }
 
             Prop("visible") { (view: HeatMapView, visible: Bool) in
                 view.setVisible(visible)
