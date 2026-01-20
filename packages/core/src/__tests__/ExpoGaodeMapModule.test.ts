@@ -120,35 +120,6 @@ describe('ExpoGaodeMapModule', () => {
     });
   });
 
-  describe('隐私合规', () => {
-    it('应该能够更新隐私合规状态', () => {
-      expect(() => {
-        ExpoGaodeMapModule.updatePrivacyCompliance?.(true);
-      }).not.toThrow();
-    });
-  });
-
-  describe('地图预加载', () => {
-    it('应该能够开始预加载', () => {
-      expect(() => {
-        ExpoGaodeMapModule.startMapPreload?.({ poolSize: 2 });
-      }).not.toThrow();
-    });
-
-    it('应该能够获取预加载状态', () => {
-      const status = ExpoGaodeMapModule.getMapPreloadStatus?.();
-      if (status) {
-        expect(status).toBeDefined();
-        expect(typeof status.isPreloading).toBe('boolean');
-      }
-    });
-
-    it('应该能够清空预加载池', () => {
-      expect(() => {
-        ExpoGaodeMapModule.clearMapPreloadPool?.();
-      }).not.toThrow();
-    });
-  });
 
   describe('配置管理', () => {
     it('允许不提供任何 API Key（原生端可能已配置）', () => {
@@ -317,13 +288,6 @@ describe('ExpoGaodeMapModule', () => {
       expect(() => {
         ExpoGaodeMapModule.stopUpdatingHeading?.();
       }).not.toThrow();
-    });
-  });
-
-  describe('地图预加载 - 补充测试', () => {
-    it('应该能够检查是否有预加载实例', () => {
-      const hasPreloaded = ExpoGaodeMapModule.hasPreloadedMapView?.();
-      expect(typeof hasPreloaded).toBe('boolean');
     });
   });
 

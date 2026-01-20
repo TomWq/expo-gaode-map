@@ -16,7 +16,7 @@ import com.amap.api.maps.MapView
 import com.amap.api.maps.model.CameraPosition
 import com.amap.api.maps.model.LatLng
 import kotlinx.coroutines.*
-import java.util.concurrent.ConcurrentHashMap
+
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -127,6 +127,7 @@ object MapPreloadManager : ComponentCallbacks2 {
     /**
      * 内存警告回调
      */
+    @Deprecated("Deprecated in Java")
     override fun onLowMemory() {
         Log.w(TAG, "⚠️ 收到低内存警告，清理预加载池")
         clearPool()

@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
-import androidx.core.graphics.scale
+
 
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.BitmapDescriptor
@@ -15,7 +15,7 @@ import com.amap.api.maps.model.MultiPointItem
 import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
 import expo.modules.gaodemap.companion.BitmapDescriptorCache
-import expo.modules.gaodemap.companion.IconBitmapCache
+
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 
@@ -24,6 +24,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
+import androidx.core.graphics.scale
 
 class MultiPointView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
@@ -193,7 +194,7 @@ class MultiPointView(context: Context, appContext: AppContext) : ExpoView(contex
              }
              
              try {
-                 finalBitmap = Bitmap.createScaledBitmap(bitmap, w, h, true)
+                 finalBitmap = bitmap.scale(w, h)
              } catch (e: Exception) {
                  e.printStackTrace()
              }

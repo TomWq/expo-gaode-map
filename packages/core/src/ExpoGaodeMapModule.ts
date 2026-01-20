@@ -75,22 +75,6 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   /**
-   * 手动触发预加载
-   * @param poolSize 预加载池大小 (默认 3)
-   */
-  startPreload(poolSize?: number): void {
-    if (!nativeModule) {
-      throw ErrorHandler.nativeModuleUnavailable();
-    }
-    try {
-      nativeModule.startPreload(poolSize);
-    } catch (error: any) {
-      ErrorLogger.warn('手动触发预加载失败', error);
-      // 不抛出异常，以免影响业务流程
-    }
-  },
-
-  /**
    * 开始连续定位
    * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
    */

@@ -14,6 +14,9 @@ import expo.modules.kotlin.views.ExpoView
 import expo.modules.gaodemap.managers.CameraManager
 import expo.modules.gaodemap.managers.UIManager
 import expo.modules.gaodemap.overlays.*
+import androidx.core.graphics.createBitmap
+import androidx.core.view.isVisible
+import androidx.core.graphics.withTranslation
 
 /**
  * 高德地图视图组件
@@ -515,6 +518,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         })
     }
 
+    @SuppressLint("WrongThread")
     private fun handleSnapshot(mapBitmap: android.graphics.Bitmap, promise: expo.modules.kotlin.Promise) {
         try {
             // 创建最终的 Bitmap，大小为当前容器的大小
@@ -527,7 +531,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 return
             }
 
-            val finalBitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            val finalBitmap = createBitmap(width, height)
             val canvas = android.graphics.Canvas(finalBitmap)
 
             // 1. 绘制地图底图
@@ -536,14 +540,13 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             // 2. 绘制内部子视图 (React Native Overlays, e.g. Callout)
             for (i in 0 until childCount) {
                 val child = getChildAt(i)
-                val isMarkerView = child is expo.modules.gaodemap.overlays.MarkerView
+                val isMarkerView = child is MarkerView
                 
                 // 跳过地图本身、隐藏的视图以及 MarkerView
-                if (child !== mapView && child.visibility == View.VISIBLE && !isMarkerView) {
-                    canvas.save()
-                    canvas.translate(child.left.toFloat(), child.top.toFloat())
-                    child.draw(canvas)
-                    canvas.restore()
+                if (child !== mapView && child.isVisible && !isMarkerView) {
+                    canvas.withTranslation(child.left.toFloat(), child.top.toFloat()) {
+                        child.draw(this)
+                    }
                 }
             }
 
@@ -553,15 +556,14 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 for (i in 0 until parentGroup.childCount) {
                     val sibling = parentGroup.getChildAt(i)
                     // 跳过自己（地图本身）和隐藏的视图
-                    if (sibling !== this && sibling.visibility == View.VISIBLE) {
+                    if (sibling !== this && sibling.isVisible) {
                         // 计算相对坐标：兄弟视图相对于父容器的坐标 - 地图相对于父容器的坐标
                         val dx = sibling.left - this.left
                         val dy = sibling.top - this.top
                         
-                        canvas.save()
-                        canvas.translate(dx.toFloat(), dy.toFloat())
-                        sibling.draw(canvas)
-                        canvas.restore()
+                        canvas.withTranslation(dx.toFloat(), dy.toFloat()) {
+                            sibling.draw(this)
+                        }
                     }
                 }
             }

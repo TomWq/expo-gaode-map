@@ -360,8 +360,7 @@ interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
     eventName: keyof ExpoGaodeMapModuleEvents | string,
     listener: (...args: any[]) => void,
   ): { remove: () => void };
-  // 更新隐私合规状态(不需要主动调用，已经废弃)
-  updatePrivacyCompliance(hasAgreed: boolean): void;
+
   // 初始化 SDK
   initSDK(config: SDKConfig): void;
   // 设置是否加载世界矢量地图(按需调用，默认不加载)
@@ -428,18 +427,6 @@ interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
   requestBackgroundLocationPermission(): Promise<PermissionStatus>;
   // 打开应用设置
   openAppSettings(): void;
-  // 启动地图预加载(一般不用主动调用，地图会在需要时自动预加载)
-  startMapPreload(config: { poolSize?: number }): void;
-  // 获取地图预加载状态(一般不用主动调用)
-  getMapPreloadStatus(): {
-    poolSize: number;
-    isPreloading: boolean;
-    maxPoolSize: number;
-  };
-  // 清除地图预加载池(一般不用主动调用，地图会在需要时自动清除)
-  clearMapPreloadPool(): void;
-  // 查询是否已预加载地图视图(一般不用主动调用)
-  hasPreloadedMapView(): boolean;
   // 查询是否已配置原生 SDK(一般不用主动调用)
   isNativeSDKConfigured(): boolean;
   // 添加定位更新监听器

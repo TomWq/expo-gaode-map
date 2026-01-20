@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import com.amap.api.maps.AMap
@@ -116,6 +117,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置透明度
    */
+  @Suppress("unused")
   fun setOpacity(opacity: Float) {
     polyline?.let { line ->
       val currentColor = line.color
@@ -142,6 +144,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 创建或更新折线
    */
+  @SuppressLint("DiscouragedApi")
   private fun createOrUpdatePolyline() {
     aMap?.let { map ->
       try {
@@ -165,9 +168,9 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
           
           // 设置虚线样式
           try {
-              options.setDottedLine(isDotted)
+              options.isDottedLine = isDotted
               if (isDotted) {
-                  options.setDottedLineType(PolylineOptions.DOTTEDLINE_TYPE_SQUARE)
+                  options.dottedLineType = PolylineOptions.DOTTEDLINE_TYPE_SQUARE
               }
           } catch (e: Throwable) {
               // 忽略虚线设置错误，防止崩溃

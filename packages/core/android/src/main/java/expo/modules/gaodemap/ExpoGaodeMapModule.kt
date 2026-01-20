@@ -44,7 +44,7 @@ class ExpoGaodeMapModule : Module() {
           try {
             MapsInitializer.setApiKey(apiKey)
             com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
-            android.util.Log.d("ExpoGaodeMap", "✅ 从 AndroidManifest.xml 读取并设置 API Key 成功")
+
 
             // 只有在 API Key 已设置的情况下才启动预加载
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
@@ -62,18 +62,7 @@ class ExpoGaodeMapModule : Module() {
       android.util.Log.w("ExpoGaodeMap", "恢复隐私状态时出现问题: ${e.message}")
     }
  
-    // ==================== 隐私协议 ====================
-    
-    /**
-     * 更新隐私合规状态
-     * 不用主动调用，下个版本删除
-     * 
-     */
-    Function("updatePrivacyCompliance") { _: Boolean ->
-       val context = appContext.reactContext!!
-       SDKInitializer.restorePrivacyState(context)
-    }
-    
+  
     // ==================== SDK 初始化 ====================
     
     /**
@@ -86,6 +75,9 @@ class ExpoGaodeMapModule : Module() {
         try {
           SDKInitializer.initSDK(appContext.reactContext!!, androidKey)
           getLocationManager() // 初始化定位管理器
+          
+          // 初始化成功后自动触发一次预加载
+          MapPreloadManager.startPreload(appContext.reactContext!!, poolSize = 1)
         } catch (e: SecurityException) {
           android.util.Log.e("ExpoGaodeMap", "隐私协议未同意: ${e.message}")
           throw expo.modules.kotlin.exception.CodedException("PRIVACY_NOT_AGREED", e.message ?: "用户未同意隐私协议", e)
@@ -124,20 +116,6 @@ class ExpoGaodeMapModule : Module() {
         !apiKey.isNullOrEmpty()
       } catch (_: Exception) {
         false
-      }
-    }
-
-    /**
-     * 手动触发预加载
-     * @param poolSize 预加载池大小 (默认 3)
-     */
-    Function("startPreload") { poolSize: Int? ->
-      try {
-        val context = appContext.reactContext!!
-        val size = poolSize ?: 3
-        MapPreloadManager.startPreload(context, size)
-      } catch (e: Exception) {
-        android.util.Log.e("ExpoGaodeMap", "手动启动预加载失败", e)
       }
     }
 
@@ -692,48 +670,6 @@ class ExpoGaodeMapModule : Module() {
     Function("openAppSettings") {
       val context = appContext.reactContext!!
       PermissionHelper.openAppSettings(context)
-    }
-
-    // ==================== 地图预加载 ====================
-
-    /**
-     * 开始预加载地图实例
-     * @param config 预加载配置对象,包含 poolSize
-     */
-    Function("startMapPreload") { config: Map<String, Any> ->
-      val poolSize = (config["poolSize"] as? Number)?.toInt() ?: 2
-      MapPreloadManager.startPreload(appContext.reactContext!!, poolSize)
-    }
-
-    /**
-     * 获取预加载状态
-     * @return 预加载状态信息
-     */
-    Function("getMapPreloadStatus") {
-      MapPreloadManager.getStatus()
-    }
-
-    /**
-     * 清空预加载池
-     */
-    Function("clearMapPreloadPool") {
-      MapPreloadManager.clearPool()
-    }
-
-    /**
-     * 检查是否有可用的预加载实例
-     * @return 是否有可用实例
-     */
-    Function("hasPreloadedMapView") {
-      MapPreloadManager.hasPreloadedMapView()
-    }
-
-    /**
-     * 获取预加载性能统计
-     * @return 性能统计信息
-     */
-    Function("getMapPreloadPerformanceMetrics") {
-      MapPreloadManager.getPerformanceMetrics()
     }
 
     Events("onLocationUpdate")

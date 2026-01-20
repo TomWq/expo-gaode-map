@@ -85,19 +85,6 @@ public class ExpoGaodeMapModule: Module {
             self.tryStartPreload(delay: 2.0, poolSize: 1)
         }
         
-
-        /**
-         * 更新隐私协议状态
-         * 不再需要主动调用，下个版本删除
-         */
-        Function("updatePrivacyCompliance") { (hasAgreed: Bool) in
-            MAMapView.updatePrivacyShow(
-                AMapPrivacyShowStatus.didShow,
-                privacyInfo: AMapPrivacyInfoStatus.didContain
-            )
-            MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
-            
-        }
         // ==================== SDK 初始化 ====================
         
         /**
@@ -155,15 +142,6 @@ public class ExpoGaodeMapModule: Module {
                 return true
             }
             return false
-        }
-        
-        /**
-         * 手动触发预加载
-         * @param poolSize 预加载池大小 (默认 3)
-         */
-        Function("startPreload") { (poolSize: Int?) in
-            let size = poolSize ?? 3
-            MapPreloadManager.shared.startPreload(poolSize: size)
         }
         
         // ==================== 定位功能 ====================
@@ -623,46 +601,7 @@ public class ExpoGaodeMapModule: Module {
             ])
         }
         
-        /**
-         * 检查是否有可用的预加载实例
-         * @return 是否有可用实例
-         */
-        Function("hasPreloadedMapView") {
-            MapPreloadManager.shared.hasPreloadedMapView()
-        }
-        
-        /**
-         * 开始预加载地图实例
-         * @param config 预加载配置对象,包含 poolSize
-         */
-        Function("startMapPreload") { (config: [String: Any]) in
-            let poolSize = (config["poolSize"] as? Int) ?? 2
-            MapPreloadManager.shared.startPreload(poolSize: poolSize)
-        }
-        
-        /**
-         * 获取预加载状态
-         * @return 预加载状态信息
-         */
-        Function("getMapPreloadStatus") {
-            MapPreloadManager.shared.getStatus()
-        }
-        
-        /**
-         * 清空预加载池
-         */
-        Function("clearMapPreloadPool") {
-            MapPreloadManager.shared.clearPool()
-        }
-        
-        /**
-         * 获取预加载性能统计
-         * @return 性能统计信息
-         */
-        Function("getMapPreloadPerformanceMetrics") {
-            MapPreloadManager.shared.getPerformanceMetrics()
-        }
-        
+  
         /**
          * 打开应用设置页面（引导用户手动授予权限）
          */

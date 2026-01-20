@@ -28,7 +28,7 @@ export default function NaviViewExample() {
   const [naviInfo, setNaviInfo] = useState<string>('');
 
   useEffect(() => {
-    ExpoGaodeMapModule.updatePrivacyCompliance(true);
+    
     // 检查并请求位置权限
     ExpoGaodeMapModule.checkLocationPermission().then((status) => {
       if (!status.granted) {

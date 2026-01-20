@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.managers
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.location.Location
@@ -161,6 +162,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    * 设置用户位置样式
    * 统一 iOS 和 Android 的 API
    */
+  @SuppressLint("DiscouragedApi")
   fun setUserLocationRepresentation(config: Map<String, Any>) {
     if (currentLocationStyle == null) {
       currentLocationStyle = MyLocationStyle().apply {

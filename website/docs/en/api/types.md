@@ -361,7 +361,7 @@ interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
     listener: (...args: any[]) => void,
   ): { remove: () => void };
 
-  updatePrivacyCompliance(hasAgreed: boolean): void;
+
 
   initSDK(config: SDKConfig): void;
 
@@ -428,18 +428,6 @@ interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
   requestBackgroundLocationPermission(): Promise<PermissionStatus>;
 
   openAppSettings(): void;
-
-  startMapPreload(config: { poolSize?: number }): void;
-
-  getMapPreloadStatus(): {
-    poolSize: number;
-    isPreloading: boolean;
-    maxPoolSize: number;
-  };
-
-  clearMapPreloadPool(): void;
-
-  hasPreloadedMapView(): boolean;
 
   isNativeSDKConfigured(): boolean;
 

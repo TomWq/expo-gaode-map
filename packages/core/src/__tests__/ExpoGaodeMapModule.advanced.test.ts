@@ -467,27 +467,7 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
     });
   });
 
-  describe('隐私合规详细测试', () => {
-    it('未同意隐私协议时的行为', () => {
-      expect(() => {
-        ExpoGaodeMapModule.updatePrivacyCompliance?.(false);
-      }).not.toThrow();
-    });
-
-    it('同意隐私协议后的行为', () => {
-      expect(() => {
-        ExpoGaodeMapModule.updatePrivacyCompliance?.(true);
-      }).not.toThrow();
-    });
-
-    it('隐私状态切换', () => {
-      expect(() => {
-        ExpoGaodeMapModule.updatePrivacyCompliance?.(true);
-        ExpoGaodeMapModule.updatePrivacyCompliance?.(false);
-        ExpoGaodeMapModule.updatePrivacyCompliance?.(true);
-      }).not.toThrow();
-    });
-  });
+ 
 
   describe('方向更新详细测试', () => {
     beforeEach(() => {

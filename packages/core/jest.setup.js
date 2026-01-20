@@ -28,22 +28,9 @@ const createNativeModuleMock = () => ({
   setLocationTimeout: jest.fn(),
   setOnceLocation: jest.fn(),
   setAllowsBackgroundLocationUpdates: jest.fn(),
-  updatePrivacyCompliance: jest.fn(),
+ 
   addListener: jest.fn(() => ({ remove: jest.fn() })),
   removeAllListeners: jest.fn(),
-  // 地图预加载相关
-  startMapPreload: jest.fn(),
-  getMapPreloadStatus: jest.fn(() => ({
-    poolSize: 2,
-    isPreloading: false,
-    maxPoolSize: 5,
-  })),
-  clearMapPreloadPool: jest.fn(),
-  hasPreloadedMapView: jest.fn(() => false),
-  configurePreload: jest.fn(),
-  startPreload: jest.fn(),
-  stopPreload: jest.fn(),
-  getPreloadStatus: jest.fn(() => 'idle'),
   // 几何计算相关
   distanceBetweenCoordinates: jest.fn((coord1, coord2) => {
     // 如果坐标相同,返回0;否则返回一个模拟距离

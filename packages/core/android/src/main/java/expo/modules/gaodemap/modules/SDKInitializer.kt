@@ -1,7 +1,6 @@
 package expo.modules.gaodemap.modules
 
 import android.content.Context
-import android.content.SharedPreferences
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
 
@@ -19,11 +18,6 @@ object SDKInitializer {
     /** 隐私协议是否已同意（进程内缓存） */
     private var privacyAgreed = true
 
-    private const val PREFS_NAME = "expo_gaode_map_prefs"
-
-    private fun prefs(context: Context): SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    
 
     
     fun restorePrivacyState(context: Context) {
@@ -57,8 +51,7 @@ object SDKInitializer {
             MapsInitializer.setApiKey(androidKey)
             AMapLocationClient.setApiKey(androidKey)
             
-            android.util.Log.d("ExpoGaodeMap", "✅ SDK 初始化成功")
-            
+
         } catch (e: Exception) {
             throw Exception("SDK 初始化失败: ${e.message}")
         }

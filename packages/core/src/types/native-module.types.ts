@@ -28,12 +28,6 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
     listener: (...args: any[]) => void,
   ): { remove: () => void };
 
-  /**
-   * 更新隐私合规状态
-   * 必须在用户同意隐私协议后调用
-   * @deprecated 原生里默认为已同意,一般无需调用
-   */
-  updatePrivacyCompliance(hasAgreed: boolean): void;
 
   /**
    * 初始化高德地图 SDK
@@ -53,18 +47,6 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @returns SDK 版本字符串
    */
   getVersion(): string;
-
-  /**
-   * 检查原生 SDK 是否已配置 API Key
-   * @returns 是否已配置
-   */
-  isNativeSDKConfigured(): boolean;
-
-  /**
-   * 手动触发预加载
-   * @param poolSize 预加载池大小 (默认 3)
-   */
-  startPreload(poolSize?: number): void;
 
   /**
    * 开始连续定位
@@ -247,38 +229,6 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * 引导用户手动授予权限（当权限被永久拒绝时使用）
    */
   openAppSettings(): void;
-
-  /**
-   * 开始预加载地图实例
-   * 在后台预先初始化地图视图，提升首次显示速度
-   * 一般不用主动调用
-   */
-  startMapPreload(config: { poolSize?: number }): void;
-
-  /**
-   * 获取预加载状态
-   * 一般不用主动调用
-   * @returns 预加载状态信息，包含池大小、是否正在预加载等
-   */
-  getMapPreloadStatus(): {
-    poolSize: number;
-    isPreloading: boolean;
-    maxPoolSize: number;
-  };
-
-  /**
-   * 清空预加载池
-   * 一般不用主动调用
-   * 释放所有预加载的地图实例
-   */
-  clearMapPreloadPool(): void;
-
-  /**
-   * 检查是否有可用的预加载实例
-   * 一般不用主动调用
-   * @returns 是否有可用的预加载地图实例
-   */
-  hasPreloadedMapView(): boolean;
 
   /**
    * 检查原生 SDK 是否已配置 API Key

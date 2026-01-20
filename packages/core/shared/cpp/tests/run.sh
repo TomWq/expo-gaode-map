@@ -7,6 +7,7 @@ clang++ -std=c++17 \
     ../GeometryEngine.cpp \
     ../ColorParser.cpp \
     ../ClusterEngine.cpp \
+    ../QuadTree.cpp \
     -o test_runner
 
 # Run the test

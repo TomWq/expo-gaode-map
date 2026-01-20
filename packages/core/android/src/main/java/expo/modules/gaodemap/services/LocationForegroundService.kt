@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.services
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -36,6 +37,7 @@ class LocationForegroundService : Service() {
         }
     }
     
+    @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()

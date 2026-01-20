@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, appContext), AMap.OnCameraChangeListener {
   
-  private val onPress by EventDispatcher()
+
   @Suppress("unused")
   private val onClusterPress by EventDispatcher()
   
@@ -60,7 +60,7 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
     }
     
     val size: Int get() = items.size
-    val position: LatLng get() = center // 简单处理，使用中心点作为聚合点位置，也可以计算平均位置
+
   }
   
   private var rawPoints: List<Map<String, Any>> = emptyList()
@@ -303,7 +303,7 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
       if (scalePerPixel <= 0) {
           // 比例尺无效，稍后重试
           withContext(Dispatchers.Main) {
-              android.util.Log.w("ClusterView", "Invalid scalePerPixel: $scalePerPixel, retrying...")
+              Log.w("ClusterView", "Invalid scalePerPixel: $scalePerPixel, retrying...")
               mainHandler.postDelayed({ updateClusters() }, 500)
           }
           return@launch
@@ -499,7 +499,7 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
 
     clusterBuckets?.let { buckets ->
         val bestBucket = buckets
-            .filter { (it["minPoints"] as? Number)?.toInt() ?: 0 <= count }
+            .filter { ((it["minPoints"] as? Number)?.toInt() ?: 0) <= count }
             .maxByOrNull { (it["minPoints"] as? Number)?.toInt() ?: 0 }
 
         if (bestBucket != null) {

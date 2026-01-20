@@ -241,7 +241,7 @@ class ExpoGaodeMapOfflineModule : Module() {
       }
     }
     
-    Function("setStoragePath") { path: String ->
+    Function("setStoragePath") { _: String ->
       // Android 离线地图路径由系统管理，此方法不可用
     }
     
@@ -252,7 +252,7 @@ class ExpoGaodeMapOfflineModule : Module() {
     
     // ==================== 批量操作 ====================
     
-    AsyncFunction("batchDownload") { cityCodes: List<String>, allowCellular: Boolean? ->
+    AsyncFunction("batchDownload") { cityCodes: List<String>, _: Boolean? ->
       synchronized(lock) {
         cityCodes.forEach { cityCode ->
           downloadingCities.add(cityCode)
