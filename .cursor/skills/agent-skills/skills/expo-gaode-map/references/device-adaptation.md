@@ -21,7 +21,7 @@ import { FoldableMapView, FoldState } from 'expo-gaode-map';
     unfoldedZoomDelta: 1.5,    // 展开时增加的缩放级别
     keepCenterOnFold: true,    // 保持中心点不变
     onFoldStateChange: (state, deviceInfo) => {
-      console.log('Fold State:', state); // HALF_OPENED, FLIPPED, etc.
+      console.log('Fold State:', state); // FOLDED, UNFOLDED, HALF_FOLDED
     }
   }}
   // 其他 MapViewProps...
@@ -89,9 +89,10 @@ const padding = PlatformDetector.isTablet() ? 40 : 20;
 ## 深度挖掘
 
 ### 折叠状态 (FoldState)
-- `CLOSED`: 完全折叠。
-- `HALF_OPENED`: 半开状态（如笔记本模式）。
-- `FULL`: 完全展开。
+- `FOLDED`: 完全折叠。
+- `UNFOLDED`: 完全展开。
+- `HALF_FOLDED`: 半折叠状态。
+- `UNKNOWN`: 未知状态（如非折叠屏设备）。
 
 ### 自动缩放逻辑
 `FoldableMapView` 在设备展开时通常会增加缩放级别（Zoom Level），以填满更大的显示区域并保持视觉重点。折叠时则相应减小，确保视野范围（FOV）的一致性。

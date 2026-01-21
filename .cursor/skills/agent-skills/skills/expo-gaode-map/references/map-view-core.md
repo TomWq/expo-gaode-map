@@ -18,11 +18,24 @@ tags: map-view, camera, ui-settings, gestures
 | `initialCameraPosition` | `CameraPosition` | 初始显示的中心点、缩放级别(3-20)、旋转角度、倾斜角度 |
 | `myLocationEnabled` | `boolean` | 是否显示定位蓝点 |
 | `trafficEnabled` | `boolean` | 是否开启实时路况 |
-| `allGesturesEnabled` | `boolean` | 是否启用所有手势 |
 | `buildingsEnabled` | `boolean` | 是否显示3D建筑 |
 | `labelsEnabled` | `boolean` | 是否显示标注 |
 | `compassEnabled` | `boolean` | 是否显示指南针 |
 | `zoomControlsEnabled`| `boolean` | 是否显示缩放按钮 (@platform android) |
+| `scaleControlsEnabled`| `boolean` | 是否显示比例尺 |
+| `myLocationButtonEnabled`| `boolean` | 是否显示定位按钮 (@platform android) |
+
+### 核心事件 (Events)
+
+| 事件 | 参数类型 | 说明 |
+|----------|----------|--------------|
+| `onLoad` | `{}` | 地图加载完成 |
+| `onMapPress` | `LatLng` | 点击地图 |
+| `onMapLongPress` | `LatLng` | 长按地图 |
+| `onCameraMove` | `CameraEvent` | 地图状态改变 (实时) |
+| `onCameraIdle` | `CameraEvent` | 地图状态改变完成 |
+| `onLocation` | `LocationEvent` | 定位更新 |
+| `onPressPoi` | `MapPoi` | 点击标注点 (POI) |
 
 ### 相机控制 (MapViewRef)
 ```ts

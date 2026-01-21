@@ -18,8 +18,8 @@ import { OfflineMapManager } from 'expo-gaode-map';
 // 获取所有可用城市列表
 const cities = await OfflineMapManager.getAvailableCities();
 
-// 获取当前下载中的列表
-const downloadingList = await OfflineMapManager.getDownloadingList();
+// 获取当前正在下载的城市列表 (cityCode 数组)
+const downloadingCities = await OfflineMapManager.getDownloadingCities();
 
 // 开始/继续下载
 await OfflineMapManager.startDownload({
@@ -33,8 +33,8 @@ await OfflineMapManager.pauseDownload('010');
 // 删除已下载地图
 await OfflineMapManager.deleteMap('010');
 
-// 监听下载状态
-const subscription = OfflineMapManager.addDownloadListener((event) => {
+// 监听下载进度
+const subscription = OfflineMapManager.addDownloadProgressListener((event) => {
   console.log(`City: ${event.cityCode}, Progress: ${event.progress}%`);
 });
 ```
@@ -49,9 +49,9 @@ await OfflineMapManager.startDownload({ cityCode: '010' });
 
 ### ✅ 正确：在下载前检查状态
 ```ts
-const list = await OfflineMapManager.getDownloadList();
-const beijing = list.find(item => item.cityCode === '010');
-if (beijing?.status !== 4) { // 4 表示已完成
+const downloadedMaps = await OfflineMapManager.getDownloadedMaps();
+const beijing = downloadedMaps.find(item => item.cityCode === '010');
+if (!beijing) {
   await OfflineMapManager.startDownload({ cityCode: '010' });
 }
 ```

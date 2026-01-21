@@ -15,6 +15,8 @@ tags: marker, cluster, quadtree, cpp-engine, icons
 | 属性 | 类型 | 说明 |
 |----------|----------|--------------|
 | `position` | `LatLngPoint` | 坐标位置 `{latitude, longitude}` 或 `[lng, lat]` |
+| `title` | `string` | 标题，点击显示 Callout |
+| `snippet` | `string` | 描述文字，点击显示 Callout |
 | `icon` | `string | ImageSource` | 图标资源 (URL, 本地 asset 或 require) |
 | `iconWidth` / `iconHeight` | `number` | 图标宽高 (像素) |
 | `anchor` | `Point` | 锚点比例 (@platform android) |
@@ -31,8 +33,10 @@ tags: marker, cluster, quadtree, cpp-engine, icons
 | `points` | `ClusterPoint[]` | 待聚合的点数据 |
 | `radius` | `number` | 聚合半径 (像素) |
 | `minClusterSize` | `number` | 最小聚合数量 |
-| `clusterStyle` | `ViewStyle` | 聚合点样式 |
+| `clusterStyle` | `ViewStyle` | 聚合点外框样式 |
+| `clusterTextStyle` | `TextStyle` | 聚合点文字样式 |
 | `clusterBuckets` | `Array` | 分级聚合样式配置 |
+| `onClusterPress` | `function` | 点击聚合簇回调 |
 
 ## 快速模式
 

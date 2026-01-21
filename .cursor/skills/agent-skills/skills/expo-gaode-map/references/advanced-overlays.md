@@ -19,6 +19,7 @@ tags: heatmap, multipoint, visualization
 | `opacity` | `number` | 透明度 (0-1) |
 | `gradient` | `HeatMapGradient` | 颜色渐变配置 |
 | `visible` | `boolean` | 是否显示 (用于性能优化) |
+| `allowRetinaAdapting` | `boolean` | 是否开启高清热力图 (@platform ios) |
 
 ### MultiPoint 核心属性
 
@@ -26,7 +27,8 @@ tags: heatmap, multipoint, visualization
 |----------|----------|--------------|
 | `points` | `MultiPointItem[]` | 海量点数据集合 |
 | `icon` | `string | ImageSource` | 共享图标 |
-| `iconWidth` / `iconHeight` | `number` | 图标宽高 |
+| `iconWidth` | `number` | 图标宽度 |
+| `iconHeight` | `number` | 图标高度 |
 | `onMultiPointPress` | `function` | 点击回调 (包含 index 和 item) |
 
 ## 快速模式

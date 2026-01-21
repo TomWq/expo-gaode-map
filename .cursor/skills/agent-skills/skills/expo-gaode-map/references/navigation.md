@@ -37,27 +37,43 @@ import { NaviView } from 'expo-gaode-map-navigation';
     const { currentRoadName, pathRetainDistance } = event.nativeEvent;
     console.log(`Next: ${currentRoadName}, Left: ${pathRetainDistance}m`);
   }}
-  onNaviArrive={() => console.log('Arrived!')}
+  onArrive={() => console.log('Arrived!')}
 />
 ```
 
-### 独立路径管理 (IndependentRoute)
-用于在地图上绘制多条备选路线：
+### 控制导航 (NaviView Methods)
+通过 `ref` 调用 `NaviView` 的方法：
+```tsx
+const naviRef = useRef<NaviViewRef>(null);
+
+// 开始导航
+naviRef.current?.startNavigation(
+  null, // 起点（null 表示当前位置）
+  { latitude: 39.9, longitude: 116.4 }, // 终点
+  0 // 导航类型 (0: GPS, 1: 模拟)
+);
+
+// 停止导航
+naviRef.current?.stopNavigation();
+```
+
+### 独立路径规划 (IndependentRoute)
+用于在地图上绘制多条备选路线（预览模式，不进入导航）：
 ```ts
-import { IndependentRouteManager } from 'expo-gaode-map-navigation';
+import { independentDriveRoute, selectIndependentRoute, clearIndependentRoute, DriveStrategy } from 'expo-gaode-map-navigation';
 
 // 计算并显示备选路线
-await IndependentRouteManager.calculateDriveRoute({
-  from: start,
-  to: end,
+const result = await independentDriveRoute({
+  from: { latitude: 39.9, longitude: 116.4 },
+  to: { latitude: 39.91, longitude: 116.41 },
   strategy: DriveStrategy.AVOID_CONGESTION
 });
 
-// 选择其中一条路线
-await IndependentRouteManager.selectRoute(0);
+// 选择其中一条路线（通过索引，需要传入 result.token）
+await selectIndependentRoute({ token: result.token, routeIndex: 1 });
 
-// 清除路线
-await IndependentRouteManager.clearRoute();
+// 清除预览路线（需要传入 result.token）
+await clearIndependentRoute({ token: result.token });
 ```
 
 ## 快速模式

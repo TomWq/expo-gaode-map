@@ -24,10 +24,11 @@ import {
 printModuleInfo();
 
 // 2. 强制要求模块存在，不存在则抛出异常
-const mapModule = requireModule('ExpoGaodeMap');
+requireModule('expo-gaode-map-search', '搜索功能');
 
 // 3. 创建懒加载器
-const lazyModule = createLazyLoader('ExpoGaodeMap');
+const loadSearch = createLazyLoader(() => require('expo-gaode-map-search'));
+const search = loadSearch();
 ```
 
 ### 错误处理 (ErrorHandler)

@@ -36,6 +36,42 @@ const result = await searchNearby({
 });
 ```
 
+### 沿途搜索 (searchAlong)
+```ts
+import { searchAlong } from 'expo-gaode-map-search';
+
+const result = await searchAlong({
+  keyword: '加油站',
+  polyline: [
+    { latitude: 39.9, longitude: 116.4 },
+    { latitude: 39.91, longitude: 116.41 },
+  ],
+  range: 500, // 偏移范围（米）
+});
+```
+
+### 多边形搜索 (searchPolygon)
+```ts
+import { searchPolygon } from 'expo-gaode-map-search';
+
+const result = await searchPolygon({
+  keyword: '学校',
+  polygon: [
+    { latitude: 39.9, longitude: 116.4 },
+    { latitude: 39.91, longitude: 116.4 },
+    { latitude: 39.91, longitude: 116.41 },
+  ],
+});
+```
+
+### POI 详情 (getPoiDetail)
+```ts
+import { getPoiDetail } from 'expo-gaode-map-search';
+
+const poi = await getPoiDetail('B000A83M61');
+console.log(poi.name, poi.address);
+```
+
 ### 输入提示 (getInputTips)
 ```ts
 import { getInputTips } from 'expo-gaode-map-search';

@@ -118,11 +118,13 @@ const bicycling = await api.route.bicycling(origin, dest);
 // 电动车
 const ebike = await api.route.electricBike(origin, dest);
 
-// 公交 (需指定城市)
-const transit = await api.route.transit(origin, dest, {
-  city: '北京',
-  cityd: '上海' // 跨城公交
-});
+// 公交 (需指定城市代码)
+const transit = await api.route.transit(
+  origin, 
+  dest, 
+  '010', // 起点城市代码 (如北京)
+  '021'  // 目的地城市代码 (如上海)
+);
 ```
 
 ## POI 搜索服务 (POI)
