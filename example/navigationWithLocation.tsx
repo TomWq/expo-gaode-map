@@ -15,6 +15,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -102,7 +103,7 @@ export default function NavigationWithLocation() {
 
     // 监听实时定位
     const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
-      if (trackingMode === 'realtime') {
+     if (trackingMode === 'realtime' && !isNavigatingRef.current) {
         const newPos = {
           latitude: location.latitude,
           longitude: location.longitude,
@@ -200,6 +201,7 @@ export default function NavigationWithLocation() {
     setSmoothDuration(duration);
     
     // 2. 重置状态，准备新动画
+     setMarkerKey(prev => prev + 1); 
     setIsNavigating(false);
     setActivePath(undefined);
     setSmoothPosition(null);
@@ -222,7 +224,7 @@ export default function NavigationWithLocation() {
       setTrackingMode('simulation');
       simulationStartTimeRef.current = Date.now();
       setIsNavigating(true);
-    }, 50);
+    }, 150);
   };
 
   // 停止模拟
@@ -254,7 +256,7 @@ export default function NavigationWithLocation() {
       
       const dist = ExpoGaodeMapModule.calculatePathLength(routeData);
       const durationMs = smoothDuration * 1000;
-      const updateInterval = 100; // 采样频率提高到 100ms
+      const updateInterval = 100; // 恢复到 100ms 高频更新
       
       cameraFollowIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - simulationStartTimeRef.current;
@@ -268,14 +270,11 @@ export default function NavigationWithLocation() {
           setSmoothPosition({ latitude: pointInfo.latitude, longitude: pointInfo.longitude });
 
           // 优化角度旋转：增加预读 (Look-ahead) 逻辑，使转弯更自然
-          // 获取当前点前方 5 米处的点，用于平滑过渡角度
           const lookAheadDist = 5; 
           const futurePoint = ExpoGaodeMapModule.getPointAtDistance(routeData, Math.min(dist, targetDist + lookAheadDist));
           
           let targetAngle = pointInfo.angle;
           if (futurePoint && targetDist + lookAheadDist < dist) {
-            // 如果前方还有路，将当前角度和前方角度进行加权，提前感知转弯
-            // 权重比例：当前点 60%，前方点 40%
             const diffNext = futurePoint.angle - pointInfo.angle;
             let normalizedDiff = diffNext;
             if (normalizedDiff > 180) normalizedDiff -= 360;
@@ -284,14 +283,11 @@ export default function NavigationWithLocation() {
           }
           
           let currentAngle = lastAngleRef.current;
-          
-          // 处理 0/360 度跳转
           let diff = targetAngle - currentAngle;
           if (diff > 180) diff -= 360;
           if (diff < -180) diff += 360;
 
-          // 使用插值平滑旋转 (Lerp)
-          const smoothFactor = 0.2; // 稍微降低因子，让转弯更丝滑
+          const smoothFactor = 0.2;
           const interpolatedAngle = currentAngle + diff * smoothFactor;
           lastAngleRef.current = interpolatedAngle;
 
@@ -299,8 +295,7 @@ export default function NavigationWithLocation() {
             target: { latitude: pointInfo.latitude, longitude: pointInfo.longitude },
             zoom: 17,
             bearing: interpolatedAngle,
-         
-          }, updateInterval);
+          }, Platform.OS === 'android' ? 200 : updateInterval); // Android 赋予稍长的动画缓冲时间，减少抖动
         }
 
         if (progress >= 1) {
@@ -369,9 +364,14 @@ export default function NavigationWithLocation() {
           {currentPosition && (
             <Marker
               key={markerKey}
-              // 🔑 修复：平滑移动期间，不要频繁更新 position 属性，否则会与原生动画冲突导致抖动
-              // 我们只在非导航状态下设置位置，或者设置动画的起点
-              position={isNavigating && activePath ? activePath[0] : (currentPosition || defaultOrigin)}
+              // 🔑 修复：针对 Android 和 iOS 采用不同的 position 策略
+              // Android: 必须通过 smoothPosition 持续更新属性，相机视角才能跟随车辆
+              // iOS: 必须保持 position 稳定（锚定在起点），否则会与原生动画冲突导致抖动
+              position={
+                Platform.OS === 'android'
+                  ? (isNavigating && smoothPosition ? smoothPosition : (isNavigating && activePath ? activePath[0] : (currentPosition || defaultOrigin)))
+                  : (isNavigating && activePath ? activePath[0] : (currentPosition || defaultOrigin))
+              }
               smoothMovePath={isNavigating ? activePath : undefined}
               smoothMoveDuration={isNavigating ? smoothDuration : undefined}
               icon={carIcon}
