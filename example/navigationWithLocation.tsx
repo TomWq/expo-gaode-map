@@ -38,7 +38,7 @@ export default function NavigationWithLocation() {
   const mapRef = useRef<MapViewRef>(null);
   
   // 按照规范，Web API 需要初始化
-  const api = useMemo(() => new GaodeWebAPI({ key: '9f59c9453ccc5e9798983d4922afbd09' }), []);
+  const api = useMemo(() => new GaodeWebAPI({ key: '' }), []);
 
   const [loading, setLoading] = useState(false);
   const [routeData, setRouteData] = useState<LatLng[]>([]);
