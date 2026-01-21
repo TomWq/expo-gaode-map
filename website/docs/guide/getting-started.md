@@ -6,6 +6,10 @@
 📦 查看完整的可运行示例：[expo-gaode-map-example](https://github.com/TomWq/expo-gaode-map-example)
 :::
 
+::: tip 🚀 AI 提效助手
+使用 Cursor 或 Trae 开发？下载我们的 [AI 技能包](/guide/ai-skills)，让 AI 成为您的高德地图专家！
+:::
+
 ## 项目架构
 
 expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：

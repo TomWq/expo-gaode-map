@@ -25,6 +25,7 @@ export default defineConfig({
               items: [
                 { text: '快速开始', link: '/guide/getting-started' },
                 { text: '初始化', link: '/guide/initialization' },
+                { text: 'AI 提效助手', link: '/guide/ai-skills' },
                 { text: 'Config Plugin', link: '/guide/config-plugin' },
                 { text: '错误处理', link: '/guide/error-handling' },
                 { text: '测试与质量保证', link: '/guide/testing' },
@@ -102,6 +103,7 @@ export default defineConfig({
               items: [
                 { text: 'Getting Started', link: '/en/guide/getting-started' },
                 { text: 'Initialization', link: '/en/guide/initialization' },
+                { text: 'AI Skills', link: '/en/guide/ai-skills' },
                 { text: 'Config Plugin', link: '/en/guide/config-plugin' },
                 { text: 'Error Handling', link: '/en/guide/error-handling' },
                 { text: 'Testing & QA', link: '/en/guide/testing' },

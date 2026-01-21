@@ -548,7 +548,7 @@ export default function MamScreen() {
         trafficEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
-        // mapType={2}
+        mapType={2}
         zoomGesturesEnabled
         scrollGesturesEnabled
         worldMapSwitchEnabled
