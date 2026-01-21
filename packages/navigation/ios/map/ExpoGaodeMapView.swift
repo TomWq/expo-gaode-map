@@ -308,13 +308,9 @@ class NaviMapView: ExpoView, MAMapViewDelegate {
      * 新架构下需要手动清理 overlayViews 数组和地图覆盖物
      */
     override func willRemoveSubview(_ subview: UIView) {
-        super.willRemoveSubview(subview)
-        
+        // 🔑 处理所有覆盖物 - 从跟踪数组中移除并确保 native 对象也从地图移除
         if let markerView = subview as? NaviMarkerView {
             overlayViews.removeAll { $0 === markerView }
-            if let annotation = markerView.annotation {
-                mapView.removeAnnotation(annotation)
-            }
         } else if let circleView = subview as? NaviCircleView {
             overlayViews.removeAll { $0 === circleView }
             if let circle = circleView.circle {
@@ -337,6 +333,8 @@ class NaviMapView: ExpoView, MAMapViewDelegate {
         } else if let clusterView = subview as? NaviClusterView {
             overlayViews.removeAll { $0 === clusterView }
         }
+
+        super.willRemoveSubview(subview)
     }
     
     /**

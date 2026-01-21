@@ -412,14 +412,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 新架构下需要手动清理 overlayViews 数组和地图覆盖物
      */
     override func willRemoveSubview(_ subview: UIView) {
-        super.willRemoveSubview(subview)
-        
-        // 🔑 处理 MarkerView - 新架构下也需要从数组中移除
+        // 🔑 处理所有覆盖物 - 从跟踪数组中移除并确保 native 对象也从地图移除
+        // 🔑 关键修复：先从数组移除，再调用 super，防止 super 触发的事件回调中引用已卸载的视图
         if let markerView = subview as? MarkerView {
             overlayViews.removeAll { $0 === markerView }
-            if let annotation = markerView.annotation {
-                mapView.removeAnnotation(annotation)
-            }
+            // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
         } else if let circleView = subview as? CircleView {
             overlayViews.removeAll { $0 === circleView }
             if let circle = circleView.circle {
@@ -442,6 +439,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         } else if let clusterView = subview as? ClusterView {
             overlayViews.removeAll { $0 === clusterView }
         }
+
+        super.willRemoveSubview(subview)
     }
     
     /**

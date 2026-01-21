@@ -327,7 +327,7 @@ try {
 
 ```typescript
 class GaodeWebAPI {
-  constructor(config?: { key?: string })
+  constructor(config?: { key?: string, timeout?: number })
   
   geocode: GeocodeService;     // 地理编码服务
   route: RouteService;         // 路径规划服务
@@ -338,17 +338,18 @@ class GaodeWebAPI {
 
 **参数说明：**
 
-- `config.key`（可选）：Web 服务 Key
-  - 如果不传，会自动从已初始化的基础模块中解析 `webKey`
-  - 推荐使用无参构造，在基础模块的 `initSDK({ webKey })` 中统一配置
+- `config.key`（可选）：高德地图 Web 服务 Key
+  - 如果不传，会自动尝试从已初始化的基础模块（`expo-gaode-map` 或 `expo-gaode-map-navigation`）中解析 `webKey`。
+  - 只有当 `config.key` 为空且未通过 `initSDK` 配置 `webKey` 时，才会抛出初始化异常。
+- `config.timeout`（可选）：请求超时时间，默认 10000ms。
 
 **示例：**
 
 ```typescript
-// 推荐：无参构造（从基础模块读取）
+// 方式 A：无参构造（从基础模块读取）
 const api = new GaodeWebAPI();
 
-// 或者：显式传入 Key
+// 方式 B：显式传入 Key
 const api = new GaodeWebAPI({ key: 'your-web-api-key' });
 ```
 

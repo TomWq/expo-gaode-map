@@ -61,7 +61,7 @@ class MarkerView: ExpoView {
     
     // 平滑移动相关
     var smoothMovePath: [[String: Double]] = []
-    var smoothMoveDuration: Double = 10.0  // 默认 10 秒
+    var smoothMoveDuration: Double = 0  // 🔑 修复：默认为 0，防止未设置时触发动画
     var animatedAnnotation: MAAnimatedAnnotation?  // internal: ExpoGaodeMapView 需要访问
     var animatedAnnotationView: MAAnnotationView?  // 平滑移动的 annotation view
     private var isAnimating: Bool = false  // 标记是否正在动画中
@@ -138,9 +138,14 @@ class MarkerView: ExpoView {
      * 更新标记点（立即执行，与其他覆盖物保持一致）
      */
     func updateAnnotation() {
-        // 🔑 性能优化：移除延迟机制，立即添加
-        // 原因：延迟会在快速添加多个 Marker 时累积，导致帧率下降
+        // 🔑 性能优化：立即执行
         performUpdateAnnotation()
+        
+        // 🔑 只有当正在导航（isNavigating 在 JS 侧对应的逻辑）且路径时长合法时才自动启动
+        // 我们通过 smoothMovePath.isEmpty 来判断是否应该停止或不启动
+        if mapView != nil && !smoothMovePath.isEmpty && smoothMoveDuration > 0 {
+            startSmoothMove()
+        }
     }
     
     // JS 侧可以调用
@@ -163,11 +168,23 @@ class MarkerView: ExpoView {
         pendingAddTask?.cancel()
         pendingAddTask = nil
         
-        // 如果已有 annotation，尝试更新坐标与属性，避免 remove/add
+        // 🔑 修复抖动：如果正在进行原生平滑移动动画，不要执行普通的静态位置更新
+        // 但如果 animatedAnnotation 为 nil，说明动画已经停止或正在清理中，此时允许更新
+        if isAnimating && animatedAnnotation != nil {
+            return
+        }
+
+        // 如果已有 annotation，尝试更新坐标与属性
         if let existing = annotation {
+            // 🔑 显式设置坐标，MAPointAnnotation 的 coordinate 赋值通常是不带动画的
             existing.coordinate = coordinate
             existing.title = title
             existing.subtitle = markerDescription
+            
+            // 🔑 确保 annotation 在地图上
+            if !mapView.annotations.contains(where: { ($0 as? NSObject) === existing }) {
+                mapView.addAnnotation(existing)
+            }
             return
         }
 
@@ -178,7 +195,7 @@ class MarkerView: ExpoView {
         annotation.subtitle = markerDescription
         self.annotation = annotation
         
-        // 立即添加到地图（与 CircleView 等保持一致）
+        // 立即添加到地图
         mapView.addAnnotation(annotation)
     }
     
@@ -564,20 +581,35 @@ class MarkerView: ExpoView {
         pendingAddTask?.cancel(); pendingAddTask = nil
         pendingUpdateTask?.cancel(); pendingUpdateTask = nil
 
-        guard let mapView = mapView, let annotation = annotation else { return }
-        self.annotation = nil
-        self.annotationView = nil
+        guard let mapView = mapView else { 
+            isRemoving = false
+            return 
+        }
+        
+        // 确保在主线程执行移除操作
+        let cleanup = { [weak self, weak mapView] in
+            guard let self = self, let mapView = mapView else { return }
+            
+            // 1. 停止任何正在进行的平滑移动
+            if self.animatedAnnotation != nil {
+                self.stopSmoothMove()
+            }
+            
+            // 2. 移除普通标记点
+            if let annotation = self.annotation {
+                mapView.removeAnnotation(annotation)
+                self.annotation = nil
+            }
 
-        // 🔑 修复：不要在移除时删除缓存
-        // 理由：多个 Marker 可能共享同一 cacheKey，删除会影响其他 Marker
-        // 缓存由 NSCache 自动管理，内存不足时会自动清理
+            self.annotationView = nil
+            self.animatedAnnotationView = nil
+            self.isRemoving = false
+        }
 
         if Thread.isMainThread {
-            mapView.removeAnnotation(annotation)
+            cleanup()
         } else {
-            DispatchQueue.main.sync {
-                mapView.removeAnnotation(annotation)
-            }
+            DispatchQueue.main.async(execute: cleanup)
         }
     }
 
@@ -739,16 +771,74 @@ class MarkerView: ExpoView {
      */
     func setSmoothMovePath(_ path: [[String: Double]]) {
         self.smoothMovePath = path
+        
+        // 🔑 修复逻辑：如果路径为空，立即停止动画
+        if path.isEmpty {
+            if animatedAnnotation != nil || isAnimating {
+                stopSmoothMove()
+            }
+        } else if mapView != nil && smoothMoveDuration > 0 {
+            // 只有在时长也准备好的情况下才自动启动
+            startSmoothMove()
+        }
+    }
+    
+    /**
+      * 停止平滑移动并恢复静态标记
+      */
+    func stopSmoothMove() {
+        // 🔑 确保在主线程执行
+        let cleanup = { [weak self, weak mapView] in
+            guard let self = self, let mapView = mapView else { return }
+            
+            // 1. 获取并取消所有动画 (遵循官方文档建议)
+            if let animAnnotation = self.animatedAnnotation {
+                let animations = animAnnotation.allMoveAnimations()
+                if let animations = animations {
+                    for animation in animations {
+                        animation.cancel()
+                    }
+                }
+                
+                // 2. 从地图移除动画标注
+                mapView.removeAnnotation(animAnnotation)
+                self.animatedAnnotation = nil
+                self.animatedAnnotationView = nil
+            }
+            
+            // 🔑 强制重置所有状态
+            self.isAnimating = false
+            self.smoothMovePath = []
+            self.smoothMoveDuration = 0
+            
+            // 3. 恢复静态标注（立即跳转到 position 所在位置）
+            self.performUpdateAnnotation()
+        }
+
+        if Thread.isMainThread {
+            cleanup()
+        } else {
+            DispatchQueue.main.async(execute: cleanup)
+        }
     }
     
     /**
      * 设置平滑移动时长（秒）
      */
     func setSmoothMoveDuration(_ duration: Double) {
-        self.smoothMoveDuration = duration > 0 ? duration : 10.0
+        // 🔑 修复：不要在这里设置默认值 10，如果 JS 传 0 或未定义，就应该是 0
+        self.smoothMoveDuration = duration
         
-        // 🔑 当路径和时长都设置时，启动平滑移动
-        if !smoothMovePath.isEmpty && mapView != nil {
+        // 🔑 如果时长被设为 0 或负数，停止当前动画
+        if duration <= 0 {
+            if animatedAnnotation != nil || isAnimating {
+                stopSmoothMove()
+            }
+            return
+        }
+        
+        // 🔑 只有当路径、时长都合法且地图就绪时，才启动平滑移动
+        if !smoothMovePath.isEmpty && duration > 0 && mapView != nil {
             startSmoothMove()
         }
     }
@@ -757,7 +847,20 @@ class MarkerView: ExpoView {
      * 启动平滑移动（由 JS 端手动调用）
      */
     func startSmoothMove() {
-        guard let mapView = mapView else { return }
+        guard !isRemoving, let mapView = mapView, !smoothMovePath.isEmpty, smoothMoveDuration > 0 else { 
+            if smoothMovePath.isEmpty && animatedAnnotation != nil {
+                stopSmoothMove()
+            }
+            return 
+        }
+        
+        // 🔑 确保在主线程执行
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.startSmoothMove()
+            }
+            return
+        }
         
         // 转换路径为 CLLocationCoordinate2D 数组
         // 使用 C++ 优化计算路径中的最近点

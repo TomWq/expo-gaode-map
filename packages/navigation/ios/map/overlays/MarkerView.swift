@@ -430,26 +430,31 @@ class NaviMarkerView: ExpoView {
         guard !isRemoving else { return }
         isRemoving = true
         
-        // 取消任何待处理的延迟任务
-        pendingAddTask?.cancel()
-        pendingAddTask = nil
-        pendingUpdateTask?.cancel()
-        pendingUpdateTask = nil
-        
-        // 立即保存引用并清空属性，避免在异步块中访问 self
-        guard let mapView = mapView, let annotation = annotation else {
-            return
+        pendingAddTask?.cancel(); pendingAddTask = nil
+        pendingUpdateTask?.cancel(); pendingUpdateTask = nil
+
+        guard let mapView = mapView else { 
+            isRemoving = false
+            return 
         }
-        self.annotation = nil
-        self.annotationView = nil
         
-        // 同步移除，避免对象在异步块执行时已被释放
-        if Thread.isMainThread {
-            mapView.removeAnnotation(annotation)
-        } else {
-            DispatchQueue.main.sync {
+        // 确保在主线程执行移除操作
+        let cleanup = { [weak self, weak mapView] in
+            guard let self = self, let mapView = mapView else { return }
+            
+            if let annotation = self.annotation {
                 mapView.removeAnnotation(annotation)
+                self.annotation = nil
             }
+            
+            self.annotationView = nil
+            self.isRemoving = false
+        }
+
+        if Thread.isMainThread {
+            cleanup()
+        } else {
+            DispatchQueue.main.async(execute: cleanup)
         }
     }
     

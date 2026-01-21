@@ -162,26 +162,29 @@ export class GaodeWebAPI {
    * });
    * ```
    */
- constructor(config: ClientConfig = {}) {
-   const webKey = resolveWebKey();
-   if (!webKey) {
-     throw new Error(
-       '[expo-gaode-map-web-api] 必须先通过 ExpoGaodeMapModule.initSDK({ webKey }) 初始化并提供 Web API Key。\n' +
-       '请在应用启动时调用：\n' +
-       "  import { ExpoGaodeMapModule } from 'expo-gaode-map';\n" +
-       '  ExpoGaodeMapModule.initSDK({ webKey: \"your-web-api-key\", iosKey, androidKey });\n' +
-       '随后再创建 GaodeWebAPI 实例使用 Web API 能力。'
-     );
-   }
-   // 强制使用核心模块中的 webKey，避免直接在此处绕过初始化约束
-   const effectiveConfig: ClientConfig = { ...config, key: webKey };
+  constructor(config: ClientConfig = {}) {
+    // 优先使用传入的 key，其次尝试从 SDK 配置中解析
+    const webKey = config.key || resolveWebKey();
 
-   this.client = new GaodeWebAPIClient(effectiveConfig);
-   this.geocode = new GeocodeService(this.client);
-   this.route = new RouteService(this.client);
-   this.poi = new POIService(this.client);
-   this.inputTips = new InputTipsService(this.client);
- }
+    if (!webKey) {
+      throw new Error(
+        '[expo-gaode-map-web-api] 缺少 Web API Key。您可以通过以下两种方式之一提供：\n' +
+        '1. 在构造函数中显式传入：new GaodeWebAPI({ key: "your-web-api-key" });\n' +
+        '2. 或者先通过 ExpoGaodeMapModule.initSDK({ webKey }) 初始化并提供 Web API Key：\n' +
+        "  import { ExpoGaodeMapModule } from 'expo-gaode-map';\n" +
+        '  ExpoGaodeMapModule.initSDK({ webKey: \"your-web-api-key\", iosKey, androidKey });'
+      );
+    }
+
+    // 使用解析出的 key 或传入的 key
+    const effectiveConfig: ClientConfig = { ...config, key: webKey };
+
+    this.client = new GaodeWebAPIClient(effectiveConfig);
+    this.geocode = new GeocodeService(this.client);
+    this.route = new RouteService(this.client);
+    this.poi = new POIService(this.client);
+    this.inputTips = new InputTipsService(this.client);
+  }
 
   /**
    * 更新 API Key

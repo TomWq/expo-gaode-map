@@ -59,11 +59,25 @@ ExpoGaodeMapModule.initSDK({
 
 ### 3. 创建 API 实例
 
+你可以通过以下两种方式创建 API 实例：
+
+#### 方式 A：无参构造（推荐）
+
+如果你已经在基础模块（如 `expo-gaode-map`）的 `initSDK` 中配置了 `webKey`，则可以直接使用无参构造：
+
 ```typescript
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
 // 推荐：无参构造（从基础模块读取 webKey）
 const api = new GaodeWebAPI();
+```
+
+#### 方式 B：显式传入 Key
+
+如果你没有调用 `initSDK` 配置 `webKey`，或者需要使用特定的 Key，可以显式传入：
+
+```typescript
+import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
 // 或者：显式传入 Key
 const api = new GaodeWebAPI({ key: 'your-web-api-key' });

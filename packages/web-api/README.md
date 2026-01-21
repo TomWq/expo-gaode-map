@@ -59,13 +59,32 @@ ExpoGaodeMapModule.initSDK({
 });
 ```
 
-### 3. 无参构造并使用
+### 3. 创建实例并使用
+
+你可以通过以下两种方式创建 API 实例：
+
+#### 方式 A：无参构造（推荐）
+先在基础模块初始化时配置 `webKey`，随后直接无参构造。这种方式便于统一管理 Key。
+
 ```ts
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-// 无参：从基础模块运行时解析 webKey
+// 无参：从基础模块运行时自动解析 webKey
 const api = new GaodeWebAPI();
+```
 
+#### 方式 B：显式传入 Key
+如果你不想依赖基础模块的初始化，或者需要使用不同的 Key，可以在构造函数中显式传入。
+
+```ts
+import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+
+// 显式传入：直接使用提供的 Web 服务 Key
+const api = new GaodeWebAPI({ key: 'your-web-api-key' });
+```
+
+### 4. 调用服务接口
+```ts
 // 逆地理编码：坐标 → 地址
 const result = await api.geocode.regeocode('116.481028,39.989643');
 console.log(result.regeocode.formatted_address);
