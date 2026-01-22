@@ -20,19 +20,20 @@
 ## ✨ 主要特性
 
 ### 核心功能（expo-gaode-map）
-- ✅ 完整的地图功能（多种地图类型、手势控制、相机操作，离线地图）
-- ✅ 精准定位（连续定位、单次定位、坐标转换）
+- ✅ 完整的地图功能（多种地图类型、手势控制、相机操作，离线地图,自定义地图样式）
+- ✅ 精准定位（连续定位、单次定位、坐标转换，定位蓝点配置）
 - ✅ 丰富的覆盖物（Circle、Marker、Polyline、Polygon、HeatMap、Cluster 等）
 - ✅ 友好的错误提示系统（详细的解决方案和文档链接）
 - ✅ 完整的 TypeScript 类型定义
 - ✅ 跨平台支持（Android、iOS）
 - ✅ 同时支持 React Native 新旧架构（Paper & Fabric）
 - ✅ 高测试覆盖率（75.7%，207 个单元测试）
-- ✅ 友好的错误提示系统
 - ✅ 支持自定义Marker覆盖物
-- ✅ 默认优化地图加载，减少内存占用
-
-
+- ✅ 默认实现了优化地图加载，减少内存占用
+- ✅ 几何运算（距离计算、面积计算等，由 C++ 实现）
+- ✅ 丰富的使用案例
+- ✅ 提供AI编程助手，帮助开发者快速集成和使用（https://TomWq.github.io/expo-gaode-map/guide/ai-skills.html）
+- ✅ 更多内容和功能请查看 [完整文档](https://TomWq.github.io/expo-gaode-map/)
 
 ### 可选模块
 - 🔍 **搜索功能**（expo-gaode-map-search）- POI 搜索、周边搜索、关键字搜索、地理编码等

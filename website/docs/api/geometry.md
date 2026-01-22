@@ -2,17 +2,23 @@
 
 完整的几何计算工具 API 文档。
 
-> 💡 **提示**: 几何计算 API 用于处理地图上的距离、面积和点位关系计算,支持多种实用场景。
+> 💡 **提示**: 几何计算 API 用于处理地图上的距离、面积和点位关系计算,支持多种实用场景,由 C++ 实现。
 
 ## API 列表
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| `distanceBetweenCoordinates` | `from: LatLng, to: LatLng` | `Promise<number>` | 计算两点距离(米) |
-| `calculatePolygonArea` | `coordinates: LatLng[]` | `Promise<number>` | 计算多边形面积(平方米) |
-| `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `Promise<number>` | 计算矩形面积(平方米) |
-| `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `Promise<boolean>` | 判断点是否在多边形内 |
-| `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `Promise<boolean>` | 判断点是否在圆内 |
+| `distanceBetweenCoordinates` | `from: LatLng, to: LatLng` | `number` | 计算两点距离(米) |
+| `calculatePolygonArea` | `coordinates: LatLng[]` | `number` | 计算多边形面积(平方米) |
+| `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `number` | 计算矩形面积(平方米) |
+| `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `boolean` | 判断点是否在多边形内 |
+| `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `boolean` | 判断点是否在圆内 |
+| `calculateCentroid` | `polygon: LatLng[] \| LatLng[][]` | `LatLng \| null` | 计算多边形质心 |
+| `encodeGeoHash` | `coordinate: LatLng, precision: number` | `string` | GeoHash 编码 |
+| `simplifyPolyline` | `points: LatLng[], tolerance: number` | `LatLng[]` | 轨迹抽稀 (RDP 算法) |
+| `calculatePathLength` | `points: LatLng[]` | `number` | 计算路径总长度 |
+| `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object \| null` | 获取路径上距离目标点最近的点 |
+| `getPointAtDistance` | `points: LatLng[], distance: number` | `object \| null` | 获取路径上指定距离的点 |
 
 ## 距离计算
 
@@ -23,7 +29,7 @@
 ```tsx
 import { ExpoGaodeMapModule } from '@gaomap/core';
 
-const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
   { latitude: 39.90923, longitude: 116.397428 }, // 天安门
   { latitude: 39.916527, longitude: 116.397545 }  // 故宫
 );
@@ -35,7 +41,7 @@ console.log(`距离: ${distance.toFixed(2)} 米`);
 - `from`: 起始坐标点 `{ latitude: number, longitude: number }`
 - `to`: 目标坐标点 `{ latitude: number, longitude: number }`
 
-**返回值**: `Promise<number>` - 两点之间的距离(单位:米)
+**返回值**: `number` - 两点之间的距离(单位:米)
 
 ## 面积计算
 
@@ -45,7 +51,7 @@ console.log(`距离: ${distance.toFixed(2)} 米`);
 
 ```tsx
 // 计算不规则四边形面积
-const area = await ExpoGaodeMapModule.calculatePolygonArea([
+const area = ExpoGaodeMapModule.calculatePolygonArea([
   { latitude: 39.923, longitude: 116.391 },  // 西北角
   { latitude: 39.923, longitude: 116.424 },  // 东北角
   { latitude: 39.886, longitude: 116.424 },  // 东南角
@@ -55,7 +61,7 @@ console.log(`面积: ${(area / 1000000).toFixed(2)} 平方公里`);
 // 输出: 面积: 13.51 平方公里
 
 // 计算三角形面积
-const triangleArea = await ExpoGaodeMapModule.calculatePolygonArea([
+const triangleArea = ExpoGaodeMapModule.calculatePolygonArea([
   { latitude: 39.923, longitude: 116.391 },
   { latitude: 39.923, longitude: 116.424 },
   { latitude: 39.886, longitude: 116.408 },
@@ -67,14 +73,14 @@ const triangleArea = await ExpoGaodeMapModule.calculatePolygonArea([
   - 按顺时针或逆时针顺序排列
   - 自动闭合,无需重复第一个点
 
-**返回值**: `Promise<number>` - 多边形面积(单位:平方米)
+**返回值**: `number` - 多边形面积(单位:平方米)
 
 ### calculateRectangleArea
 
 计算矩形面积的优化方法,比 `calculatePolygonArea` 更简单快捷。
 
 ```tsx
-const area = await ExpoGaodeMapModule.calculateRectangleArea(
+const area = ExpoGaodeMapModule.calculateRectangleArea(
   { latitude: 39.886, longitude: 116.391 },  // 西南角
   { latitude: 39.923, longitude: 116.424 }   // 东北角
 );
@@ -86,7 +92,7 @@ console.log(`矩形面积: ${(area / 1000000).toFixed(2)} 平方公里`);
 - `southWest`: 矩形西南角坐标
 - `northEast`: 矩形东北角坐标
 
-**返回值**: `Promise<number>` - 矩形面积(单位:平方米)
+**返回值**: `number` - 矩形面积(单位:平方米)
 
 ## 空间关系判断
 
@@ -105,13 +111,13 @@ const polygon = [
 
 // 检测点是否在区域内
 const point1 = { latitude: 39.9, longitude: 116.4 };
-const isInside1 = await ExpoGaodeMapModule.isPointInPolygon(point1, polygon);
+const isInside1 = ExpoGaodeMapModule.isPointInPolygon(point1, polygon);
 console.log(`点 (39.9, 116.4) 是否在区域内: ${isInside1}`);
 // 输出: 点 (39.9, 116.4) 是否在区域内: true
 
 // 检测区域外的点
 const point2 = { latitude: 40.0, longitude: 117.0 };
-const isInside2 = await ExpoGaodeMapModule.isPointInPolygon(point2, polygon);
+const isInside2 = ExpoGaodeMapModule.isPointInPolygon(point2, polygon);
 console.log(`点 (40.0, 117.0) 是否在区域内: ${isInside2}`);
 // 输出: 点 (40.0, 117.0) 是否在区域内: false
 ```
@@ -120,7 +126,7 @@ console.log(`点 (40.0, 117.0) 是否在区域内: ${isInside2}`);
 - `point`: 要检测的坐标点
 - `polygon`: 多边形顶点坐标数组
 
-**返回值**: `Promise<boolean>` - `true` 表示点在多边形内,`false` 表示不在
+**返回值**: `boolean` - `true` 表示点在多边形内,`false` 表示不在
 
 ### isPointInCircle
 
@@ -133,7 +139,7 @@ const radius = 1000; // 1公里
 
 // 检测故宫是否在1公里范围内
 const gugong = { latitude: 39.916527, longitude: 116.397545 };
-const isNearby = await ExpoGaodeMapModule.isPointInCircle(gugong, center, radius);
+const isNearby = ExpoGaodeMapModule.isPointInCircle(gugong, center, radius);
 console.log(`故宫是否在1公里范围内: ${isNearby}`);
 // 输出: 故宫是否在1公里范围内: true
 ```
@@ -143,7 +149,7 @@ console.log(`故宫是否在1公里范围内: ${isNearby}`);
 - `center`: 圆心坐标
 - `radius`: 半径(单位:米)
 
-**返回值**: `Promise<boolean>` - `true` 表示点在圆内,`false` 表示不在
+**返回值**: `boolean` - `true` 表示点在圆内,`false` 表示不在
 
 ## 使用场景
 
@@ -184,11 +190,11 @@ import { ExpoGaodeMapModule } from '@gaomap/core';
 export default function GeometryExample() {
   const [results, setResults] = useState<string[]>([]);
 
-  const runCalculations = async () => {
+  const runCalculations = () => {
     const newResults: string[] = [];
 
     // 1. 计算两点距离
-    const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+    const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
       { latitude: 39.90923, longitude: 116.397428 },
       { latitude: 39.916527, longitude: 116.397545 }
     );
@@ -201,11 +207,11 @@ export default function GeometryExample() {
       { latitude: 39.886, longitude: 116.424 },
       { latitude: 39.886, longitude: 116.391 },
     ];
-    const polygonArea = await ExpoGaodeMapModule.calculatePolygonArea(polygon);
+    const polygonArea = ExpoGaodeMapModule.calculatePolygonArea(polygon);
     newResults.push(`多边形面积: ${(polygonArea / 1000000).toFixed(2)}平方公里`);
 
     // 3. 计算矩形面积
-    const rectArea = await ExpoGaodeMapModule.calculateRectangleArea(
+    const rectArea = ExpoGaodeMapModule.calculateRectangleArea(
       { latitude: 39.886, longitude: 116.391 },
       { latitude: 39.923, longitude: 116.424 }
     );
@@ -213,12 +219,12 @@ export default function GeometryExample() {
 
     // 4. 判断点是否在多边形内
     const testPoint = { latitude: 39.9, longitude: 116.4 };
-    const isInPolygon = await ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
+    const isInPolygon = ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
     newResults.push(`点(39.9,116.4)在多边形内: ${isInPolygon}`);
 
     // 5. 判断点是否在圆内
     const center = { latitude: 39.90923, longitude: 116.397428 };
-    const isInCircle = await ExpoGaodeMapModule.isPointInCircle(
+    const isInCircle = ExpoGaodeMapModule.isPointInCircle(
       testPoint,
       center,
       10000 // 10公里

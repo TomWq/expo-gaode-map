@@ -8,11 +8,17 @@ Complete geometry calculation utilities API documentation.
 
 | Method | Parameters | Return Value | Description |
 |--------|------------|--------------|-------------|
-| `distanceBetweenCoordinates` | `from: LatLng, to: LatLng` | `Promise<number>` | Calculate distance between two points (meters) |
-| `calculatePolygonArea` | `coordinates: LatLng[]` | `Promise<number>` | Calculate polygon area (square meters) |
-| `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `Promise<number>` | Calculate rectangle area (square meters) |
-| `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `Promise<boolean>` | Check if point is inside polygon |
-| `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `Promise<boolean>` | Check if point is inside circle |
+| `distanceBetweenCoordinates` | `from: LatLng, to: LatLng` | `number` | Calculate distance between two points (meters) |
+| `calculatePolygonArea` | `coordinates: LatLng[]` | `number` | Calculate polygon area (square meters) |
+| `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `number` | Calculate rectangle area (square meters) |
+| `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `boolean` | Check if point is inside polygon |
+| `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `boolean` | Check if point is inside circle |
+| `calculateCentroid` | `polygon: LatLng[] \| LatLng[][]` | `LatLng \| null` | Calculate polygon centroid |
+| `encodeGeoHash` | `coordinate: LatLng, precision: number` | `string` | GeoHash encoding |
+| `simplifyPolyline` | `points: LatLng[], tolerance: number` | `LatLng[]` | Polyline simplification (RDP algorithm) |
+| `calculatePathLength` | `points: LatLng[]` | `number` | Calculate total path length |
+| `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object \| null` | Get nearest point on path to target |
+| `getPointAtDistance` | `points: LatLng[], distance: number` | `object \| null` | Get point at specific distance along path |
 
 ## Distance Calculation
 
@@ -23,7 +29,7 @@ Calculate the straight-line distance between two coordinate points.
 ```tsx
 import { ExpoGaodeMapModule } from '@gaomap/core';
 
-const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
   { latitude: 39.90923, longitude: 116.397428 }, // Tiananmen
   { latitude: 39.916527, longitude: 116.397545 }  // Forbidden City
 );
@@ -35,7 +41,7 @@ console.log(`Distance: ${distance.toFixed(2)} meters`);
 - `from`: Starting coordinate point `{ latitude: number, longitude: number }`
 - `to`: Target coordinate point `{ latitude: number, longitude: number }`
 
-**Return Value**: `Promise<number>` - Distance between two points (unit: meters)
+**Return Value**: `number` - Distance between two points (unit: meters)
 
 ## Area Calculation
 
@@ -45,7 +51,7 @@ Calculate the area of any polygon, supporting triangles, quadrilaterals, and mor
 
 ```tsx
 // Calculate irregular quadrilateral area
-const area = await ExpoGaodeMapModule.calculatePolygonArea([
+const area = ExpoGaodeMapModule.calculatePolygonArea([
   { latitude: 39.923, longitude: 116.391 },  // Northwest corner
   { latitude: 39.923, longitude: 116.424 },  // Northeast corner
   { latitude: 39.886, longitude: 116.424 },  // Southeast corner
@@ -55,7 +61,7 @@ console.log(`Area: ${(area / 1000000).toFixed(2)} square kilometers`);
 // Output: Area: 13.51 square kilometers
 
 // Calculate triangle area
-const triangleArea = await ExpoGaodeMapModule.calculatePolygonArea([
+const triangleArea = ExpoGaodeMapModule.calculatePolygonArea([
   { latitude: 39.923, longitude: 116.391 },
   { latitude: 39.923, longitude: 116.424 },
   { latitude: 39.886, longitude: 116.408 },
@@ -67,14 +73,14 @@ const triangleArea = await ExpoGaodeMapModule.calculatePolygonArea([
   - Arranged in clockwise or counterclockwise order
   - Automatically closed, no need to repeat the first point
 
-**Return Value**: `Promise<number>` - Polygon area (unit: square meters)
+**Return Value**: `number` - Polygon area (unit: square meters)
 
 ### calculateRectangleArea
 
 Optimized method for calculating rectangle area, simpler and faster than `calculatePolygonArea`.
 
 ```tsx
-const area = await ExpoGaodeMapModule.calculateRectangleArea(
+const area = ExpoGaodeMapModule.calculateRectangleArea(
   { latitude: 39.886, longitude: 116.391 },  // Southwest corner
   { latitude: 39.923, longitude: 116.424 }   // Northeast corner
 );
@@ -86,7 +92,7 @@ console.log(`Rectangle area: ${(area / 1000000).toFixed(2)} square kilometers`);
 - `southWest`: Southwest corner coordinates of the rectangle
 - `northEast`: Northeast corner coordinates of the rectangle
 
-**Return Value**: `Promise<number>` - Rectangle area (unit: square meters)
+**Return Value**: `number` - Rectangle area (unit: square meters)
 
 ## Spatial Relationship Judgment
 
@@ -105,13 +111,13 @@ const polygon = [
 
 // Check if point is inside the area
 const point1 = { latitude: 39.9, longitude: 116.4 };
-const isInside1 = await ExpoGaodeMapModule.isPointInPolygon(point1, polygon);
+const isInside1 = ExpoGaodeMapModule.isPointInPolygon(point1, polygon);
 console.log(`Is point (39.9, 116.4) inside: ${isInside1}`);
 // Output: Is point (39.9, 116.4) inside: true
 
 // Check point outside the area
 const point2 = { latitude: 40.0, longitude: 117.0 };
-const isInside2 = await ExpoGaodeMapModule.isPointInPolygon(point2, polygon);
+const isInside2 = ExpoGaodeMapModule.isPointInPolygon(point2, polygon);
 console.log(`Is point (40.0, 117.0) inside: ${isInside2}`);
 // Output: Is point (40.0, 117.0) inside: false
 ```
@@ -120,7 +126,7 @@ console.log(`Is point (40.0, 117.0) inside: ${isInside2}`);
 - `point`: Coordinate point to test
 - `polygon`: Array of polygon vertex coordinates
 
-**Return Value**: `Promise<boolean>` - `true` means point is inside polygon, `false` means outside
+**Return Value**: `boolean` - `true` means point is inside polygon, `false` means outside
 
 ### isPointInCircle
 
@@ -133,7 +139,7 @@ const radius = 1000; // 1 kilometer
 
 // Check if Forbidden City is within 1 kilometer
 const gugong = { latitude: 39.916527, longitude: 116.397545 };
-const isNearby = await ExpoGaodeMapModule.isPointInCircle(gugong, center, radius);
+const isNearby = ExpoGaodeMapModule.isPointInCircle(gugong, center, radius);
 console.log(`Is Forbidden City within 1km: ${isNearby}`);
 // Output: Is Forbidden City within 1km: true
 ```
@@ -143,7 +149,7 @@ console.log(`Is Forbidden City within 1km: ${isNearby}`);
 - `center`: Center coordinates
 - `radius`: Radius (unit: meters)
 
-**Return Value**: `Promise<boolean>` - `true` means point is inside circle, `false` means outside
+**Return Value**: `boolean` - `true` means point is inside circle, `false` means outside
 
 ## Use Cases
 
@@ -184,11 +190,11 @@ import { ExpoGaodeMapModule } from '@gaomap/core';
 export default function GeometryExample() {
   const [results, setResults] = useState<string[]>([]);
 
-  const runCalculations = async () => {
+  const runCalculations = () => {
     const newResults: string[] = [];
 
     // 1. Calculate distance between two points
-    const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+    const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
       { latitude: 39.90923, longitude: 116.397428 },
       { latitude: 39.916527, longitude: 116.397545 }
     );
@@ -201,11 +207,11 @@ export default function GeometryExample() {
       { latitude: 39.886, longitude: 116.424 },
       { latitude: 39.886, longitude: 116.391 },
     ];
-    const polygonArea = await ExpoGaodeMapModule.calculatePolygonArea(polygon);
+    const polygonArea = ExpoGaodeMapModule.calculatePolygonArea(polygon);
     newResults.push(`Polygon area: ${(polygonArea / 1000000).toFixed(2)} km²`);
 
     // 3. Calculate rectangle area
-    const rectArea = await ExpoGaodeMapModule.calculateRectangleArea(
+    const rectArea = ExpoGaodeMapModule.calculateRectangleArea(
       { latitude: 39.886, longitude: 116.391 },
       { latitude: 39.923, longitude: 116.424 }
     );
@@ -213,12 +219,12 @@ export default function GeometryExample() {
 
     // 4. Check if point is in polygon
     const testPoint = { latitude: 39.9, longitude: 116.4 };
-    const isInPolygon = await ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
+    const isInPolygon = ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
     newResults.push(`Point (39.9,116.4) in polygon: ${isInPolygon}`);
 
     // 5. Check if point is in circle
     const center = { latitude: 39.90923, longitude: 116.397428 };
-    const isInCircle = await ExpoGaodeMapModule.isPointInCircle(
+    const isInCircle = ExpoGaodeMapModule.isPointInCircle(
       testPoint,
       center,
       10000 // 10 kilometers

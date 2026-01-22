@@ -25,9 +25,9 @@ useEffect(() => {
   // 世界地图为高级服务，需要开通相关权限：
   // 1.注册成为高德开放平台开发者，并申请 注册 key
   // 2.通过 工单 联系商务开通
-  ExpoGaodeMapModule.setLoadWorldVectorMap(true);
+  // ExpoGaodeMapModule.setLoadWorldVectorMap(true);
 
-  // 初始化 SDK
+  // 初始化 SDK （仅需要 Web API Key 调用，默认会加载 Android 和 iOS 端的 API Key）
   ExpoGaodeMapModule.initSDK({
     webKey: 'your-web-api-key', // 使用 Web API 服务时需要
   });
@@ -60,6 +60,7 @@ ExpoGaodeMapModule.initSDK({
 
 在使用定位功能前,必须先检查和请求权限:
 
+#### 方式一：手动检查和请求权限
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
@@ -78,6 +79,15 @@ if (!status.granted) {
   }
 }
 ```
+#### 方式二: useLocationPermissions Hook (推荐)
+
+```tsx
+import { useLocationPermissions } from 'expo-gaode-map';
+
+const [status, requestPermission] = useLocationPermissions();
+
+```
+
 
 ### 4. 获取位置
 
@@ -128,59 +138,31 @@ export default function App() {
     target: LatLng;
     zoom: number;
   } | null>(null);
+  const [status, requestPermission] = useLocationPermissions();
 
   useEffect(() => {
   
     const initializeApp = async () => {
+
+      // 1.请求定位权限
+       await requestPermission();
+
       // 2. 初始化 SDK（使用 Config Plugin 时可传空对象）
       ExpoGaodeMapModule.initSDK({
         webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
       });
       
-      // 3. 检查权限
-        const status = await ExpoGaodeMapModule.checkLocationPermission();
-        
-      // 4. 如果没有权限,请求权限
-        if (!status.granted) {
-          const result = await ExpoGaodeMapModule.requestLocationPermission();
-          
-          if (!result.granted) {
-            // 使用默认位置
-            setInitialPosition({
-              target: { latitude: 39.9, longitude: 116.4 },
-              zoom: 10
-            });
-            
-            Alert.alert(
-              '需要定位权限',
-              '请在设置中开启定位权限',
-              [
-                { text: '取消' },
-                { text: '去设置', onPress: () => {
-                  if (Platform.OS === 'ios') {
-                    Linking.openURL('app-settings:');
-                  } else {
-                    Linking.openSettings();
-                  }
-                }}
-              ]
-            );
-            return;
-          }
-        }
-        
-      // 5. 获取当前位置
-        const location = await ExpoGaodeMapModule.getCurrentLocation();
-        setInitialPosition({
+  
+      // 3. 获取当前位置
+      const location = await ExpoGaodeMapModule.getCurrentLocation();
+      setInitialPosition({
           target: {
             latitude: location.latitude,
             longitude: location.longitude
           },
           zoom: 15
-        });
-        
+      });
     };
-
     initializeApp();
   }, []);
 

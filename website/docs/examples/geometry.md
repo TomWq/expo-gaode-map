@@ -12,12 +12,12 @@ import {ExpoGaodeMapModule} from 'expo-gaode-map';
 export default function GeometryUtilsExample() {
   const [results, setResults] = useState<string[]>([]);
 
-  const runCalculations = async () => {
+  const runCalculations = () => {
     const newResults: string[] = [];
 
     try {
       // 1. 计算两点之间的距离
-      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+      const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
         { latitude: 39.90923, longitude: 116.397428 }, // 天安门
         { latitude: 39.916527, longitude: 116.397545 }  // 故宫
       );
@@ -30,11 +30,11 @@ export default function GeometryUtilsExample() {
         { latitude: 39.886, longitude: 116.424 },
         { latitude: 39.886, longitude: 116.391 },
       ];
-      const polygonArea = await ExpoGaodeMapModule.calculatePolygonArea(polygon);
+      const polygonArea = ExpoGaodeMapModule.calculatePolygonArea(polygon);
       newResults.push(`多边形面积: ${(polygonArea / 1000000).toFixed(2)} 平方公里`);
 
       // 3. 计算矩形面积
-      const rectArea = await ExpoGaodeMapModule.calculateRectangleArea(
+      const rectArea = ExpoGaodeMapModule.calculateRectangleArea(
         { latitude: 39.886, longitude: 116.391 },
         { latitude: 39.923, longitude: 116.424 }
       );
@@ -42,12 +42,12 @@ export default function GeometryUtilsExample() {
 
       // 4. 判断点是否在多边形内
       const testPoint = { latitude: 39.9, longitude: 116.4 };
-      const isInPolygon = await ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
+      const isInPolygon = ExpoGaodeMapModule.isPointInPolygon(testPoint, polygon);
       newResults.push(`点 (39.9, 116.4) 是否在多边形内: ${isInPolygon ? '是' : '否'}`);
 
       // 5. 判断点是否在圆内
       const center = { latitude: 39.90923, longitude: 116.397428 };
-      const isInCircle = await ExpoGaodeMapModule.isPointInCircle(
+      const isInCircle = ExpoGaodeMapModule.isPointInCircle(
         testPoint,
         center,
         10000 // 10公里
@@ -98,22 +98,20 @@ const styles = StyleSheet.create({
 ### 1. 附近商家距离显示
 
 ```typescript
-async function calculateNearbyShops(userLocation: LatLng, shops: Shop[]) {
-  const shopsWithDistance = await Promise.all(
-    shops.map(async (shop) => {
-      const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
-        userLocation,
-        shop.location
-      );
-      return {
-        ...shop,
-        distance,
-        distanceText: distance < 1000 
-          ? `${Math.round(distance)}米` 
-          : `${(distance / 1000).toFixed(1)}公里`
-      };
-    })
-  );
+function calculateNearbyShops(userLocation: LatLng, shops: Shop[]) {
+  const shopsWithDistance = shops.map((shop) => {
+    const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
+      userLocation,
+      shop.location
+    );
+    return {
+      ...shop,
+      distance,
+      distanceText: distance < 1000 
+        ? `${Math.round(distance)}米` 
+        : `${(distance / 1000).toFixed(1)}公里`
+    };
+  });
 
   // 按距离排序
   return shopsWithDistance.sort((a, b) => a.distance - b.distance);
@@ -127,24 +125,20 @@ function useGeofencing(location: LatLng, area: LatLng[]) {
   const [isInside, setIsInside] = useState(false);
 
   useEffect(() => {
-    const checkLocation = async () => {
-      const inside = await ExpoGaodeMapModule.isPointInPolygon(
-        location,
-        area
-      );
-      
-      if (inside !== isInside) {
-        setIsInside(inside);
-        // 触发进入或离开事件
-        if (inside) {
-          console.log('用户进入了区域');
-        } else {
-          console.log('用户离开了区域');
-        }
+    const inside = ExpoGaodeMapModule.isPointInPolygon(
+      location,
+      area
+    );
+    
+    if (inside !== isInside) {
+      setIsInside(inside);
+      // 触发进入或离开事件
+      if (inside) {
+        console.log('用户进入了区域');
+      } else {
+        console.log('用户离开了区域');
       }
-    };
-
-    checkLocation();
+    }
   }, [location]);
 
   return isInside;
@@ -162,13 +156,13 @@ function LandAreaCalculator() {
     setPoints([...points, point]);
   };
 
-  const calculateArea = async () => {
+  const calculateArea = () => {
     if (points.length < 3) {
       alert('至少需要3个点才能计算面积');
       return;
     }
 
-    const calculatedArea = await ExpoGaodeMapModule.calculatePolygonArea(points);
+    const calculatedArea = ExpoGaodeMapModule.calculatePolygonArea(points);
     setArea(calculatedArea);
   };
 
@@ -196,19 +190,19 @@ function LandAreaCalculator() {
 ### 4. 配送范围判断
 
 ```typescript
-async function isInDeliveryRange(
+function isInDeliveryRange(
   userLocation: LatLng,
   shopLocation: LatLng,
   maxDistance: number
-): Promise<boolean> {
-  const isInRange = await ExpoGaodeMapModule.isPointInCircle(
+): boolean {
+  const isInRange = ExpoGaodeMapModule.isPointInCircle(
     userLocation,
     shopLocation,
     maxDistance
   );
   
   if (!isInRange) {
-    const distance = await ExpoGaodeMapModule.distanceBetweenCoordinates(
+    const distance = ExpoGaodeMapModule.distanceBetweenCoordinates(
       userLocation,
       shopLocation
     );
@@ -219,39 +213,37 @@ async function isInDeliveryRange(
 }
 ```
 
-## 性能优化建议
+## 性能建议
 
-1. **批量计算**: 对于多个点的距离计算,考虑使用 Promise.all 并行处理
-2. **结果缓存**: 对于固定区域的判断结果可以缓存,避免重复计算
-3. **精度控制**: 根据实际需求选择合适的精度,避免过度计算
+1. **同步调用**: 几何计算现在是同步的,由 C++ 实现,您可以直接在循环或渲染逻辑中使用,无需担心异步带来的复杂性。
+2. **结果缓存**: 对于固定区域的判断结果可以缓存,避免重复计算。
+3. **精度控制**: 根据实际需求选择合适的精度,避免过度计算。
 
 ```typescript
 // 批量距离计算示例
-async function batchCalculateDistances(
+function batchCalculateDistances(
   origin: LatLng,
   destinations: LatLng[]
 ) {
-  return Promise.all(
-    destinations.map(dest => 
-      ExpoGaodeMapModule.distanceBetweenCoordinates(origin, dest)
-    )
+  return destinations.map(dest => 
+    ExpoGaodeMapModule.distanceBetweenCoordinates(origin, dest)
   );
 }
 
 // 结果缓存示例
 const areaCache = new Map<string, boolean>();
 
-async function isInAreaCached(
+function isInAreaCached(
   point: LatLng,
   polygon: LatLng[]
-): Promise<boolean> {
+): boolean {
   const key = `${point.latitude},${point.longitude}`;
   
   if (areaCache.has(key)) {
     return areaCache.get(key)!;
   }
   
-  const result = await ExpoGaodeMapModule.isPointInPolygon(point, polygon);
+  const result = ExpoGaodeMapModule.isPointInPolygon(point, polygon);
   areaCache.set(key, result);
   return result;
 }

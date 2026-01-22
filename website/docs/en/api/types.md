@@ -433,15 +433,36 @@ interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
 
   addLocationListener(listener: LocationListener): { remove: () => void };
 
-  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): Promise<number>;
+  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): number;
 
-  isPointInCircle(point: LatLng, center: LatLng, radius: number): Promise<boolean>;
+  isPointInCircle(point: LatLng, center: LatLng, radius: number): boolean;
 
-  isPointInPolygon(point: LatLng, polygon: LatLng[]): Promise<boolean>;
+  isPointInPolygon(point: LatLng, polygon: LatLng[] | LatLng[][]): boolean;
 
-  calculatePolygonArea(polygon: LatLng[]): Promise<number>;
+  calculatePolygonArea(polygon: LatLng[] | LatLng[][]): number;
 
-  calculateRectangleArea(southWest: LatLng, northEast: LatLng): Promise<number>;
+  calculateRectangleArea(southWest: LatLng, northEast: LatLng): number;
+
+  calculateCentroid(polygon: LatLng[] | LatLng[][]): LatLng | null;
+
+  encodeGeoHash(coordinate: LatLng, precision: number): string;
+
+  simplifyPolyline(points: LatLng[], tolerance: number): LatLng[];
+
+  calculatePathLength(points: LatLng[]): number;
+
+  getNearestPointOnPath(path: LatLng[], target: LatLng): {
+    latitude: number;
+    longitude: number;
+    index: number;
+    distanceMeters: number;
+  } | null;
+
+  getPointAtDistance(points: LatLng[], distance: number): {
+    latitude: number;
+    longitude: number;
+    angle: number;
+  } | null;
 }
 ```
 

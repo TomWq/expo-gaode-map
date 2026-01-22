@@ -432,15 +432,36 @@ interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
   // 添加定位更新监听器
   addLocationListener(listener: LocationListener): { remove: () => void };
   // 计算两个坐标点之间的距离（米）
-  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): Promise<number>;
-  // 查询点是否在圆内(一般不用主动调用)
-  isPointInCircle(point: LatLng, center: LatLng, radius: number): Promise<boolean>;
-  // 查询点是否在多边形内(一般不用主动调用)
-  isPointInPolygon(point: LatLng, polygon: LatLng[]): Promise<boolean>;
-  // 计算多边形面积（平方米）(一般不用主动调用)
-  calculatePolygonArea(polygon: LatLng[]): Promise<number>;
-  // 计算矩形面积（平方米）(一般不用主动调用)
-  calculateRectangleArea(southWest: LatLng, northEast: LatLng): Promise<number>;
+  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): number;
+  // 查询点是否在圆内
+  isPointInCircle(point: LatLng, center: LatLng, radius: number): boolean;
+  // 查询点是否在多边形内
+  isPointInPolygon(point: LatLng, polygon: LatLng[] | LatLng[][]): boolean;
+  // 计算多边形面积（平方米）
+  calculatePolygonArea(polygon: LatLng[] | LatLng[][]): number;
+  // 计算矩形面积（平方米）
+  calculateRectangleArea(southWest: LatLng, northEast: LatLng): number;
+  // 计算多边形质心
+  calculateCentroid(polygon: LatLng[] | LatLng[][]): LatLng | null;
+  // GeoHash 编码
+  encodeGeoHash(coordinate: LatLng, precision: number): string;
+  // 轨迹抽稀 (RDP 算法)
+  simplifyPolyline(points: LatLng[], tolerance: number): LatLng[];
+  // 计算路径总长度
+  calculatePathLength(points: LatLng[]): number;
+  // 获取路径上距离目标点最近的点
+  getNearestPointOnPath(path: LatLng[], target: LatLng): {
+    latitude: number;
+    longitude: number;
+    index: number;
+    distanceMeters: number;
+  } | null;
+  // 获取路径上指定距离的点
+  getPointAtDistance(points: LatLng[], distance: number): {
+    latitude: number;
+    longitude: number;
+    angle: number;
+  } | null;
 }
 ```
 

@@ -251,6 +251,8 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    */
   distanceBetweenCoordinates(coordinate1: LatLngPoint, coordinate2: LatLngPoint): number;
 
+   // ==================== 几何计算 ====================
+
   /**
    * 判断点是否在圆内
    * @param point 要判断的点
