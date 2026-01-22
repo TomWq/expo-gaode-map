@@ -503,6 +503,60 @@ Java_expo_modules_gaodemap_utils_GeometryUtils_nativeGetPointAtDistance(
 }
 
 extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeCalculatePathBounds(
+    JNIEnv* env,
+    jclass,
+    jdoubleArray latitudes,
+    jdoubleArray longitudes
+) {
+#if GAODE_HAVE_JNI
+    if (!latitudes || !longitudes) {
+        return nullptr;
+    }
+
+    const jsize countLat = env->GetArrayLength(latitudes);
+    const jsize countLon = env->GetArrayLength(longitudes);
+    if (countLat == 0 || countLat != countLon) {
+        return nullptr;
+    }
+
+    jdouble* latValues = env->GetDoubleArrayElements(latitudes, nullptr);
+    jdouble* lonValues = env->GetDoubleArrayElements(longitudes, nullptr);
+
+    std::vector<gaodemap::GeoPoint> points;
+    points.reserve(static_cast<size_t>(countLat));
+
+    for (jsize i = 0; i < countLat; ++i) {
+        points.push_back({latValues[i], lonValues[i]});
+    }
+
+    env->ReleaseDoubleArrayElements(latitudes, latValues, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(longitudes, lonValues, JNI_ABORT);
+
+    gaodemap::PathBounds bounds = gaodemap::calculatePathBounds(points);
+
+    jdoubleArray resultArray = env->NewDoubleArray(6);
+    if (resultArray == nullptr) return nullptr;
+    
+    jdouble buffer[6] = {
+        bounds.north, 
+        bounds.south, 
+        bounds.east, 
+        bounds.west, 
+        bounds.centerLat, 
+        bounds.centerLon
+    };
+    env->SetDoubleArrayRegion(resultArray, 0, 6, buffer);
+    return resultArray;
+#else
+    (void)env;
+    (void)latitudes;
+    (void)longitudes;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
 Java_expo_modules_gaodemap_utils_GeometryUtils_nativeCalculateCentroid(
     JNIEnv* env,
     jclass,
@@ -569,6 +623,48 @@ Java_expo_modules_gaodemap_utils_GeometryUtils_nativeEncodeGeoHash(
     (void)lat;
     (void)lon;
     (void)precision;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeParsePolyline(
+    JNIEnv* env,
+    jclass,
+    jstring polylineStr
+) {
+#if GAODE_HAVE_JNI
+    if (!polylineStr) {
+        return nullptr;
+    }
+
+    const char* nativeString = env->GetStringUTFChars(polylineStr, nullptr);
+    if (!nativeString) return nullptr;
+
+    std::string cppPolylineStr(nativeString);
+    env->ReleaseStringUTFChars(polylineStr, nativeString);
+
+    std::vector<gaodemap::GeoPoint> points = gaodemap::parsePolyline(cppPolylineStr);
+    
+    if (points.empty()) {
+        return env->NewDoubleArray(0);
+    }
+
+    jdoubleArray result = env->NewDoubleArray(static_cast<jsize>(points.size() * 2));
+    if (result == nullptr) return nullptr;
+
+    std::vector<double> flatBuffer;
+    flatBuffer.reserve(points.size() * 2);
+    for (const auto& p : points) {
+        flatBuffer.push_back(p.lat);
+        flatBuffer.push_back(p.lon);
+    }
+
+    env->SetDoubleArrayRegion(result, 0, static_cast<jsize>(flatBuffer.size()), flatBuffer.data());
+    return result;
+#else
+    (void)env;
+    (void)polylineStr;
     return nullptr;
 #endif
 }

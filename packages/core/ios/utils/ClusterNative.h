@@ -52,6 +52,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSDictionary * _Nullable)calculateCentroidWithLatitudes:(NSArray<NSNumber *> *)latitudes
                                                longitudes:(NSArray<NSNumber *> *)longitudes;
 
++ (NSDictionary * _Nullable)calculatePathBoundsWithLatitudes:(NSArray<NSNumber *> *)latitudes
+                                                longitudes:(NSArray<NSNumber *> *)longitudes;
+
 + (NSString *)encodeGeoHashWithLat:(double)lat
                                lon:(double)lon
                          precision:(int)precision;
@@ -59,6 +62,14 @@ NS_ASSUME_NONNULL_BEGIN
 + (uint32_t)parseColorWithString:(NSString *)colorString;
 
 + (CLLocationCoordinate2D)coordinateForMapPointWithX:(double)x y:(double)y NS_SWIFT_NAME(coordinateForMapPoint(x:y:));
+
+/**
+ * 解析高德地图 API 返回的 Polyline 字符串
+ * 格式: "lng,lat;lng,lat;..."
+ * @param polylineStr 高德原始 polyline 字符串
+ * @return 扁平化的坐标数组 [lat1, lon1, lat2, lon2, ...]
+ */
++ (NSArray<NSNumber *> *)parsePolyline:(NSString *)polylineStr;
 
 @end
 

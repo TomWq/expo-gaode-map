@@ -306,6 +306,19 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   calculateCentroid(polygon: LatLngPoint[] | LatLngPoint[][]): LatLng | null;
 
   /**
+   * 计算路径边界和中心点
+   * @param points 路径点
+   * @returns 边界和中心点
+   */
+  calculatePathBounds(points: LatLngPoint[]): {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+    center: LatLngPoint;
+  } | null;
+
+  /**
    * GeoHash 编码
    * @param coordinate 坐标点
    * @param precision 精度 (1-12)
@@ -327,6 +340,14 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @returns 长度(米)
    */
   calculatePathLength(points: LatLngPoint[]): number;
+
+  /**
+   * 解析高德地图 API 返回的 Polyline 字符串
+   * 格式: "lng,lat;lng,lat;..."
+   * @param polylineStr 高德原始 polyline 字符串
+   * @returns 解析后的点集
+   */
+  parsePolyline(polylineStr: string): LatLng[];
 
   /**
    * 获取路径上指定距离的点

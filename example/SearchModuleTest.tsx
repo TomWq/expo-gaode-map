@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, FlatList } from 'react-native';
-import { createLazyLoader } from 'expo-gaode-map';
 
 // 尝试加载搜索模块
-// const loadSearch = createLazyLoader(() => require('expo-gaode-map-search'));
 import * as SearchModule from 'expo-gaode-map-search';
 
 export default function SearchModuleTest() {

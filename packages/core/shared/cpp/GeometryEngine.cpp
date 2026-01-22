@@ -412,4 +412,68 @@ std::string encodeGeoHash(double lat, double lon, int precision) {
     return hash;
 }
 
+std::vector<GeoPoint> parsePolyline(const std::string& polylineStr) {
+    std::vector<GeoPoint> points;
+    if (polylineStr.empty()) {
+        return points;
+    }
+
+    size_t start = 0;
+    size_t end = polylineStr.find(';');
+    
+    while (true) {
+        std::string segment = polylineStr.substr(start, end - start);
+        if (!segment.empty()) {
+            size_t comma = segment.find(',');
+            if (comma != std::string::npos) {
+                try {
+                    double lon = std::stod(segment.substr(0, comma));
+                    double lat = std::stod(segment.substr(comma + 1));
+                    points.push_back({lat, lon});
+                } catch (...) {
+                    // 忽略无效的坐标对
+                }
+            }
+        }
+        
+        if (end == std::string::npos) {
+            break;
+        }
+        
+        start = end + 1;
+        end = polylineStr.find(';', start);
+    }
+    
+    return points;
+}
+
+PathBounds calculatePathBounds(const std::vector<GeoPoint>& points) {
+    PathBounds bounds = { -90.0, 90.0, -180.0, 180.0, 0.0, 0.0 };
+    
+    if (points.empty()) {
+        return bounds;
+    }
+    
+    double minLat = 90.0;
+    double maxLat = -90.0;
+    double minLon = 180.0;
+    double maxLon = -180.0;
+    
+    for (const auto& p : points) {
+        if (p.lat < minLat) minLat = p.lat;
+        if (p.lat > maxLat) maxLat = p.lat;
+        if (p.lon < minLon) minLon = p.lon;
+        if (p.lon > maxLon) maxLon = p.lon;
+    }
+    
+    bounds.north = maxLat;
+    bounds.south = minLat;
+    bounds.east = maxLon;
+    bounds.west = minLon;
+    bounds.centerLat = (maxLat + minLat) / 2.0;
+    bounds.centerLon = (maxLon + minLon) / 2.0;
+    
+    return bounds;
+}
+
 } // namespace gaodemap

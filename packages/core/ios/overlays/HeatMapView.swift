@@ -52,7 +52,7 @@ class HeatMapView: ExpoView {
      */
     func setMap(_ map: MAMapView) {
         self.mapView = map
-        print("HeatMap: setMap")
+      
         createOrUpdateHeatMap()
     }
     
@@ -76,7 +76,7 @@ class HeatMapView: ExpoView {
      */
     func setData(_ data: [[String: Any]]) {
         self.dataPoints = data
-        print("HeatMap: setData count=\(data.count)")
+        
         createOrUpdateHeatMap()
     }
     
@@ -86,7 +86,7 @@ class HeatMapView: ExpoView {
      */
     func setRadius(_ radius: Int) {
         self.radius = radius
-        print("HeatMap: setRadius \(radius)")
+     
         createOrUpdateHeatMap()
     }
     
@@ -96,7 +96,7 @@ class HeatMapView: ExpoView {
      */
     func setOpacity(_ opacity: Double) {
         self.opacity = opacity
-        print("HeatMap: setOpacity \(opacity)")
+       
         createOrUpdateHeatMap()
     }
     
@@ -105,7 +105,7 @@ class HeatMapView: ExpoView {
      */
     func setGradient(_ gradient: [String: Any]?) {
         self.gradient = gradient
-        print("HeatMap: setGradient hasValue=\(gradient != nil)")
+      
         createOrUpdateHeatMap()
     }
     
@@ -114,7 +114,7 @@ class HeatMapView: ExpoView {
      */
     func setAllowRetinaAdapting(_ allow: Bool) {
         self.allowRetinaAdapting = allow
-        print("HeatMap: setAllowRetinaAdapting \(allow)")
+      
         createOrUpdateHeatMap()
     }
 
@@ -171,7 +171,7 @@ class HeatMapView: ExpoView {
             renderer = nil
         }
         
-        print("HeatMap: Creating overlay with \(heatmapData.count) points")
+      
         
         // 创建热力图图层
         let heatmap = MAHeatMapTileOverlay()

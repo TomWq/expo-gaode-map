@@ -186,23 +186,21 @@ class MultiPointView: ExpoView {
         // 优先通过 customID 查找
         if let customID = item.customID {
             index = pointsData.firstIndex { point in
-                guard let dict = point as? [String: Any] else { return false }
-                return (dict["customerId"] as? String) == customID || (dict["id"] as? String) == customID
+                return (point["customerId"] as? String) == customID || (point["id"] as? String) == customID
             } ?? -1
         }
         
         // 如果没找到，尝试通过坐标查找（不够精确，但作为备选）
         if index == -1 {
             index = pointsData.firstIndex { point in
-                guard let dict = point as? [String: Any],
-                      let lat = dict["latitude"] as? Double,
-                      let lng = dict["longitude"] as? Double else { return false }
+                guard let lat = point["latitude"] as? Double,
+                      let lng = point["longitude"] as? Double else { return false }
                 return abs(lat - item.coordinate.latitude) < 0.000001 && abs(lng - item.coordinate.longitude) < 0.000001
             } ?? -1
         }
         
         if index != -1 {
-            pointData = pointsData[index] as? [String: Any]
+            pointData = pointsData[index]
             onMultiPointPress([
                 "index": index,
                 "customerId": pointData?["customerId"] ?? pointData?["id"] ?? "",

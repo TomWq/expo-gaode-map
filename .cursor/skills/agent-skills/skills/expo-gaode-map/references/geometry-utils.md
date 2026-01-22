@@ -2,6 +2,33 @@
 
 `expo-gaode-map` 提供了基于原生 SDK 的高性能几何计算 API，用于处理坐标转换、距离计算、空间关系判断以及轨迹处理。
 
+## 快速模式
+
+### ✅ 正确：使用 C++ 引擎进行大批量计算
+```ts
+// 当处理超过 1000 个点的轨迹时，务必使用原生简化 API
+const simplified = ExpoGaodeMapModule.simplifyPolyline(hugePath, 1.0);
+```
+
+### ✅ 正确：处理多边形空洞
+```ts
+// 传递二维数组表示带孔多边形
+const area = ExpoGaodeMapModule.calculatePolygonArea([
+  outerRing, // 外环
+  innerHole1, // 第一个孔
+  innerHole2  // 第二个孔
+]);
+```
+
+### ❌ 错误：在 JS 层手动计算距离
+```ts
+// ❌ 错误：JS 层计算未考虑地球曲率且性能较差
+const dist = Math.sqrt(Math.pow(p1.lat - p2.lat, 2) + ...);
+
+// ✅ 正确：使用原生 API
+const dist = ExpoGaodeMapModule.distanceBetweenCoordinates(p1, p2);
+```
+
 ## 核心 API
 
 ### 坐标转换 (Coordinate Conversion)
@@ -34,6 +61,10 @@ const area = ExpoGaodeMapModule.calculatePolygonArea([p1, p2, p3, p4]);
 
 // 4. 计算矩形面积 (平方米)
 const rectArea = ExpoGaodeMapModule.calculateRectangleArea(southWest, northEast);
+
+// 5. 计算路径边界和中心点 (Zoom to span)
+const bounds = ExpoGaodeMapModule.calculatePathBounds(path);
+// 返回: { north, south, east, west, center: { latitude, longitude } }
 ```
 
 ### 空间关系判断
@@ -68,6 +99,9 @@ const pointInfo = ExpoGaodeMapModule.getPointAtDistance(path, 500);
 
 // 4. 计算多边形质心
 const centroid = ExpoGaodeMapModule.calculateCentroid(polygon);
+
+// 5. 解析高德原始 Polyline 字符串
+const points = ExpoGaodeMapModule.parsePolyline("116.4,39.9;116.5,40.0");
 ```
 
 ### 编码工具

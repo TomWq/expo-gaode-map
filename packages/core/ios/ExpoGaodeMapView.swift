@@ -707,7 +707,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     }
 
     func performSwitching() {
-        print("[ExpoGaodeMap] performSwitching start. Current Gaode hidden: \(self.mapView.isHidden), Apple hidden: \(self.appleMapView.isHidden)")
         
         self.isSwitching = true
 
@@ -718,7 +717,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
 
         if !isGaodeCurrentlyVisible {
             // 切换到高德 (Apple -> Gaode)
-            print("[ExpoGaodeMap] Switching to Gaode Map")
             let region = self.MARegionForMKRegion(mkRegion: self.appleMapView.region)
             // 简单的合法性检查
             if region.span.latitudeDelta > 0 && region.span.longitudeDelta > 0 {
@@ -728,12 +726,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             self.mapView.rotationDegree = CGFloat(self.appleMapView.camera.heading)
         } else {
             // 切换到苹果 (Gaode -> Apple)
-            print("[ExpoGaodeMap] Switching to Apple Map")
             let gaodeRegion = self.mapView.region
             let gaodeCenter = self.mapView.centerCoordinate
             let gaodeHeading = self.mapView.rotationDegree
             
-            print("[ExpoGaodeMap] Gaode Region: center(\(gaodeCenter.latitude), \(gaodeCenter.longitude)), span(\(gaodeRegion.span.latitudeDelta), \(gaodeRegion.span.longitudeDelta))")
 
             // 1. 设置 Region
             let mkRegion = self.MKRegionForMARegion(maRegion: gaodeRegion)
@@ -749,7 +745,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             // 注意：直接修改 camera.heading 可能无效或导致问题，建议使用 setCamera
             let currentCamera = self.appleMapView.camera
             // 调试：打印 altitude
-            print("[ExpoGaodeMap] AppleMap Camera altitude: \(currentCamera.altitude)")
             
             // 如果 altitude 为 0，通常意味着地图还没完全初始化好。
             // 此时可以尝试给一个默认的高度，或者仅仅 setRegion 就够了。
@@ -852,7 +847,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             try data.write(to: fileURL)
             completion(fileURL.absoluteString, nil)
         } catch {
-            print("Error saving snapshot: \(error)")
             completion(nil, error)
         }
     }

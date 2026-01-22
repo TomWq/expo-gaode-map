@@ -351,6 +351,30 @@ class ExpoGaodeMapModule : Module() {
     }
 
     /**
+     * 计算路径边界
+     * @param pointsList 路径点集合
+     * @return 边界信息
+     */
+    Function("calculatePathBounds") { pointsList: List<Any>? ->
+      val points = LatLngParser.parseLatLngList(pointsList)
+      if (points.isEmpty()) return@Function null
+
+      val result = GeometryUtils.calculatePathBounds(points)
+      result?.let {
+        mapOf(
+          "north" to it.north,
+          "south" to it.south,
+          "east" to it.east,
+          "west" to it.west,
+          "center" to mapOf(
+            "latitude" to it.centerLat,
+            "longitude" to it.centerLon
+          )
+        )
+      }
+    }
+
+    /**
      * GeoHash 编码
      * @param coordinate 坐标点
      * @param precision 精度 (1-12)
@@ -390,6 +414,21 @@ class ExpoGaodeMapModule : Module() {
     Function("calculatePathLength") { points: List<Any>? ->
       val poly = LatLngParser.parseLatLngList(points)
       GeometryUtils.calculatePathLength(poly)
+    }
+
+    /**
+     * 解析高德地图 API 返回的 Polyline 字符串
+     * @param polylineStr 高德原始 polyline 字符串
+     * @return 坐标点列表
+     */
+    Function("parsePolyline") { polylineStr: String? ->
+      val result = GeometryUtils.parsePolyline(polylineStr)
+      result.map {
+        mapOf(
+          "latitude" to it.latitude,
+          "longitude" to it.longitude
+        )
+      }
     }
 
     /**

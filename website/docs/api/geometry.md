@@ -13,12 +13,14 @@
 | `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `number` | 计算矩形面积(平方米) |
 | `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `boolean` | 判断点是否在多边形内 |
 | `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `boolean` | 判断点是否在圆内 |
-| `calculateCentroid` | `polygon: LatLng[] \| LatLng[][]` | `LatLng \| null` | 计算多边形质心 |
+| `calculateCentroid` | `polygon: LatLng[] | LatLng[][]` | `LatLng | null` | 计算多边形质心 |
+| `calculatePathBounds` | `points: LatLng[]` | `object | null` | 计算路径边界和中心点 |
 | `encodeGeoHash` | `coordinate: LatLng, precision: number` | `string` | GeoHash 编码 |
 | `simplifyPolyline` | `points: LatLng[], tolerance: number` | `LatLng[]` | 轨迹抽稀 (RDP 算法) |
 | `calculatePathLength` | `points: LatLng[]` | `number` | 计算路径总长度 |
 | `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object \| null` | 获取路径上距离目标点最近的点 |
 | `getPointAtDistance` | `points: LatLng[], distance: number` | `object \| null` | 获取路径上指定距离的点 |
+| `parsePolyline` | `polylineStr: string` | `LatLng[]` | 解析高德原始 Polyline 字符串 |
 
 ## 距离计算
 
@@ -150,6 +152,77 @@ console.log(`故宫是否在1公里范围内: ${isNearby}`);
 - `radius`: 半径(单位:米)
 
 **返回值**: `boolean` - `true` 表示点在圆内,`false` 表示不在
+
+## 路径分析
+
+### calculatePathBounds
+
+计算一组坐标点的最小外接矩形（边界）和中心点。常用于地图自动缩放以适应路径（Zoom to span）。
+
+```tsx
+const points = [
+  { latitude: 39.9, longitude: 116.3 },
+  { latitude: 39.91, longitude: 116.4 },
+  { latitude: 39.88, longitude: 116.35 },
+];
+
+const bounds = ExpoGaodeMapModule.calculatePathBounds(points);
+
+if (bounds) {
+  console.log('边界:', {
+    north: bounds.north, // 北纬
+    south: bounds.south, // 南纬
+    east: bounds.east,   // 东经
+    west: bounds.west    // 西经
+  });
+  console.log('中心点:', bounds.center);
+}
+```
+
+**参数说明**:
+- `points`: 坐标点数组
+
+**返回值**: `object | null` - 包含 `north`, `south`, `east`, `west` 边界值和 `center` 中心点。
+
+### calculateCentroid
+
+计算多边形的几何质心（Centroid）。
+
+```tsx
+const polygon = [
+  { latitude: 39.9, longitude: 116.3 },
+  { latitude: 39.91, longitude: 116.4 },
+  { latitude: 39.88, longitude: 116.35 },
+];
+
+const centroid = ExpoGaodeMapModule.calculateCentroid(polygon);
+// centroid: { latitude: 39.8966, longitude: 116.35 }
+```
+
+**参数说明**:
+- `polygon`: 多边形顶点坐标数组
+
+**返回值**: `LatLng | null` - 质心坐标点。
+
+## 数据转换
+
+### parsePolyline
+
+解析高德地图 API 返回的原始 Polyline 字符串。高德路径规划 API（如驾车、步行）返回的 polyline 通常是一个长字符串，格式为 `"经度,纬度;经度,纬度;..."`。此方法可将其高效转换为组件可用的坐标数组。
+
+```tsx
+import { ExpoGaodeMapModule } from '@gaomap/core';
+
+const polylineStr = "116.4074,39.9042;116.4191,39.9042";
+const points = ExpoGaodeMapModule.parsePolyline(polylineStr);
+
+// points: [{latitude: 39.9042, longitude: 116.4074}, ...]
+```
+
+**参数说明**:
+- `polylineStr`: 高德原始字符串 `"lng,lat;lng,lat;..."`
+
+**返回值**: `LatLng[]` - 解析后的坐标点数组
 
 ## 使用场景
 

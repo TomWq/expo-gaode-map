@@ -58,3 +58,6 @@ export type {
   ClusterProps,
 } from './overlays.types';
 
+// 原生模块类型
+export type { ExpoGaodeMapModule } from './native-module.types';
+

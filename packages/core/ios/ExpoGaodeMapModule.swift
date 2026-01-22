@@ -232,6 +232,32 @@ public class ExpoGaodeMapModule: Module {
         }
         
         /**
+         * 解析高德折线字符串 (Polyline)
+         * @param polylineStr 折线字符串
+         * @return 坐标点数组
+         */
+        Function("parsePolyline") { (polylineStr: String?) -> [[String: Double]] in
+            guard let polylineStr = polylineStr, !polylineStr.isEmpty else {
+                return []
+            }
+            
+            let flatCoords = ClusterNative.parsePolyline(polylineStr)
+            var result: [[String: Double]] = []
+            
+            // flatCoords 是 [lat1, lon1, lat2, lon2, ...]
+            for i in stride(from: 0, to: flatCoords.count, by: 2) {
+                if i + 1 < flatCoords.count {
+                    result.append([
+                        "latitude": flatCoords[i].doubleValue,
+                        "longitude": flatCoords[i+1].doubleValue
+                    ])
+                }
+            }
+            
+            return result
+        }
+
+        /**
          * 坐标转换
          * @param coordinate 原始坐标
          * @param type 坐标类型 (0: GPS/Google, 1: MapBar, 2: Baidu, 3: MapABC/SoSo)
@@ -417,6 +443,21 @@ public class ExpoGaodeMapModule: Module {
             }
             
             return nil
+        }
+
+        /**
+         * 计算路径边界
+         * @param points 路径点集合
+         * @return 边界信息
+         */
+        Function("calculatePathBounds") { (points: [Any]?) -> [String: Any]? in
+            let coords = LatLngParser.parseLatLngList(points)
+            if coords.isEmpty { return nil }
+            
+            return ClusterNative.calculatePathBounds(
+                withLatitudes: coords.map { NSNumber(value: $0.latitude) },
+                longitudes: coords.map { NSNumber(value: $0.longitude) }
+            ) as? [String: Any]
         }
         
         /**

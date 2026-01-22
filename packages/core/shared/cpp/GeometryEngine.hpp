@@ -67,4 +67,28 @@ GeoPoint calculateCentroid(const std::vector<GeoPoint>& polygon);
  */
 std::string encodeGeoHash(double lat, double lon, int precision);
 
+/**
+ * 解析高德地图 API 返回的 Polyline 字符串
+ * 格式: "lng,lat;lng,lat;..."
+ * @param polylineStr 高德原始 polyline 字符串
+ * @return 解析后的点集
+ */
+std::vector<GeoPoint> parsePolyline(const std::string& polylineStr);
+
+struct PathBounds {
+    double north;
+    double south;
+    double east;
+    double west;
+    double centerLat;
+    double centerLon;
+};
+
+/**
+ * 计算路径的边界和中心点
+ * @param points 路径点
+ * @return 边界信息
+ */
+PathBounds calculatePathBounds(const std::vector<GeoPoint>& points);
+
 } // namespace gaodemap

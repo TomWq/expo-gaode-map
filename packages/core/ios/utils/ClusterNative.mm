@@ -210,6 +210,32 @@
     };
 }
 
++ (NSDictionary * _Nullable)calculatePathBoundsWithLatitudes:(NSArray<NSNumber *> *)latitudes
+                                                longitudes:(NSArray<NSNumber *> *)longitudes {
+    if (latitudes.count != longitudes.count || latitudes.count == 0) {
+        return nil;
+    }
+    
+    std::vector<gaodemap::GeoPoint> points;
+    points.reserve(latitudes.count);
+    for (NSUInteger i = 0; i < latitudes.count; i++) {
+        points.push_back({[latitudes[i] doubleValue], [longitudes[i] doubleValue]});
+    }
+    
+    gaodemap::PathBounds bounds = gaodemap::calculatePathBounds(points);
+    
+    return @{
+        @"north": @(bounds.north),
+        @"south": @(bounds.south),
+        @"east": @(bounds.east),
+        @"west": @(bounds.west),
+        @"center": @{
+            @"latitude": @(bounds.centerLat),
+            @"longitude": @(bounds.centerLon)
+        }
+    };
+}
+
 + (NSString *)encodeGeoHashWithLat:(double)lat
                                lon:(double)lon
                          precision:(int)precision {
@@ -228,6 +254,23 @@
     point.x = x;
     point.y = y;
     return MACoordinateForMapPoint(point);
+}
+
++ (NSArray<NSNumber *> *)parsePolyline:(NSString *)polylineStr {
+    if (!polylineStr || polylineStr.length == 0) {
+        return @[];
+    }
+
+    std::string cppPolylineStr([polylineStr UTF8String]);
+    const auto points = gaodemap::parsePolyline(cppPolylineStr);
+
+    NSMutableArray<NSNumber *> *result = [NSMutableArray arrayWithCapacity:points.size() * 2];
+    for (const auto &p : points) {
+        [result addObject:@(p.lat)];
+        [result addObject:@(p.lon)];
+    }
+
+    return result;
 }
 
 @end

@@ -78,6 +78,11 @@ object GeometryUtils {
         longitudes: DoubleArray
     ): DoubleArray
 
+    private external fun nativeCalculatePathBounds(
+        latitudes: DoubleArray,
+        longitudes: DoubleArray
+    ): DoubleArray?
+
     private external fun nativeEncodeGeoHash(
         lat: Double,
         lon: Double,
@@ -326,6 +331,38 @@ object GeometryUtils {
         }
     }
 
+    data class PathBounds(
+        val north: Double,
+        val south: Double,
+        val east: Double,
+        val west: Double,
+        val centerLat: Double,
+        val centerLon: Double
+    )
+
+    /**
+     * 计算路径的边界和中心点
+     */
+    fun calculatePathBounds(points: List<LatLng>): PathBounds? {
+        if (points.isEmpty()) return null
+        return try {
+            val latitudes = DoubleArray(points.size)
+            val longitudes = DoubleArray(points.size)
+            for (i in points.indices) {
+                latitudes[i] = points[i].latitude
+                longitudes[i] = points[i].longitude
+            }
+            val result = nativeCalculatePathBounds(latitudes, longitudes)
+            if (result != null && result.size >= 6) {
+                PathBounds(result[0], result[1], result[2], result[3], result[4], result[5])
+            } else {
+                null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     fun encodeGeoHash(point: LatLng, precision: Int): String {
         return try {
             nativeEncodeGeoHash(point.latitude, point.longitude, precision)
@@ -333,4 +370,30 @@ object GeometryUtils {
             ""
         }
     }
+
+    /**
+     * 解析高德地图 API 返回的 Polyline 字符串
+     * 格式: "lng,lat;lng,lat;..."
+     */
+    fun parsePolyline(polylineStr: String?): List<LatLng> {
+        if (polylineStr.isNullOrEmpty()) return emptyList()
+        return try {
+            val result = nativeParsePolyline(polylineStr)
+            if (result != null && result.isNotEmpty()) {
+                val points = mutableListOf<LatLng>()
+                for (i in 0 until result.size step 2) {
+                    points.add(LatLng(result[i], result[i+1]))
+                }
+                points
+            } else {
+                emptyList()
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    private external fun nativeParsePolyline(
+        polylineStr: String
+    ): DoubleArray?
 }

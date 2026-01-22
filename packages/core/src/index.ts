@@ -23,15 +23,6 @@ export {
   Cluster,
 } from './components/overlays';
 
-// 导出模块检测工具
-export {
-  requireModule,
-  OptionalModules,
-  getInstalledModules,
-  printModuleInfo,
-  createLazyLoader,
-} from './utils/ModuleLoader';
-
 // 导出错误处理工具
 export {
   ErrorHandler,

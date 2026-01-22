@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iomanip>
 #include <algorithm>
+#include <chrono>
 
 #include "../GeometryEngine.hpp"
 #include "../ColorParser.hpp"
@@ -150,6 +151,50 @@ void testGeometryEngineExtended() {
     assert(hash.length() == 5);
     assert(hash == "wx4g0"); // Common geohash for Beijing center
 
+    // 9. parsePolyline
+    std::string polyStr = "116.4074,39.9042;116.4191,39.9042";
+    auto parsed = parsePolyline(polyStr);
+    assert(parsed.size() == 2);
+    assert(approxEqual(parsed[0].lat, 39.9042));
+    assert(approxEqual(parsed[0].lon, 116.4074));
+    assert(approxEqual(parsed[1].lat, 39.9042));
+    assert(approxEqual(parsed[1].lon, 116.4191));
+
+    // Test empty
+    assert(parsePolyline("").empty());
+    // Test invalid
+    assert(parsePolyline("invalid").empty());
+    // Test trailing semicolon
+    assert(parsePolyline("116.4074,39.9042;").size() == 1);
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void benchmarkParsePolyline() {
+    std::cout << "Running benchmarkParsePolyline (10,000 points)..." << std::endl;
+    
+    // 生成 10,000 个点的测试字符串
+    std::string largePoly;
+    largePoly.reserve(300000); // 预分配约 300KB
+    for (int i = 0; i < 10000; ++i) {
+        largePoly += "116.4074,39.9042;";
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+    
+    // 运行 100 次以获得更准确的平均值
+    for (int i = 0; i < 100; ++i) {
+        auto result = parsePolyline(largePoly);
+        if (result.size() != 10000) {
+            std::cerr << "Error: Expected 10000 points, got " << result.size() << std::endl;
+        }
+    }
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
+    
+    std::cout << "Total time for 100 iterations: " << duration.count() << " ms" << std::endl;
+    std::cout << "Average time per parse (10,000 points): " << duration.count() / 100.0 << " ms" << std::endl;
     std::cout << "PASSED" << std::endl;
 }
 
@@ -216,6 +261,7 @@ int main() {
         testColorParser();
         testPointInPolygon();
         testGeometryEngineExtended();
+        benchmarkParsePolyline();
         testQuadTree();
         testClusterEngine();
         

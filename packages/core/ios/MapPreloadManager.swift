@@ -322,7 +322,7 @@ class MapPreloadManager {
             guard let self = self else { return }
             
             if !self.isPreloading && self.preloadedMapInstances.count < self.currentMaxPoolSize {
-                print("🔄 ExpoGaodeMap: 触发自动补充预加载池")
+              
                 self.startPreload(poolSize: self.currentMaxPoolSize)
             }
         }

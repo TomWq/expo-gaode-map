@@ -2,46 +2,9 @@
  * 路径规划相关工具函数
  */
 
-/**
- * 解析高德 polyline 字符串为坐标数组
- */
-export const parsePolyline = (polylineStr: string | undefined): Array<{ latitude: number; longitude: number }> => {
-  if (!polylineStr || typeof polylineStr !== 'string') return [];
-  
-  try {
-    const points = polylineStr.split(';');
-    return points.map(point => {
-      const [lng, lat] = point.split(',').map(Number);
-      return { latitude: lat, longitude: lng };
-    }).filter(p => !isNaN(p.latitude) && !isNaN(p.longitude));
-  } catch (error) {
-    console.warn('[RouteUtils] 解析 polyline 失败:', error);
-    return [];
-  }
-};
 
-/**
- * 简化路径点
- */
-export const simplifyPath = (
-  points: Array<{ latitude: number; longitude: number }>,
-  maxPoints: number = 200
-): Array<{ latitude: number; longitude: number }> => {
-  if (points.length <= maxPoints) return points;
-  
-  const step = Math.floor(points.length / maxPoints);
-  const simplified: Array<{ latitude: number; longitude: number }> = [];
-  
-  simplified.push(points[0]);
-  
-  for (let i = step; i < points.length - 1; i += step) {
-    simplified.push(points[i]);
-  }
-  
-  simplified.push(points[points.length - 1]);
-  
-  return simplified;
-};
+
+
 
 /**
  * 生成路线颜色

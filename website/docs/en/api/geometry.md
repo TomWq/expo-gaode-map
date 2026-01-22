@@ -13,12 +13,14 @@ Complete geometry calculation utilities API documentation.
 | `calculateRectangleArea` | `southWest: LatLng, northEast: LatLng` | `number` | Calculate rectangle area (square meters) |
 | `isPointInPolygon` | `point: LatLng, polygon: LatLng[]` | `boolean` | Check if point is inside polygon |
 | `isPointInCircle` | `point: LatLng, center: LatLng, radius: number` | `boolean` | Check if point is inside circle |
-| `calculateCentroid` | `polygon: LatLng[] \| LatLng[][]` | `LatLng \| null` | Calculate polygon centroid |
+| `calculateCentroid` | `polygon: LatLng[] | LatLng[][]` | `LatLng | null` | Calculate polygon centroid |
+| `calculatePathBounds` | `points: LatLng[]` | `object | null` | Calculate path bounds and center |
 | `encodeGeoHash` | `coordinate: LatLng, precision: number` | `string` | GeoHash encoding |
 | `simplifyPolyline` | `points: LatLng[], tolerance: number` | `LatLng[]` | Polyline simplification (RDP algorithm) |
 | `calculatePathLength` | `points: LatLng[]` | `number` | Calculate total path length |
-| `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object \| null` | Get nearest point on path to target |
-| `getPointAtDistance` | `points: LatLng[], distance: number` | `object \| null` | Get point at specific distance along path |
+| `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object | null` | Get nearest point on path to target |
+| `getPointAtDistance` | `points: LatLng[], distance: number` | `object | null` | Get point at specific distance along path |
+| `parsePolyline` | `polylineStr: string` | `LatLng[]` | Parse AMap raw polyline string |
 
 ## Distance Calculation
 
@@ -130,14 +132,14 @@ console.log(`Is point (40.0, 117.0) inside: ${isInside2}`);
 
 ### isPointInCircle
 
-Determine if a point is inside a circular area.
+Check if a point is within a circular area.
 
 ```tsx
-// Define circular area (centered at Tiananmen, radius 1000 meters)
+// Define circular area (center at Tiananmen, radius 1000m)
 const center = { latitude: 39.90923, longitude: 116.397428 };
-const radius = 1000; // 1 kilometer
+const radius = 1000; // 1km
 
-// Check if Forbidden City is within 1 kilometer
+// Check if Forbidden City is within 1km
 const gugong = { latitude: 39.916527, longitude: 116.397545 };
 const isNearby = ExpoGaodeMapModule.isPointInCircle(gugong, center, radius);
 console.log(`Is Forbidden City within 1km: ${isNearby}`);
@@ -145,11 +147,82 @@ console.log(`Is Forbidden City within 1km: ${isNearby}`);
 ```
 
 **Parameters**:
-- `point`: Coordinate point to test
-- `center`: Center coordinates
+- `point`: Coordinate point to check
+- `center`: Center coordinate of the circle
 - `radius`: Radius (unit: meters)
 
-**Return Value**: `boolean` - `true` means point is inside circle, `false` means outside
+**Return Value**: `boolean` - `true` if point is inside circle, `false` otherwise
+
+## Path Analysis
+
+### calculatePathBounds
+
+Calculate the minimum bounding box (MBR) and center point of a set of coordinate points. Commonly used for auto-zooming the map to fit a path (Zoom to span).
+
+```tsx
+const points = [
+  { latitude: 39.9, longitude: 116.3 },
+  { latitude: 39.91, longitude: 116.4 },
+  { latitude: 39.88, longitude: 116.35 },
+];
+
+const bounds = ExpoGaodeMapModule.calculatePathBounds(points);
+
+if (bounds) {
+  console.log('Bounds:', {
+    north: bounds.north,
+    south: bounds.south,
+    east: bounds.east,
+    west: bounds.west
+  });
+  console.log('Center:', bounds.center);
+}
+```
+
+**Parameters**:
+- `points`: Array of coordinate points
+
+**Return Value**: `object | null` - Object containing `north`, `south`, `east`, `west` bounds and `center` point.
+
+### calculateCentroid
+
+Calculate the geometric centroid of a polygon.
+
+```tsx
+const polygon = [
+  { latitude: 39.9, longitude: 116.3 },
+  { latitude: 39.91, longitude: 116.4 },
+  { latitude: 39.88, longitude: 116.35 },
+];
+
+const centroid = ExpoGaodeMapModule.calculateCentroid(polygon);
+// centroid: { latitude: 39.8966, longitude: 116.35 }
+```
+
+**Parameters**:
+- `polygon`: Array of polygon vertex coordinates
+
+**Return Value**: `LatLng | null` - Centroid coordinate point.
+
+## Data Conversion
+
+### parsePolyline
+
+Parse the raw Polyline string returned by AMap API. AMap route planning APIs (e.g., driving, walking) return polylines as long strings in the format `"longitude,latitude;longitude,latitude;..."`. This method efficiently converts them into an array of coordinate points usable by components.
+
+```tsx
+import { ExpoGaodeMapModule } from '@gaomap/core';
+
+const polylineStr = "116.4074,39.9042;116.4191,39.9042";
+const points = ExpoGaodeMapModule.parsePolyline(polylineStr);
+
+// points: [{latitude: 39.9042, longitude: 116.4074}, ...]
+```
+
+**Parameters**:
+- `polylineStr`: AMap raw string `"lng,lat;lng,lat;..."`
+
+**Return Value**: `LatLng[]` - Array of parsed coordinate points.
 
 ## Use Cases
 

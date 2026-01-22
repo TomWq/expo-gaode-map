@@ -439,6 +439,24 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   /**
+   * 计算路径边界和中心点
+   * @param points 路径点集合
+   * @returns 边界信息，包含 north, south, east, west 和 center
+   */
+  calculatePathBounds(points: LatLngPoint[]): {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+    center: LatLngPoint;
+  } | null {
+    if (!nativeModule) return null;
+    const normalized = normalizeLatLngList(points);
+    if (normalized.length === 0) return null;
+    return nativeModule.calculatePathBounds(normalized);
+  },
+
+  /**
    * GeoHash 编码
    * @param coordinate 坐标点
    * @param precision 精度 (1-12)
@@ -478,13 +496,23 @@ const ExpoGaodeMapModuleWithHelpers = {
    * @returns 长度(米)
    */
   calculatePathLength(points: LatLngPoint[]): number {
-    if (!nativeModule) {
-      throw ErrorHandler.nativeModuleUnavailable();
-    }
+    if (!nativeModule) return 0;
+    return nativeModule.calculatePathLength(normalizeLatLngList(points));
+  },
+
+  /**
+   * 解析高德地图 API 返回的 Polyline 字符串
+   * 格式: "lng,lat;lng,lat;..."
+   * @param polylineStr 高德原始 polyline 字符串
+   * @returns 解析后的点集
+   */
+  parsePolyline(polylineStr: string): LatLng[] {
+    if (!nativeModule || !polylineStr) return [];
     try {
-      return nativeModule.calculatePathLength(normalizeLatLngList(points));
-    } catch (error: any) {
-      throw ErrorHandler.wrapNativeError(error, '计算路径长度');
+      return (nativeModule as any).parsePolyline(polylineStr);
+    } catch (error) {
+      ErrorLogger.warn('解析 Polyline 失败', { polylineStr, error });
+      return [];
     }
   },
 

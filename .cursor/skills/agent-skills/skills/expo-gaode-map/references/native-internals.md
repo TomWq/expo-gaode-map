@@ -6,30 +6,9 @@ tags: cpp-engine, jni, native-module, module-loader, error-handling
 
 # Skill: Native Internals
 
-了解 `expo-gaode-map` 的底层实现，包括 C++ 聚合引擎、模块加载机制及错误处理。
+了解 `expo-gaode-map` 的底层实现，包括 C++ 聚合引擎、错误处理。
 
 ## 快速参考
-
-### 模块检测与加载 (ModuleLoader)
-动态检查原生模块是否安装成功，支持懒加载：
-```ts
-import { 
-  getInstalledModules, 
-  printModuleInfo, 
-  requireModule,
-  createLazyLoader
-} from 'expo-gaode-map';
-
-// 1. 打印当前加载的所有高德地图模块信息
-printModuleInfo();
-
-// 2. 强制要求模块存在，不存在则抛出异常
-requireModule('expo-gaode-map-search', '搜索功能');
-
-// 3. 创建懒加载器
-const loadSearch = createLazyLoader(() => require('expo-gaode-map-search'));
-const search = loadSearch();
-```
 
 ### 错误处理 (ErrorHandler)
 统一捕获和处理地图相关的异常：
@@ -66,8 +45,13 @@ const version = ExpoGaodeMapModule.getVersion();
 
 ## 深度挖掘
 
-### C++ 聚合引擎
-地图点聚合（Clustering）的核心计算是在 C++ 层完成的（QuadTree 实现），这保证了即使在处理数万个点时，JS 线程也不会被阻塞。
+### C++ 引擎
+`expo-gaode-map` 拥有一个高性能的 C++ 共享库 (`shared/cpp`)：
+1. **聚合引擎 (Clustering)**: 基于 QuadTree 实现，确保处理数万个点时 JS 线程不阻塞。
+2. **几何引擎 (Geometry)**: 
+   - **轨迹抽稀**: 采用 Ramer-Douglas-Peucker (RDP) 算法。
+   - **空间关系**: 基于射线投影法的多边形内点判断。
+   - **地球曲面计算**: 采用大圆距离 (Great Circle Distance) 公式，确保距离计算的地理准确性。
+   - **跨平台一致性**: 核心逻辑在 `GeometryEngine.cpp` 中实现，通过 JNI (Android) 和 Objective-C++ (iOS) 桥接到 JS 层，确保两端行为完全一致。
 
-### 模块懒加载 (createLazyLoader)
-为了优化启动性能，可以使用 `createLazyLoader`。它返回一个 Proxy 对象，只有在第一次访问模块属性时才会真正执行模块加载。
+

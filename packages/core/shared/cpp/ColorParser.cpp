@@ -23,7 +23,7 @@ static uint32_t parseHex(const std::string& hexStr) {
 
     uint32_t val = 0;
     try {
-        val = std::stoul(cleanHex, nullptr, 16);
+        val = static_cast<uint32_t>(std::stoul(cleanHex, nullptr, 16));
     } catch (...) {
         return 0;
     }

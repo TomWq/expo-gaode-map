@@ -23,14 +23,5 @@ export {
   Cluster,
 } from './components/overlays';
 
-// 导出模块检测工具
-export {
-  requireModule,
-  OptionalModules,
-  getInstalledModules,
-  printModuleInfo,
-  createLazyLoader,
-} from './utils/ModuleLoader';
-
 // 默认导出原生模块
 export { default } from './ExpoGaodeMapModule';

@@ -55,8 +55,8 @@ void QuadTree::subdivide() {
     
     // Redistribute existing points
     for (const auto& p : points) {
-        bool inserted = northWest->insert(p) || northEast->insert(p) || 
-                        southWest->insert(p) || southEast->insert(p);
+        northWest->insert(p) || northEast->insert(p) || 
+        southWest->insert(p) || southEast->insert(p);
     }
     points.clear();
 }
