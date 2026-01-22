@@ -17,6 +17,9 @@ class UIManager: NSObject, MAMapViewDelegate {
     /// 定位变化回调
     var onLocationChanged: ((_ latitude: Double, _ longitude: Double, _ accuracy: Double) -> Void)?
     
+    /// 缓存的自定义样式配置
+    private var cachedCustomStyleOptions: MAMapCustomStyleOptions?
+    
     init(mapView: MAMapView) {
         self.mapView = mapView
         super.init()
@@ -35,6 +38,13 @@ class UIManager: NSObject, MAMapViewDelegate {
         case 2: mapView.mapType = .standardNight
         case 3: mapView.mapType = .navi
         default: mapView.mapType = .standard
+        }
+        
+        // 🔑 关键修复：切换地图类型后重新应用自定义样式
+        // 某些地图类型切换可能会重置样式设置
+        if let cachedOptions = cachedCustomStyleOptions {
+            mapView.setCustomMapStyleOptions(cachedOptions)
+            mapView.customMapStyleEnabled = true
         }
     }
     
@@ -109,7 +119,8 @@ class UIManager: NSObject, MAMapViewDelegate {
             }
             mapView.showsUserLocation = true
             if followUser {
-                mapView.userTrackingMode = .follow
+                // 🔑 使用 followWithHeading 模式以支持方向指示器
+                mapView.userTrackingMode = .followWithHeading
             } else {
                 mapView.userTrackingMode = .none
             }
@@ -145,6 +156,12 @@ class UIManager: NSObject, MAMapViewDelegate {
     func setUserLocationRepresentation(_ config: [String: Any]) {
         guard let mapView = mapView else { return }
         let representation = MAUserLocationRepresentation()
+        
+        // 是否显示定位蓝点 (showMyLocation) - 对应 Android 的 showMyLocation
+        // iOS 通过 mapView.showsUserLocation 控制，这里提供统一的 API
+        if let showMyLocation = config["showMyLocation"] as? Bool {
+            mapView.showsUserLocation = showMyLocation
+        }
         
         // 精度圈是否显示
         if let showsAccuracyRing = config["showsAccuracyRing"] as? Bool {
@@ -264,5 +281,59 @@ class UIManager: NSObject, MAMapViewDelegate {
      */
     func setShowsIndoorMap(_ show: Bool) {
         mapView?.isShowsIndoorMap = show
+    }
+    
+    // MARK: - 自定义地图样式
+    
+    /**
+     * 设置自定义地图样式
+     * @param styleData 样式数据，支持以下格式：
+     *   - styleId: String - 在线样式ID（从高德开放平台获取）
+     *   - styleDataPath: String - 本地样式文件路径
+     *   - extraStyleDataPath: String - 额外样式文件路径（可选）
+     */
+    func setCustomMapStyle(_ styleData: [String: Any]) {
+        guard let mapView = mapView else { return }
+        
+        // 在线样式 ID
+        if let styleId = styleData["styleId"] as? String, !styleId.isEmpty {
+            let customStyle = MAMapCustomStyleOptions()
+            customStyle.styleId = styleId
+            
+            // 🔑 缓存样式配置
+            cachedCustomStyleOptions = customStyle
+            
+            mapView.setCustomMapStyleOptions(customStyle)
+            mapView.customMapStyleEnabled = true
+            return
+        }
+        
+        // 本地样式文件
+        if let styleDataPath = styleData["styleDataPath"] as? String, !styleDataPath.isEmpty {
+            // 读取样式文件数据
+            if let stylePath = Bundle.main.path(forResource: styleDataPath, ofType: nil),
+               let styleFileData = try? Data(contentsOf: URL(fileURLWithPath: stylePath)) {
+                let customStyle = MAMapCustomStyleOptions()
+                customStyle.styleData = styleFileData
+                
+                // 额外样式文件（可选）
+                if let extraPath = styleData["extraStyleDataPath"] as? String, !extraPath.isEmpty,
+                   let extraFilePath = Bundle.main.path(forResource: extraPath, ofType: nil),
+                   let extraFileData = try? Data(contentsOf: URL(fileURLWithPath: extraFilePath)) {
+                    customStyle.styleExtraData = extraFileData
+                }
+                
+                // 🔑 缓存样式配置
+                cachedCustomStyleOptions = customStyle
+                
+                mapView.setCustomMapStyleOptions(customStyle)
+                mapView.customMapStyleEnabled = true
+                return
+            }
+        }
+        
+        // 如果没有提供任何样式，禁用自定义样式并清除缓存
+        cachedCustomStyleOptions = nil
+        mapView.customMapStyleEnabled = false
     }
 }

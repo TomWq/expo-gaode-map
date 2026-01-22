@@ -8,7 +8,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
  */
 class ClusterViewModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("NaviClusterView")
+    Name("ClusterView")
 
     View(ClusterView::class) {
       Events("onPress", "onClusterPress")
@@ -23,6 +23,22 @@ class ClusterViewModule : Module() {
       
       Prop<Int>("minClusterSize") { view: ClusterView, size ->
         view.setMinClusterSize(size)
+      }
+      
+      Prop<Map<String, Any>>("clusterStyle") { view: ClusterView, style ->
+        view.setClusterStyle(style)
+      }
+
+      Prop<List<Map<String, Any>>>("clusterBuckets") { view: ClusterView, buckets ->
+        view.setClusterBuckets(buckets)
+      }
+      
+      Prop<Map<String, Any>>("clusterTextStyle") { view: ClusterView, style ->
+        view.setClusterTextStyle(style)
+      }
+
+      Prop<String>("icon") { view: ClusterView, icon ->
+        view.setIcon(icon)
       }
     }
   }

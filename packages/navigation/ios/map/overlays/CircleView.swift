@@ -1,5 +1,7 @@
 import ExpoModulesCore
 import AMapNaviKit
+import CoreLocation
+
 
 /**
  * 圆形覆盖物视图
@@ -9,18 +11,18 @@ import AMapNaviKit
  * - 管理圆形的样式(填充色、边框色、边框宽度)
  * - 响应属性变化并更新渲染
  */
-class NaviCircleView: ExpoView {
+class CircleView: ExpoView {
     /// 事件派发器 - 使用 onCirclePress 避免与 MarkerPress 冲突
     let onCirclePress = EventDispatcher()
     
     /// 圆心坐标
-    var circleCenter: [String: Double] = [:]
+    var circleCenter: [String: Double]?
     /// 半径(米)
     var radius: Double = 0
     /// 填充颜色
-    var fillColor: Any?
+    var fillColor: String?
     /// 边框颜色
-    var strokeColor: Any?
+    var strokeColor: String?
     /// 边框宽度
     var strokeWidth: Float = 0
     /// z-index 图层顺序
@@ -89,34 +91,17 @@ class NaviCircleView: ExpoView {
             return
         }
         
-        guard let latitude = circleCenter["latitude"],
-              let longitude = circleCenter["longitude"],
+        guard let center = LatLngParser.parseLatLng(circleCenter),
               radius > 0 else {
             return
         }
         
-        // 🔑 坐标验证：防止无效坐标导致崩溃
-        guard latitude >= -90 && latitude <= 90,
-              longitude >= -180 && longitude <= 180 else {
-            return
+        if let old = circle {
+            mapView.remove(old)
         }
         
-        // 🔑 半径验证：防止负数或过大的半径
-        let validRadius = max(0.1, min(radius, 1000000))
-        
-        if circle == nil {
-            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            circle = MACircle(center: coordinate, radius: validRadius)
-            mapView.add(circle!)
-        } else {
-            // 先移除旧的
-            mapView.remove(circle!)
-            // 更新属性
-            circle?.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            circle?.radius = validRadius
-            // 重新添加
-            mapView.add(circle!)
-        }
+        circle = MACircle(center: center, radius: radius)
+        mapView.add(circle!)
         
         renderer = nil
     }
@@ -142,11 +127,10 @@ class NaviCircleView: ExpoView {
     }
     
     /**
-     * 设置中心点
-     * @param center 中心点坐标 {latitude, longitude}
+     * 设置圆心
      */
-    func setCenter(_ center: [String: Double]) {
-        circleCenter = center
+    func setCenter(_ center: [String: Double]?) {
+        self.circleCenter = center
         updateCircle()
     }
     
@@ -163,7 +147,7 @@ class NaviCircleView: ExpoView {
      * 设置填充颜色
      * @param color 颜色值
      */
-    func setFillColor(_ color: Any?) {
+    func setFillColor(_ color: String?) {
         fillColor = color
         renderer = nil
         updateCircle()
@@ -173,7 +157,7 @@ class NaviCircleView: ExpoView {
      * 设置边框颜色
      * @param color 颜色值
      */
-    func setStrokeColor(_ color: Any?) {
+    func setStrokeColor(_ color: String?) {
         strokeColor = color
         renderer = nil
         updateCircle()

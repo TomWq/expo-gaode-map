@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.map.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import com.amap.api.maps.AMap
@@ -7,8 +8,10 @@ import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polyline
 import com.amap.api.maps.model.PolylineOptions
-
+  
+import expo.modules.gaodemap.map.utils.LatLngParser
 import expo.modules.gaodemap.map.utils.ColorParser
+import expo.modules.gaodemap.map.utils.GeometryUtils
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -26,6 +29,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   private var isDotted: Boolean = false
   private var isGeodesic: Boolean = false
   private var textureUrl: String? = null
+  private var simplificationTolerance: Double = 0.0
   
   /**
    * 设置地图实例
@@ -38,19 +42,13 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
     }
 
   }
-  
+
+
   /**
    * 设置折线点集合
    */
-  fun setPoints(pointsList: List<Map<String, Double>>) {
-    points = pointsList.mapNotNull { point ->
-      val lat = point["latitude"]
-      val lng = point["longitude"]
-      // 坐标验证
-      if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        LatLng(lat, lng)
-      } else null
-    }
+  fun setPoints(pointsList: List<Any>?) {
+    points = LatLngParser.parseLatLngList(pointsList)
     polyline?.let {
       it.points = points
     } ?: createOrUpdatePolyline()
@@ -71,7 +69,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置线条颜色
    */
-  fun setStrokeColor(color: Any) {
+  fun setStrokeColor(color: String?) {
     strokeColor = ColorParser.parseColor(color)
     polyline?.let {
       it.color = strokeColor
@@ -82,8 +80,12 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
    * 设置是否虚线
    */
   fun setDotted(dotted: Boolean) {
-    isDotted = dotted
-    createOrUpdatePolyline()
+    try {
+      isDotted = dotted
+      createOrUpdatePolyline()
+    } catch (e: Throwable) {
+      android.util.Log.e("PolylineView", "setDotted failed", e)
+    }
   }
   
   /**
@@ -110,6 +112,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置透明度
    */
+  @Suppress("unused")
   fun setOpacity(opacity: Float) {
     polyline?.let { line ->
       val currentColor = line.color
@@ -125,70 +128,94 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
     textureUrl = url
     createOrUpdatePolyline()
   }
+
+  fun setSimplificationTolerance(tolerance: Double) {
+    simplificationTolerance = tolerance
+    if (points.isNotEmpty()) {
+        createOrUpdatePolyline()
+    }
+  }
   
   /**
    * 创建或更新折线
    */
+  @SuppressLint("DiscouragedApi")
   private fun createOrUpdatePolyline() {
     aMap?.let { map ->
-      // 移除旧折线
-      polyline?.remove()
-      polyline = null
-      
-      if (points.isNotEmpty()) {
-        val options = PolylineOptions()
-          .addAll(points)
-          .width(strokeWidth)
-          .color(strokeColor)
-          .geodesic(isGeodesic)
+      try {
+        // 移除旧折线
+        polyline?.remove()
+        polyline = null
+        
+        if (points.isNotEmpty()) {
+          val displayPoints = if (simplificationTolerance > 0) {
+            GeometryUtils.simplifyPolyline(points, simplificationTolerance)
+          } else {
+            points
+          }
 
-        
-        // 设置虚线样式
-        if (isDotted) {
-            options.dottedLineType = PolylineOptions.DOTTEDLINE_TYPE_SQUARE
-        }
-        
-        // 设置纹理
-        textureUrl?.let { url ->
+          val options = PolylineOptions()
+            .addAll(displayPoints)
+            .width(strokeWidth)
+            .color(strokeColor)
+            .geodesic(isGeodesic)
+
+          
+          // 设置虚线样式
           try {
-            when {
-              url.startsWith("http://") || url.startsWith("https://") -> {
-                // 网络图片异步加载
-                Thread {
-                  try {
-                    val connection = URL(url).openConnection()
-                    val inputStream = connection.getInputStream()
-                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                    inputStream.close()
-                    post {
-                      polyline?.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+              options.isDottedLine = isDotted
+              if (isDotted) {
+                  options.dottedLineType = PolylineOptions.DOTTEDLINE_TYPE_SQUARE
+              }
+          } catch (e: Throwable) {
+              // 忽略虚线设置错误，防止崩溃
+              android.util.Log.e("PolylineView", "设置虚线失败", e)
+          }
+          
+          // 设置纹理
+          textureUrl?.let { url ->
+            try {
+              when {
+                url.startsWith("http://") || url.startsWith("https://") -> {
+                  // 网络图片异步加载
+                  Thread {
+                    try {
+                      val connection = URL(url).openConnection()
+                      val inputStream = connection.getInputStream()
+                      val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                      inputStream.close()
+                      post {
+                        polyline?.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+                      }
+                    } catch (e: Exception) {
+                      e.printStackTrace()
                     }
-                  } catch (e: Exception) {
-                    e.printStackTrace()
+                  }.start()
+                }
+                url.startsWith("file://") -> {
+                  val path = url.substring(7)
+                  val bitmap = android.graphics.BitmapFactory.decodeFile(path)
+                  bitmap?.let { options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(it)) }
+                }
+                else -> {
+                  val resId = context.resources.getIdentifier(url, "drawable", context.packageName)
+                  if (resId != 0) {
+                    val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                    options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
+                  }else{
+                    
                   }
-                }.start()
-              }
-              url.startsWith("file://") -> {
-                val path = url.substring(7)
-                val bitmap = android.graphics.BitmapFactory.decodeFile(path)
-                bitmap?.let { options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(it)) }
-              }
-              else -> {
-                val resId = context.resources.getIdentifier(url, "drawable", context.packageName)
-                if (resId != 0) {
-                  val bitmap = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
-                  options.setCustomTexture(BitmapDescriptorFactory.fromBitmap(bitmap))
-                }else{
-                  
                 }
               }
+            } catch (e: Exception) {
+              e.printStackTrace()
             }
-          } catch (e: Exception) {
-            e.printStackTrace()
           }
+          
+          polyline = map.addPolyline(options)
         }
-        
-        polyline = map.addPolyline(options)
+      } catch (e: Throwable) {
+        android.util.Log.e("PolylineView", "Error creating/updating polyline", e)
       }
     }
   }

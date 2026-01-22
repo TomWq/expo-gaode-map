@@ -23,10 +23,19 @@ Pod::Spec.new do |s|
   s.dependency 'AMapFoundation'
   s.dependency 'AMapLocation'
   
+  s.library = 'c++'
+
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'HEADER_SEARCH_PATHS' => '"$(PODS_TARGET_SRCROOT)/map/cpp" "$(PODS_TARGET_SRCROOT)/../shared/cpp"',
+    'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
+    'CLANG_CXX_LIBRARY' => 'libc++'
   }
 
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
+  s.exclude_files = ["**/tests/*", "**/CppBridging.mm"]
+  
+  # 严格只允许 .h 文件作为公共头文件，防止 .hpp 被 Swift 模块引用
+  s.public_header_files = "**/*.h"
 end

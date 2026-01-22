@@ -11,7 +11,7 @@ import UIKit
  * - 支持拖拽功能
  * - 支持自定义 children 视图
  */
-class NaviMarkerView: ExpoView {
+class MarkerView: ExpoView {
     // MARK: - 事件派发器（专属事件名避免冲突）
     var onMarkerPress = EventDispatcher()
     var onMarkerDragStart = EventDispatcher()
@@ -19,7 +19,7 @@ class NaviMarkerView: ExpoView {
     var onMarkerDragEnd = EventDispatcher()
     
     /// 标记点位置
-    var position: [String: Double] = [:]
+    var position: [String: Double]?
     /// 临时存储的纬度
     private var pendingLatitude: Double?
     /// 临时存储的经度
@@ -48,12 +48,23 @@ class NaviMarkerView: ExpoView {
     var pinColor: String = "red"
     /// 是否显示气泡
     var canShowCallout: Bool = true
+    /// 是否开启生长动画
+    var growAnimation: Bool = false
     /// 地图视图引用
     private var mapView: MAMapView?
     /// 标记点对象
     var annotation: MAPointAnnotation?
+    /// 在 MarkerView 中新增属性
+    var cacheKey: String?
     /// 标记是否正在被移除（防止重复移除）
     private var isRemoving: Bool = false
+    
+    // 平滑移动相关
+    var smoothMovePath: [[String: Double]] = []
+    var smoothMoveDuration: Double = 0  // 🔑 修复：默认为 0，防止未设置时触发动画
+    var animatedAnnotation: MAAnimatedAnnotation?  // internal: ExpoGaodeMapView 需要访问
+    var animatedAnnotationView: MAAnnotationView?  // 平滑移动的 annotation view
+    private var isAnimating: Bool = false  // 标记是否正在动画中
     /// 标记点视图
     private var annotationView: MAAnnotationView?
     /// 待处理的位置（在 setMap 之前设置）
@@ -108,7 +119,7 @@ class NaviMarkerView: ExpoView {
             return
         }
         
-        let isNewMap = self.mapView == nil
+        _ = self.mapView == nil
         self.mapView = map
         lastSetMapView = map
         
@@ -124,19 +135,24 @@ class NaviMarkerView: ExpoView {
     }
     
     /**
-     * 更新标记点（批量处理，避免频繁更新）
+     * 更新标记点（立即执行，与其他覆盖物保持一致）
      */
     func updateAnnotation() {
-        // 取消之前的延迟更新
-        pendingUpdateTask?.cancel()
+        // 🔑 性能优化：立即执行
+        performUpdateAnnotation()
         
-        // 延迟 16ms（一帧）批量更新
-        let task = DispatchWorkItem { [weak self] in
-            self?.performUpdateAnnotation()
+        // 🔑 只有当正在导航（isNavigating 在 JS 侧对应的逻辑）且路径时长合法时才自动启动
+        // 我们通过 smoothMovePath.isEmpty 来判断是否应该停止或不启动
+        if mapView != nil && !smoothMovePath.isEmpty && smoothMoveDuration > 0 {
+            startSmoothMove()
         }
-        pendingUpdateTask = task
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.016, execute: task)
+    }
+    
+    // JS 侧可以调用
+    func setCacheKey(_ key: String?) {
+        self.cacheKey = key
+        // 发生变化时刷新 annotation
+        updateAnnotation()
     }
     
     /**
@@ -144,14 +160,7 @@ class NaviMarkerView: ExpoView {
      */
     private func performUpdateAnnotation() {
         guard let mapView = mapView,
-              let latitude = position["latitude"],
-              let longitude = position["longitude"] else {
-            return
-        }
-        
-        // 🔑 坐标验证：防止无效坐标导致崩溃
-        guard latitude >= -90 && latitude <= 90,
-              longitude >= -180 && longitude <= 180 else {
+              let coordinate = LatLngParser.parseLatLng(position) else {
             return
         }
         
@@ -159,24 +168,128 @@ class NaviMarkerView: ExpoView {
         pendingAddTask?.cancel()
         pendingAddTask = nil
         
-        // 移除旧的标记
-        if let oldAnnotation = annotation {
-            mapView.removeAnnotation(oldAnnotation)
+        // 🔑 修复抖动：如果正在进行原生平滑移动动画，不要执行普通的静态位置更新
+        // 但如果 animatedAnnotation 为 nil，说明动画已经停止或正在清理中，此时允许更新
+        if isAnimating && animatedAnnotation != nil {
+            return
         }
-        
-        // 创建新的标记
+
+        // 如果已有 annotation，尝试更新坐标与属性
+        if let existing = annotation {
+            // 🔑 显式设置坐标，MAPointAnnotation 的 coordinate 赋值通常是不带动画的
+            existing.coordinate = coordinate
+            existing.title = title
+            existing.subtitle = markerDescription
+            
+            // 🔑 确保 annotation 在地图上
+            if !mapView.annotations.contains(where: { ($0 as? NSObject) === existing }) {
+                mapView.addAnnotation(existing)
+            }
+            return
+        }
+
+        // 如果没有，则创建并添加
         let annotation = MAPointAnnotation()
-        annotation.coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        annotation.coordinate = coordinate
         annotation.title = title
         annotation.subtitle = markerDescription
-        
         self.annotation = annotation
         
-        // 🔑 关键修复：立即添加到地图（与 CircleView 等保持一致）
-        // 不再使用延迟添加，避免新架构下的时序问题
+        // 立即添加到地图
         mapView.addAnnotation(annotation)
     }
     
+    /**
+     * 获取 animated annotation 视图（由 ExpoGaodeMapView 调用）
+     * 为 MAAnimatedAnnotation 提供图标支持
+     */
+    func getAnimatedAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
+        let reuseId = "animated_marker_\(ObjectIdentifier(self).hashValue)" + (growAnimation ? "_grow" : "")
+        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
+        
+        if annotationView == nil {
+            if growAnimation {
+                annotationView = ExpoGrowAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            } else {
+                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+        }
+        
+        if let growView = annotationView as? ExpoGrowAnnotationView {
+            growView.enableGrowAnimation = true
+        }
+        
+        annotationView?.annotation = annotation
+        self.animatedAnnotationView = annotationView
+        
+        // 优先级：children > icon > pinColor
+        
+        // 1. 如果有 children，使用自定义视图
+        if self.subviews.count > 0 {
+            let key = cacheKey ?? "children_\(ObjectIdentifier(self).hashValue)"
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                annotationView?.centerOffset = CGPoint(x: 0, y: 0)
+                return annotationView
+            }
+            
+            // 异步渲染并设置
+            DispatchQueue.main.async { [weak self, weak annotationView] in
+                guard let self = self, let annotationView = annotationView else { return }
+                if let generated = self.createImageFromSubviews() {
+                    IconBitmapCache.shared.setImage(generated, forKey: key)
+                    annotationView.image = generated
+                    annotationView.centerOffset = CGPoint(x: 0, y: 0)
+                }
+            }
+            return annotationView
+        }
+        
+        // 2. 如果有 icon 属性，使用自定义图标
+        if let iconUri = iconUri, !iconUri.isEmpty {
+            let key = cacheKey ?? "icon|\(iconUri)|\(Int(iconWidth))x\(Int(iconHeight))"
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                annotationView?.centerOffset = CGPoint(x: 0, y: -cached.size.height / 2)
+                return annotationView
+            }
+            
+            // 异步加载图标
+            loadIcon(iconUri: iconUri) { [weak self, weak annotationView] image in
+                guard let self = self, let image = image, let annotationView = annotationView else { return }
+                let size = CGSize(width: self.iconWidth, height: self.iconHeight)
+                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+                image.draw(in: CGRect(origin: .zero, size: size))
+                let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                
+                if let img = resizedImage {
+                    IconBitmapCache.shared.setImage(img, forKey: key)
+                    annotationView.image = img
+                    annotationView.centerOffset = CGPoint(x: 0, y: -img.size.height / 2)
+                }
+            }
+            return annotationView
+        }
+        
+        // 3. 使用默认大头针颜色
+        switch pinColor.lowercased() {
+        case "green":
+            // 使用绿色图标
+            let greenIcon = UIImage(named: "map_marker_green") ?? UIImage(systemName: "mappin.circle.fill")
+            annotationView?.image = greenIcon
+        case "purple":
+            let purpleIcon = UIImage(named: "map_marker_purple") ?? UIImage(systemName: "mappin.circle.fill")
+            annotationView?.image = purpleIcon
+        default:
+            // 默认红色
+            let redIcon = UIImage(named: "map_marker_red") ?? UIImage(systemName: "mappin.circle.fill")
+            annotationView?.image = redIcon
+        }
+        
+        return annotationView
+    }
+
     /**
      * 获取 annotation 视图（由 ExpoGaodeMapView 调用）
      */
@@ -184,102 +297,153 @@ class NaviMarkerView: ExpoView {
         
         // 🔑 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
-            let reuseId = "custom_marker_children_\(ObjectIdentifier(self).hashValue)"
+            // 使用 class-level reuseId，便于系统复用 view，减少内存
+            let reuseId = "custom_marker_children" + (growAnimation ? "_grow" : "")
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
-            
             if annotationView == nil {
-                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
-            }
-            
-            annotationView?.annotation = annotation
-            // 🔑 关键修复：有自定义内容时不显示默认 callout（信息窗口）
-            annotationView?.canShowCallout = false
-            annotationView?.isDraggable = draggable
-            self.annotationView = annotationView
-            
-            if let image = self.createImageFromSubviews() {
-                annotationView?.image = image
-                annotationView?.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
-            } else {
-                // 🔑 关键修复：不返回 nil，而是设置透明图片，然后延迟重试
-                let size = CGSize(width: CGFloat(customViewWidth > 0 ? customViewWidth : 200),
-                                  height: CGFloat(customViewHeight > 0 ? customViewHeight : 40))
-                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-                let transparentImage = UIGraphicsGetImageFromCurrentImageContext()
-                UIGraphicsEndImageContext()
-                annotationView?.image = transparentImage
-                
-                // 延迟重试创建图片
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
-                    guard let self = self, let annotationView = annotationView else { return }
-                    if let image = self.createImageFromSubviews() {
-                        annotationView.image = image
-                        annotationView.centerOffset = CGPoint(x: 0, y: -image.size.height / 2)
-                    }
+                if growAnimation {
+                    annotationView = ExpoGrowAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                } else {
+                    annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
                 }
             }
             
+            if let growView = annotationView as? ExpoGrowAnnotationView {
+                growView.enableGrowAnimation = true
+            }
+
+            annotationView?.annotation = annotation
+            annotationView?.canShowCallout = false
+            annotationView?.isDraggable = draggable
+            self.annotationView = annotationView
+
+            // 生成 cacheKey 或 fallback 到 identifier
+            let key = cacheKey ?? "children_\(ObjectIdentifier(self).hashValue)"
+
+            // 1) 如果缓存命中，直接同步返回图像（fast path）
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                // 🔑 修复:自定义视图使用中心偏移,不需要底部偏移
+                annotationView?.centerOffset = CGPoint(x: 0, y: 0)
+                return annotationView
+            }
+
+            // 2) 缓存未命中：返回占位（透明），并异步在主线程生成图像然后回填
+            let size = CGSize(width: CGFloat(customViewWidth > 0 ? customViewWidth : 200),
+                              height: CGFloat(customViewHeight > 0 ? customViewHeight : 40))
+            UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+            let transparentImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            annotationView?.image = transparentImage
+
+            // 🔑 修复:延长延迟时间,给 React Native Image 更多加载时间
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
+                guard let self = self, let annotationView = annotationView else { return }
+                // 再次检查缓存（避免重复渲染）
+                if let cached = IconBitmapCache.shared.image(forKey: key) {
+                    annotationView.image = cached
+                    annotationView.centerOffset = CGPoint(x: 0, y: 0)
+                    return
+                }
+                
+                // 调用你的原生渲染逻辑（保留空白检测、多次 layout）
+                if let generated = self.createImageFromSubviews() {
+                    // 写入缓存（仅当用户传了 cacheKey 才缓存；否则建议仍缓存由 fingerprint 决定）
+                    IconBitmapCache.shared.setImage(generated, forKey: key)
+                    annotationView.image = generated
+                    annotationView.centerOffset = CGPoint(x: 0, y: 0)
+                } else {
+                }
+            }
+
             return annotationView
         }
+
         
         // 🔑 如果有 icon 属性，使用自定义图标
         if let iconUri = iconUri, !iconUri.isEmpty {
-            let reuseId = "custom_marker_icon_\(ObjectIdentifier(self).hashValue)"
+            let reuseId = "custom_marker_icon_\(ObjectIdentifier(self).hashValue)" + (growAnimation ? "_grow" : "")
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
             
             if annotationView == nil {
-                annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                if growAnimation {
+                    annotationView = ExpoGrowAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                } else {
+                    annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+                }
             }
             
+            if let growView = annotationView as? ExpoGrowAnnotationView {
+                growView.enableGrowAnimation = true
+            }
+
             annotationView?.annotation = annotation
             // 只有在没有自定义内容时才使用 canShowCallout 设置
             annotationView?.canShowCallout = canShowCallout
             annotationView?.isDraggable = draggable
             self.annotationView = annotationView
             
-            // 加载自定义图标
-            loadIcon(iconUri: iconUri) { [weak self] image in
-                guard let self = self, let image = image else {
-                    return
-                }
+            // 构建 key
+            let key = cacheKey ?? "icon|\(iconUri)|\(Int(iconWidth))x\(Int(iconHeight))"
+            if let cached = IconBitmapCache.shared.image(forKey: key) {
+                annotationView?.image = cached
+                annotationView?.centerOffset = CGPoint(x: 0, y: -cached.size.height / 2)
+                return annotationView
+            }
+
+            // 原有异步加载，不变：只是在回调里先缓存 then set
+            loadIcon(iconUri: iconUri) { [weak self, weak annotationView] image in
+                guard let self = self, let image = image else { return }
                 let size = CGSize(width: self.iconWidth, height: self.iconHeight)
-                
                 UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
                 image.draw(in: CGRect(origin: .zero, size: size))
                 let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
                 UIGraphicsEndImageContext()
-                
+
                 DispatchQueue.main.async {
-                    annotationView?.image = resizedImage
-                    annotationView?.centerOffset = CGPoint(x: 0, y: -self.iconHeight / 2)
+                    if let img = resizedImage {
+                        IconBitmapCache.shared.setImage(img, forKey: key)
+                        annotationView?.image = img
+                        annotationView?.centerOffset = CGPoint(x: 0, y: -img.size.height / 2)
+                    }
                 }
             }
+
             
             return annotationView
         }
         
         // 🔑 既没有 children 也没有 icon，使用系统默认大头针
-        let reuseId = "pin_marker_\(ObjectIdentifier(self).hashValue)"
+        // 🔑 性能优化：使用颜色作为 reuseId，让系统复用相同颜色的大头针
+        let reuseId = "pin_marker_\(pinColor)" + (growAnimation ? "_grow" : "")
         var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MAPinAnnotationView
         
         if pinView == nil {
-            pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            if growAnimation {
+                pinView = ExpoGrowPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            } else {
+                pinView = MAPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            }
+            
+            // 🔑 创建时设置颜色（只在创建时设置一次）
+            switch pinColor.lowercased() {
+            case "green":
+                pinView?.pinColor = .green
+            case "purple":
+                pinView?.pinColor = .purple
+            default:
+                pinView?.pinColor = .red
+            }
+        }
+        
+        if let growView = pinView as? ExpoGrowPinAnnotationView {
+            growView.enableGrowAnimation = true
         }
         
         pinView?.annotation = annotation
         pinView?.canShowCallout = canShowCallout
         pinView?.isDraggable = draggable
         pinView?.animatesDrop = animatesDrop
-        
-        // 设置大头针颜色
-        switch pinColor.lowercased() {
-        case "green":
-            pinView?.pinColor = .green
-        case "purple":
-            pinView?.pinColor = .purple
-        default:
-            pinView?.pinColor = .red
-        }
         
         self.annotationView = pinView
         return pinView
@@ -318,12 +482,16 @@ class NaviMarkerView: ExpoView {
      * 将子视图转换为图片
      */
     private func createImageFromSubviews() -> UIImage? {
+        // 🔑 如果有 cacheKey 且命中缓存，直接返回缓存图片
+        if let key = cacheKey, let cachedImage = IconBitmapCache.shared.image(forKey: key) {
+            return cachedImage
+        }
+        
         guard let firstSubview = subviews.first else {
             return nil
         }
         
         // 优先使用 customViewWidth/customViewHeight（用于 children），其次使用子视图尺寸，最后使用默认值
-        // 注意：iconWidth/iconHeight 是用于自定义图标的，不用于 children
         let width: CGFloat
         let height: CGFloat
         
@@ -348,7 +516,7 @@ class NaviMarkerView: ExpoView {
         // 强制子视图使用指定尺寸布局
         firstSubview.frame = CGRect(origin: .zero, size: size)
         
-        // 🔑 关键修复：多次强制布局，确保 React Native Text 完全渲染
+        // 🔑 多次强制布局，确保 React Native Text 完全渲染
         for _ in 0..<3 {
             forceLayoutRecursively(view: firstSubview)
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
@@ -357,46 +525,27 @@ class NaviMarkerView: ExpoView {
         UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
         defer { UIGraphicsEndImageContext() }
         
-        guard let context = UIGraphicsGetCurrentContext() else {
+        guard let _ = UIGraphicsGetCurrentContext() else {
             return nil
         }
         
         // 使用 drawHierarchy 而不是 layer.render，这样能正确渲染 Text
-        let success = firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
         
         guard let image = UIGraphicsGetImageFromCurrentImageContext() else {
             return nil
         }
         
-        // 🔑 关键：检查图片是否真的有内容（不是空白图片）
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
+   
         
-        // 检查图片数据是否为空白
-        let dataProvider = cgImage.dataProvider
-        let data = dataProvider?.data
-        let buffer = CFDataGetBytePtr(data)
-        
-        var isBlank = true
-        if let buffer = buffer {
-            let length = CFDataGetLength(data)
-            // 检查前 100 个字节是否都是 0（空白）
-            let checkLength = min(100, length)
-            for i in 0..<checkLength {
-                if buffer[i] != 0 {
-                    isBlank = false
-                    break
-                }
-            }
-        }
-        
-        if isBlank {
-            return nil
+        // 🔑 写入缓存
+        if let key = cacheKey {
+            IconBitmapCache.shared.setImage(image, forKey: key)
         }
         
         return image
     }
+
     
     /**
      * 递归强制布局视图及其所有子视图
@@ -429,7 +578,6 @@ class NaviMarkerView: ExpoView {
     private func removeAnnotationFromMap() {
         guard !isRemoving else { return }
         isRemoving = true
-        
         pendingAddTask?.cancel(); pendingAddTask = nil
         pendingUpdateTask?.cancel(); pendingUpdateTask = nil
 
@@ -442,12 +590,19 @@ class NaviMarkerView: ExpoView {
         let cleanup = { [weak self, weak mapView] in
             guard let self = self, let mapView = mapView else { return }
             
+            // 1. 停止任何正在进行的平滑移动
+            if self.animatedAnnotation != nil {
+                self.stopSmoothMove()
+            }
+            
+            // 2. 移除普通标记点
             if let annotation = self.annotation {
                 mapView.removeAnnotation(annotation)
                 self.annotation = nil
             }
-            
+
             self.annotationView = nil
+            self.animatedAnnotationView = nil
             self.isRemoving = false
         }
 
@@ -457,7 +612,7 @@ class NaviMarkerView: ExpoView {
             DispatchQueue.main.async(execute: cleanup)
         }
     }
-    
+
     override func willRemoveSubview(_ subview: UIView) {
         super.willRemoveSubview(subview)
         
@@ -546,14 +701,17 @@ class NaviMarkerView: ExpoView {
      * 设置位置（兼容旧的 API）
      * @param position 位置坐标 {latitude, longitude}
      */
-    func setPosition(_ position: [String: Double]) {
-        if mapView != nil {
-            // 地图已设置，直接更新
-            self.position = position
-            updateAnnotation()
-        } else {
-            // 地图还未设置，保存位置待后续应用
-            pendingPosition = position
+    func setPosition(_ position: [String: Double]?) {
+        if let coord = LatLngParser.parseLatLng(position) {
+            let pos = ["latitude": coord.latitude, "longitude": coord.longitude]
+            if mapView != nil {
+                // 地图已设置，直接更新
+                self.position = pos
+                updateAnnotation()
+            } else {
+                // 地图还未设置，保存位置待后续应用
+                pendingPosition = pos
+            }
         }
     }
     
@@ -605,6 +763,206 @@ class NaviMarkerView: ExpoView {
         self.canShowCallout = show
     }
     
+    // MARK: - 平滑移动相关方法
+    
+    /**
+     * 设置平滑移动路径
+     * @param path 坐标点数组
+     */
+    func setSmoothMovePath(_ path: [[String: Double]]) {
+        self.smoothMovePath = path
+        
+        // 🔑 修复逻辑：如果路径为空，立即停止动画
+        if path.isEmpty {
+            if animatedAnnotation != nil || isAnimating {
+                stopSmoothMove()
+            }
+        } else if mapView != nil && smoothMoveDuration > 0 {
+            // 只有在时长也准备好的情况下才自动启动
+            startSmoothMove()
+        }
+    }
+    
+    /**
+      * 停止平滑移动并恢复静态标记
+      */
+    func stopSmoothMove() {
+        // 🔑 确保在主线程执行
+        let cleanup = { [weak self, weak mapView] in
+            guard let self = self, let mapView = mapView else { return }
+            
+            // 1. 获取并取消所有动画 (遵循官方文档建议)
+            if let animAnnotation = self.animatedAnnotation {
+                let animations = animAnnotation.allMoveAnimations()
+                if let animations = animations {
+                    for animation in animations {
+                        animation.cancel()
+                    }
+                }
+                
+                // 2. 从地图移除动画标注
+                mapView.removeAnnotation(animAnnotation)
+                self.animatedAnnotation = nil
+                self.animatedAnnotationView = nil
+            }
+            
+            // 🔑 强制重置所有状态
+            self.isAnimating = false
+            self.smoothMovePath = []
+            self.smoothMoveDuration = 0
+            
+            // 3. 恢复静态标注（立即跳转到 position 所在位置）
+            self.performUpdateAnnotation()
+        }
+
+        if Thread.isMainThread {
+            cleanup()
+        } else {
+            DispatchQueue.main.async(execute: cleanup)
+        }
+    }
+    
+    /**
+     * 设置平滑移动时长（秒）
+     */
+    func setSmoothMoveDuration(_ duration: Double) {
+        // 🔑 修复：不要在这里设置默认值 10，如果 JS 传 0 或未定义，就应该是 0
+        self.smoothMoveDuration = duration
+        
+        // 🔑 如果时长被设为 0 或负数，停止当前动画
+        if duration <= 0 {
+            if animatedAnnotation != nil || isAnimating {
+                stopSmoothMove()
+            }
+            return
+        }
+        
+        // 🔑 只有当路径、时长都合法且地图就绪时，才启动平滑移动
+        if !smoothMovePath.isEmpty && duration > 0 && mapView != nil {
+            startSmoothMove()
+        }
+    }
+    
+    /**
+     * 启动平滑移动（由 JS 端手动调用）
+     */
+    func startSmoothMove() {
+        guard !isRemoving, let mapView = mapView, !smoothMovePath.isEmpty, smoothMoveDuration > 0 else { 
+            if smoothMovePath.isEmpty && animatedAnnotation != nil {
+                stopSmoothMove()
+            }
+            return 
+        }
+        
+        // 🔑 确保在主线程执行
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.startSmoothMove()
+            }
+            return
+        }
+        
+        // 转换路径为 CLLocationCoordinate2D 数组
+        // 使用 C++ 优化计算路径中的最近点
+        var adjustedPath: [[String: Double]]? = nil
+        
+        // 只有当有当前位置时才尝试寻找最近点
+        if let pos = position, let currentLat = pos["latitude"], let currentLng = pos["longitude"] {
+            // 准备数据给 C++
+            let latitudes = smoothMovePath.compactMap { $0["latitude"] as NSNumber? }
+            let longitudes = smoothMovePath.compactMap { $0["longitude"] as NSNumber? }
+            
+            if latitudes.count == longitudes.count && !latitudes.isEmpty {
+                let lats = latitudes
+                let lons = longitudes
+                if let result = ClusterNative.getNearestPointOnPath(latitudes: lats,
+                                                                  longitudes: lons,
+                                                                  targetLat: currentLat,
+                                                                  targetLon: currentLng) as? [String: Any] {
+                    
+                    if let indexNum = result["index"] as? NSNumber,
+                       let lat = result["latitude"] as? Double,
+                       let lon = result["longitude"] as? Double {
+                        
+                        let index = indexNum.intValue
+                        if index >= 0 && index < smoothMovePath.count - 1 {
+                            // 从 index + 1 开始截取
+                            let subPath = Array(smoothMovePath[(index + 1)...])
+                            // 插入投影点作为起点
+                            var newPath = subPath
+                            newPath.insert(["latitude": lat, "longitude": lon], at: 0)
+                            adjustedPath = newPath
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果没有调整路径（C++计算失败或不需要调整），使用原始路径
+        let finalPath = adjustedPath ?? smoothMovePath
+        
+        var coordinates = LatLngParser.parseLatLngList(finalPath)
+        
+        guard !coordinates.isEmpty else { return }
+        
+        // 🔑 停止之前的动画（如果存在）
+        if let animAnnotation = animatedAnnotation,
+           let animations = animAnnotation.allMoveAnimations() {
+            for animation in animations {
+                animation.cancel()
+            }
+        }
+        
+        // 🔑 重置动画标志
+        isAnimating = false
+        
+        // 创建 MAAnimatedAnnotation（如果还没有）
+        if animatedAnnotation == nil {
+            animatedAnnotation = MAAnimatedAnnotation()
+            
+            // 设置初始位置
+            if let pos = position, let startLat = pos["latitude"], let startLng = pos["longitude"] {
+                animatedAnnotation?.coordinate = CLLocationCoordinate2D(latitude: startLat, longitude: startLng)
+            }
+            
+            // 隐藏原始 annotation
+            if let existingAnnotation = annotation {
+                mapView.removeAnnotation(existingAnnotation)
+            }
+            
+            // 添加 animated annotation
+            if let anim = animatedAnnotation {
+                mapView.addAnnotation(anim)
+            }
+        }
+        
+        // 添加移动动画
+        guard let animAnnotation = animatedAnnotation else { return }
+        
+        // 复制到局部变量，避免 Swift 内存安全冲突
+        let coordinateCount = coordinates.count
+        let duration = smoothMoveDuration
+        
+        // 🔑 设置动画标志
+        isAnimating = true
+        
+        // 转换为 UnsafeMutablePointer 传递给 C 风格的 API
+        coordinates.withUnsafeMutableBufferPointer { buffer in
+            let coords = buffer.baseAddress!
+            
+            animAnnotation.addMoveAnimation(
+                withKeyCoordinates: coords,
+                count: UInt(coordinateCount),
+                withDuration: CGFloat(duration),
+                withName: nil,
+                completeCallback: { [weak self] isFinished in
+                    // 动画完成时重置标志
+                    self?.isAnimating = false
+                }
+            )
+        }
+    }
+    
     /**
      * 析构函数 - 不执行任何清理
      * 清理工作已在 willMove(toSuperview:) 中完成
@@ -619,5 +977,125 @@ class NaviMarkerView: ExpoView {
         annotation = nil
         annotationView = nil
         lastSetMapView = nil
+    }
+}
+
+
+/// 增强版内存缓存（带 cost 与清理）
+class IconBitmapCache {
+    static let shared = IconBitmapCache()
+    private init() {
+        // 设置 totalCostLimit = 1/8 可用内存（以字节计）
+        let mem = ProcessInfo.processInfo.physicalMemory
+        // 限制在可用物理内存的 1/8（可按需调整）
+        let limit = Int(mem / 8)
+        cache.totalCostLimit = limit
+    }
+
+    private var cache = NSCache<NSString, UIImage>()
+
+    func image(forKey key: String) -> UIImage? {
+        return cache.object(forKey: key as NSString)
+    }
+
+    func setImage(_ image: UIImage, forKey key: String) {
+        // 以 bitmap 字节数作为 cost（更可靠）
+        let cost = imageCostInBytes(image)
+        cache.setObject(image, forKey: key as NSString, cost: cost)
+    }
+
+    func removeImage(forKey key: String) {
+        cache.removeObject(forKey: key as NSString)
+    }
+
+    func clear() {
+        cache.removeAllObjects()
+    }
+
+    private func imageCostInBytes(_ image: UIImage) -> Int {
+        if let cg = image.cgImage {
+            return cg.bytesPerRow * cg.height
+        }
+        // fallback estimate
+        return Int(image.size.width * image.size.height * 4)
+    }
+}
+
+// MARK: - 自定义 AnnotationView (支持生长动画)
+
+class ExpoGrowAnnotationView: MAAnnotationView, CAAnimationDelegate {
+    var enableGrowAnimation: Bool = false
+    private var didAnimateOnce: Bool = false
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        didAnimateOnce = false
+    }
+    
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        if enableGrowAnimation, let _ = newSuperview, !didAnimateOnce {
+            didAnimateOnce = true
+       
+            // 缩放动画
+            let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
+            scaleAnimation.fromValue = 0
+            scaleAnimation.toValue = 1.0
+            
+            // 透明度动画
+            let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+            opacityAnimation.fromValue = 0
+            opacityAnimation.toValue = 1.0
+            
+            // 组合动画
+            let groupAnimation = CAAnimationGroup()
+            groupAnimation.animations = [scaleAnimation, opacityAnimation]
+            groupAnimation.delegate = self
+            groupAnimation.duration = 0.8 // 与 Android 保持一致 (500ms)
+            groupAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+            groupAnimation.fillMode = .forwards
+            groupAnimation.isRemovedOnCompletion = false
+            
+            self.layer.add(groupAnimation, forKey: "growAnimation")
+        }
+    }
+}
+
+class ExpoGrowPinAnnotationView: MAPinAnnotationView, CAAnimationDelegate {
+    var enableGrowAnimation: Bool = false
+    private var didAnimateOnce: Bool = false
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        didAnimateOnce = false
+    }
+    
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        
+        if enableGrowAnimation, let _ = newSuperview, !didAnimateOnce {
+            didAnimateOnce = true
+            // 缩放动画
+            let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
+            scaleAnimation.fromValue = 0
+            scaleAnimation.toValue = 1.0
+            
+            // 透明度动画
+            let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+            opacityAnimation.fromValue = 0
+            opacityAnimation.toValue = 1.0
+            
+            // 组合动画
+            let groupAnimation = CAAnimationGroup()
+            groupAnimation.animations = [scaleAnimation, opacityAnimation]
+            groupAnimation.delegate = self
+            groupAnimation.duration = 0.5 // 与 Android 保持一致 (500ms)
+            groupAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+            groupAnimation.fillMode = .forwards
+            groupAnimation.isRemovedOnCompletion = false
+            
+            self.layer.add(groupAnimation, forKey: "growAnimation")
+        }
     }
 }

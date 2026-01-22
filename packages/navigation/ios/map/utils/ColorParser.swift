@@ -27,6 +27,17 @@ class ColorParser {
      * 解析字符串颜色值
      */
     private static func parseColorString(_ colorString: String) -> UIColor? {
+        // Try native parser first
+        let nativeColor = ClusterNative.parseColor(colorString: colorString)
+        if nativeColor != 0 {
+            // ARGB -> UIColor
+            let a = CGFloat((nativeColor >> 24) & 0xFF) / 255.0
+            let r = CGFloat((nativeColor >> 16) & 0xFF) / 255.0
+            let g = CGFloat((nativeColor >> 8) & 0xFF) / 255.0
+            let b = CGFloat(nativeColor & 0xFF) / 255.0
+            return UIColor(red: r, green: g, blue: b, alpha: a)
+        }
+
         let trimmedString = colorString.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 处理 rgba() 格式
@@ -97,7 +108,7 @@ class ColorParser {
      */
     private static func parseHexColor(_ hexString: String) -> UIColor? {
         var hex = hexString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var alpha: CGFloat = 1.0
+        let alpha: CGFloat = 1.0
         
         // 处理 #RGB 格式
         if hex.count == 3 {

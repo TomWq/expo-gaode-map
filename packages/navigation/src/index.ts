@@ -33,8 +33,7 @@ import type {
 } from './types';
 
 // 导出官方导航界面组件
-export { NaviView, type NaviViewRef } from './ExpoGaodeMapNaviView';
-
+export { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef } from './ExpoGaodeMapNaviView';
 
 
 /**

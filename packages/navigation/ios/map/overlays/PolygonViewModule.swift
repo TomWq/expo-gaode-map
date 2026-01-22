@@ -1,33 +1,39 @@
 import ExpoModulesCore
 
-public class NaviPolygonViewModule: Module {
+public class PolygonViewModule: Module {
     public func definition() -> ModuleDefinition {
-        Name("NaviPolygonView")
+        Name("PolygonView")
         
-        View(NaviPolygonView.self) {
-            Events("onPolygonPress")
+        View(PolygonView.self) {
+            Events("onPolygonPress", "onPolygonSimplified")
             
-            Prop("points") { (view: NaviPolygonView, points: [[String: Double]]) in
-                view.setPoints(points)
-            }
+            Prop("points") { (view: PolygonView, points: [Any]) in
+            view.setPoints(points)
+        }
             
-            Prop("fillColor") { (view: NaviPolygonView, color: String) in
+            Prop("fillColor") { (view: PolygonView, color: String?) in
                 view.setFillColor(color)
             }
             
-            Prop("strokeColor") { (view: NaviPolygonView, color: String) in
+            Prop("strokeColor") { (view: PolygonView, color: String?) in
                 view.setStrokeColor(color)
             }
             
-            Prop("strokeWidth") { (view: NaviPolygonView, width: Double) in
+            Prop("strokeWidth") { (view: PolygonView, width: Double) in
                 view.setStrokeWidth(Float(width))
             }
+
+            Prop("simplificationTolerance") { (view: PolygonView, tolerance: Double) in
+                view.setSimplificationTolerance(tolerance)
+            }
             
-            OnViewDidUpdateProps { (view: NaviPolygonView) in
+            OnViewDidUpdateProps { (view: PolygonView) in
+                // 属性更新完成后，如果还没连接地图，尝试连接
                 if !view.isMapConnected() {
+                    // 查找父视图 ExpoGaodeMapView
                     var parent = view.superview
                     while parent != nil {
-                        if let mapView = parent as? NaviMapView {
+                        if let mapView = parent as? ExpoGaodeMapView {
                             view.setMap(mapView.mapView)
                             return
                         }

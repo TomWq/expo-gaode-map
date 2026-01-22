@@ -51,13 +51,72 @@ function ensureBaseInstalled() {
 ensureBaseInstalled();
 
 declare class ExpoGaodeMapSearchModuleType {
+  /**
+   * 初始化搜索模块（可选）
+   *
+   * 如果 API Key 已通过以下方式设置，则无需调用此方法：
+   * 1. app.json 的 plugins 中配置了 iosKey（推荐）
+   * 2. 调用了 ExpoGaodeMap.initSDK()
+   * 3. 在 AppDelegate 中手动设置
+   *
+   * 此方法会在首次调用搜索功能时自动执行，手动调用可以提前检测配置问题。
+   */
   initSearch(): void;
+  /**
+   * 搜索 POI（兴趣点）
+   * 根据关键词和可选参数返回匹配的 POI 列表。
+   *
+   * @param options 搜索参数，包含关键词、城市、类型等
+   * @returns 匹配的 POI 列表
+   */
   searchPOI(options: POISearchOptions): Promise<SearchResult>;
+  /**
+   * 搜索周边 POI
+   * 根据位置和半径返回周边的 POI 列表。
+   *
+   * @param options 搜索参数，包含位置、半径、类型等
+   * @returns 周边的 POI 列表
+   */
   searchNearby(options: NearbySearchOptions): Promise<SearchResult>;
+  /**
+   * 搜索沿途 POI
+   * 根据路线和半径返回沿途的 POI 列表。
+   *
+   * @param options 搜索参数，包含路线、半径、类型等
+   * @returns 沿途的 POI 列表
+   */
   searchAlong(options: AlongSearchOptions): Promise<SearchResult>;
+  /**
+   * 搜索多边形内的 POI
+   * 根据多边形区域返回其内的 POI 列表。
+   *
+   * @param options 搜索参数，包含多边形区域、类型等
+   * @returns 多边形内的 POI 列表
+   */
   searchPolygon(options: PolygonSearchOptions): Promise<SearchResult>;
+  /**
+   * 获取输入提示
+   * 根据用户输入返回可能的搜索建议。
+   *
+   * @param options 输入提示参数，包含关键词、城市等
+   * @returns 输入提示结果
+   */
   getInputTips(options: InputTipsOptions): Promise<InputTipsResult>;
+  /**
+   * 逆地理编码
+   * 根据经纬度返回地址信息。
+   *
+   * @param options 逆地理编码参数，包含经纬度等
+   * @returns 逆地理编码结果
+   */
   reGeocode(options: ReGeocodeOptions): Promise<ReGeocodeResult>;
+  /**
+   * 获取 POI 详情
+   * 根据 POI ID 返回详细信息。
+   *
+   * @param id POI 唯一标识符
+   * @returns POI 详情
+   */
   getPoiDetail(id: string): Promise<POI>;
 }
 

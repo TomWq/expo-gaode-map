@@ -63,7 +63,7 @@ export interface RouteRecalculateEvent {
 /**
  * 导航视图属性
  */
-export interface NaviViewProps extends ViewProps {
+export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   /**
    * 导航类型
    * - 0: GPS 导航

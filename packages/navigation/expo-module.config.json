@@ -5,15 +5,16 @@
     "modules": [
       "ExpoGaodeMapNavigationModule",
       "ExpoGaodeMapNaviViewModule",
-      "NaviMapModule",
-      "NaviMapViewModule",
-      "NaviMarkerViewModule",
-      "NaviCircleViewModule",
-      "NaviPolygonViewModule",
-      "NaviPolylineViewModule",
-      "NaviMultiPointViewModule",
-      "NaviHeatMapViewModule",
-      "NaviClusterViewModule"
+      "ExpoGaodeMapModule",
+      "ExpoGaodeMapViewModule",
+       "MarkerViewModule",
+      "CircleViewModule",
+      "PolygonViewModule",
+      "PolylineViewModule",
+      "MultiPointViewModule",
+      "HeatMapViewModule",
+      "ClusterViewModule",
+      "ExpoGaodeMapOfflineModule"
     ]
   },
   "android": {
@@ -28,7 +29,8 @@
       "expo.modules.gaodemap.map.overlays.PolylineViewModule",
       "expo.modules.gaodemap.map.overlays.MultiPointViewModule",
       "expo.modules.gaodemap.map.overlays.HeatMapViewModule",
-      "expo.modules.gaodemap.map.overlays.ClusterViewModule"
+      "expo.modules.gaodemap.map.overlays.ClusterViewModule",
+      "expo.modules.gaodemap.map.ExpoGaodeMapOfflineModule"
     ]
   }
 }

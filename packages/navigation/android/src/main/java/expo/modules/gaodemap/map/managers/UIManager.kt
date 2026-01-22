@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.map.managers
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.location.Location
@@ -161,6 +162,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    * 设置用户位置样式
    * 统一 iOS 和 Android 的 API
    */
+  @SuppressLint("DiscouragedApi")
   fun setUserLocationRepresentation(config: Map<String, Any>) {
     if (currentLocationStyle == null) {
       currentLocationStyle = MyLocationStyle().apply {
@@ -171,6 +173,30 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
     }
     
     val style = currentLocationStyle!!
+    
+    // 定位蓝点展现模式 (locationType) - Android 支持8种模式
+    val locationType = config["locationType"] as? String
+    if (locationType != null) {
+      val locationTypeValue = when (locationType) {
+        "SHOW" -> MyLocationStyle.LOCATION_TYPE_SHOW
+        "LOCATE" -> MyLocationStyle.LOCATION_TYPE_LOCATE
+        "FOLLOW" -> MyLocationStyle.LOCATION_TYPE_FOLLOW
+        "MAP_ROTATE" -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE
+        "LOCATION_ROTATE" -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE
+        "LOCATION_ROTATE_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
+        "FOLLOW_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_FOLLOW_NO_CENTER
+        "MAP_ROTATE_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE_NO_CENTER
+        else -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE // 默认值
+      }
+      style.myLocationType(locationTypeValue)
+    }
+    
+    // 是否显示定位蓝点 (showMyLocation) - Android 5.1.0+ 支持
+    // 注意：这个属性在 iOS 中没有对应项，是 Android 特有的
+    val showMyLocation = config["showMyLocation"] as? Boolean
+    if (showMyLocation != null) {
+      style.showMyLocation(showMyLocation)
+    }
     
     // 是否显示精度圈 (showsAccuracyRing) - 先处理这个，设置默认值
     val showsAccuracyRing = config["showsAccuracyRing"] as? Boolean ?: true
@@ -196,6 +222,13 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
       (config["lineWidth"] as? Number)?.let {
         style.strokeWidth(it.toFloat())
       }
+    }
+    
+    // 定位图标锚点 (anchor) - Android 支持
+    val anchorU = config["anchorU"] as? Number
+    val anchorV = config["anchorV"] as? Number
+    if (anchorU != null && anchorV != null) {
+      style.anchor(anchorU.toFloat(), anchorV.toFloat())
     }
     
     // 自定义图标 (image)
@@ -315,5 +348,48 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
       4 -> AMap.MAP_TYPE_BUS        // 公交地图
       else -> AMap.MAP_TYPE_NORMAL  // 标准地图
     }
+  }
+  
+  // ==================== 自定义地图样式 ====================
+  
+  /**
+   * 设置自定义地图样式
+   * @param styleData 样式数据，支持以下格式：
+   *   - styleId: String - 在线样式ID（从高德开放平台获取）
+   *   - styleDataPath: String - 本地样式文件路径
+   *   - extraStyleDataPath: String - 额外样式文件路径（可选）
+   */
+  fun setCustomMapStyle(styleData: Map<String, Any>) {
+    // 在线样式 ID
+    val styleId = styleData["styleId"] as? String
+    if (!styleId.isNullOrEmpty()) {
+      val options = com.amap.api.maps.model.CustomMapStyleOptions()
+      options.isEnable = true
+      options.styleId = styleId
+      aMap.setCustomMapStyle(options)
+      return
+    }
+    
+    // 本地样式文件
+    val styleDataPath = styleData["styleDataPath"] as? String
+    if (!styleDataPath.isNullOrEmpty()) {
+      val options = com.amap.api.maps.model.CustomMapStyleOptions()
+      options.isEnable = true
+      options.styleDataPath = styleDataPath
+      
+      // 额外样式文件（可选）
+      val extraPath = styleData["extraStyleDataPath"] as? String
+      if (!extraPath.isNullOrEmpty()) {
+        options.styleExtraPath = extraPath
+      }
+      
+      aMap.setCustomMapStyle(options)
+      return
+    }
+    
+    // 如果没有提供任何样式，禁用自定义样式
+    val options = com.amap.api.maps.model.CustomMapStyleOptions()
+    options.isEnable = false
+    aMap.setCustomMapStyle(options)
   }
 }

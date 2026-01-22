@@ -3,22 +3,24 @@ package expo.modules.gaodemap.map
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-
 /**
  * 高德地图视图 Module
  */
 class ExpoGaodeMapViewModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("NaviMapView")
+    Name("ExpoGaodeMapView")
 
     View(ExpoGaodeMapView::class) {
       Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
+      
 
-      // ✅ 关键修复：拦截 React Native 的视图操作异常
-
-      OnViewDestroys { view ->
-        // 销毁地图实例,释放资源
-        view.onDestroy()
+      
+      // 延迟销毁地图，避免页面退出动画未完成时地图就变成白屏
+      OnViewDestroys { view: ExpoGaodeMapView ->
+        // 延迟 500ms 销毁地图，让页面退出动画先完成
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+          view.onDestroy()
+        }, 500)
       }
 
 
@@ -40,7 +42,7 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Boolean>("scrollGesturesEnabled") { view, enabled -> view.setScrollEnabled(enabled) }
       Prop<Boolean>("rotateGesturesEnabled") { view, enabled -> view.setRotateEnabled(enabled) }
       Prop<Boolean>("tiltGesturesEnabled") { view, enabled -> view.setTiltEnabled(enabled) }
-
+      
       Prop<Float>("maxZoom") { view, maxZoom -> view.setMaxZoom(maxZoom) }
       Prop<Float>("minZoom") { view, minZoom -> view.setMinZoom(minZoom) }
 
@@ -52,36 +54,44 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Boolean>("trafficEnabled") { view, show -> view.setShowsTraffic(show) }
       Prop<Boolean>("buildingsEnabled") { view, show -> view.setShowsBuildings(show) }
       Prop<Boolean>("indoorViewEnabled") { view, show -> view.setShowsIndoorMap(show) }
+      
+      Prop<Map<String, Any>?>("customMapStyle") { view, styleData ->
+        styleData?.let { view.setCustomMapStyle(it) }
+      }
 
-      OnViewDidUpdateProps { view ->
+      OnViewDidUpdateProps { view: ExpoGaodeMapView ->
         if (view.mapType != 0) {
           view.setMapType(view.mapType)
         }
-
+        
         view.initialCameraPosition?.let { position ->
           view.setInitialCameraPosition(position)
         }
       }
 
-        AsyncFunction("moveCamera") { view: ExpoGaodeMapView, position: Map<String, Any>, duration: Int ->
-            view.moveCamera(position, duration)
-        }
+      AsyncFunction("moveCamera") { view: ExpoGaodeMapView, position: Map<String, Any>, duration: Int ->
+        view.moveCamera(position, duration)
+      }
 
-        AsyncFunction("getLatLng") { view: ExpoGaodeMapView, point: Map<String, Double> ->
-            view.getLatLng(point)
-        }
+      AsyncFunction("getLatLng") { view: ExpoGaodeMapView, point: Map<String, Double> ->
+        view.getLatLng(point)
+      }
 
-        AsyncFunction("setCenter") { view: ExpoGaodeMapView, center: Map<String, Double>, animated: Boolean ->
-            view.setCenter(center, animated)
-        }
+      AsyncFunction("takeSnapshot") { view: ExpoGaodeMapView, promise: expo.modules.kotlin.Promise ->
+        view.takeSnapshot(promise)
+      }
+      
+      AsyncFunction("setCenter") { view: ExpoGaodeMapView, center: Map<String, Double>, animated: Boolean ->
+        view.setCenter(center, animated)
+      }
 
-        AsyncFunction("setZoom") { view: ExpoGaodeMapView, zoom: Double, animated: Boolean ->
-            view.setZoomLevel(zoom.toFloat(), animated)
-        }
+      AsyncFunction("setZoom") { view: ExpoGaodeMapView, zoom: Double, animated: Boolean ->
+        view.setZoomLevel(zoom.toFloat(), animated)
+      }
 
-        AsyncFunction("getCameraPosition") { view: ExpoGaodeMapView ->
-            view.getCameraPosition()
-        }
+      AsyncFunction("getCameraPosition") { view: ExpoGaodeMapView ->
+        view.getCameraPosition()
+      }
     }
   }
 }

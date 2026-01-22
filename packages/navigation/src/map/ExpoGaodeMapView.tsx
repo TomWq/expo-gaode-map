@@ -7,12 +7,17 @@ import type {
   CameraPosition,
   LatLng,
   Point,
-
+  LatLngPoint,
 } from './types';
+import { normalizeLatLng } from './utils/GeoUtils';
+import { ErrorHandler } from './utils/ErrorHandler';
+import { MapContext } from './components/MapContext';
+import { MapUI } from './components/MapUI';
+import { View, StyleSheet } from 'react-native';
 
 export type { MapViewRef } from './types';
 
-const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<MapViewRef> }> = requireNativeViewManager('NaviMapView');
+const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<MapViewRef> }> = requireNativeViewManager('ExpoGaodeMapView');
 
 
 /**
@@ -37,60 +42,51 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const nativeRef = React.useRef<MapViewRef>(null);
   const internalRef = React.useRef<MapViewRef | null>(null);
   
+  /**
+   * 🔑 性能优化：通用 API 方法包装器
+   * 统一处理初始化检查和错误处理，减少重复代码
+   */
+  const createApiMethod = React.useCallback(<T extends (...args: never[]) => unknown>(
+    methodName: keyof MapViewRef
+  ) => {
+    return ((...args: Parameters<T>) => {
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized(methodName as string);
+      }
+      try {
+        return (nativeRef.current[methodName] as T)(...args);
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, methodName as string);
+      }
+    }) as T;
+  }, []);
 
+  /**
+   * 使用通用包装器创建所有 API 方法
+   * 所有方法共享相同的错误处理逻辑
+   */
   const apiRef: MapViewRef = React.useMemo(() => ({
-    /**
-     * 移动地图相机到指定位置
-     * @param position 相机位置参数对象，包含目标经纬度、缩放级别等信息
-     * @param duration 动画持续时间（毫秒），默认300毫秒
-     * @throws 如果地图视图未初始化则抛出错误
-     * @returns Promise<void> 异步操作完成后的Promise
-     */
-    moveCamera: async (position: CameraPosition, duration: number = 300) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.moveCamera(position, duration);
+    moveCamera: (position: CameraPosition, duration?: number) => {
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('moveCamera');
+      }
+      const normalizedPosition = {
+        ...position,
+        target: position.target ? normalizeLatLng(position.target) : undefined,
+      };
+      return nativeRef.current.moveCamera(normalizedPosition, duration);
     },
-    /**
-     * 将屏幕坐标点转换为地理坐标（经纬度）
-     * @param point 屏幕坐标点 {x: number, y: number}
-     * @returns 返回Promise，解析为对应的地理坐标 {latitude: number, longitude: number}
-     * @throws 如果地图视图未初始化，抛出错误 'MapView not initialized'
-     */
-    getLatLng: async (point: Point) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.getLatLng(point);
+    getLatLng: createApiMethod<(point: Point) => Promise<LatLng>>('getLatLng'),
+    setCenter: (center: LatLngPoint, animated?: boolean) => {
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('setCenter');
+      }
+      return nativeRef.current.setCenter(normalizeLatLng(center), animated);
     },
-    /**
-     * 设置地图中心点坐标
-     * @param center 要设置的中心点坐标(LatLng格式)
-     * @param animated 是否使用动画效果移动地图(默认为false)
-     * @throws 如果地图视图未初始化则抛出错误
-     */
-    setCenter: async (center: LatLng, animated: boolean = false) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.setCenter(center, animated);
-    },
-    /**
-     * 设置地图的缩放级别
-     * @param zoom 目标缩放级别
-     * @param animated 是否使用动画过渡效果，默认为false
-     * @throws 如果地图视图未初始化，抛出错误
-     */
-    setZoom: async (zoom: number, animated: boolean = false) => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.setZoom(zoom, animated);
-    },
-    /**
-     * 获取当前地图的相机位置（视角中心点、缩放级别、倾斜角度等）
-     * @returns 返回一个Promise，解析为当前相机位置的对象
-     * @throws 如果地图视图未初始化，则抛出错误
-     */
-    getCameraPosition: async () => {
-      if (!nativeRef.current) throw new Error('MapView not initialized');
-      return nativeRef.current.getCameraPosition();
-    }
-
-  }), []);
+    setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
+    getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
+    takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
+  }), [createApiMethod]);
 
   /**
    * 将传入的apiRef赋值给internalRef.current
@@ -106,12 +102,32 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    */
   React.useImperativeHandle(ref, () => apiRef, [apiRef]);
 
+  // 分离 children：区分原生覆盖物和普通 UI 组件
+  const { children, style, ...otherProps } = props;
+  const overlays: React.ReactNode[] = [];
+  const uiControls: React.ReactNode[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child) && (child.type === MapUI || (child.type as { isMapUI?: boolean })?.isMapUI)) {
+      uiControls.push(child);
+    } else {
+      overlays.push(child);
+    }
+  });
+
   return (
-    <NativeView
-        ref={nativeRef}
-          {...props}>
-          {props.children}
+    <MapContext.Provider value={apiRef}>
+      <View style={[{ flex: 1, position: 'relative', overflow: 'hidden' ,}, style]}>
+        <NativeView
+          ref={nativeRef}
+          style={StyleSheet.absoluteFill}
+          {...otherProps}
+        >
+          {overlays}
         </NativeView>
+        {uiControls}
+      </View>
+    </MapContext.Provider>
   );
 });
 

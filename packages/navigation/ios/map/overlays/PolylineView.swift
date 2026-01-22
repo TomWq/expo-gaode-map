@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import AMapNaviKit
+import CoreLocation
 
 /**
  * 折线覆盖物视图
@@ -9,17 +10,19 @@ import AMapNaviKit
  * - 支持纹理贴图（仅 3D 地图支持）
  * - 管理折线样式(线宽、颜色)
  */
-class NaviPolylineView: ExpoView {
+class PolylineView: ExpoView {
     /// 折线点数组
     var points: [[String: Double]] = []
     /// 线宽
     var strokeWidth: Float = 0
     /// 线条颜色
-    var strokeColor: Any?
+    var strokeColor: String?
     /// 是否虚线
     var isDotted: Bool = false
     /// 纹理图片 URL
     var textureUrl: String?
+    /// 简化容差 (米)
+    var simplificationTolerance: Double = 0.0
     
     /// 点击事件派发器
     let onPolylinePress = EventDispatcher()
@@ -77,21 +80,26 @@ class NaviPolylineView: ExpoView {
     }
     
     /**
+     * 设置简化容差
+     */
+    func setSimplificationTolerance(_ tolerance: Double) {
+        simplificationTolerance = tolerance
+        updatePolyline()
+    }
+
+    /**
      * 更新折线覆盖物
      */
     private func updatePolyline() {
         guard let mapView = mapView else { return }
         if let old = polyline { mapView.remove(old) }
         
-        // 🔑 坐标验证和过滤
-        var coords = points.compactMap { point -> CLLocationCoordinate2D? in
-            guard let lat = point["latitude"],
-                  let lng = point["longitude"],
-                  lat >= -90 && lat <= 90,
-                  lng >= -180 && lng <= 180 else {
-                return nil
-            }
-            return CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        // 🔑 使用统一的坐标解析器
+        var coords = LatLngParser.parseLatLngList(points)
+        
+        // 🔑 坐标简化 (如果设置了容差)
+        if simplificationTolerance > 0 && coords.count > 2 {
+            coords = GeometryUtils.simplifyPolyline(coords, tolerance: simplificationTolerance)
         }
         
         // 🔑 至少需要2个点才能绘制折线
@@ -133,7 +141,7 @@ class NaviPolylineView: ExpoView {
                 return
             }
             URLSession.shared.dataTask(with: imageUrl) { [weak self] data, _, error in
-                if let error = error {
+                if error != nil {
                     return
                 }
                 guard let data = data, let image = UIImage(data: data) else {
@@ -195,7 +203,7 @@ class NaviPolylineView: ExpoView {
      * 设置线条颜色
      * @param color 颜色值
      */
-    func setStrokeColor(_ color: Any?) {
+    func setStrokeColor(_ color: String?) {
         strokeColor = color
         renderer = nil
         forceRerender()

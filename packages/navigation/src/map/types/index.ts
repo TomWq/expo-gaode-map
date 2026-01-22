@@ -7,10 +7,13 @@
 export type {
   Point,
   LatLng,
+  LatLngPoint,
   MapPoi,
   LatLngBounds,
   CameraPosition,
   ColorValue,
+  SDKConfig,
+  PermissionStatus,
 } from './common.types';
 
 export { MapType } from './common.types';
@@ -22,6 +25,7 @@ export type {
   MapViewProps,
   MapViewMethods,
   MapViewRef,
+  ExpoGaodeMapModuleEvents,
 } from './map-view.types';
 
 // 定位类型
@@ -53,3 +57,7 @@ export type {
   ClusterPoint,
   ClusterProps,
 } from './overlays.types';
+
+// 原生模块类型
+export type { ExpoGaodeMapModule } from './native-module.types';
+

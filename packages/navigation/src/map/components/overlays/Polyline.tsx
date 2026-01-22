@@ -1,9 +1,9 @@
-
 import * as React from 'react';
 import type { PolylineProps } from '../../types';
+import { normalizeLatLngList } from '../../utils/GeoUtils';
 
 import { requireNativeViewManager } from 'expo-modules-core';
-const NativePolylineView = requireNativeViewManager<PolylineProps>('NaviPolylineView');
+const NativePolylineView = requireNativeViewManager<PolylineProps>('PolylineView');
 
 /**
  * 渲染高德地图上的折线覆盖物组件
@@ -12,8 +12,46 @@ const NativePolylineView = requireNativeViewManager<PolylineProps>('NaviPolyline
  * @returns 高德地图原生折线视图组件
  */
 function Polyline(props: PolylineProps) {
-  return <NativePolylineView {...props} />;
+  const { points, ...restProps } = props;
+  // 归一化坐标数组
+  const normalizedPoints = normalizeLatLngList(points);
+  
+  return <NativePolylineView points={normalizedPoints} {...restProps} />;
+}
+
+/**
+ * 🔑 性能优化：浅比较关键属性
+ */
+function arePropsEqual(prevProps: PolylineProps, nextProps: PolylineProps): boolean {
+  // 比较 points 数组引用（最常变化）
+  if (prevProps.points !== nextProps.points) {
+    return false;
+  }
+  
+  // 比较样式属性
+  if (prevProps.strokeWidth !== nextProps.strokeWidth ||
+      prevProps.strokeColor !== nextProps.strokeColor ||
+      prevProps.zIndex !== nextProps.zIndex ||
+      prevProps.geodesic !== nextProps.geodesic ||
+      prevProps.dotted !== nextProps.dotted ||
+      prevProps.gradient !== nextProps.gradient ||
+      prevProps.simplificationTolerance !== nextProps.simplificationTolerance ||
+      prevProps.texture !== nextProps.texture) {
+    return false;
+  }
+
+  // 比较 colors 数组
+  if (prevProps.colors !== nextProps.colors) {
+    return false;
+  }
+  
+  // 比较回调
+  if (prevProps.onPolylinePress !== nextProps.onPolylinePress) {
+    return false;
+  }
+  
+  return true;
 }
 
 // 导出优化后的组件
-export default React.memo(Polyline);
+export default React.memo(Polyline, arePropsEqual);

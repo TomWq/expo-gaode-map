@@ -1,20 +1,34 @@
 import ExpoModulesCore
 
-public class NaviClusterViewModule: Module {
+public class ClusterViewModule: Module {
     public func definition() -> ModuleDefinition {
-        Name("NaviClusterView")
+        Name("ClusterView")
         
-        View(NaviClusterView.self) {
-            Prop("points") { (view: NaviClusterView, points: [[String: Any]]) in
+        View(ClusterView.self) {
+            Events("onClusterPress")
+
+            Prop("points") { (view: ClusterView, points: [[String: Any]]) in
                 view.setPoints(points)
             }
             
-            Prop("radius") { (view: NaviClusterView, radius: Int) in
+            Prop("radius") { (view: ClusterView, radius: Int) in
                 view.setRadius(radius)
             }
             
-            Prop("minClusterSize") { (view: NaviClusterView, size: Int) in
+            Prop("minClusterSize") { (view: ClusterView, size: Int) in
                 view.setMinClusterSize(size)
+            }
+            
+            Prop("clusterStyle") { (view: ClusterView, style: [String: Any]) in
+                view.setClusterStyle(style)
+            }
+            
+            Prop("clusterTextStyle") { (view: ClusterView, style: [String: Any]) in
+                view.setClusterTextStyle(style)
+            }
+
+            Prop("clusterBuckets") { (view: ClusterView, buckets: [[String: Any]]) in
+                view.setClusterBuckets(buckets)
             }
         }
     }

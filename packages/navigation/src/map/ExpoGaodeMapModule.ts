@@ -1,314 +1,689 @@
-/**
- * 高德地图原生模块
- * 提供 SDK 初始化、定位、权限管理等功能
- */
+import { requireNativeModule } from 'expo';
+import { Platform } from 'react-native';
 
-import { NativeModule, requireNativeModule } from 'expo';
-import type { ExpoGaodeMapModuleEvents } from './ExpoGaodeMap.types';
-import type {
+import {
   LatLng,
-  CoordinateType,
   Coordinates,
   ReGeocode,
-  LocationMode,
-  LocationAccuracy,
   LocationListener,
+  LatLngPoint,
+  CoordinateType,
 } from './types';
-
-/**
- * SDK 配置参数
- */
-export interface SDKConfig {
-  /** Android 平台的高德地图 API Key */
-  androidKey?: string;
-  /** iOS 平台的高德地图 API Key */
-  iosKey?: string;
-  /** web api key：若要使用 web-api 相关功能，建议在初始化时提供 */
-  webKey?: string;
-}
-
-/**
- * 权限状态
- */
-export interface PermissionStatus {
-  /** 是否已授权 */
-  granted: boolean;
-  /** iOS 权限状态字符串 */
-  status?: 'notDetermined' | 'restricted' | 'denied' | 'authorizedAlways' | 'authorizedWhenInUse' | 'unknown';
-  /** Android 精确位置权限 */
-  fineLocation?: boolean;
-  /** Android 粗略位置权限 */
-  coarseLocation?: boolean;
-}
-
-/**
- * 高德地图原生模块类声明
- */
-declare class ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
-  // ==================== 隐私合规管理 ====================
-  
-  /**
-   * 更新隐私合规状态
-   * 必须在用户同意隐私协议后调用
-   * @param hasAgreed 用户是否已同意隐私协议
-   */
-  updatePrivacyCompliance(hasAgreed: boolean): void;
-  
-  // ==================== SDK 初始化 ====================
-  
-  /**
-   * 初始化高德地图 SDK
-   * @param config SDK 配置参数，包含 Android 和 iOS 的 API Key
-   */
-  initSDK(config: SDKConfig): void;
-  
-  /**
-   * 获取高德地图 SDK 版本号
-   * @returns SDK 版本字符串
-   */
-  getVersion(): string;
-  
-  // ==================== 定位控制 ====================
-  
-  /**
-   * 开始连续定位
-   * 启动后会持续接收位置更新，通过 onLocationUpdate 事件回调
-   */
-  start(): void;
-  
-  /**
-   * 停止定位
-   * 停止接收位置更新
-   */
-  stop(): void;
-  
-  /**
-   * 检查是否正在定位
-   * @returns Promise<boolean> 是否正在定位
-   */
-  isStarted(): Promise<boolean>;
-  
-  /**
-   * 获取当前位置（单次定位）
-   * @returns Promise<Coordinates | ReGeocode> 位置信息，包含坐标和可选的逆地理编码信息
-   */
-  getCurrentLocation(): Promise<Coordinates | ReGeocode>;
-  
-  /**
-   * 坐标转换
-   * 将其他坐标系的坐标转换为高德地图使用的 GCJ-02 坐标系
-   * @param coordinate 需要转换的坐标
-   * @param type 原坐标系类型
-   * @returns Promise<LatLng> 转换后的 GCJ-02 坐标
-   */
-  coordinateConvert(coordinate: LatLng, type: CoordinateType): Promise<LatLng>;
-  
-  // ==================== 定位配置 ====================
-  
-  /**
-   * 设置是否返回逆地理编码信息
-   * @param isReGeocode true: 返回地址信息; false: 只返回坐标
-   */
-  setLocatingWithReGeocode(isReGeocode: boolean): void;
-  
-  /**
-   * 设置定位模式（Android）
-   * @param mode 定位模式：0-低功耗, 1-仅设备, 2-高精度
-   */
-  setLocationMode(mode: LocationMode): void;
-  
-  /**
-   * 设置定位间隔（毫秒）
-   * @param interval 定位间隔时间，单位毫秒，默认 2000ms
-   */
-  setInterval(interval: number): void;
-  
-  /**
-   * 设置是否单次定位（Android）
-   * @param isOnceLocation true: 单次定位; false: 连续定位
-   */
-  setOnceLocation(isOnceLocation: boolean): void;
-  
-  /**
-   * 设置是否使用设备传感器（Android）
-   * @param sensorEnable true: 使用传感器; false: 不使用
-   */
-  setSensorEnable(sensorEnable: boolean): void;
-  
-  /**
-   * 设置是否允许 WiFi 扫描（Android）
-   * @param wifiScan true: 允许; false: 不允许
-   */
-  setWifiScan(wifiScan: boolean): void;
-  
-  /**
-   * 设置是否 GPS 优先（Android）
-   * @param gpsFirst true: GPS 优先; false: 网络优先
-   */
-  setGpsFirst(gpsFirst: boolean): void;
-  
-  /**
-   * 设置是否等待 WiFi 列表刷新（Android）
-   * @param onceLocationLatest true: 等待; false: 不等待
-   */
-  setOnceLocationLatest(onceLocationLatest: boolean): void;
-  
-  /**
-   * 设置逆地理编码语言
-   * @param language 语言代码，如 "zh-CN", "en"
-   */
-  setGeoLanguage(language: string): void;
-  
-  /**
-   * 设置是否使用缓存策略（Android）
-   * @param locationCacheEnable true: 使用缓存; false: 不使用
-   */
-  setLocationCacheEnable(locationCacheEnable: boolean): void;
-  
-  /**
-   * 设置网络请求超时时间（Android）
-   * @param httpTimeOut 超时时间，单位毫秒
-   */
-  setHttpTimeOut(httpTimeOut: number): void;
-  
-  /**
-   * 设置期望的定位精度（iOS）
-   * @param accuracy 精度级别：0-最佳, 1-10米, 2-100米, 3-1公里, 4-3公里
-   */
-  setDesiredAccuracy(accuracy: LocationAccuracy): void;
-  
-  /**
-   * 设置定位超时时间（秒）
-   * @param timeout 超时时间，单位秒，默认 10 秒
-   */
-  setLocationTimeout(timeout: number): void;
-  
-  /**
-   * 设置逆地理编码超时时间（秒）
-   * @param timeout 超时时间，单位秒，默认 5 秒
-   */
-  setReGeocodeTimeout(timeout: number): void;
-  
-  /**
-   * 设置距离过滤器（米）（iOS）
-   * 只有移动超过指定距离才会更新位置
-   * @param distance 距离阈值，单位米
-   */
-  setDistanceFilter(distance: number): void;
-  
-  /**
-   * 设置是否自动暂停位置更新（iOS）
-   * @param pauses true: 自动暂停; false: 不暂停
-   */
-  setPausesLocationUpdatesAutomatically(pauses: boolean): void;
-  
-  /**
-   * 设置是否允许后台定位（iOS）
-   * @param allows true: 允许; false: 不允许
-   */
-  setAllowsBackgroundLocationUpdates(allows: boolean): void;
-  
-  /**
-   * 设置定位协议
-   * @param protocol 协议类型
-   */
-  setLocationProtocol(protocol: string): void;
-  
-  // ==================== 方向更新 (iOS) ====================
-  
-  /**
-   * 开始更新设备方向（罗盘朝向）
-   * 通过 onHeadingUpdate 事件接收方向更新
-   * @platform ios
-   */
-  startUpdatingHeading(): void;
-  
-  /**
-   * 停止更新设备方向
-   * @platform ios
-   */
-  stopUpdatingHeading(): void;
-  
-  // ==================== 权限管理 ====================
-  
-  /**
-   * 检查位置权限状态
-   * @returns Promise<PermissionStatus> 权限状态
-   */
-  checkLocationPermission(): Promise<PermissionStatus>;
-  
-  /**
-   * 请求位置权限
-   * @returns Promise<PermissionStatus> 请求后的权限状态
-   */
-  requestLocationPermission(): Promise<PermissionStatus>;
-  
-  // ==================== 便捷方法 ====================
-  
-  /**
-   * 添加定位监听器（便捷方法）
-   * 封装了 addListener，提供更简洁的 API
-   * @param listener 定位回调函数
-   * @returns 订阅对象，调用 remove() 取消监听
-   */
-  addLocationListener(listener: LocationListener): { remove: () => void };
-}
+import type { ExpoGaodeMapModule } from './types/native-module.types';
+import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
+import { SDKConfig, PermissionStatus } from './types/common.types';
+import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 // 获取原生模块实例 - 添加容错处理
 let nativeModule: ExpoGaodeMapModule | null = null;
 
 try {
-  nativeModule = requireNativeModule<ExpoGaodeMapModule>('NaviMap');
+  nativeModule = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
 } catch (error) {
-  // 原生模块加载失败时的静默处理
-  // 这是正常的，因为 navigation 包可以独立使用，不一定需要完整的地图功能
-  if (__DEV__) {
-    console.warn('[expo-gaode-map-navigation] NaviMap 原生模块未加载，地图相关功能将不可用');
-  }
+  console.error('Failed to load ExpoGaodeMap native module:', error);
+  const moduleError = ErrorHandler.nativeModuleUnavailable();
+  ErrorLogger.log(moduleError);
 }
 
 // 记录最近一次 initSDK 的配置（含 webKey）
 let _sdkConfig: SDKConfig | null = null;
+let _isSDKInitialized = false;
 
 // 扩展原生模块，添加便捷方法
 const ExpoGaodeMapModuleWithHelpers = {
- ...(nativeModule || {}),
+  ...(nativeModule || {}),
 
- /**
-  * 初始化 SDK，并缓存配置（包含 webKey）
-  */
- initSDK(config: SDKConfig): void {
-   _sdkConfig = config ?? null;
-   nativeModule?.initSDK?.(config);
- },
+  /**
+   * 初始化 SDK，并缓存配置（包含 webKey）
+   * 注意：允许不提供任何 API Key，因为原生端可能已通过 Config Plugin 配置
+   */
+  initSDK(config: SDKConfig): void {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
 
- /**
-  * 添加定位监听器（便捷方法）
-  * 自动订阅 onLocationUpdate 事件，提供容错处理
-  * @param listener 定位回调函数
-  * @returns 订阅对象，调用 remove() 取消监听
-  * @throws 如果底层模块不可用，返回一个空操作的订阅对象
-  */
- addLocationListener(listener: LocationListener): { remove: () => void } {
-   // 使用可选链和空值合并，确保即使模块不可用也不会崩溃
-   return nativeModule?.addListener?.('onLocationUpdate', listener) || {
-     remove: () => {},
-   };
- },
+       // 检查是否有任何 key 被提供
+    const hasJSKeys = !!(config.androidKey || config.iosKey);
+    const hasWebKey = !!config.webKey;
+     // 如果 JS 端没有提供 androidKey/iosKey,检查原生端是否已配置
+       if (!hasJSKeys) {
+        const isNativeConfigured =  nativeModule.isNativeSDKConfigured();
+        if (!isNativeConfigured && !hasWebKey){
+          throw ErrorHandler.invalidApiKey('both');
+        }
+         // 如果原生已配置,或者只提供了 webKey,继续初始化
+          ErrorLogger.warn(
+            isNativeConfigured 
+              ? 'SDK 使用原生端配置的 API Key' 
+              : 'SDK 初始化仅使用 webKey',
+            { config }
+          );
+       }
+      _sdkConfig = config ?? null;
+      nativeModule.initSDK(config);
+      _isSDKInitialized = true;
+      ErrorLogger.warn('SDK 初始化成功', { config });
+    } catch (error) {
+      _isSDKInitialized = false;
+      throw ErrorHandler.wrapNativeError(error, 'SDK 初始化');
+    }
+  },
+
+  isSDKInitialized(): boolean {
+    return _isSDKInitialized;
+  },
+
+  calculateDistanceBetweenPoints(p1: LatLngPoint, p2: LatLngPoint): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    return nativeModule.distanceBetweenCoordinates(
+      normalizeLatLng(p1),
+      normalizeLatLng(p2)
+    );
+  },
+
+  calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    return nativeModule.distanceBetweenCoordinates(
+      { latitude: lat1, longitude: lon1 },
+      { latitude: lat2, longitude: lon2 }
+    );
+  },
+
+  setLoadWorldVectorMap(enabled: boolean): void {
+    if (!nativeModule) return;
+    try {
+      nativeModule.setLoadWorldVectorMap(enabled);
+    } catch (error) {
+      ErrorLogger.warn('setLoadWorldVectorMap 失败', { enabled, error });
+    }
+  },
+
+  getVersion(): string {
+    if (!nativeModule) return '0.0.0';
+    try {
+      return nativeModule.getVersion();
+    } catch (error) {
+      ErrorLogger.warn('getVersion 失败', { error });
+      return '0.0.0';
+    }
+  },
+
+  start(): void {
+    if (!nativeModule) return;
+    try {
+      nativeModule.start();
+    } catch (error) {
+      ErrorLogger.warn('start 失败', { error });
+    }
+  },
+
+  stop(): void {
+    if (!nativeModule) return;
+    try {
+      nativeModule.stop();
+    } catch (error) {
+      ErrorLogger.warn('stop 失败', { error });
+    }
+  },
+
+  isStarted(): Promise<boolean> {
+    if (!nativeModule) return Promise.resolve(false);
+    try {
+      return nativeModule.isStarted();
+    } catch (error) {
+      ErrorLogger.warn('isStarted 失败', { error });
+      return Promise.resolve(false);
+    }
+  },
+
+  async getCurrentLocation(): Promise<Coordinates | ReGeocode> {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return await nativeModule.getCurrentLocation();
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '获取当前位置');
+    }
+  },
+
+  async coordinateConvert(coordinate: LatLngPoint, type: CoordinateType): Promise<LatLng> {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return await nativeModule.coordinateConvert(normalizeLatLng(coordinate), type);
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '坐标转换');
+    }
+  },
+
+  setLocatingWithReGeocode(isReGeocode: boolean): void {
+    if (!nativeModule) return;
+    try {
+      nativeModule.setLocatingWithReGeocode(isReGeocode);
+    } catch (error) {
+      ErrorLogger.warn('setLocatingWithReGeocode 失败', { isReGeocode, error });
+    }
+  },
+
+  get isBackgroundLocationEnabled(): boolean {
+    if (!nativeModule) return false;
+    return nativeModule.isBackgroundLocationEnabled === true;
+  },
+
+  /**
+   * 检查位置权限状态
+   */
+  async checkLocationPermission(): Promise<PermissionStatus> {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return await nativeModule.checkLocationPermission();
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '检查权限');
+    }
+  },
+
+  /**
+   * 请求前台位置权限（增强版）
+   */
+  async requestLocationPermission(): Promise<PermissionStatus> {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      const result = await nativeModule.requestLocationPermission();
+      if (!result.granted) {
+        ErrorLogger.warn('前台位置权限未授予', result);
+      }
+      return result;
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '请求前台权限');
+    }
+  },
+
+  /**
+   * 请求后台位置权限
+   * 注意：必须在前台权限已授予后才能请求
+   */
+  async requestBackgroundLocationPermission(): Promise<PermissionStatus> {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      const result = await nativeModule.requestBackgroundLocationPermission();
+      if (!result.granted) {
+        ErrorLogger.warn('后台位置权限未授予', result);
+      }
+      return result;
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '请求后台权限');
+    }
+  },
+
+  /**
+   * 打开应用设置页面
+   * 引导用户手动授予权限
+   */
+  openAppSettings(): void {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      nativeModule.openAppSettings();
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '打开设置');
+    }
+  },
+
+  setAllowsBackgroundLocationUpdates(allows: boolean): void {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+
+    if (
+      Platform.OS === 'ios' &&
+      allows &&
+      nativeModule &&
+      nativeModule.isBackgroundLocationEnabled === false
+    ) {
+      ErrorLogger.warn(
+        '⚠️ [ExpoGaodeMap] iOS 后台定位未正确配置，setAllowsBackgroundLocationUpdates(true) 可能不会生效，请检查 Info.plist 是否包含 UIBackgroundModes: location，或者在 app.json 中配置 enableBackgroundLocation: true，然后重新执行 npx expo prebuild',
+      );
+    }
+
+    if (
+      Platform.OS === 'android' &&
+      allows &&
+      nativeModule &&
+      nativeModule.checkLocationPermission
+    ) {
+      nativeModule
+        .checkLocationPermission()
+        .then((status: PermissionStatus) => {
+          if (!status.backgroundLocation) {
+            ErrorLogger.warn(
+              '⚠️ [ExpoGaodeMap] Android 后台位置权限未授予，setAllowsBackgroundLocationUpdates(true) 可能不会生效，请先通过 requestBackgroundLocationPermission 或系统设置授予后台定位权限,或者检查是否在 app.json 中配置了 enableBackgroundLocation: true，然后重新执行 npx expo prebuild',
+            );
+          }
+        })
+        .catch(() => {
+          // 忽略检查失败，只影响日志，不影响功能
+        });
+    }
+
+    nativeModule.setAllowsBackgroundLocationUpdates(allows);
+  },
+
+  /**
+   * 添加定位监听器（便捷方法）
+   * 自动订阅 onLocationUpdate 事件，提供容错处理
+   * @param listener 定位回调函数
+   * @returns 订阅对象，调用 remove() 取消监听
+   * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
+   */
+  addLocationListener(listener: LocationListener): { remove: () => void } {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    if (!nativeModule?.addListener) {
+      ErrorLogger.warn('Native module does not support events');
+    }
+   
+    return nativeModule?.addListener?.('onLocationUpdate', listener) || {
+      remove: () => { },
+    };
+  },
+
+  // ==================== 几何计算方法 ====================
+
+  /**
+   * 计算两个坐标点之间的距离
+   * @param coordinate1 第一个坐标点
+   * @param coordinate2 第二个坐标点
+   * @returns 两点之间的距离（单位：米）
+   */
+  distanceBetweenCoordinates(coordinate1: LatLngPoint, coordinate2: LatLngPoint): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.distanceBetweenCoordinates(
+        normalizeLatLng(coordinate1),
+        normalizeLatLng(coordinate2)
+      );
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '计算距离');
+    }
+  },
+
+  /**
+   * 判断点是否在圆内
+   * @param point 要判断的点
+   * @param center 圆心坐标
+   * @param radius 圆半径（单位：米）
+   * @returns 是否在圆内
+   */
+  isPointInCircle(point: LatLngPoint, center: LatLngPoint, radius: number): boolean {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.isPointInCircle(
+        normalizeLatLng(point),
+        normalizeLatLng(center),
+        radius
+      );
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '判断点是否在圆内');
+    }
+  },
+
+  /**
+   * 判断点是否在多边形内
+   * @param point 要判断的点
+   * @param polygon 多边形的顶点坐标数组
+   * @returns 是否在多边形内
+   */
+  isPointInPolygon(point: LatLngPoint, polygon: LatLngPoint[]): boolean {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.isPointInPolygon(
+        normalizeLatLng(point),
+        normalizeLatLngList(polygon)
+      );
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '判断点是否在多边形内');
+    }
+  },
+
+  /**
+   * 计算多边形面积
+   * @param polygon 多边形的顶点坐标数组
+   * @returns 面积（单位：平方米）
+   */
+  calculatePolygonArea(polygon: LatLngPoint[]): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.calculatePolygonArea(normalizeLatLngList(polygon));
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '计算多边形面积');
+    }
+  },
+
+  /**
+   * 计算矩形面积
+   * @param southWest 西南角坐标
+   * @param northEast 东北角坐标
+   * @returns 面积（单位：平方米）
+   */
+  calculateRectangleArea(southWest: LatLngPoint, northEast: LatLngPoint): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.calculateRectangleArea(
+        normalizeLatLng(southWest),
+        normalizeLatLng(northEast)
+      );
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '计算矩形面积');
+    }
+  },
+
+  /**
+   * 获取路径上距离目标点最近的点
+   * @param path 路径点集合
+   * @param target 目标点
+   * @returns 最近点信息，包含坐标、索引和距离
+   */
+  getNearestPointOnPath(path: LatLngPoint[], target: LatLngPoint): {
+    latitude: number;
+    longitude: number;
+    index: number;
+    distanceMeters: number;
+  } | null {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.getNearestPointOnPath(
+        normalizeLatLngList(path),
+        normalizeLatLng(target)
+      );
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '获取最近点');
+    }
+  },
+
+  /**
+   * 计算多边形质心
+   * @param polygon 多边形顶点坐标数组
+   * @returns 质心坐标
+   */
+  calculateCentroid(polygon: LatLngPoint[]): LatLng | null {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.calculateCentroid(normalizeLatLngList(polygon));
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '计算质心');
+    }
+  },
+
+  /**
+   * 计算路径边界和中心点
+   * @param points 路径点集合
+   * @returns 边界信息，包含 north, south, east, west 和 center
+   */
+  calculatePathBounds(points: LatLngPoint[]): {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+    center: LatLngPoint;
+  } | null {
+    if (!nativeModule) return null;
+    try {
+      const normalized = normalizeLatLngList(points);
+      if (normalized.length === 0) return null;
+      return nativeModule.calculatePathBounds(normalized);
+    } catch (error) {
+      ErrorLogger.warn('calculatePathBounds 失败', { pointsCount: points.length, error });
+      return null;
+    }
+  },
+
+  /**
+   * GeoHash 编码
+   * @param coordinate 坐标点
+   * @param precision 精度 (1-12)
+   * @returns GeoHash 字符串
+   */
+  encodeGeoHash(coordinate: LatLngPoint, precision: number): string {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.encodeGeoHash(normalizeLatLng(coordinate), precision);
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, 'GeoHash 编码');
+    }
+  },
+
+  /**
+   * 轨迹抽稀 (RDP 算法)
+   * @param points 原始轨迹点
+   * @param tolerance 允许误差(米)
+   * @returns 简化后的轨迹点
+   */
+  simplifyPolyline(points: LatLngPoint[], tolerance: number): LatLng[] {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.simplifyPolyline(normalizeLatLngList(points), tolerance);
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '轨迹抽稀');
+    }
+  },
+
+  /**
+   * 计算路径总长度
+   * @param points 路径点
+   * @returns 长度(米)
+   */
+  calculatePathLength(points: LatLngPoint[]): number {
+    if (!nativeModule) return 0;
+    try {
+      return nativeModule.calculatePathLength(normalizeLatLngList(points));
+    } catch (error) {
+      ErrorLogger.warn('calculatePathLength 失败', { pointsCount: points.length, error });
+      return 0;
+    }
+  },
+
+  /**
+   * 解析高德地图 API 返回的 Polyline 字符串
+   * 格式: "lng,lat;lng,lat;..."
+   * @param polylineStr 高德原始 polyline 字符串，或包含 polyline 属性的对象
+   * @returns 解析后的点集
+   */
+  parsePolyline(polylineStr: string | { polyline: string }): LatLng[] {
+    if (!nativeModule || !polylineStr) return [];
+    try {
+      // 兼容性处理：如果传入的是对象 { polyline: '...' }，自动提取字符串
+      let finalStr: string = '';
+      if (typeof polylineStr === 'object' && polylineStr !== null && 'polyline' in polylineStr) {
+        finalStr = polylineStr.polyline || '';
+      } else if (typeof polylineStr === 'string') {
+        finalStr = polylineStr;
+      }
+
+      if (!finalStr) return [];
+      return nativeModule.parsePolyline(finalStr);
+    } catch (error) {
+      ErrorLogger.warn('解析 Polyline 失败', { polylineStr, error });
+      return [];
+    }
+  },
+
+  /**
+   * 获取路径上指定距离的点
+   * @param points 路径点
+   * @param distance 距离起点的米数
+   * @returns 点信息(坐标+角度)
+   */
+  getPointAtDistance(points: LatLngPoint[], distance: number): {
+    latitude: number;
+    longitude: number;
+    angle: number;
+  } | null {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    try {
+      return nativeModule.getPointAtDistance(normalizeLatLngList(points), distance);
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '获取路径上的点');
+    }
+  },
+
+  /**
+   * 经纬度转换为地图瓦片坐标
+   * @param coordinate 经纬度点
+   * @param zoom 缩放级别
+   * @returns 瓦片坐标(x, y, z)
+   */
+  latLngToTile(coordinate: LatLngPoint, zoom: number): { x: number; y: number; z: number } | null {
+    if (!nativeModule) return null;
+    try {
+      return nativeModule.latLngToTile(normalizeLatLng(coordinate), zoom);
+    } catch (error) {
+      ErrorLogger.warn('latLngToTile 失败', { coordinate, zoom, error });
+      return null;
+    }
+  },
+
+  /**
+   * 地图瓦片坐标转换为经纬度
+   * @param tile 瓦片坐标(x, y, z)
+   * @returns 经纬度点
+   */
+  tileToLatLng(tile: { x: number; y: number; z: number }): LatLng | null {
+    if (!nativeModule) return null;
+    try {
+      return nativeModule.tileToLatLng(tile);
+    } catch (error) {
+      ErrorLogger.warn('tileToLatLng 失败', { tile, error });
+      return null;
+    }
+  },
+
+  /**
+   * 经纬度转换为地图像素坐标
+   * @param coordinate 经纬度点
+   * @param zoom 缩放级别
+   * @returns 像素坐标(x, y)
+   */
+  latLngToPixel(coordinate: LatLngPoint, zoom: number): { x: number; y: number } | null {
+    if (!nativeModule) return null;
+    try {
+      return nativeModule.latLngToPixel(normalizeLatLng(coordinate), zoom);
+    } catch (error) {
+      ErrorLogger.warn('latLngToPixel 失败', { coordinate, zoom, error });
+      return null;
+    }
+  },
+
+  /**
+   * 地图像素坐标转换为经纬度
+   * @param pixel 像素坐标(x, y)
+   * @param zoom 缩放级别
+   * @returns 经纬度点
+   */
+  pixelToLatLng(pixel: { x: number; y: number }, zoom: number): LatLng | null {
+    if (!nativeModule) return null;
+    try {
+      return nativeModule.pixelToLatLng(pixel, zoom);
+    } catch (error) {
+      ErrorLogger.warn('pixelToLatLng 失败', { pixel, zoom, error });
+      return null;
+    }
+  },
+
+  /**
+   * 批量地理围栏检测
+   * @param point 待检查的点
+   * @param polygons 多边形数组，格式为 LatLngPoint[][] 或 LatLngPoint[][][]
+   * @returns 包含点索引的数组（-1 表示不在任何多边形内）
+   */
+  findPointInPolygons(point: LatLngPoint, polygons: LatLngPoint[][] | LatLngPoint[][][]): number {
+    if (!nativeModule) return -1;
+    try {
+      const normalizedPoint = normalizeLatLng(point);
+      let normalizedPolygons: LatLngPoint[][];
+
+      // 处理三维数组 (LatLngPoint[][][]) 和二维数组 (LatLngPoint[][])
+      if (Array.isArray(polygons[0]) && Array.isArray(polygons[0][0])) {
+        // LatLngPoint[][][] -> 扁平化为 LatLngPoint[][] 用于 C++ 遍历
+        normalizedPolygons = (polygons as LatLngPoint[][][]).reduce((acc, val) => acc.concat(val), []);
+      } else {
+        normalizedPolygons = polygons as LatLngPoint[][];
+      }
+
+      const processedPolygons = normalizedPolygons.map(p => normalizeLatLngList(p));
+      return nativeModule.findPointInPolygons(normalizedPoint, processedPolygons);
+    } catch (error) {
+      ErrorLogger.warn('findPointInPolygons 失败', { point, error });
+      return -1;
+    }
+  },
+
+  /**
+   * 生成网格聚合数据 (常用于展示网格聚合图或大规模点数据处理)
+   * @param points 包含经纬度和权重的点数组
+   * @param gridSizeMeters 网格大小（米）
+   * @returns 包含经纬度和强度的网格点数组
+   */
+  generateHeatmapGrid(
+    points: Array<LatLngPoint & { weight?: number }>,
+    gridSizeMeters: number
+  ): Array<{ latitude: number; longitude: number; intensity: number }> {
+    if (!nativeModule || points.length === 0) return [];
+    try {
+      return nativeModule.generateHeatmapGrid(points, gridSizeMeters);
+    } catch (error) {
+      ErrorLogger.warn('generateHeatmapGrid 失败', { pointsCount: points.length, gridSizeMeters, error });
+      return [];
+    }
+  },
 };
 
 /**
 * 获取最近一次 initSDK 的配置
 */
 export function getSDKConfig(): SDKConfig | null {
- return _sdkConfig;
+  return _sdkConfig;
 }
 
 /**
 * 获取用于 Web API 的 webKey（若未初始化或未提供则返回 undefined）
 */
 export function getWebKey(): string | undefined {
- return _sdkConfig?.webKey;
+  return _sdkConfig?.webKey;
 }
 
-export default ExpoGaodeMapModuleWithHelpers as ExpoGaodeMapModule;
+export default ExpoGaodeMapModuleWithHelpers as unknown as ExpoGaodeMapModule;

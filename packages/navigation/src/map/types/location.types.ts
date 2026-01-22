@@ -366,3 +366,7 @@ export interface LocationOptions {
  * 定位事件监听器
  */
 export type LocationListener = (location: Coordinates | ReGeocode) => void;
+
+
+
+

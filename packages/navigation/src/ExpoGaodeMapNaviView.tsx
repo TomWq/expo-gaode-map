@@ -1,12 +1,12 @@
 
 import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
-import type { Coordinates, NaviViewProps } from './types';
+import type { Coordinates, ExpoGaodeMapNaviViewProps } from './types';
 
 /**
- * NaviView Ref 类型
+ * ExpoGaodeMapNaviView Ref 类型
  */
-export interface NaviViewRef {
+export interface ExpoGaodeMapNaviViewRef {
   /**
    * 开始导航
    */
@@ -19,7 +19,7 @@ export interface NaviViewRef {
 }
 
 
-const NativeView: React.ComponentType<NaviViewProps & { ref?: React.Ref<any> }> = requireNativeViewManager('ExpoGaodeMapNaviView');
+const NativeView: React.ComponentType<ExpoGaodeMapNaviViewProps & { ref?: React.Ref<any> }> = requireNativeViewManager('ExpoGaodeMapNaviView');
 
 /**
  * 高德导航视图组件
@@ -34,11 +34,11 @@ const NativeView: React.ComponentType<NaviViewProps & { ref?: React.Ref<any> }> 
  *
  * @example
  * ```tsx
- * import { NaviView } from 'expo-gaode-map-navigation';
+ * import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
  *
  * function NavigationScreen() {
  *   return (
- *     <NaviView
+ *     <ExpoGaodeMapNaviView
  *       style={{ flex: 1 }}
  *       naviType={0} // GPS 导航
  *       showCamera={true}
@@ -54,13 +54,13 @@ const NativeView: React.ComponentType<NaviViewProps & { ref?: React.Ref<any> }> 
  * }
  * ```
  */
-export const NaviView = React.forwardRef<NaviViewRef, NaviViewProps>((props, ref) => {
+export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, ExpoGaodeMapNaviViewProps>((props, ref) => {
   const nativeRef = React.useRef<any>(null);
   
   // 创建 API 引用
-  const apiRef: NaviViewRef = React.useMemo(() => ({
+  const apiRef: ExpoGaodeMapNaviViewRef = React.useMemo(() => ({
     startNavigation: async (start: Coordinates | null, end: Coordinates, type: number) => {
-      if (!nativeRef.current) throw new Error('NaviView not initialized');
+      if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
       // 将对象解构为单独的参数传递给原生层
       const startLat = start?.latitude ?? 0;
       const startLng = start?.longitude ?? 0;
@@ -69,7 +69,7 @@ export const NaviView = React.forwardRef<NaviViewRef, NaviViewProps>((props, ref
       return nativeRef.current.startNavigation(startLat, startLng, endLat, endLng);
     },
     stopNavigation: async () => {
-      if (!nativeRef.current) throw new Error('NaviView not initialized');
+      if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
       return nativeRef.current.stopNavigation();
     },
   }), []);
@@ -80,6 +80,6 @@ export const NaviView = React.forwardRef<NaviViewRef, NaviViewProps>((props, ref
   return <NativeView ref={nativeRef} {...props} />;
 });
 
-NaviView.displayName = 'NaviView';
+ExpoGaodeMapNaviView.displayName = 'ExpoGaodeMapNaviView';
 
-export default NaviView;
+export default ExpoGaodeMapNaviView;

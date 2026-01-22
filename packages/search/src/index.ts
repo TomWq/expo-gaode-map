@@ -1,6 +1,5 @@
 import ExpoGaodeMapSearchModule from './ExpoGaodeMapSearchModule';
 import type {
-  SearchType,
   Coordinates,
   POI,
   POISearchOptions,

@@ -3,8 +3,8 @@
  * 基于 Expo Modules API
  */
 
-import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent } from 'react-native';
-import type { ColorValue, LatLng, Point } from './common.types';
+import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent, TextStyle } from 'react-native';
+import type { ColorValue, LatLng, LatLngPoint, Point } from './common.types';
 
 /**
  * 标记点属性
@@ -12,8 +12,9 @@ import type { ColorValue, LatLng, Point } from './common.types';
 export interface MarkerProps {
   /**
    * 坐标
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  position: LatLng;
+  position: LatLngPoint;
 
   /**
    * 图标
@@ -51,6 +52,7 @@ export interface MarkerProps {
 
   /**
    * 是否可拖拽
+   * @default false
    */
   draggable?: boolean;
 
@@ -114,6 +116,17 @@ export interface MarkerProps {
   customViewHeight?: number;
 
   /**
+   * 缓存 key 建议使用 提高性能
+   */
+  cacheKey?: string;
+
+  /**
+   * 是否开启生长动画
+   * @default false
+   */
+  growAnimation?: boolean;
+
+  /**
    * 点击事件
    */
   onMarkerPress?: (event: NativeSyntheticEvent<LatLng>) => void;
@@ -132,6 +145,18 @@ export interface MarkerProps {
    * 拖拽结束事件
    */
   onMarkerDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
+
+  /**
+   * 平滑移动轨迹点数组
+   * 设置后，Marker 会沿着轨迹平滑移动
+   */
+  smoothMovePath?: LatLng[];
+
+  /**
+   * 平滑移动总时长（秒）
+   * @default 10
+   */
+  smoothMoveDuration?: number;
 }
 
 /**
@@ -140,8 +165,9 @@ export interface MarkerProps {
 export interface PolylineProps {
   /**
    * 节点坐标数组
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  points: LatLng[];
+  points: LatLngPoint[];
 
   /**
    * 线宽
@@ -178,6 +204,13 @@ export interface PolylineProps {
   geodesic?: boolean;
 
   /**
+   * 轨迹抽稀容差（米）
+   * 设置大于 0 的值时启用 RDP 算法简化轨迹点
+   * 建议值为 1.0 - 5.0，值越大简化程度越高
+   */
+  simplificationTolerance?: number;
+
+  /**
    * 是否绘制虚线
    * @platform android
    * @note iOS 不支持
@@ -202,8 +235,11 @@ export interface PolylineProps {
 export interface PolygonProps {
   /**
    * 节点坐标数组
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
+   * 同时也支持嵌套数组格式 [[p1, p2, ...], [p3, p4, ...]]，用于定义带孔的多边形
+   * 其中第一个数组为外轮廓，后续数组为内孔
    */
-  points: LatLng[];
+  points: LatLngPoint[] | LatLngPoint[][];
 
   /**
    * 边线宽度
@@ -229,6 +265,18 @@ export interface PolygonProps {
    * 点击事件
    */
   onPolygonPress?: (event: NativeSyntheticEvent<{}>) => void;
+
+  /**
+   * 轨迹抽稀容差（米）
+   * 设置大于 0 的值时启用 RDP 算法简化多边形边界
+   * 建议值为 1.0 - 5.0，值越大简化程度越高
+   */
+  simplificationTolerance?: number;
+
+  /**
+   * 简化完成事件
+   */
+  onPolygonSimplified?: (event: NativeSyntheticEvent<{ originalCount: number; simplifiedCount: number }>) => void;
 }
 
 /**
@@ -237,8 +285,9 @@ export interface PolygonProps {
 export interface CircleProps {
   /**
    * 圆心坐标
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  center: LatLng;
+  center: LatLngPoint;
 
   /**
    * 半径（米）
@@ -274,13 +323,36 @@ export interface CircleProps {
 }
 
 /**
+ * 热力图渐变配置
+ */
+export interface HeatMapGradient {
+  /**
+   * 颜色数组
+   * 支持 '#RRGGBB', 'rgba()', 'red' 等
+   */
+  colors: ColorValue[];
+  
+  /**
+   * 颜色起始点数组 [0-1]
+   * 必须递增，例如 [0.2, 0.5, 0.9]
+   */
+  startPoints: number[];
+}
+
+/**
  * 热力图属性
  */
 export interface HeatMapProps {
   /**
    * 热力点数据
+   * 支持对象 {latitude, longitude} 或数组 [longitude, latitude]
    */
-  data: LatLng[];
+  data: LatLngPoint[];
+
+  /**
+   * 是否显示热力图（用于避免频繁卸载/重建导致卡顿）
+   */
+  visible?: boolean;
 
   /**
    * 热力半径（米）
@@ -291,6 +363,17 @@ export interface HeatMapProps {
    * 透明度 [0, 1]
    */
   opacity?: number;
+
+  /**
+   * 热力图渐变配置
+   */
+  gradient?: HeatMapGradient;
+
+  /**
+   * 是否开启高清热力图（Retina适配）
+   * @platform ios
+   */
+  allowRetinaAdapting?: boolean;
 }
 
 /**
@@ -305,7 +388,7 @@ export interface MultiPointItem extends LatLng {
   /**
    * 自定义数据
    */
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -315,17 +398,27 @@ export interface MultiPointProps {
   /**
    * 点集合
    */
-  items: MultiPointItem[];
+  points: MultiPointItem[];
 
   /**
    * 图标
    */
-  icon?: ImageSourcePropType;
+  icon?: string | ImageSourcePropType; 
+
+  /**
+   * 图标宽度
+   */
+  iconWidth?: number;
+
+  /**
+   * 图标高度
+   */
+  iconHeight?: number;
 
   /**
    * 点击事件
    */
-  onPress?: (event: NativeSyntheticEvent<{ index: number; item: MultiPointItem }>) => void;
+  onMultiPointPress?: (event: NativeSyntheticEvent<{ index: number; item: MultiPointItem }>) => void;
 }
 
 /**
@@ -333,19 +426,34 @@ export interface MultiPointProps {
  */
 export interface ClusterParams {
   /**
-   * 唯一标识
-   */
-  id: number;
-
-  /**
    * 包含的标记点数量
    */
   count: number;
 
   /**
-   * 聚合点坐标
+   * 纬度
    */
-  position: LatLng;
+  latitude: number;
+
+  /**
+   * 经度
+   */
+  longitude: number;
+
+  /**
+   * 包含的点数据列表
+   */
+  pois?: ClusterPoint[];
+
+  /**
+   * 唯一标识 (兼容性保留)
+   */
+  id?: number;
+
+  /**
+   * 聚合点坐标 (兼容性保留)
+   */
+  position?: LatLng;
 }
 
 /**
@@ -353,14 +461,24 @@ export interface ClusterParams {
  */
 export interface ClusterPoint {
   /**
-   * 坐标
+   * 纬度（原生 Cluster 使用）
    */
-  position: LatLng;
+  latitude?: number;
+  
+  /**
+   * 经度（原生 Cluster 使用）
+   */
+  longitude?: number;
+
+  /**
+   * 坐标（JS ClusterLayer 使用）
+   */
+  position?: LatLngPoint;
 
   /**
    * 自定义数据
    */
-  properties?: any;
+  properties?: Record<string, unknown>;
 }
 
 /**
@@ -373,14 +491,25 @@ export interface ClusterProps {
   radius?: number;
 
   /**
+   * 最小聚合数量
+   */
+  minClusterSize?: number;
+
+  /**
    * 聚合点样式
    */
   clusterStyle?: ViewStyle;
 
   /**
+   * 分级聚合样式配置
+   * 根据聚合数量动态设置样式
+   */
+  clusterBuckets?: ({ minPoints: number } & ViewStyle)[];
+
+  /**
    * 聚合点文本样式
    */
-  clusterTextStyle?: ViewStyle;
+  clusterTextStyle?: TextStyle;
 
   /**
    * 坐标点列表
@@ -388,12 +517,12 @@ export interface ClusterProps {
   points: ClusterPoint[];
 
   /**
-   * 渲染标记点
+   * 暂未实现，请勿使用
    */
-  renderMarker: (item: ClusterPoint) => React.ReactNode;
+  renderMarker?: (item: ClusterPoint) => React.ReactNode;
 
   /**
-   * 渲染聚合点
+   * 暂未实现，请勿使用
    */
   renderCluster?: (params: ClusterParams) => React.ReactNode;
 

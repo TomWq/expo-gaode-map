@@ -1,6 +1,5 @@
 package expo.modules.gaodemap.map.overlays
 
-import expo.modules.gaodemap.map.overlays.CircleView
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -9,24 +8,24 @@ import expo.modules.kotlin.modules.ModuleDefinition
  */
 class CircleViewModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("NaviCircleView")
+    Name("CircleView")
 
     View(CircleView::class) {
       Events("onCirclePress")
       
-      Prop<Map<String, Double>>("center") { view, center ->
+      Prop<Map<String, Any>?>("center") { view: CircleView, center ->
         view.setCenter(center)
       }
       
-      Prop<Double>("radius") { view, radius ->
+      Prop<Double>("radius") { view: CircleView, radius ->
         view.setRadius(radius)
       }
       
-      Prop<Any>("fillColor") { view, color ->
+      Prop<String?>("fillColor") { view: CircleView, color ->
         view.setFillColor(color)
       }
       
-      Prop<Any>("strokeColor") { view, color ->
+      Prop<String?>("strokeColor") { view: CircleView, color ->
         view.setStrokeColor(color)
       }
       

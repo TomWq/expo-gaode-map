@@ -1,88 +1,95 @@
-
-
 import * as React from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
 import type { MarkerProps } from '../../types';
+import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 
-const NativeMarkerView = requireNativeViewManager('NaviMarkerView');
+const NativeMarkerView = requireNativeViewManager('MarkerView');
 
 /**
  * Marker 组件 - 完全声明式 API
  *
  * 支持：
  * - 自定义图标（icon）
- * - 自定义内容（children）
+ * - 自定义内容（children）- 自动测量尺寸
  * - 大头针样式（pinColor）
  * - 拖拽功能
  * - 所有事件回调
  */
 function Marker(props: MarkerProps) {
-  // 根据是否有 children 来决定使用哪个尺寸属性
-  // 有 children：使用 customViewWidth/customViewHeight（默认 200x40）
-  // 无 children：使用 iconWidth/iconHeight（用于自定义图标，默认 40x40）
-  const containerWidth = props.children
-    ? (props.customViewWidth && props.customViewWidth > 0 ? props.customViewWidth : 200)
-    : (props.iconWidth && props.iconWidth > 0 ? props.iconWidth : 40);
-  const containerHeight = props.children
-    ? (props.customViewHeight && props.customViewHeight > 0 ? props.customViewHeight : 40)
-    : (props.iconHeight && props.iconHeight > 0 ? props.iconHeight : 40);
-  
   // 从 props 中排除 position 属性，避免传递到原生层
-  const { position, ...restProps } = props;
+  const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, smoothMovePath, ...restProps } = props;
+  
+  // 归一化坐标处理
+  const normalizedPosition = normalizeLatLng(position);
+  const normalizedSmoothMovePath = smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined;
+
+  // 根据是否有 children 来决定使用哪个尺寸属性
+  const hasChildren = !!children;
+  
+  // 智能尺寸计算
+  const finalIconWidth = hasChildren
+    ? (customViewWidth && customViewWidth > 0 ? customViewWidth : 0)
+    : (iconWidth && iconWidth > 0 ? iconWidth : 40);
+    
+  const finalIconHeight = hasChildren
+    ? (customViewHeight && customViewHeight > 0 ? customViewHeight : 0)
+    : (iconHeight && iconHeight > 0 ? iconHeight : 40);
   
   return (
     <NativeMarkerView
-      latitude={position.latitude}
-      longitude={position.longitude}
-      iconWidth={containerWidth}
-      iconHeight={containerHeight}
-      customViewWidth={containerWidth}
-      customViewHeight={containerHeight}
+      latitude={normalizedPosition.latitude}
+      longitude={normalizedPosition.longitude}
+      iconWidth={finalIconWidth}
+      iconHeight={finalIconHeight}
+      customViewWidth={finalIconWidth}
+      customViewHeight={finalIconHeight}
+      smoothMovePath={normalizedSmoothMovePath}
       {...restProps}
     >
-      {props.children}
+      {children}
     </NativeMarkerView>
   );
 }
 
 /**
- * 自定义比较函数
- * 深度比较 position 和其他关键属性
+ * 🔑 性能优化：极简比较函数
+ * 只检查最常变化的关键属性,减少 JS 线程开销
  */
 function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean {
-  // 比较 position
+  // 快速路径：比较 position (最常变化)
+  const prevPos = normalizeLatLng(prevProps.position);
+  const nextPos = normalizeLatLng(nextProps.position);
+
   if (
-    prevProps.position.latitude !== nextProps.position.latitude ||
-    prevProps.position.longitude !== nextProps.position.longitude
+    prevPos.latitude !== nextPos.latitude ||
+    prevPos.longitude !== nextPos.longitude
   ) {
     return false;
   }
   
-  // 比较基础属性
-  if (
-    prevProps.title !== nextProps.title ||
-    prevProps.snippet !== nextProps.snippet ||
-    prevProps.icon !== nextProps.icon ||
-    prevProps.pinColor !== nextProps.pinColor ||
-    prevProps.draggable !== nextProps.draggable ||
-    prevProps.animatesDrop !== nextProps.animatesDrop ||
-    prevProps.iconWidth !== nextProps.iconWidth ||
-    prevProps.iconHeight !== nextProps.iconHeight ||
-    prevProps.customViewWidth !== nextProps.customViewWidth ||
-    prevProps.customViewHeight !== nextProps.customViewHeight
-  ) {
+  // 比较 cacheKey (如果提供了 cacheKey,其他属性理论上不会变)
+  if (prevProps.cacheKey !== nextProps.cacheKey) {
     return false;
   }
   
-  // 比较 children（简单比较，可根据需要深度比较）
+  // 比较 children (如果有 children)
   if (prevProps.children !== nextProps.children) {
     return false;
   }
   
-  // 其他属性相同，不需要重新渲染
+  // 比较 smoothMovePath (平滑移动路径)
+  if (JSON.stringify(prevProps.smoothMovePath) !== JSON.stringify(nextProps.smoothMovePath)) {
+    return false;
+  }
+  
+  // 比较 smoothMoveDuration (平滑移动时长)
+  if (prevProps.smoothMoveDuration !== nextProps.smoothMoveDuration) {
+    return false;
+  }
+  
+  // 其他属性相同,不重新渲染
   return true;
 }
 
 // 导出优化后的组件
 export default React.memo(Marker, arePropsEqual);
-

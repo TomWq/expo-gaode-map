@@ -8,12 +8,12 @@ import expo.modules.kotlin.modules.ModuleDefinition
  */
 class PolylineViewModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("NaviPolylineView")
+    Name("PolylineView")
 
     View(PolylineView::class) {
       Events("onPolylinePress")
       
-      Prop<List<Map<String, Double>>>("points") { view: PolylineView, points ->
+      Prop<List<Any>?>("points") { view: PolylineView, points ->
         view.setPoints(points)
       }
       
@@ -21,7 +21,7 @@ class PolylineViewModule : Module() {
         view.setStrokeWidth(width)
       }
       
-      Prop<Any>("strokeColor") { view: PolylineView, color ->
+      Prop<String?>("strokeColor") { view: PolylineView, color ->
         view.setStrokeColor(color)
       }
       
@@ -43,6 +43,10 @@ class PolylineViewModule : Module() {
 
       Prop<Boolean>("gradient")  { view: PolylineView, gradient ->
           view.setGradient(gradient)
+      }
+
+      Prop<Double>("simplificationTolerance") { view: PolylineView, tolerance ->
+        view.setSimplificationTolerance(tolerance)
       }
     }
   }

@@ -1,6 +1,6 @@
 package expo.modules.gaodemap.map.services
 
-import android.R
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -37,6 +37,7 @@ class LocationForegroundService : Service() {
         }
     }
     
+    @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -69,7 +70,7 @@ class LocationForegroundService : Service() {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("定位服务运行中")
             .setContentText("正在后台获取位置信息")
-            .setSmallIcon(R.drawable.ic_menu_mylocation)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
         

@@ -3,6 +3,7 @@ package expo.modules.gaodemap.map
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
+import android.view.ViewGroup
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import com.amap.api.maps.MapsInitializer
@@ -12,8 +13,10 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import expo.modules.gaodemap.map.managers.CameraManager
 import expo.modules.gaodemap.map.managers.UIManager
-import expo.modules.gaodemap.map.overlays.CircleView
 import expo.modules.gaodemap.map.overlays.*
+import androidx.core.graphics.createBitmap
+import androidx.core.view.isVisible
+import androidx.core.graphics.withTranslation
 
 /**
  * 高德地图视图组件
@@ -24,6 +27,8 @@ import expo.modules.gaodemap.map.overlays.*
  * - 相机控制和覆盖物管理
  * - 生命周期管理
  */
+
+@SuppressLint("ViewConstructor")
 class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
     /**
@@ -45,6 +50,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     internal var initialCameraPosition: Map<String, Any?>? = null
     /** 是否跟随用户位置 */
     internal var followUserLocation: Boolean = false
+    /** 自定义地图样式配置（缓存） */
+    private var customMapStyleData: Map<String, Any>? = null
 
     /** 主线程 Handler */
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -56,6 +63,21 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     private val onLocation by EventDispatcher()
     private val onCameraMove by EventDispatcher()
     private val onCameraIdle by EventDispatcher()
+
+    // 事件节流控制
+    /** 相机移动事件节流间隔(毫秒) */
+    private val CAMERA_MOVE_THROTTLE_MS = 100L
+    /** 上次触发相机移动事件的时间戳 */
+    private var lastCameraMoveTime = 0L
+    /** 缓存的相机移动事件数据 */
+    private var pendingCameraMoveData: Map<String, Any>? = null
+    /** 节流定时器 Runnable */
+    private val throttleRunnable = Runnable {
+        pendingCameraMoveData?.let { data ->
+            onCameraMove(data)
+            pendingCameraMoveData = null
+        }
+    }
 
     // 高德地图视图
     private lateinit var mapView: MapView
@@ -75,9 +97,19 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             MapsInitializer.updatePrivacyShow(context, true, true)
             MapsInitializer.updatePrivacyAgree(context, true)
 
-            // 创建地图视图
-            mapView = MapView(context)
-            mapView.onCreate(null)
+            // 尝试从预加载池获取 MapView
+            val preloadedMapView = MapPreloadManager.getPreloadedMapView()
+            
+            if (preloadedMapView != null) {
+                mapView = preloadedMapView
+                android.util.Log.i("ExpoGaodeMapView", "🚀 使用预加载的 MapView 实例")
+            } else {
+                // 创建地图视图
+                mapView = MapView(context)
+                mapView.onCreate(null)
+                android.util.Log.i("ExpoGaodeMapView", "⚠️ 创建新的 MapView 实例 (未命中预加载池)")
+            }
+            
             aMap = mapView.map
 
             // 初始化管理器
@@ -115,11 +147,29 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                     pendingCameraPosition = null
                 }
 
+                // 应用缓存的自定义地图样式
+                customMapStyleData?.let { styleData ->
+                    uiManager.setCustomMapStyle(styleData)
+                }
+
                 onLoad(mapOf("loaded" to true))
             }
         } catch (_: Exception) {
             // 初始化失败，静默处理
         }
+    }
+
+    // 辅助监听器列表
+    private val cameraChangeListeners = mutableListOf<AMap.OnCameraChangeListener>()
+
+    fun addCameraChangeListener(listener: AMap.OnCameraChangeListener) {
+        if (!cameraChangeListeners.contains(listener)) {
+            cameraChangeListeners.add(listener)
+        }
+    }
+
+    fun removeCameraChangeListener(listener: AMap.OnCameraChangeListener) {
+        cameraChangeListeners.remove(listener)
     }
 
     /**
@@ -129,10 +179,14 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         // 设置相机移动监听器
         aMap.setOnCameraChangeListener(object : AMap.OnCameraChangeListener {
             override fun onCameraChange(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
-                // 相机移动中
+                // 通知辅助监听器
+                cameraChangeListeners.forEach { it.onCameraChange(cameraPosition) }
+
+                // 相机移动中 - 应用节流优化
                 cameraPosition?.let {
+                    val currentTime = System.currentTimeMillis()
                     val visibleRegion = aMap.projection.visibleRegion
-                    onCameraMove(mapOf(
+                    val eventData = mapOf(
                         "cameraPosition" to mapOf(
                             "target" to mapOf(
                                 "latitude" to it.target.latitude,
@@ -152,11 +206,32 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                                 "longitude" to visibleRegion.nearLeft.longitude
                             )
                         )
-                    ))
+                    )
+                    
+                    // 节流逻辑：100ms 内只触发一次
+                    if (currentTime - lastCameraMoveTime >= CAMERA_MOVE_THROTTLE_MS) {
+                        // 超过节流时间，立即触发事件
+                        lastCameraMoveTime = currentTime
+                        onCameraMove(eventData)
+                        // 清除待处理的事件和定时器
+                        mainHandler.removeCallbacks(throttleRunnable)
+                        pendingCameraMoveData = null
+                    } else {
+                        // 在节流时间内，缓存事件数据，使用定时器延迟触发
+                        pendingCameraMoveData = eventData
+                        mainHandler.removeCallbacks(throttleRunnable)
+                        mainHandler.postDelayed(
+                            throttleRunnable,
+                            CAMERA_MOVE_THROTTLE_MS - (currentTime - lastCameraMoveTime)
+                        )
+                    }
                 }
             }
 
             override fun onCameraChangeFinish(cameraPosition: com.amap.api.maps.model.CameraPosition?) {
+                // 通知辅助监听器
+                cameraChangeListeners.forEach { it.onCameraChangeFinish(cameraPosition) }
+
                 // 相机移动完成
                 cameraPosition?.let {
                     val visibleRegion = aMap.projection.visibleRegion
@@ -187,7 +262,13 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         
         // 设置全局 Marker 点击监听器
         aMap.setOnMarkerClickListener { marker ->
-            MarkerView.handleMarkerClick(marker)
+            if (MarkerView.handleMarkerClick(marker)) {
+                return@setOnMarkerClickListener true
+            }
+            if (ClusterView.handleMarkerClick(marker)) {
+                return@setOnMarkerClickListener true
+            }
+            false
         }
 
         // 设置全局 Marker 拖拽监听器
@@ -204,6 +285,19 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 MarkerView.handleMarkerDragEnd(marker)
             }
         })
+
+        // 设置全局 MultiPoint 点击监听器
+        aMap.setOnMultiPointClickListener { item ->
+            for (i in 0 until childCount) {
+                val child = getChildAt(i)
+                if (child is MultiPointView) {
+                    if (child.handleMultiPointClick(item)) {
+                        return@setOnMultiPointClickListener true
+                    }
+                }
+            }
+            return@setOnMultiPointClickListener false
+        }
 
         aMap.setOnMapClickListener { latLng ->
             // 检查声明式 PolylineView
@@ -331,6 +425,18 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     fun setShowsBuildings(show: Boolean) = uiManager.setShowsBuildings(show)
     /** 设置是否显示室内地图 */
     fun setShowsIndoorMap(show: Boolean) = uiManager.setShowsIndoorMap(show)
+    
+    /**
+     * 设置自定义地图样式
+     * @param styleData 样式配置
+     */
+    fun setCustomMapStyle(styleData: Map<String, Any>) {
+        customMapStyleData = styleData
+        // 如果地图已加载，立即应用样式
+        if (isMapLoaded) {
+            uiManager.setCustomMapStyle(styleData)
+        }
+    }
 
     // ==================== 相机控制方法 ====================
 
@@ -378,8 +484,106 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         return cameraManager.getCameraPosition()
     }
 
+    /**
+     * 截取地图快照
+     * @param promise Promise
+     */
+    fun takeSnapshot(promise: expo.modules.kotlin.Promise) {
+        val isSettled = java.util.concurrent.atomic.AtomicBoolean(false)
+        
+        aMap.getMapScreenShot(object : AMap.OnMapScreenShotListener {
+            override fun onMapScreenShot(bitmap: android.graphics.Bitmap?) {
+                // 如果已经处理过，直接返回
+                if (isSettled.getAndSet(true)) return
+                
+                // 旧版本回调，为了兼容性也处理
+                bitmap?.let { handleSnapshot(it, promise) } ?: run {
+                     promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+                }
+            }
 
-    // ==================== 生命周期方法 ====================
+            override fun onMapScreenShot(bitmap: android.graphics.Bitmap?, status: Int) {
+                // 如果已经处理过，直接返回
+                if (isSettled.getAndSet(true)) return
+
+                // status != 0 表示失败
+                if (status != 0) {
+                    promise.reject("SNAPSHOT_FAILED", "Failed to take snapshot, status code: $status", null)
+                    return
+                }
+                bitmap?.let { handleSnapshot(it, promise) } ?: run {
+                    promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+                }
+            }
+        })
+    }
+
+    @SuppressLint("WrongThread")
+    private fun handleSnapshot(mapBitmap: android.graphics.Bitmap, promise: expo.modules.kotlin.Promise) {
+        try {
+            // 创建最终的 Bitmap，大小为当前容器的大小
+            val width = this.width
+            val height = this.height
+            
+            // 如果容器宽高为0，无法截图
+            if (width <= 0 || height <= 0) {
+                promise.reject("SNAPSHOT_FAILED", "View dimensions are invalid", null)
+                return
+            }
+
+            val finalBitmap = createBitmap(width, height)
+            val canvas = android.graphics.Canvas(finalBitmap)
+
+            // 1. 绘制地图底图
+            canvas.drawBitmap(mapBitmap, mapView.left.toFloat(), mapView.top.toFloat(), null)
+
+            // 2. 绘制内部子视图 (React Native Overlays, e.g. Callout)
+            for (i in 0 until childCount) {
+                val child = getChildAt(i)
+                val isMarkerView = child is MarkerView
+                
+                // 跳过地图本身、隐藏的视图以及 MarkerView
+                if (child !== mapView && child.isVisible && !isMarkerView) {
+                    canvas.withTranslation(child.left.toFloat(), child.top.toFloat()) {
+                        child.draw(this)
+                    }
+                }
+            }
+
+            // 3. 绘制兄弟视图 (MapUI, 覆盖在地图上的 UI 组件)
+            // 模仿 iOS 的实现：遍历父容器的子视图，绘制那些覆盖在地图上方的兄弟节点
+            (parent as? ViewGroup)?.let { parentGroup ->
+                for (i in 0 until parentGroup.childCount) {
+                    val sibling = parentGroup.getChildAt(i)
+                    // 跳过自己（地图本身）和隐藏的视图
+                    if (sibling !== this && sibling.isVisible) {
+                        // 计算相对坐标：兄弟视图相对于父容器的坐标 - 地图相对于父容器的坐标
+                        val dx = sibling.left - this.left
+                        val dy = sibling.top - this.top
+                        
+                        canvas.withTranslation(dx.toFloat(), dy.toFloat()) {
+                            sibling.draw(this)
+                        }
+                    }
+                }
+            }
+
+            // 3. 保存到文件
+            val filename = java.util.UUID.randomUUID().toString() + ".png"
+            val file = java.io.File(context.cacheDir, filename)
+            val stream = java.io.FileOutputStream(file)
+            finalBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+            stream.close()
+
+            // 4. 返回文件路径
+            promise.resolve(file.absolutePath)
+
+        } catch (e: Exception) {
+            promise.reject("SNAPSHOT_ERROR", "Error processing snapshot: ${e.message}", e)
+        }
+    }
+
+    // ==================== 生命周期管理 ====================
 
     /** 恢复地图 */
     @Suppress("unused")
@@ -397,8 +601,12 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     @Suppress("unused")
     fun onDestroy() {
                try {
-            // 清理 Handler 回调,防止内存泄露
-            mainHandler.removeCallbacksAndMessages(null)
+                   // 清理节流定时器
+                   mainHandler.removeCallbacks(throttleRunnable)
+                   pendingCameraMoveData = null
+                   
+                   // 清理 Handler 回调,防止内存泄露
+                   mainHandler.removeCallbacksAndMessages(null)
 
             // 清理所有地图监听器
             aMap.setOnMapClickListener(null)
@@ -407,6 +615,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             aMap.setOnCameraChangeListener(null)
             aMap.setOnMarkerClickListener(null)
             aMap.setOnMarkerDragListener(null)
+            aMap.setOnMultiPointClickListener(null)
 
             // 清除所有覆盖物
             aMap.clear()
@@ -466,10 +675,14 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     /**
      * 移除子视图
+     * 延迟移除 Marker，让它们跟随地图一起延迟销毁
      */
     override fun removeView(child: View?) {
         if (child is MarkerView) {
-            child.removeMarker()
+            // 延迟移除 Marker，与地图的延迟销毁时间一致（500ms）
+            mainHandler.postDelayed({
+                child.removeMarker()
+            }, 500)
             super.removeView(child)
             return
         }
@@ -483,6 +696,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     /**
      * 按索引移除视图
+     * 延迟移除 Marker，让它们跟随地图一起延迟销毁
      */
     override fun removeViewAt(index: Int) {
         try {
@@ -493,7 +707,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             }
 
             if (child is MarkerView) {
-                child.removeMarker()
+                // 延迟移除 Marker，与地图的延迟销毁时间一致（500ms）
+                mainHandler.postDelayed({
+                    child.removeMarker()
+                }, 500)
             }
 
             super.removeViewAt(index)
@@ -542,5 +759,4 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
     }
-
 }

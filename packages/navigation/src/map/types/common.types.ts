@@ -2,6 +2,45 @@
  * 高德地图通用类型定义
  * 基于 Expo Modules API
  */
+import { PermissionResponse } from 'expo-modules-core';
+
+/**
+ * SDK 配置参数
+ */
+export interface SDKConfig {
+  /** Android 平台的高德地图 API Key */
+  androidKey?: string;
+  /** iOS 平台的高德地图 API Key */
+  iosKey?: string;
+  /** web api key 如果要使用expo-gaode-map-web-api相关的功能，需要配置web api key*/
+  webKey?: string;
+}
+
+/**
+ * 权限状态（增强版，支持 Android 14+ 和 iOS 17+）
+ */
+export interface PermissionStatus extends PermissionResponse{
+  /** 是否已授权（前台位置权限） */
+  granted: boolean;
+  
+  // Android 专用字段
+  /** Android 精确位置权限 */
+  fineLocation?: boolean;
+  /** Android 粗略位置权限 */
+  coarseLocation?: boolean;
+  /** Android 后台位置权限（Android 10+） */
+  backgroundLocation?: boolean;
+  /** 是否应显示权限说明（Android） */
+  shouldShowRationale?: boolean;
+  /** 权限是否被永久拒绝（Android） */
+  isPermanentlyDenied?: boolean;
+  /** 是否为 Android 14+（Android） */
+  isAndroid14Plus?: boolean;
+  
+  // 其他字段
+  /** 额外的消息说明 */
+  message?: string;
+}
 
 /**
  * 点坐标（屏幕坐标）
@@ -25,6 +64,14 @@ export interface LatLng {
    */
   longitude: number;
 }
+
+/**
+ * 坐标点类型
+ * 支持对象格式 { latitude, longitude }
+ * 或数组格式 [longitude, latitude] (GeoJSON 标准)
+ * 注意：GeoJSON 标准允许数组包含更多元素（如海拔），但本组件只使用前两个
+ */
+export type LatLngPoint = LatLng | [number, number] | number[];
 
 /**
  * 地图标注点（POI）

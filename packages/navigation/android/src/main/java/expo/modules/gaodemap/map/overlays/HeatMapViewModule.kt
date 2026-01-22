@@ -8,11 +8,15 @@ import expo.modules.kotlin.modules.ModuleDefinition
  */
 class HeatMapViewModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("NaviHeatMapView")
+    Name("HeatMapView")
 
     View(HeatMapView::class) {
-      Prop<List<Map<String, Any>>>("data") { view: HeatMapView, data ->
+      Prop<List<Any>?>("data") { view: HeatMapView, data ->
         view.setData(data)
+      }
+
+      Prop<Boolean>("visible") { view: HeatMapView, visible ->
+        view.setVisible(visible)
       }
       
       Prop<Int>("radius") { view: HeatMapView, radius ->
@@ -21,6 +25,14 @@ class HeatMapViewModule : Module() {
       
       Prop<Double>("opacity") { view: HeatMapView, opacity ->
         view.setOpacity(opacity)
+      }
+
+      Prop<Map<String, Any>?>("gradient") { _: HeatMapView, _ ->
+          // iOS only, ignore on Android
+      }
+
+      Prop<Boolean>("allowRetinaAdapting") { _: HeatMapView, _ ->
+        // iOS only, ignore on Android
       }
     }
   }
