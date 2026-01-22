@@ -21,4 +21,4 @@ export const MapUI: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
 };
 
 // 静态标志，用于识别
-(MapUI as any).isMapUI = true;
+(MapUI as React.FC & { isMapUI: boolean }).isMapUI = true;

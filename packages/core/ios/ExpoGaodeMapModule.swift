@@ -241,7 +241,7 @@ public class ExpoGaodeMapModule: Module {
                 return []
             }
             
-            let flatCoords = ClusterNative.parsePolyline(polylineStr)
+            let flatCoords = ClusterNative.parsePolyline(polylineStr: polylineStr)
             var result: [[String: Double]] = []
             
             // flatCoords 是 [lat1, lon1, lat2, lon2, ...]
@@ -282,7 +282,7 @@ public class ExpoGaodeMapModule: Module {
                   let coord2 = LatLngParser.parseLatLng(p2) else {
                 return 0.0
             }
-            return ClusterNative.calculateDistance(withLat1: coord1.latitude, lon1: coord1.longitude, lat2: coord2.latitude, lon2: coord2.longitude)
+            return ClusterNative.calculateDistance(lat1: coord1.latitude, lon1: coord1.longitude, lat2: coord2.latitude, lon2: coord2.longitude)
         }
         
         /**
@@ -296,7 +296,7 @@ public class ExpoGaodeMapModule: Module {
             // 第一项是外轮廓
             let outerCoords = rings[0]
             var totalArea = ClusterNative.calculatePolygonArea(
-                withLatitudes: outerCoords.map { NSNumber(value: $0.latitude) },
+                latitudes: outerCoords.map { NSNumber(value: $0.latitude) },
                 longitudes: outerCoords.map { NSNumber(value: $0.longitude) }
             )
             
@@ -305,7 +305,7 @@ public class ExpoGaodeMapModule: Module {
                 for i in 1..<rings.count {
                     let ring = rings[i]
                     totalArea -= ClusterNative.calculatePolygonArea(
-                        withLatitudes: ring.map { NSNumber(value: $0.latitude) },
+                        latitudes: ring.map { NSNumber(value: $0.latitude) },
                         longitudes: ring.map { NSNumber(value: $0.longitude) }
                     )
                 }
@@ -330,7 +330,7 @@ public class ExpoGaodeMapModule: Module {
             // 点必须在外轮廓内
             let outerCoords = rings[0]
             let inOuter = ClusterNative.isPointInPolygon(
-                withPointLat: coord.latitude,
+                pointLat: coord.latitude,
                 pointLon: coord.longitude,
                 latitudes: outerCoords.map { NSNumber(value: $0.latitude) },
                 longitudes: outerCoords.map { NSNumber(value: $0.longitude) }
@@ -343,7 +343,7 @@ public class ExpoGaodeMapModule: Module {
                 for i in 1..<rings.count {
                     let ring = rings[i]
                     let inHole = ClusterNative.isPointInPolygon(
-                        withPointLat: coord.latitude,
+                        pointLat: coord.latitude,
                         pointLon: coord.longitude,
                         latitudes: ring.map { NSNumber(value: $0.latitude) },
                         longitudes: ring.map { NSNumber(value: $0.longitude) }
@@ -363,7 +363,7 @@ public class ExpoGaodeMapModule: Module {
                   let centerCoord = LatLngParser.parseLatLng(center) else {
                 return false
             }
-            return ClusterNative.isPointInCircle(withPointLat: coord.latitude, pointLon: coord.longitude, centerLat: centerCoord.latitude, centerLon: centerCoord.longitude, radiusMeters: radius)
+            return ClusterNative.isPointInCircle(pointLat: coord.latitude, pointLon: coord.longitude, centerLat: centerCoord.latitude, centerLon: centerCoord.longitude, radiusMeters: radius)
         }
         
         /**
@@ -374,7 +374,7 @@ public class ExpoGaodeMapModule: Module {
                   let ne = LatLngParser.parseLatLng(northEast) else {
                 return 0.0
             }
-            return ClusterNative.calculateRectangleArea(withSouthWestLat: sw.latitude, southWestLon: sw.longitude, northEastLat: ne.latitude, northEastLon: ne.longitude)
+            return ClusterNative.calculateRectangleArea(swLat: sw.latitude, swLon: sw.longitude, neLat: ne.latitude, neLon: ne.longitude)
         }
         
         /**
@@ -393,7 +393,7 @@ public class ExpoGaodeMapModule: Module {
             let lats = coords.map { NSNumber(value: $0.latitude) }
             let lons = coords.map { NSNumber(value: $0.longitude) }
             
-            return ClusterNative.getNearestPointOnPath(withLatitudes: lats, longitudes: lons, targetLat: targetCoord.latitude, targetLon: targetCoord.longitude) as? [String: Any]
+            return ClusterNative.getNearestPointOnPath(latitudes: lats, longitudes: lons, targetLat: targetCoord.latitude, targetLon: targetCoord.longitude) as? [String: Any]
         }
         
         /**
@@ -408,7 +408,7 @@ public class ExpoGaodeMapModule: Module {
                 let coords = rings[0]
                 let lats = coords.map { NSNumber(value: $0.latitude) }
                 let lons = coords.map { NSNumber(value: $0.longitude) }
-                return ClusterNative.calculateCentroid(withLatitudes: lats, longitudes: lons) as? [String: Double]
+                return ClusterNative.calculateCentroid(latitudes: lats, longitudes: lons) as? [String: Double]
             }
             
             // 带孔多边形的质心计算: Σ(Area_i * Centroid_i) / Σ(Area_i)
@@ -421,8 +421,8 @@ public class ExpoGaodeMapModule: Module {
                 let lats = coords.map { NSNumber(value: $0.latitude) }
                 let lons = coords.map { NSNumber(value: $0.longitude) }
                 
-                let area = ClusterNative.calculatePolygonArea(withLatitudes: lats, longitudes: lons)
-                if let centroid = ClusterNative.calculateCentroid(withLatitudes: lats, longitudes: lons) as? [String: Double],
+                let area = ClusterNative.calculatePolygonArea(latitudes: lats, longitudes: lons)
+                if let centroid = ClusterNative.calculateCentroid(latitudes: lats, longitudes: lons) as? [String: Double],
                    let cLat = centroid["latitude"], let cLon = centroid["longitude"] {
                     
                     // 第一项是外轮廓(正)，后续是内孔(负)
@@ -455,7 +455,7 @@ public class ExpoGaodeMapModule: Module {
             if coords.isEmpty { return nil }
             
             return ClusterNative.calculatePathBounds(
-                withLatitudes: coords.map { NSNumber(value: $0.latitude) },
+                latitudes: coords.map { NSNumber(value: $0.latitude) },
                 longitudes: coords.map { NSNumber(value: $0.longitude) }
             ) as? [String: Any]
         }
@@ -467,7 +467,7 @@ public class ExpoGaodeMapModule: Module {
             guard let coord = LatLngParser.parseLatLng(coordinate) else {
                 return ""
             }
-            return ClusterNative.encodeGeoHash(withLat: coord.latitude, lon: coord.longitude, precision: Int32(precision))
+            return ClusterNative.encodeGeoHash(lat: coord.latitude, lon: coord.longitude, precision: Int32(precision))
         }
 
         /**
@@ -492,7 +492,7 @@ public class ExpoGaodeMapModule: Module {
             let coords = LatLngParser.parseLatLngList(points)
             let lats = coords.map { NSNumber(value: $0.latitude) }
             let lons = coords.map { NSNumber(value: $0.longitude) }
-            return ClusterNative.calculatePathLength(withLatitudes: lats, longitudes: lons)
+            return ClusterNative.calculatePathLength(latitudes: lats, longitudes: lons)
         }
         
         /**
@@ -502,7 +502,81 @@ public class ExpoGaodeMapModule: Module {
             let coords = LatLngParser.parseLatLngList(points)
             let lats = coords.map { NSNumber(value: $0.latitude) }
             let lons = coords.map { NSNumber(value: $0.longitude) }
-            return ClusterNative.getPointAtDistance(withLatitudes: lats, longitudes: lons, distanceMeters: distance) as? [String: Any]
+            return ClusterNative.getPointAtDistance(latitudes: lats, longitudes: lons, distanceMeters: distance) as? [String: Any]
+        }
+
+        // --- 瓦片与坐标转换 ---
+
+        /**
+         * 瓦片坐标转换：经纬度 -> 瓦片坐标
+         */
+        Function("latLngToTile") { (coordinate: [String: Double]?, zoom: Int) -> [String: Any]? in
+            guard let coord = LatLngParser.parseLatLng(coordinate) else { return nil }
+            return ClusterNative.latLngToTile(lat: coord.latitude, lon: coord.longitude, zoom: Int32(zoom)) as? [String: Any]
+        }
+
+        /**
+         * 瓦片坐标转换：瓦片坐标 -> 经纬度
+         */
+        Function("tileToLatLng") { (tile: [String: Int]) -> [String: Double]? in
+            guard let x = tile["x"], let y = tile["y"], let z = tile["z"] else { return nil }
+            return ClusterNative.tileToLatLng(x: Int32(x), y: Int32(y), zoom: Int32(z)) as? [String: Double]
+        }
+
+        /**
+         * 像素坐标转换：经纬度 -> 像素坐标
+         */
+        Function("latLngToPixel") { (coordinate: [String: Double]?, zoom: Int) -> [String: Any]? in
+            guard let coord = LatLngParser.parseLatLng(coordinate) else { return nil }
+            return ClusterNative.latLngToPixel(lat: coord.latitude, lon: coord.longitude, zoom: Int32(zoom)) as? [String: Any]
+        }
+
+        /**
+         * 像素坐标转换：像素坐标 -> 经纬度
+         */
+        Function("pixelToLatLng") { (pixel: [String: Double], zoom: Int) -> [String: Double]? in
+            guard let x = pixel["x"], let y = pixel["y"] else { return nil }
+            return ClusterNative.pixelToLatLng(x: x, y: y, zoom: Int32(zoom)) as? [String: Double]
+        }
+
+        // --- 批量地理围栏与热力图 ---
+
+        /**
+         * 批量地理围栏检测
+         */
+        Function("findPointInPolygons") { (point: [String: Double]?, polygons: [Any]?) -> Int in
+            guard let coord = LatLngParser.parseLatLng(point) else { return -1 }
+            
+            // 解析多边形集合，统一处理为 [[String: Any]] 格式供 ClusterNative 遍历
+            let rings = LatLngParser.parseLatLngListList(polygons)
+            if rings.isEmpty { return -1 }
+            
+            let nsPolygons = rings.map { ring in
+                ring.map { ["latitude": $0.latitude, "longitude": $0.longitude] }
+            }
+            
+            return Int(ClusterNative.findPointInPolygons(pointLat: coord.latitude, pointLon: coord.longitude, polygons: nsPolygons))
+        }
+
+        /**
+         * 生成网格聚合数据
+         */
+        Function("generateHeatmapGrid") { (points: [[String: Any]]?, gridSizeMeters: Double) -> [[String: Any]] in
+            guard let points = points, !points.isEmpty else { return [] }
+            
+            var lats: [NSNumber] = []
+            var lons: [NSNumber] = []
+            var weights: [NSNumber] = []
+            
+            for p in points {
+                if let lat = p["latitude"] as? Double, let lon = p["longitude"] as? Double {
+                    lats.append(NSNumber(value: lat))
+                    lons.append(NSNumber(value: lon))
+                    weights.append(NSNumber(value: (p["weight"] as? Double) ?? 1.0))
+                }
+            }
+            
+            return (ClusterNative.generateHeatmapGrid(latitudes: lats, longitudes: lons, weights: weights, gridSizeMeters: gridSizeMeters) as? [[String: Any]]) ?? []
         }
         
         // ==================== 定位配置 ====================

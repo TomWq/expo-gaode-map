@@ -19,10 +19,11 @@ export default function GeometryUtilsExample() {
   const [nearestPoint, setNearestPoint] = useState<LatLng | null>(null);
   const [pointAtDist, setPointAtDist] = useState<LatLng | null>(null);
   const [bounds, setBounds] = useState<{ north: number, south: number, east: number, west: number } | null>(null);
+  const [heatmapData, setHeatmapData] = useState<Array<{ latitude: number; longitude: number; intensity: number }>>([]);
 
   // 添加结果
   const addResult = (label: string, value: string) => {
-    setResults(prev => [`${label}: ${value}`, ...prev.slice(0, 19)]); // 保留最近20条
+    setResults(prev => [`${label}: ${value}`, ...prev.slice(0, 49)]); // 保留最近50条
   };
 
   // 示例1: 计算两点距离
@@ -150,21 +151,86 @@ export default function GeometryUtilsExample() {
 
     // 测试2: 对象格式 { polyline: '...' }
     const obj = { polyline: "116.40,39.90;116.41,39.91;116.42,39.92" };
-    const points2 = (ExpoGaodeMapModule as any).parsePolyline(obj);
+    const points2 = ExpoGaodeMapModule.parsePolyline(obj);
     setPathPoints(points2);
     addResult('解析对象', `得到 ${points2.length} 个点`);
+  };
+
+  // 示例8: 瓦片与像素转换
+  const testTileUtils = () => {
+    const coord = { latitude: 39.9042, longitude: 116.4074 };
+    const zoom = 15;
+
+    // 1. 经纬度 -> 瓦片
+    const tile = ExpoGaodeMapModule.latLngToTile(coord, zoom);
+    if (tile) {
+      addResult('瓦片坐标(z=15)', `x:${tile.x} y:${tile.y}`);
+      
+      // 2. 瓦片 -> 经纬度 (反向验证)
+      const backCoord = ExpoGaodeMapModule.tileToLatLng(tile);
+      if (backCoord) {
+        addResult('瓦片转回经纬度', `${backCoord.latitude.toFixed(4)},${backCoord.longitude.toFixed(4)}`);
+      }
+    }
+
+    // 3. 经纬度 -> 像素
+    const pixel = ExpoGaodeMapModule.latLngToPixel(coord, zoom);
+    if (pixel) {
+      addResult('像素坐标', `x:${Math.round(pixel.x)} y:${Math.round(pixel.y)}`);
+      
+      // 4. 像素 -> 经纬度
+      const backCoord = ExpoGaodeMapModule.pixelToLatLng(pixel, zoom);
+      if (backCoord) {
+        addResult('像素转回经纬度', `${backCoord.latitude.toFixed(4)},${backCoord.longitude.toFixed(4)}`);
+      }
+    }
+  };
+
+  // 示例9: 批量地理围栏 & 热力图网格
+  const testAdvancedUtils = () => {
+    const point = { latitude: 39.90, longitude: 116.40 };
+    
+    // 1. 批量地理围栏
+    const polygons = [
+      // 区域1: 故宫附近
+      [{ latitude: 39.92, longitude: 116.39 }, { latitude: 39.92, longitude: 116.40 }, { latitude: 39.91, longitude: 116.40 }, { latitude: 39.91, longitude: 116.39 }],
+      // 区域2: 天安门附近 (包含测试点)
+      [{ latitude: 39.91, longitude: 116.39 }, { latitude: 39.91, longitude: 116.41 }, { latitude: 39.89, longitude: 116.41 }, { latitude: 39.89, longitude: 116.39 }],
+    ];
+    
+    const index = ExpoGaodeMapModule.findPointInPolygons(point, polygons);
+    addResult('批量围栏检测', index === -1 ? '未在任何区域' : `命中区域索引: ${index}`);
+
+    // 2. 热力图网格生成
+    const mockPoints: Array<LatLng & { weight?: number }> = [];
+    for(let i=0; i<50; i++) {
+      mockPoints.push({
+        latitude: 39.90 + (Math.random() - 0.5) * 0.1,
+        longitude: 116.40 + (Math.random() - 0.5) * 0.1,
+        weight: Math.random() * 10
+      });
+    }
+    
+    const startTime = Date.now();
+    const grid = ExpoGaodeMapModule.generateHeatmapGrid(mockPoints, 500); // 500米网格
+    const duration = Date.now() - startTime;
+    
+    setHeatmapData(grid);
+    addResult('网格聚合完成', `生成 ${grid.length} 个点, 耗时 ${duration}ms`);
   };
 
   // 运行所有测试
   const runAllTests = async () => {
     setResults([]);
     testDistanceBetweenCoordinates();
-    await testCoordinateConvert();
     testIsPointInCircle();
     testPolygonUtils();
     testPathUtils();
     testGeoHash();
     testParsePolyline();
+    testTileUtils();
+    testAdvancedUtils();
+    await testCoordinateConvert();
   };
 
   return (
@@ -221,7 +287,18 @@ export default function GeometryUtilsExample() {
         {nearestPoint && <Marker position={nearestPoint} title="最近点" pinColor="green" />}
         {pointAtDist && <Marker position={pointAtDist} title="5km点" pinColor="orange" />}
 
-        {/* 6. 边界矩形 */}
+        {/* 7. 热力图模拟点 */}
+        {heatmapData.map((pt, i) => (
+          <Circle
+            key={`heat-${i}`}
+            center={{ latitude: pt.latitude, longitude: pt.longitude }}
+            radius={250}
+            fillColor={`rgba(255, 0, 0, ${Math.min(pt.intensity / 10, 0.8)})`}
+            strokeWidth={0}
+          />
+        ))}
+
+        {/* 8. 边界矩形 */}
         {bounds && (
           <Polygon
             points={[
@@ -273,6 +350,11 @@ export default function GeometryUtilsExample() {
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.button} onPress={testGeoHash}><Text style={styles.buttonText}>GeoHash</Text></TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={testParsePolyline}><Text style={styles.buttonText}>解析路径</Text></TouchableOpacity>
+          </View>
+
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.button} onPress={testTileUtils}><Text style={styles.buttonText}>瓦片/像素</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={testAdvancedUtils}><Text style={styles.buttonText}>围栏/热力图</Text></TouchableOpacity>
           </View>
         </View>
       </View>

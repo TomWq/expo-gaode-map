@@ -388,7 +388,7 @@ export interface MultiPointItem extends LatLng {
   /**
    * 自定义数据
    */
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -478,7 +478,7 @@ export interface ClusterPoint {
   /**
    * 自定义数据
    */
-  properties?: any;
+  properties?: Record<string, unknown>;
 }
 
 /**

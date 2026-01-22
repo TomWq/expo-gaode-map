@@ -1,6 +1,8 @@
 #include "GeometryEngine.hpp"
 
 #include <cmath>
+#include <map>
+#include <algorithm>
 
 namespace gaodemap {
 
@@ -474,6 +476,99 @@ PathBounds calculatePathBounds(const std::vector<GeoPoint>& points) {
     bounds.centerLon = (maxLon + minLon) / 2.0;
     
     return bounds;
+}
+
+// --- 瓦片与坐标转换 ---
+
+TileResult latLngToTile(double lat, double lon, int zoom) {
+    double n = std::pow(2.0, zoom);
+    int x = static_cast<int>((lon + 180.0) / 360.0 * n);
+    double latRad = geo_toRadians(lat);
+    int y = static_cast<int>((1.0 - std::asinh(std::tan(latRad)) / kPi) / 2.0 * n);
+    return {x, y, zoom};
+}
+
+GeoPoint tileToLatLng(int x, int y, int zoom) {
+    double n = std::pow(2.0, zoom);
+    double lon = static_cast<double>(x) / n * 360.0 - 180.0;
+    double latRad = std::atan(std::sinh(kPi * (1.0 - 2.0 * static_cast<double>(y) / n)));
+    double lat = latRad * kRadiansToDegrees;
+    return {lat, lon};
+}
+
+PixelResult latLngToPixel(double lat, double lon, int zoom) {
+    double n = std::pow(2.0, zoom) * 256.0; // 假设瓦片大小为 256x256
+    double x = (lon + 180.0) / 360.0 * n;
+    double latRad = geo_toRadians(lat);
+    double y = (1.0 - std::asinh(std::tan(latRad)) / kPi) / 2.0 * n;
+    return {x, y};
+}
+
+GeoPoint pixelToLatLng(double x, double y, int zoom) {
+    double n = std::pow(2.0, zoom) * 256.0;
+    double lon = x / n * 360.0 - 180.0;
+    double latRad = std::atan(std::sinh(kPi * (1.0 - 2.0 * y / n)));
+    double lat = latRad * kRadiansToDegrees;
+    return {lat, lon};
+}
+
+// --- 批量地理围栏与热力图 ---
+
+int findPointInPolygons(double pointLat, double pointLon, const std::vector<std::vector<GeoPoint>>& polygons) {
+    for (size_t i = 0; i < polygons.size(); ++i) {
+        if (isPointInPolygon(pointLat, pointLon, polygons[i])) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+std::vector<HeatmapGridCell> generateHeatmapGrid(const std::vector<HeatmapPoint>& points, double gridSizeMeters) {
+    if (points.empty()) return {};
+
+    // 1. 计算范围
+    double minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0;
+    for (const auto& p : points) {
+        if (p.lat < minLat) minLat = p.lat;
+        if (p.lat > maxLat) maxLat = p.lat;
+        if (p.lon < minLon) minLon = p.lon;
+        if (p.lon > maxLon) maxLon = p.lon;
+    }
+
+    // 2. 将米转换为大概的经纬度步长
+    // (这是一个近似值，但在热力图分桶中通常足够)
+    double latDegreeDist = 111320.0; // 每纬度度数大约 111km
+    double lonDegreeDist = 111320.0 * std::cos(geo_toRadians((minLat + maxLat) / 2.0));
+    
+    double latStep = gridSizeMeters / latDegreeDist;
+    double lonStep = gridSizeMeters / lonDegreeDist;
+
+    if (latStep <= 0 || lonStep <= 0) return {};
+
+    // 3. 将点分配到网格中
+    std::map<std::pair<int, int>, double> grid;
+    for (const auto& p : points) {
+        int latIdx = static_cast<int>((p.lat - minLat) / latStep);
+        int lonIdx = static_cast<int>((p.lon - minLon) / lonStep);
+        grid[{latIdx, lonIdx}] += p.weight;
+    }
+
+    // 4. 创建结果单元格
+    std::vector<HeatmapGridCell> cells;
+    cells.reserve(grid.size());
+    for (const auto& entry : grid) {
+        int latIdx = entry.first.first;
+        int lonIdx = entry.first.second;
+        double intensity = entry.second;
+        
+        cells.push_back({
+            minLat + (latIdx + 0.5) * latStep,
+            minLon + (lonIdx + 0.5) * lonStep,
+            intensity
+        });
+    }
+
+    return cells;
 }
 
 } // namespace gaodemap

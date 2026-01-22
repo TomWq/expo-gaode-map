@@ -62,7 +62,12 @@ const area = ExpoGaodeMapModule.calculatePolygonArea([p1, p2, p3, p4]);
 // 4. 计算矩形面积 (平方米)
 const rectArea = ExpoGaodeMapModule.calculateRectangleArea(southWest, northEast);
 
-// 5. 计算路径边界和中心点 (Zoom to span)
+// 5. 生成网格聚合数据 (Grid Aggregation)
+// 将大量散点按网格聚合，常用于展示网格聚合图或处理大规模点数据
+const grid = ExpoGaodeMapModule.generateHeatmapGrid(points, 500); // 500米网格
+// 返回: Array<{ latitude, longitude, intensity }>
+
+// 6. 计算路径边界和中心点 (Zoom to span)
 const bounds = ExpoGaodeMapModule.calculatePathBounds(path);
 // 返回: { north, south, east, west, center: { latitude, longitude } }
 ```

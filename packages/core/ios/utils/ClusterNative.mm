@@ -1,5 +1,11 @@
 #import "ClusterNative.h"
+
+#if __has_include(<MAMapKit/MAMapKit.h>)
 #import <MAMapKit/MAMapKit.h>
+#define HAS_MAMAPKIT 1
+#else
+#define HAS_MAMAPKIT 0
+#endif
 
 #include <vector>
 #include <string>
@@ -239,21 +245,25 @@
 + (NSString *)encodeGeoHashWithLat:(double)lat
                                lon:(double)lon
                          precision:(int)precision {
-    std::string hash = gaodemap::encodeGeoHash(lat, lon, precision);
-    return [NSString stringWithUTF8String:hash.c_str()];
+    std::string geoHash = gaodemap::encodeGeoHash(lat, lon, precision);
+    return [NSString stringWithUTF8String:geoHash.c_str()];
 }
 
 + (uint32_t)parseColorWithString:(NSString *)colorString {
     if (!colorString) return 0;
-    std::string str = [colorString UTF8String];
-    return gaodemap::parseColor(str);
+    std::string colorStr = [colorString UTF8String];
+    return gaodemap::parseColor(colorStr);
 }
 
 + (CLLocationCoordinate2D)coordinateForMapPointWithX:(double)x y:(double)y {
+#if HAS_MAMAPKIT
     MAMapPoint point;
     point.x = x;
     point.y = y;
     return MACoordinateForMapPoint(point);
+#else
+    return CLLocationCoordinate2DMake(0, 0);
+#endif
 }
 
 + (NSArray<NSNumber *> *)parsePolyline:(NSString *)polylineStr {
@@ -270,6 +280,97 @@
         [result addObject:@(p.lon)];
     }
 
+    return result;
+}
+
+// --- 瓦片与坐标转换 ---
+
++ (NSDictionary *)latLngToTileWithLat:(double)lat lon:(double)lon zoom:(int)zoom {
+    gaodemap::TileResult result = gaodemap::latLngToTile(lat, lon, zoom);
+    return @{
+        @"x": @(result.x),
+        @"y": @(result.y),
+        @"z": @(result.z)
+    };
+}
+
++ (NSDictionary *)tileToLatLngWithX:(int)x y:(int)y zoom:(int)zoom {
+    gaodemap::GeoPoint result = gaodemap::tileToLatLng(x, y, zoom);
+    return @{
+        @"latitude": @(result.lat),
+        @"longitude": @(result.lon)
+    };
+}
+
++ (NSDictionary *)latLngToPixelWithLat:(double)lat lon:(double)lon zoom:(int)zoom {
+    gaodemap::PixelResult result = gaodemap::latLngToPixel(lat, lon, zoom);
+    return @{
+        @"x": @(result.x),
+        @"y": @(result.y)
+    };
+}
+
++ (NSDictionary *)pixelToLatLngWithX:(double)x y:(double)y zoom:(int)zoom {
+    gaodemap::GeoPoint result = gaodemap::pixelToLatLng(x, y, zoom);
+    return @{
+        @"latitude": @(result.lat),
+        @"longitude": @(result.lon)
+    };
+}
+
+// --- 批量地理围栏与热力图 ---
+
++ (int)findPointInPolygonsWithPointLat:(double)pointLat
+                              pointLon:(double)pointLon
+                              polygons:(NSArray<NSArray<NSDictionary *> *> *)polygons {
+    if (polygons.count == 0) return -1;
+
+    std::vector<std::vector<gaodemap::GeoPoint>> cppPolygons;
+    cppPolygons.reserve(polygons.count);
+
+    for (NSArray<NSDictionary *> *polygon in polygons) {
+        std::vector<gaodemap::GeoPoint> cppPolygon;
+        cppPolygon.reserve(polygon.count);
+        for (NSDictionary *point in polygon) {
+            cppPolygon.push_back({
+                [point[@"latitude"] doubleValue],
+                [point[@"longitude"] doubleValue]
+            });
+        }
+        cppPolygons.push_back(std::move(cppPolygon));
+    }
+
+    return gaodemap::findPointInPolygons(pointLat, pointLon, cppPolygons);
+}
+
++ (NSArray<NSDictionary *> *)generateHeatmapGridWithLatitudes:(NSArray<NSNumber *> *)latitudes
+                                                   longitudes:(NSArray<NSNumber *> *)longitudes
+                                                      weights:(NSArray<NSNumber *> *)weights
+                                              gridSizeMeters:(double)gridSizeMeters {
+    if (latitudes.count == 0 || latitudes.count != longitudes.count || latitudes.count != weights.count) {
+        return @[];
+    }
+
+    std::vector<gaodemap::HeatmapPoint> points;
+    points.reserve(latitudes.count);
+    for (NSUInteger i = 0; i < latitudes.count; i++) {
+        points.push_back({
+            [latitudes[i] doubleValue],
+            [longitudes[i] doubleValue],
+            [weights[i] doubleValue]
+        });
+    }
+
+    auto cells = gaodemap::generateHeatmapGrid(points, gridSizeMeters);
+    
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:cells.size()];
+    for (const auto &c : cells) {
+        [result addObject:@{
+            @"latitude": @(c.lat),
+            @"longitude": @(c.lon),
+            @"intensity": @(c.intensity)
+        }];
+    }
     return result;
 }
 

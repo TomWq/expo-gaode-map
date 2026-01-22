@@ -89,6 +89,44 @@ object GeometryUtils {
         precision: Int
     ): String
 
+    private external fun nativeLatLngToTile(
+        lat: Double,
+        lon: Double,
+        zoom: Int
+    ): IntArray
+
+    private external fun nativeTileToLatLng(
+        x: Int,
+        y: Int,
+        zoom: Int
+    ): DoubleArray
+
+    private external fun nativeLatLngToPixel(
+        lat: Double,
+        lon: Double,
+        zoom: Int
+    ): DoubleArray
+
+    private external fun nativePixelToLatLng(
+        x: Double,
+        y: Double,
+        zoom: Int
+    ): DoubleArray
+
+    private external fun nativeFindPointInPolygons(
+        pointLat: Double,
+        pointLon: Double,
+        polygons: Array<DoubleArray>,
+        polygonsLon: Array<DoubleArray>
+    ): Int
+
+    private external fun nativeGenerateHeatmapGrid(
+        latitudes: DoubleArray,
+        longitudes: DoubleArray,
+        weights: DoubleArray,
+        gridSizeMeters: Double
+    ): DoubleArray
+
     /**
      * 判断点是否在圆内
      * @param point 要判断的点
@@ -396,4 +434,82 @@ object GeometryUtils {
     private external fun nativeParsePolyline(
         polylineStr: String
     ): DoubleArray?
+
+    fun latLngToTile(latLng: LatLng, zoom: Int): IntArray? {
+        return try {
+            nativeLatLngToTile(latLng.latitude, latLng.longitude, zoom)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun tileToLatLng(x: Int, y: Int, zoom: Int): LatLng? {
+        return try {
+            val result = nativeTileToLatLng(x, y, zoom)
+            if (result != null && result.size >= 2) {
+                LatLng(result[0], result[1])
+            } else {
+                null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun latLngToPixel(latLng: LatLng, zoom: Int): DoubleArray? {
+        return try {
+            nativeLatLngToPixel(latLng.latitude, latLng.longitude, zoom)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun pixelToLatLng(x: Double, y: Double, zoom: Int): LatLng? {
+        return try {
+            val result = nativePixelToLatLng(x, y, zoom)
+            if (result != null && result.size >= 2) {
+                LatLng(result[0], result[1])
+            } else {
+                null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun findPointInPolygons(point: LatLng, polygons: List<List<LatLng>>): Int {
+        if (polygons.isEmpty()) return -1
+        return try {
+            val polygonsLat = Array(polygons.size) { i ->
+                DoubleArray(polygons[i].size) { j -> polygons[i][j].latitude }
+            }
+            val polygonsLon = Array(polygons.size) { i ->
+                DoubleArray(polygons[i].size) { j -> polygons[i][j].longitude }
+            }
+            nativeFindPointInPolygons(point.latitude, point.longitude, polygonsLat, polygonsLon)
+        } catch (_: Throwable) {
+            -1
+        }
+    }
+
+    data class HeatmapGridCell(val latitude: Double, val longitude: Double, val intensity: Double)
+
+    fun generateHeatmapGrid(
+        latitudes: DoubleArray,
+        longitudes: DoubleArray,
+        weights: DoubleArray,
+        gridSizeMeters: Double
+    ): List<HeatmapGridCell> {
+        if (latitudes.isEmpty() || latitudes.size != longitudes.size || latitudes.size != weights.size) return emptyList()
+        return try {
+            val result = nativeGenerateHeatmapGrid(latitudes, longitudes, weights, gridSizeMeters)
+            val cells = mutableListOf<HeatmapGridCell>()
+            for (i in result.indices step 3) {
+                cells.add(HeatmapGridCell(result[i], result[i+1], result[i+2]))
+            }
+            cells
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
 }

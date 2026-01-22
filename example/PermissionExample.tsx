@@ -14,7 +14,7 @@ import type { PermissionStatus } from 'expo-gaode-map';
  */
 export default function PermissionExample() {
   const [permissionStatus, setPermissionStatus] = useState<PermissionStatus | null>(null);
-  const [systemInfo, setSystemInfo] = useState<any>(null);
+  const [systemInfo, setSystemInfo] = useState<ReturnType<typeof PermissionUtils.getSystemInfo> | null>(null);
 
   // 检查权限状态
   const checkPermission = async () => {
@@ -22,8 +22,9 @@ export default function PermissionExample() {
       const status = await ExpoGaodeMapModule.checkLocationPermission();
       setPermissionStatus(status);
       Alert.alert('权限状态', JSON.stringify(status, null, 2));
-    } catch (error: any) {
-      Alert.alert('错误', error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Alert.alert('错误', message);
     }
   };
 
@@ -70,8 +71,9 @@ export default function PermissionExample() {
           },
         ]
       );
-    } catch (error: any) {
-      Alert.alert('错误', error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Alert.alert('错误', message);
     }
   };
 
@@ -112,8 +114,9 @@ export default function PermissionExample() {
           },
         ]
       );
-    } catch (error: any) {
-      Alert.alert('错误', error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Alert.alert('错误', message);
     }
   };
 

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import ExpoGaodeMapView from '../ExpoGaodeMapView';
 
 import { PlatformDetector, DeviceInfo, FoldState } from '../utils/PlatformDetector';
-import { MapViewProps } from '../types';
+import { MapViewProps, MapViewRef } from '../types';
 
 /**
  * 折叠屏适配配置
@@ -35,7 +35,7 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
   foldableConfig,
   ...mapProps
 }) => {
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapViewRef>(null);
   const [currentFoldState, setCurrentFoldState] = useState<FoldState>(FoldState.UNKNOWN);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(PlatformDetector.getDeviceInfo());
 
@@ -134,23 +134,23 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
 
       // 展开时增加缩放级别，折叠时减少
       if (config.autoAdjustZoom && (isUnfolding || isFolding)) {
+        const currentZoom = currentCamera.zoom ?? 15;
         const zoomDelta = isUnfolding ? config.unfoldedZoomDelta : -config.unfoldedZoomDelta;
-        const newZoom = Math.max(3, Math.min(20, currentCamera.zoom + zoomDelta));
+        const newZoom = Math.max(3, Math.min(20, currentZoom + zoomDelta));
 
         if (config.debug) {
           console.log('[FoldableMapView] 调整缩放:', {
-            oldZoom: currentCamera.zoom,
+            oldZoom: currentZoom,
             newZoom,
             delta: zoomDelta,
           });
         }
 
         // 保持中心点，只调整缩放
-        await mapRef.current.animateToCamera?.({
-          center: config.keepCenterOnFold ? currentCamera.target : undefined,
+        await mapRef.current.moveCamera({
+          target: config.keepCenterOnFold ? currentCamera.target : undefined,
           zoom: newZoom,
-          duration: 300,
-        });
+        }, 300);
       }
     } catch (error) {
       if (config.debug) {
@@ -175,7 +175,7 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
  * 用于在现有地图组件中添加折叠屏适配功能
  */
 export function useFoldableMap(
-  mapRef: React.RefObject<any>,
+  mapRef: React.RefObject<MapViewRef>,
   config?: FoldableConfig
 ) {
   const [foldState, setFoldState] = useState<FoldState>(FoldState.UNKNOWN);
@@ -203,17 +203,17 @@ export function useFoldableMap(
           // 处理折叠状态变化
           if (mapRef.current && mergedConfig.autoAdjustZoom) {
             try {
-              const currentCamera = await mapRef.current.getCameraPosition?.();
+              const currentCamera = await mapRef.current.getCameraPosition();
               if (currentCamera) {
+                const currentZoom = currentCamera.zoom ?? 15;
                 const isUnfolding = newFoldState === FoldState.UNFOLDED && foldState === FoldState.FOLDED;
                 const zoomDelta = isUnfolding ? mergedConfig.unfoldedZoomDelta : -mergedConfig.unfoldedZoomDelta;
-                const newZoom = Math.max(3, Math.min(20, currentCamera.zoom + zoomDelta));
+                const newZoom = Math.max(3, Math.min(20, currentZoom + zoomDelta));
 
-                await mapRef.current.animateToCamera?.({
-                  center: mergedConfig.keepCenterOnFold ? currentCamera.target : undefined,
+                await mapRef.current.moveCamera({
+                  target: mergedConfig.keepCenterOnFold ? currentCamera.target : undefined,
                   zoom: newZoom,
-                  duration: 300,
-                });
+                }, 300);
               }
             } catch (error) {
               if (mergedConfig.debug) {

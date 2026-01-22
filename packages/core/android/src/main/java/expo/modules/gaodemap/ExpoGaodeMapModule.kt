@@ -451,6 +451,121 @@ class ExpoGaodeMapModule : Module() {
       }
     }
 
+    /**
+     * 经纬度转瓦片坐标
+     * @param coordinate 坐标
+     * @param zoom 缩放级别
+     * @return 瓦片坐标 [x, y]
+     */
+    Function("latLngToTile") { coordinate: Map<String, Any>?, zoom: Int ->
+      val latLng = LatLngParser.parseLatLng(coordinate)
+      if (latLng != null) {
+        val result = GeometryUtils.latLngToTile(latLng, zoom)
+        if (result != null && result.size >= 2) {
+          mapOf("x" to result[0], "y" to result[1])
+        } else {
+          null
+        }
+      } else {
+        null
+      }
+    }
+
+    /**
+     * 瓦片坐标转经纬度
+     * @param tile 瓦片坐标 {x, y, z}
+     * @return 坐标
+     */
+    Function("tileToLatLng") { tile: Map<String, Any>? ->
+      val x = (tile?.get("x") as? Number)?.toInt() ?: 0
+      val y = (tile?.get("y") as? Number)?.toInt() ?: 0
+      val zoom = (tile?.get("z") as? Number)?.toInt() ?: (tile?.get("zoom") as? Number)?.toInt() ?: 0
+      val result = GeometryUtils.tileToLatLng(x, y, zoom)
+      result?.let {
+        mapOf("latitude" to it.latitude, "longitude" to it.longitude)
+      }
+    }
+
+    /**
+     * 经纬度转像素坐标
+     * @param coordinate 坐标
+     * @param zoom 缩放级别
+     * @return 像素坐标 [x, y]
+     */
+    Function("latLngToPixel") { coordinate: Map<String, Any>?, zoom: Int ->
+      val latLng = LatLngParser.parseLatLng(coordinate)
+      if (latLng != null) {
+        val result = GeometryUtils.latLngToPixel(latLng, zoom)
+        if (result != null && result.size >= 2) {
+          mapOf("x" to result[0], "y" to result[1])
+        } else {
+          null
+        }
+      } else {
+        null
+      }
+    }
+
+    /**
+     * 像素坐标转经纬度
+     * @param pixel 像素坐标 {x, y}
+     * @param zoom 缩放级别
+     * @return 坐标
+     */
+    Function("pixelToLatLng") { pixel: Map<String, Any>?, zoom: Int ->
+      val x = (pixel?.get("x") as? Number)?.toDouble() ?: 0.0
+      val y = (pixel?.get("y") as? Number)?.toDouble() ?: 0.0
+      val result = GeometryUtils.pixelToLatLng(x, y, zoom)
+      result?.let {
+        mapOf("latitude" to it.latitude, "longitude" to it.longitude)
+      }
+    }
+
+    /**
+     * 批量判断点在哪个多边形内
+     * @param point 待判断点
+     * @param polygons 多边形列表
+     * @return 所在多边形的索引，不在任何多边形内返回 -1
+     */
+    Function("findPointInPolygons") { point: Map<String, Any>?, polygons: List<List<Any>>? ->
+      val pt = LatLngParser.parseLatLng(point)
+      val polys = polygons?.map { LatLngParser.parseLatLngList(it) }
+      if (pt != null && polys != null) {
+        GeometryUtils.findPointInPolygons(pt, polys)
+      } else {
+        -1
+      }
+    }
+
+    /**
+     * 生成网格聚合数据 (常用于展示网格聚合图或大规模点数据处理)
+     * @param points 包含经纬度和权重的点数组
+     * @param gridSizeMeters 网格大小（米）
+     */
+    Function("generateHeatmapGrid") { points: List<Map<String, Any>>?, gridSizeMeters: Double ->
+      if (points == null || points.isEmpty()) return@Function emptyList<Map<String, Any>>()
+      
+      val count = points.size
+      val latitudes = DoubleArray(count)
+      val longitudes = DoubleArray(count)
+      val weights = DoubleArray(count)
+      
+      points.forEachIndexed { index, map ->
+        latitudes[index] = (map["latitude"] as? Number)?.toDouble() ?: 0.0
+        longitudes[index] = (map["longitude"] as? Number)?.toDouble() ?: 0.0
+        weights[index] = (map["weight"] as? Number)?.toDouble() ?: 1.0
+      }
+      
+      val result = GeometryUtils.generateHeatmapGrid(latitudes, longitudes, weights, gridSizeMeters)
+      result.map {
+        mapOf(
+          "latitude" to it.latitude,
+          "longitude" to it.longitude,
+          "intensity" to it.intensity
+        )
+      }
+    }
+
     // ==================== 定位配置 ====================
 
     /**

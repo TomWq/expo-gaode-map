@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 namespace gaodemap {
 
@@ -90,5 +91,69 @@ struct PathBounds {
  * @return 边界信息
  */
 PathBounds calculatePathBounds(const std::vector<GeoPoint>& points);
+
+// --- 瓦片与坐标转换 ---
+
+struct TileResult {
+    int x;
+    int y;
+    int z;
+};
+
+struct PixelResult {
+    double x;
+    double y;
+};
+
+/**
+ * 经纬度转瓦片坐标
+ */
+TileResult latLngToTile(double lat, double lon, int zoom);
+
+/**
+ * 瓦片坐标转经纬度
+ */
+GeoPoint tileToLatLng(int x, int y, int zoom);
+
+/**
+ * 经纬度转像素坐标
+ */
+PixelResult latLngToPixel(double lat, double lon, int zoom);
+
+/**
+ * 像素坐标转经纬度
+ */
+GeoPoint pixelToLatLng(double x, double y, int zoom);
+
+// --- 批量地理围栏与热力图 ---
+
+/**
+ * 批量判断点是否在多个多边形内 (优化版)
+ * @param pointLat 点纬度
+ * @param pointLon 点经度
+ * @param polygons 多个多边形的集合
+ * @return 所在的第一个多边形的索引，若不在任何多边形内返回 -1
+ */
+int findPointInPolygons(double pointLat, double pointLon, const std::vector<std::vector<GeoPoint>>& polygons);
+
+struct HeatmapPoint {
+    double lat;
+    double lon;
+    double weight;
+};
+
+struct HeatmapGridCell {
+    double lat;
+    double lon;
+    double intensity;
+};
+
+/**
+ * 生成热力图网格数据
+ * @param points 原始点集
+ * @param gridSizeMeters 网格大小（米）
+ * @return 网格中心点及其强度
+ */
+std::vector<HeatmapGridCell> generateHeatmapGrid(const std::vector<HeatmapPoint>& points, double gridSizeMeters);
 
 } // namespace gaodemap

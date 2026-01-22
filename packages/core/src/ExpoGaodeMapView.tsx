@@ -46,7 +46,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    * 🔑 性能优化：通用 API 方法包装器
    * 统一处理初始化检查和错误处理，减少重复代码
    */
-  const createApiMethod = React.useCallback(<T extends (...args: any[]) => any>(
+  const createApiMethod = React.useCallback(<T extends (...args: never[]) => unknown>(
     methodName: keyof MapViewRef
   ) => {
     return ((...args: Parameters<T>) => {
@@ -55,7 +55,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
       }
       try {
         return (nativeRef.current[methodName] as T)(...args);
-      } catch (error: any) {
+      } catch (error) {
         throw ErrorHandler.wrapNativeError(error, methodName as string);
       }
     }) as T;
@@ -108,7 +108,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const uiControls: React.ReactNode[] = [];
 
   React.Children.forEach(children, (child) => {
-    if (React.isValidElement(child) && (child.type === MapUI || (child.type as any)?.isMapUI)) {
+    if (React.isValidElement(child) && (child.type === MapUI || (child.type as { isMapUI?: boolean })?.isMapUI)) {
       uiControls.push(child);
     } else {
       overlays.push(child);

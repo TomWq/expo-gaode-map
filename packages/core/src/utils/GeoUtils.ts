@@ -40,7 +40,9 @@ export function normalizeLatLng(point: LatLngPoint): LatLng {
  * @param points 坐标点数组或嵌套数组
  * @returns 归一化后的坐标数组
  */
-export function normalizeLatLngList(points: LatLngPoint[] | LatLngPoint[][]): any {
+export function normalizeLatLngList(points: LatLngPoint[]): LatLng[];
+export function normalizeLatLngList(points: LatLngPoint[][]): LatLng[][];
+export function normalizeLatLngList(points: LatLngPoint[] | LatLngPoint[][]): LatLng[] | LatLng[][] {
   if (!points || points.length === 0) return [];
 
   // 检查是否为嵌套数组 (检查第一项是否也是数组或对象，且不符合 LatLngPoint 的基本判断)
@@ -78,10 +80,10 @@ export function normalizeLatLngList(points: LatLngPoint[] | LatLngPoint[][]): an
 /**
  * 判断一个对象是否为坐标点 (LatLngPoint)
  */
-function isPoint(item: any): boolean {
-  if (!item) return false;
+function isPoint(item: unknown): item is LatLngPoint {
+  if (!item || typeof item !== 'object') return false;
   // { latitude, longitude } 格式
-  if (typeof item === 'object' && 'latitude' in item && 'longitude' in item) return true;
+  if ('latitude' in item && 'longitude' in (item as Record<string, unknown>)) return true;
   // [longitude, latitude] 格式
   if (Array.isArray(item) && item.length >= 2 && typeof item[0] === 'number' && typeof item[1] === 'number') return true;
   return false;

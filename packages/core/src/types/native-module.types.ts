@@ -26,7 +26,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    */
   addListener(
     eventName: keyof ExpoGaodeMapModuleEvents | string,
-    listener: (...args: any[]) => void,
+    listener: (...args: unknown[]) => void,
   ): { remove: () => void };
 
 
@@ -360,4 +360,54 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
     longitude: number;
     angle: number;
   } | null;
+
+  /**
+   * 瓦片坐标转换：经纬度 -> 瓦片坐标
+   * @param coordinate 坐标点
+   * @param zoom 缩放级别
+   * @returns 瓦片坐标 (x, y, z)
+   */
+  latLngToTile(coordinate: LatLngPoint, zoom: number): { x: number; y: number; z: number } | null;
+
+  /**
+   * 瓦片坐标转换：瓦片坐标 -> 经纬度
+   * @param tile 瓦片坐标 (x, y, z)
+   * @returns 经纬度
+   */
+  tileToLatLng(tile: { x: number; y: number; z: number }): LatLng | null;
+
+  /**
+   * 像素坐标转换：经纬度 -> 像素坐标
+   * @param coordinate 坐标点
+   * @param zoom 缩放级别
+   * @returns 像素坐标 (x, y)
+   */
+  latLngToPixel(coordinate: LatLngPoint, zoom: number): { x: number; y: number } | null;
+
+  /**
+   * 像素坐标转换：像素坐标 -> 经纬度
+   * @param pixel 像素坐标 (x, y)
+   * @param zoom 缩放级别
+   * @returns 经纬度
+   */
+  pixelToLatLng(pixel: { x: number; y: number }, zoom: number): LatLng | null;
+
+  /**
+   * 批量地理围栏检测
+   * @param point 待检测点
+   * @param polygons 多边形集合 (支持嵌套)
+   * @returns 包含该点的多边形索引，若不在任何多边形内返回 -1
+   */
+  findPointInPolygons(point: LatLngPoint, polygons: LatLngPoint[][] | LatLngPoint[][][]): number;
+
+  /**
+   * 生成热力图网格数据 (C++ 加速)
+   * @param points 点集，包含权重
+   * @param gridSizeMeters 网格大小(米)
+   * @returns 聚合后的网格点
+   */
+  generateHeatmapGrid(
+    points: Array<LatLngPoint & { weight?: number }>,
+    gridSizeMeters: number
+  ): Array<{ latitude: number; longitude: number; intensity: number }>;
 }

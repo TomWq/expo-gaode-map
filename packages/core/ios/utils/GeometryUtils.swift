@@ -21,7 +21,7 @@ public enum GeometryUtils {
         let lats = points.map { NSNumber(value: $0.latitude) }
         let lons = points.map { NSNumber(value: $0.longitude) }
         
-        let result = ClusterNative.simplifyPolyline(withLatitudes: lats, longitudes: lons, toleranceMeters: tolerance)
+        let result = ClusterNative.simplifyPolyline(latitudes: lats, longitudes: lons, tolerance: tolerance)
         
         var simplified: [CLLocationCoordinate2D] = []
         for i in stride(from: 0, to: result.count, by: 2) {

@@ -170,7 +170,7 @@ class ClusterView: ExpoView {
             let lonNums = self.longitudes.map { NSNumber(value: $0) }
             
             // 调用 C++ 聚类算法
-            let clusterData = ClusterNative.clusterPoints(withLatitudes: latNums, longitudes: lonNums, radiusMeters: radiusMeters)
+            let clusterData = ClusterNative.clusterPoints(latitudes: latNums, longitudes: lonNums, radiusMeters: radiusMeters)
             
             var annotations: [ClusterAnnotation] = []
             

@@ -28,7 +28,7 @@ class ColorParser {
      */
     private static func parseColorString(_ colorString: String) -> UIColor? {
         // Try native parser first
-        let nativeColor = ClusterNative.parseColor(with: colorString)
+        let nativeColor = ClusterNative.parseColor(colorString: colorString)
         if nativeColor != 0 {
             // ARGB -> UIColor
             let a = CGFloat((nativeColor >> 24) & 0xFF) / 255.0

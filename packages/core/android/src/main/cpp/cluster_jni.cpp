@@ -11,6 +11,7 @@ typedef void* jstring;
 typedef double jdouble;
 typedef int jint;
 typedef int jsize;
+typedef void* jobjectArray;
 typedef unsigned char jboolean;
 #ifndef JNI_TRUE
 #define JNI_TRUE 1
@@ -229,6 +230,55 @@ Java_expo_modules_gaodemap_utils_GeometryUtils_nativeIsPointInPolygon(
     (void)latitudes;
     (void)longitudes;
     return JNI_FALSE;
+#endif
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeFindPointInPolygons(
+    JNIEnv* env,
+    jclass,
+    jdouble pointLat,
+    jdouble pointLon,
+    jobjectArray polygonsLat,
+    jobjectArray polygonsLon
+) {
+#if GAODE_HAVE_JNI
+    if (!polygonsLat || !polygonsLon) return -1;
+
+    const jsize polygonCount = env->GetArrayLength(polygonsLat);
+    if (polygonCount == 0) return -1;
+
+    std::vector<std::vector<gaodemap::GeoPoint>> polygons;
+    polygons.reserve(static_cast<size_t>(polygonCount));
+
+    for (jsize i = 0; i < polygonCount; ++i) {
+        jdoubleArray latArray = (jdoubleArray)env->GetObjectArrayElement(polygonsLat, i);
+        jdoubleArray lonArray = (jdoubleArray)env->GetObjectArrayElement(polygonsLon, i);
+        
+        if (!latArray || !lonArray) continue;
+
+        const jsize pointCount = env->GetArrayLength(latArray);
+        jdouble* latValues = env->GetDoubleArrayElements(latArray, nullptr);
+        jdouble* lonValues = env->GetDoubleArrayElements(lonArray, nullptr);
+
+        std::vector<gaodemap::GeoPoint> polygon;
+        polygon.reserve(static_cast<size_t>(pointCount));
+        for (jsize j = 0; j < pointCount; ++j) {
+            polygon.push_back({latValues[j], lonValues[j]});
+        }
+
+        polygons.push_back(std::move(polygon));
+
+        env->ReleaseDoubleArrayElements(latArray, latValues, JNI_ABORT);
+        env->ReleaseDoubleArrayElements(lonArray, lonValues, JNI_ABORT);
+        env->DeleteLocalRef(latArray);
+        env->DeleteLocalRef(lonArray);
+    }
+
+    return gaodemap::findPointInPolygons(pointLat, pointLon, polygons);
+#else
+    (void)env; (void)pointLat; (void)pointLon; (void)polygonsLat; (void)polygonsLon;
+    return -1;
 #endif
 }
 
@@ -665,6 +715,134 @@ Java_expo_modules_gaodemap_utils_GeometryUtils_nativeParsePolyline(
 #else
     (void)env;
     (void)polylineStr;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jintArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeLatLngToTile(
+    JNIEnv* env,
+    jclass,
+    jdouble lat,
+    jdouble lon,
+    jint zoom
+) {
+#if GAODE_HAVE_JNI
+    gaodemap::TileResult result = gaodemap::latLngToTile(lat, lon, zoom);
+    jintArray array = env->NewIntArray(3);
+    jint buffer[3] = {result.x, result.y, result.z};
+    env->SetIntArrayRegion(array, 0, 3, buffer);
+    return array;
+#else
+    (void)env; (void)lat; (void)lon; (void)zoom;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeTileToLatLng(
+    JNIEnv* env,
+    jclass,
+    jint x,
+    jint y,
+    jint zoom
+) {
+#if GAODE_HAVE_JNI
+    gaodemap::GeoPoint result = gaodemap::tileToLatLng(x, y, zoom);
+    jdoubleArray array = env->NewDoubleArray(2);
+    jdouble buffer[2] = {result.lat, result.lon};
+    env->SetDoubleArrayRegion(array, 0, 2, buffer);
+    return array;
+#else
+    (void)env; (void)x; (void)y; (void)zoom;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeLatLngToPixel(
+    JNIEnv* env,
+    jclass,
+    jdouble lat,
+    jdouble lon,
+    jint zoom
+) {
+#if GAODE_HAVE_JNI
+    gaodemap::PixelResult result = gaodemap::latLngToPixel(lat, lon, zoom);
+    jdoubleArray array = env->NewDoubleArray(2);
+    jdouble buffer[2] = {result.x, result.y};
+    env->SetDoubleArrayRegion(array, 0, 2, buffer);
+    return array;
+#else
+    (void)env; (void)lat; (void)lon; (void)zoom;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativePixelToLatLng(
+    JNIEnv* env,
+    jclass,
+    jdouble x,
+    jdouble y,
+    jint zoom
+) {
+#if GAODE_HAVE_JNI
+    gaodemap::GeoPoint result = gaodemap::pixelToLatLng(x, y, zoom);
+    jdoubleArray array = env->NewDoubleArray(2);
+    jdouble buffer[2] = {result.lat, result.lon};
+    env->SetDoubleArrayRegion(array, 0, 2, buffer);
+    return array;
+#else
+    (void)env; (void)x; (void)y; (void)zoom;
+    return nullptr;
+#endif
+}
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeGenerateHeatmapGrid(
+    JNIEnv* env,
+    jclass,
+    jdoubleArray latitudes,
+    jdoubleArray longitudes,
+    jdoubleArray weights,
+    jdouble gridSizeMeters
+) {
+#if GAODE_HAVE_JNI
+    if (!latitudes || !longitudes || !weights) return nullptr;
+    const jsize count = env->GetArrayLength(latitudes);
+    if (count == 0 || count != env->GetArrayLength(longitudes) || count != env->GetArrayLength(weights)) {
+        return nullptr;
+    }
+
+    jdouble* latVals = env->GetDoubleArrayElements(latitudes, nullptr);
+    jdouble* lonVals = env->GetDoubleArrayElements(longitudes, nullptr);
+    jdouble* weightVals = env->GetDoubleArrayElements(weights, nullptr);
+
+    std::vector<gaodemap::HeatmapPoint> points;
+    points.reserve(count);
+    for (jsize i = 0; i < count; ++i) {
+        points.push_back({latVals[i], lonVals[i], weightVals[i]});
+    }
+
+    env->ReleaseDoubleArrayElements(latitudes, latVals, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(longitudes, lonVals, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(weights, weightVals, JNI_ABORT);
+
+    auto cells = gaodemap::generateHeatmapGrid(points, gridSizeMeters);
+    
+    jdoubleArray result = env->NewDoubleArray(static_cast<jsize>(cells.size() * 3));
+    std::vector<double> buffer;
+    buffer.reserve(cells.size() * 3);
+    for (const auto& c : cells) {
+        buffer.push_back(c.lat);
+        buffer.push_back(c.lon);
+        buffer.push_back(c.intensity);
+    }
+    env->SetDoubleArrayRegion(result, 0, static_cast<jsize>(buffer.size()), buffer.data());
+    return result;
+#else
+    (void)env; (void)latitudes; (void)longitudes; (void)weights; (void)gridSizeMeters;
     return nullptr;
 #endif
 }

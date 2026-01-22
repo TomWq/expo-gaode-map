@@ -21,10 +21,65 @@
 | `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object \| null` | 获取路径上距离目标点最近的点 |
 | `getPointAtDistance` | `points: LatLng[], distance: number` | `object \| null` | 获取路径上指定距离的点 |
 | `parsePolyline` | `polylineStr: string` | `LatLng[]` | 解析高德原始 Polyline 字符串 |
+| `latLngToTile` | `coordinate: LatLng, zoom: number` | `object` | 经纬度转瓦片坐标 (x, y, z) |
+| `tileToLatLng` | `tile: {x, y, z}` | `LatLng` | 瓦片坐标转经纬度 |
+| `findPointInPolygons` | `point: LatLng, polygons: LatLng[][]` | `number` | 批量地理围栏检测 |
+| `generateHeatmapGrid` | `points: LatLng[], gridSize: number` | `object[]` | 生成热力图聚合网格 |
+
+## 瓦片与像素转换
+
+### latLngToTile
+
+将地理坐标转换为指定缩放级别下的瓦片坐标。
+
+```tsx
+const tile = ExpoGaodeMapModule.latLngToTile(
+  { latitude: 39.9, longitude: 116.4 },
+  15
+);
+// tile: { x: 26981, y: 12415, z: 15 }
+```
+
+### tileToLatLng
+
+将瓦片坐标转换为对应的地理坐标（瓦片左上角）。
+
+### latLngToPixel
+
+将地理坐标转换为指定缩放级别下的世界像素坐标。
+
+## 批量地理围栏
+
+### findPointInPolygons
+
+检测一个点是否在多个多边形中的某一个内部。相比循环调用 `isPointInPolygon`，该方法在 C++ 层进行了批量处理，性能更优。
+
+```tsx
+const polygons = [polygon1, polygon2, polygon3];
+const index = ExpoGaodeMapModule.findPointInPolygons(point, polygons);
+if (index !== -1) {
+  console.log(`点在第 ${index} 个多边形内`);
+}
+```
+
+## 热力图处理
+
+### generateHeatmapGrid
+
+将大量离散点聚合为指定大小的网格点，用于自定义热力图绘制或数据分析。
+
+```tsx
+const points = [
+  { latitude: 39.9, longitude: 116.4, weight: 1.5 },
+  { latitude: 39.901, longitude: 116.401, weight: 2.0 },
+  // ... 更多点
+];
+
+const grid = ExpoGaodeMapModule.generateHeatmapGrid(points, 50); // 50米网格
+// grid: [{ latitude, longitude, intensity }, ...]
+```
 
 ## 距离计算
-
-### distanceBetweenCoordinates
 
 计算两个坐标点之间的直线距离。
 

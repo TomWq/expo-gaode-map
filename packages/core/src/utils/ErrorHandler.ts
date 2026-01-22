@@ -335,7 +335,7 @@ const App = () => {
   /**
    * 参数错误
    */
-  static invalidParameter(paramName: string, expected: string, received: any): GaodeMapError {
+  static invalidParameter(paramName: string, expected: string, received: unknown): GaodeMapError {
     return new GaodeMapError({
       type: ErrorType.INVALID_PARAMETER,
       message: `参数 "${paramName}" 类型错误`,
@@ -376,8 +376,8 @@ const App = () => {
   /**
    * 包装原生错误，提供更友好的提示
    */
-  static wrapNativeError(error: any, context: string): GaodeMapError {
-    const errorMessage = error?.message || String(error);
+  static wrapNativeError(error: unknown, context: string): GaodeMapError {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
     // SDK 未初始化相关错误
     if (
@@ -458,7 +458,7 @@ export class ErrorLogger {
   /**
    * 记录警告
    */
-  static warn(message: string, details?: any) {
+  static warn(message: string, details?: unknown) {
     if (!this.isEnabled) return;
     
     console.warn(`⚠️  expo-gaode-map: ${message}`, details || '');

@@ -873,10 +873,12 @@ class MarkerView: ExpoView {
             let longitudes = smoothMovePath.compactMap { $0["longitude"] as NSNumber? }
             
             if latitudes.count == longitudes.count && !latitudes.isEmpty {
-                if let result = ClusterNative.getNearestPointOnPath(withLatitudes: latitudes,
-                                                                  longitudes: longitudes,
+                let lats = latitudes
+                let lons = longitudes
+                if let result = ClusterNative.getNearestPointOnPath(latitudes: lats,
+                                                                  longitudes: lons,
                                                                   targetLat: currentLat,
-                                                                  targetLon: currentLng) {
+                                                                  targetLon: currentLng) as? [String: Any] {
                     
                     if let indexNum = result["index"] as? NSNumber,
                        let lat = result["latitude"] as? Double,
