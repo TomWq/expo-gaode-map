@@ -77,31 +77,9 @@ npm install expo-gaode-map-search
 - 需要原生搜索 → `expo-gaode-map-search`
 :::
 
-### 基础使用
-
-```tsx
-import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
-
-
-// 初始化 SDK（使用 Config Plugin 时可传空对象）
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // 仅在使用 Web API 服务时需要
-});
-
-// 使用地图
-<MapView
-  style={{ flex: 1 }}
-  initialCameraPosition={{
-    target: { latitude: 39.9, longitude: 116.4 },
-    zoom: 10,
-  }}
-  myLocationEnabled={true}
-/>
-```
 
 ::: tip 重要提示
-- 使用 Config Plugin 时，原生 Key 会自动配置，`initSDK` 可传空对象（更安全）
-- `webKey` 仅在使用 `expo-gaode-map-web-api` 包时需要
+- 使用 Config Plugin 时，原生 Key 会自动配置 安卓的 `AndroidManifest.xml` 和 ios 的 `Info.plist`
 :::
 
 查看完整示例 → [快速开始指南](/guide/getting-started) · [示例仓库](https://github.com/TomWq/expo-gaode-map-example)
@@ -142,6 +120,8 @@ Web API 服务包，纯 JavaScript 实现，跨平台一致：
 - ✅ **模块化设计**: 按需安装，避免不必要的包体积
 - ✅ **文档完善**: 详细的中英文档和丰富的示例
 - ✅ **积极维护**: 持续更新和社区支持
+- ✅ **新老架构支持**: 完美兼容 React Native 新架构（Fabric & TurboModules）
+- ✅ **场景丰富**: 可以实现多种地图场景，如打车、外卖、导航等
 - ✅ **开源免费**: MIT 协议，可商用
 
 ## 社区
