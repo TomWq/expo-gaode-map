@@ -24,8 +24,12 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   /**
    * 原生事件订阅方法
    */
+  addListener<K extends keyof ExpoGaodeMapModuleEvents>(
+    eventName: K,
+    listener: ExpoGaodeMapModuleEvents[K],
+  ): { remove: () => void };
   addListener(
-    eventName: keyof ExpoGaodeMapModuleEvents | string,
+    eventName: string,
     listener: (...args: unknown[]) => void,
   ): { remove: () => void };
 

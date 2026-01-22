@@ -295,8 +295,8 @@ const ExpoGaodeMapModuleWithHelpers = {
     if (!nativeModule?.addListener) {
       ErrorLogger.warn('Native module does not support events');
     }
-    // 使用可选链 and 空值合并，确保即使模块不可用也不会崩溃
-    return nativeModule?.addListener?.('onLocationUpdate', listener as (...args: unknown[]) => void) || {
+   
+    return nativeModule?.addListener?.('onLocationUpdate', listener) || {
       remove: () => { },
     };
   },
