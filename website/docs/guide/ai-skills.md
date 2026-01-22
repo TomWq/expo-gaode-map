@@ -9,15 +9,17 @@
 您可以直接下载并在您的项目中使用这些 AI 技能文件：
 
 <div style="margin: 20px 0;">
-  <a href="/expo-gaode-map-skills.zip" download style="display: inline-block; background: #3eaf7c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+  <a href="../expo-gaode-map-skills.zip" download style="display: inline-block; background: #3eaf7c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     🚀 下载 Cursor/Trae 技能包 (.zip)
   </a>
 </div>
 
 **安装步骤：**
-1. 下载上面的压缩包。
-2. 解压并将 `.cursor` 目录直接放置在您的项目根目录下。
-3. 如果您的项目已经有 `.cursor` 目录，请将解压后的 `skills` 文件夹合并进去。
+1. 下载上面的压缩包并解压。
+2. 您会看到一个 `expo-gaode-map-skills` 文件夹，打开它。
+3. 将其中的 `.cursor` 目录直接复制到您的项目根目录下。
+   - *提示：`.cursor` 在某些系统下可能是隐藏状态，请确保已开启“显示隐藏文件”或直接通过终端/拖拽操作。*
+4. 如果您的项目已经有 `.cursor` 目录，请将解压后 `skills` 文件夹合并到您项目原有的 `.cursor/skills` 中。
 
 ---
 

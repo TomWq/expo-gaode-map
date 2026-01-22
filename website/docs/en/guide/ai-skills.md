@@ -9,15 +9,17 @@ These knowledge bases are meticulously tuned and include all `expo-gaode-map` AP
 You can download and use these AI skill files directly in your project:
 
 <div style="margin: 20px 0;">
-  <a href="/expo-gaode-map-skills.zip" download style="display: inline-block; background: #3eaf7c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+  <a href="../../expo-gaode-map-skills.zip" download style="display: inline-block; background: #3eaf7c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     🚀 Download Cursor/Trae Skill Pack (.zip)
   </a>
 </div>
 
 **Installation Steps:**
-1. Download the zip file above.
-2. Unzip and place the `.cursor` directory directly in your project's root directory.
-3. If your project already has a `.cursor` directory, merge the unzipped `skills` folder into it.
+1. Download the zip file above and unzip it.
+2. You will see an `expo-gaode-map-skills` folder; open it.
+3. Copy the `.cursor` directory inside directly to your project's root directory.
+   - *Note: `.cursor` may be hidden on some systems. Ensure "Show Hidden Files" is enabled or use terminal/drag-and-drop.*
+4. If your project already has a `.cursor` directory, merge the unzipped `skills` folder into your project's `.cursor/skills` folder.
 
 ---
 
