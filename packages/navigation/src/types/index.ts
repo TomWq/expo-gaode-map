@@ -3,3 +3,4 @@ export * from './coordinates.types';
 export * from './route.types';
 export * from './independent.types';
 export * from './naviview.types';
+export * from './native-module.types';
