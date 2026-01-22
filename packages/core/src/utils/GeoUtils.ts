@@ -42,7 +42,8 @@ export function normalizeLatLng(point: LatLngPoint): LatLng {
  */
 export function normalizeLatLngList(points: LatLngPoint[]): LatLng[];
 export function normalizeLatLngList(points: LatLngPoint[][]): LatLng[][];
-export function normalizeLatLngList(points: LatLngPoint[] | LatLngPoint[][]): LatLng[] | LatLng[][] {
+export function normalizeLatLngList(points: LatLngPoint[] | LatLngPoint[][]): LatLng[] | LatLng[][];
+export function normalizeLatLngList(points: any): any {
   if (!points || points.length === 0) return [];
 
   // 检查是否为嵌套数组 (检查第一项是否也是数组或对象，且不符合 LatLngPoint 的基本判断)
