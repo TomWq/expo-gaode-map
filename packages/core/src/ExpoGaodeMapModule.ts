@@ -503,13 +503,22 @@ const ExpoGaodeMapModuleWithHelpers = {
   /**
    * 解析高德地图 API 返回的 Polyline 字符串
    * 格式: "lng,lat;lng,lat;..."
-   * @param polylineStr 高德原始 polyline 字符串
+   * @param polylineStr 高德原始 polyline 字符串，或包含 polyline 属性的对象
    * @returns 解析后的点集
    */
-  parsePolyline(polylineStr: string): LatLng[] {
+  parsePolyline(polylineStr: string | { polyline: string }): LatLng[] {
     if (!nativeModule || !polylineStr) return [];
     try {
-      return (nativeModule as any).parsePolyline(polylineStr);
+      // 兼容性处理：如果传入的是对象 { polyline: '...' }，自动提取字符串
+      let finalStr: string = '';
+      if (typeof polylineStr === 'string') {
+        finalStr = polylineStr;
+      } else if (typeof polylineStr === 'object' && polylineStr !== null) {
+        finalStr = (polylineStr as any).polyline || '';
+      }
+
+      if (!finalStr) return [];
+      return (nativeModule as any).parsePolyline(finalStr);
     } catch (error) {
       ErrorLogger.warn('解析 Polyline 失败', { polylineStr, error });
       return [];

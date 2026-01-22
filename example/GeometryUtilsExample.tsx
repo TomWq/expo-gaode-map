@@ -141,12 +141,18 @@ export default function GeometryUtilsExample() {
     addResult('GeoHash', hash);
   };
 
-  // 示例7: 解析 Polyline 字符串
+  // 示例7: 解析 Polyline 字符串 (包含对象兼容性测试)
   const testParsePolyline = () => {
+    // 测试1: 纯字符串
     const str = "116.397428,39.90923;116.397428,39.90823;116.398428,39.90823";
     const points = ExpoGaodeMapModule.parsePolyline(str);
-    setPathPoints(points);
     addResult('解析字符串', `得到 ${points.length} 个点`);
+
+    // 测试2: 对象格式 { polyline: '...' }
+    const obj = { polyline: "116.40,39.90;116.41,39.91;116.42,39.92" };
+    const points2 = (ExpoGaodeMapModule as any).parsePolyline(obj);
+    setPathPoints(points2);
+    addResult('解析对象', `得到 ${points2.length} 个点`);
   };
 
   // 运行所有测试

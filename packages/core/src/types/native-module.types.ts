@@ -344,10 +344,10 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   /**
    * 解析高德地图 API 返回的 Polyline 字符串
    * 格式: "lng,lat;lng,lat;..."
-   * @param polylineStr 高德原始 polyline 字符串
+   * @param polylineStr 高德原始 polyline 字符串，或包含 polyline 属性的对象
    * @returns 解析后的点集
    */
-  parsePolyline(polylineStr: string): LatLng[];
+  parsePolyline(polylineStr: string | { polyline: string }): LatLng[];
 
   /**
    * 获取路径上指定距离的点
