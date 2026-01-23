@@ -10,6 +10,7 @@ import type {
   POIDetailParams,
   POISearchResponse,
 } from '../types/poi.types';
+import { validateCoordinate, validateCoordinates } from '../utils/validators';
 
 /**
  * POI 搜索服务
@@ -50,14 +51,14 @@ export class POIService {
     keywords?: string,
     options?: Omit<POISearchParams, 'keywords'>
   ): Promise<POISearchResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: any = {
       keywords,
       ...rest,
     };
 
     const path = `/${version}/place/text`
-    return this.client.request<POISearchResponse>(path, params);
+    return this.client.request<POISearchResponse>(path, { params, signal });
   }
 
   /**
@@ -104,14 +105,17 @@ export class POIService {
       locationStr = `${location.longitude},${location.latitude}`;
     }
 
-    const { version = 'v5', ...rest } = options || {};
+    // 校验坐标
+    validateCoordinate(locationStr);
+
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: any = {
       location: locationStr,
       ...rest,
     };
 
     const path = `/${version}/place/around`;
-    return this.client.request<POISearchResponse>(path, params);
+    return this.client.request<POISearchResponse>(path, { params, signal });
   }
 
   /**
@@ -137,14 +141,16 @@ export class POIService {
     polygon: string,
     options?: Omit<POIPolygonParams, 'polygon'>
   ): Promise<POISearchResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    validateCoordinates(polygon, '|');
+
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: any = {
       polygon,
       ...rest,
     };
 
     const path = `/${version}/place/polygon`;
-    return this.client.request<POISearchResponse>(path, params);
+    return this.client.request<POISearchResponse>(path, { params, signal });
   }
 
   /**
@@ -168,7 +174,8 @@ export class POIService {
   async getDetail(
     id: string,
     show_fields?: string,
-    version: 'v3' | 'v5' = 'v5'
+    version: 'v3' | 'v5' = 'v5',
+    options?: { signal?: AbortSignal }
   ): Promise<POISearchResponse> {
     const params: POIDetailParams = {
       id,
@@ -176,7 +183,7 @@ export class POIService {
     };
 
     const path = `/${version}/place/detail`;
-    return this.client.request<POISearchResponse>(path, params);
+    return this.client.request<POISearchResponse>(path, { params, signal: options?.signal });
   }
 
   /**
@@ -197,7 +204,8 @@ export class POIService {
   async batchGetDetail(
     ids: string[],
     show_fields?: string,
-    version: 'v3' | 'v5' = 'v5'
+    version: 'v3' | 'v5' = 'v5',
+    options?: { signal?: AbortSignal }
   ): Promise<POISearchResponse> {
     if (ids.length > 10) {
       throw new Error('批量查询最多支持10个POI ID');
@@ -209,6 +217,6 @@ export class POIService {
     };
 
     const path = `/${version}/place/detail`;
-    return this.client.request<POISearchResponse>(path, params);
+    return this.client.request<POISearchResponse>(path, { params, signal: options?.signal });
   }
 }

@@ -34,10 +34,51 @@ import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 const api = new GaodeWebAPI();
 ```
 
-Or pass the key explicitly:
+Or pass the key explicitly with advanced options:
 
 ```ts
-const api = new GaodeWebAPI({ key: 'your-web-api-key' });
+const api = new GaodeWebAPI({ 
+  key: 'your-web-api-key',
+  maxRetries: 3,     // Retry 3 times on failure
+  enableCache: true, // Enable memory cache
+});
+```
+
+## Advanced Features
+
+### 1. Request Cancellation
+
+Use `AbortController` to cancel pending requests, useful for search suggestions.
+
+```typescript
+const controller = new AbortController();
+
+api.inputTips.getTips('KFC', {
+  city: 'Beijing',
+  signal: controller.signal
+});
+
+// Cancel request
+controller.abort();
+```
+
+### 2. Auto Retry
+
+The SDK automatically retries requests on network errors or rate limiting (QPS) errors.
+Default is 3 retries with exponential backoff.
+
+### 3. Caching
+
+Enable LRU caching to improve performance for frequent requests.
+
+```typescript
+const api = new GaodeWebAPI({ enableCache: true });
+
+// First call: Network request
+await api.geocode.regeocode('116.48,39.99');
+
+// Second call: Returns from cache
+await api.geocode.regeocode('116.48,39.99');
 ```
 
 ## Common Use Cases

@@ -4,6 +4,7 @@
  */
 
 import { GaodeWebAPIClient } from '../utils/client';
+import { validateCoordinate } from '../utils/validators';
 import type {
   InputTipsParams,
   InputTipsResponse,
@@ -59,12 +60,18 @@ export class InputTipsService {
     keywords: string,
     options?: Omit<InputTipsParams, 'keywords'>
   ): Promise<InputTipsResponse> {
+    const { signal, ...rest } = options || {};
+
+    if (rest.location) {
+      validateCoordinate(rest.location);
+    }
+
     const params: InputTipsParams = {
       keywords,
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<InputTipsResponse>('/v3/assistant/inputtips', params);
+    return this.client.request<InputTipsResponse>('/v3/assistant/inputtips', { params, signal });
   }
 
   /**

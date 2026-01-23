@@ -10,6 +10,7 @@ import type {
   GeocodeParams,
   GeocodeResponse,
 } from '../types/geocode.types';
+import { validateCoordinate, validateCoordinates } from '../utils/validators';
 
 /**
  * 地理编码服务
@@ -59,13 +60,17 @@ export class GeocodeService {
     }
 
     // 构建请求参数
+    const { signal, ...rest } = options || {};
     const params: RegeocodeParams = {
       location: locationStr,
-      ...options,
+      ...rest,
     };
 
+    // 校验坐标
+    validateCoordinate(locationStr);
+
     // 发起请求
-    return this.client.request<RegeocodeResponse>('/v3/geocode/regeo', params);
+    return this.client.request<RegeocodeResponse>('/v3/geocode/regeo', { params, signal });
   }
 
   /**
@@ -87,13 +92,13 @@ export class GeocodeService {
    * const result = await geocode.geocode('阜通东大街6号', '北京');
    * ```
    */
-  async geocode(address: string, city?: string): Promise<GeocodeResponse> {
+  async geocode(address: string, city?: string, options?: { signal?: AbortSignal }): Promise<GeocodeResponse> {
     const params: GeocodeParams = {
       address,
       city,
     };
 
-    return this.client.request<GeocodeResponse>('/v3/geocode/geo', params);
+    return this.client.request<GeocodeResponse>('/v3/geocode/geo', { params, signal: options?.signal });
   }
 
   /**
@@ -105,6 +110,7 @@ export class GeocodeService {
    * 
    * @example
    * ```typescript
+   * // 方式1：使用字符串数组
    * const result = await geocode.batchRegeocode([
    *   '116.481028,39.989643',
    *   '116.434446,39.90816'
@@ -115,13 +121,24 @@ export class GeocodeService {
     locations: string[],
     options?: Omit<RegeocodeParams, 'location' | 'batch'>
   ): Promise<BatchRegeocodeResponse> {
+    // 检查是否有任何输入包含分隔符
+    if (locations.some(loc => loc.includes('|'))) {
+      throw new Error('Invalid location: Individual locations cannot contain the "|" separator.');
+    }
+
+    const locationStr = locations.join('|');
+    
+    // 校验坐标
+    validateCoordinates(locationStr);
+
+    const { signal, ...rest } = options || {};
     const params: RegeocodeParams = {
-      location: locations.join('|'),
+      location: locationStr,
       batch: true,
-      ...options,
+      ...rest,
     };
 
-    return this.client.request<BatchRegeocodeResponse>('/v3/geocode/regeo', params);
+    return this.client.request<BatchRegeocodeResponse>('/v3/geocode/regeo', { params, signal });
   }
 
   /**
@@ -139,13 +156,18 @@ export class GeocodeService {
    * ], '北京');
    * ```
    */
-  async batchGeocode(addresses: string[], city?: string): Promise<GeocodeResponse> {
+  async batchGeocode(addresses: string[], city?: string, options?: { signal?: AbortSignal }): Promise<GeocodeResponse> {
+    // 检查是否有任何输入包含分隔符
+    if (addresses.some(addr => addr.includes('|'))) {
+       throw new Error('Invalid address: Individual addresses cannot contain the "|" separator.');
+    }
+    
     const params: GeocodeParams = {
       address: addresses.join('|'),
       batch: true,
       city,
     };
 
-    return this.client.request<GeocodeResponse>('/v3/geocode/geo', params);
+    return this.client.request<GeocodeResponse>('/v3/geocode/geo', { params, signal: options?.signal });
   }
 }

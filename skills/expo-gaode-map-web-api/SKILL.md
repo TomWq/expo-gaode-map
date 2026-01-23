@@ -19,14 +19,19 @@ description: Web API 开发助手。提供基于 Web 服务的 V5 路径规划�
 - **解析**：使用 `ExpoGaodeMapModule.parsePolyline(str)` 解析坐标串，比 JS 手动 split 快得多。
 - **优化**：使用 `ExpoGaodeMapModule.simplifyPolyline(points, tolerance)` 进行 RDP 抽稀，显著减少地图渲染压力。
 
-## 🛡️ 类型安全最佳实践
+## 🛡️ 类型安全与稳定性
 本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
 
 **核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `DrivingRouteResponse`, `Step`, `Path` 等）。
 
+### 稳定性特性
+- **自动重试**：网络波动或限流时自动重试（默认 3 次）。
+- **LRU 缓存**：可开启内存缓存，减少重复请求，提升性能。
+- **请求取消**：支持 `AbortSignal`，防止输入提示等场景下的竞态问题。
+
 ## 指令
-1. **Key 配置**：在基础包初始化时传入 `webKey`。
-2. **实例化**：创建 `GaodeWebAPI` 实例（无参构造）。
+1. **Key 配置**：在基础包初始化时传入 `webKey`，或构造时传入。
+2. **实例化**：创建 `GaodeWebAPI` 实例。
 3. **调用服务**：
    - 路径规划：`api.route.driving/walking/transit`
    - 地理编码：`api.geocode.geocode/regeocode`
@@ -42,8 +47,8 @@ ExpoGaodeMapModule.initSDK({
   webKey: 'YOUR_WEB_KEY'
 });
 
-// 之后随处可用
-const api = new GaodeWebAPI();
+// 之后随处可用，可开启缓存
+const api = new GaodeWebAPI({ enableCache: true });
 ```
 
 ### ✅ 正确：处理 API 错误

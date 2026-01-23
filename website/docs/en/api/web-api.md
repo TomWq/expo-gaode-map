@@ -318,6 +318,89 @@ try {
 4. **Coordinate Format**: Longitude first, latitude second (longitude,latitude)
 5. **Network Requests**: Requires network connection, cannot work offline
 
+## API Reference
+
+### GaodeWebAPI Class
+
+Main class for managing Web API service instances.
+
+**Constructor:**
+
+```typescript
+class GaodeWebAPI {
+  constructor(config?: ClientConfig)
+  
+  geocode: GeocodeService;
+  route: RouteService;
+  poi: POIService;
+  inputTips: InputTipsService;
+}
+
+interface ClientConfig {
+  /** AMap Web Service Key */
+  key?: string;
+  /** Request timeout (ms), default 10000 */
+  timeout?: number;
+  /** Max retries, default 3 */
+  maxRetries?: number;
+  /** Retry delay (ms), default 1000 */
+  retryDelay?: number;
+  /** Enable caching, default false */
+  enableCache?: boolean;
+  /** Cache capacity, default 100 */
+  cacheCapacity?: number;
+}
+```
+
+**Parameters:**
+
+- `config.key` (Optional): AMap Web Service Key
+  - If omitted, tries to resolve `webKey` from the initialized base module.
+- `config.maxRetries`: Auto-retry count on failure (only for retryable errors like QPS limit).
+- `config.enableCache`: Enable LRU memory cache. Same requests will return cached results.
+
+**Example:**
+
+```typescript
+// Basic
+const api = new GaodeWebAPI();
+
+// Advanced
+const api = new GaodeWebAPI({
+  key: 'your-web-api-key',
+  maxRetries: 5,
+  enableCache: true
+});
+```
+
+---
+
+### Common Options
+
+All Service methods support the following common options:
+
+- `signal?: AbortSignal`: Signal object for cancelling the request.
+
+---
+
+### GeocodeService API
+
+#### regeocode()
+
+```typescript
+async regeocode(
+  location: string | { longitude: number; latitude: number },
+  options?: {
+    extensions?: 'base' | 'all';
+    radius?: number;
+    poitype?: string;
+    roadlevel?: 0 | 1;
+    homeorcorp?: 0 | 1 | 2;
+    signal?: AbortSignal; // Support cancellation
+  }
+): Promise<RegeocodeResponse>
+```
+
 ## Related Documentation
 
 - [Navigation API](/en/api/navigation) - Navigation module guide

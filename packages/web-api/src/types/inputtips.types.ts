@@ -30,6 +30,10 @@ export interface InputTipsParams {
    * - busline: 返回公交线路数据类型
    */
   datatype?: 'all' | 'poi' | 'bus' | 'busline' | string;
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**

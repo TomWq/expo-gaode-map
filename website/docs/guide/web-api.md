@@ -72,16 +72,72 @@ import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 const api = new GaodeWebAPI();
 ```
 
-#### 方式 B：显式传入 Key
+#### 方式 B：显式传入 Key 与高级配置
 
-如果你没有调用 `initSDK` 配置 `webKey`，或者需要使用特定的 Key，可以显式传入：
+如果你需要配置重试策略或开启缓存，可以使用配置对象：
 
 ```typescript
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-// 或者：显式传入 Key
-const api = new GaodeWebAPI({ key: 'your-web-api-key' });
+const api = new GaodeWebAPI({
+  key: 'your-web-api-key', // 可选
+  maxRetries: 3,           // 失败重试次数（默认 3）
+  enableCache: true,       // 开启内存缓存（默认 false）
+  cacheCapacity: 100,      // 缓存容量（默认 100）
+});
 ```
+
+## 高级特性
+
+### 1. 请求取消
+
+在输入提示（InputTips）等场景中，用户输入速度很快，可能会产生竞态问题。你可以使用 `AbortController` 来取消旧的请求。
+
+```typescript
+const controller = new AbortController();
+
+// 发起请求时传入 signal
+api.inputTips.getTips('肯德基', {
+  city: '北京',
+  signal: controller.signal
+});
+
+// 需要取消时
+controller.abort();
+```
+
+### 2. 自动重试
+
+SDK 内置了智能重试机制。当遇到以下情况时会自动进行指数退避重试：
+- 网络错误（Network Error）
+- 服务限流（如 `QPS_HAS_EXCEEDED_THE_LIMIT`）
+- 服务器繁忙（`SERVER_IS_BUSY`）
+
+默认重试 3 次，你可以通过构造函数中的 `maxRetries` 和 `retryDelay` 进行调整。
+
+### 3. 性能缓存
+
+SDK 提供了 LRU（Least Recently Used）缓存支持。开启后，对于 URL 和参数完全相同的请求，将直接返回内存中的缓存数据，不再发起网络请求。
+
+这对于逆地理编码（坐标转地址）等高频且结果稳定的接口非常有用。
+
+```typescript
+const api = new GaodeWebAPI({ enableCache: true });
+
+// 第一次请求：走网络
+await api.geocode.regeocode('116.48,39.99');
+
+// 第二次请求：走缓存（速度极快）
+await api.geocode.regeocode('116.48,39.99');
+```
+
+### 4. 参数校验
+
+SDK 会在发起请求前对参数进行预校验：
+- **坐标格式**：检查经纬度是否符合 `经度,纬度` 格式。
+- **批量接口**：检查输入内容是否包含非法分隔符 `|`。
+
+如果校验失败，将直接抛出错误，避免产生无效的 API 调用费用。
 
 ## 基础用法
 

@@ -64,6 +64,10 @@ export interface RegeocodeParams {
    * 此参数只在output参数设置为JSON时有效
    */
   callback?: string;
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -302,6 +306,10 @@ export interface GeocodeParams {
    * callback值是用户定义的函数名称，此参数只在output参数设置为JSON时有效
    */
   callback?: string;
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**

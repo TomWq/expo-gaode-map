@@ -29,6 +29,7 @@ import { Alert, Image, Platform, Pressable, StyleSheet, Text, View, TouchableOpa
 import TestNewPermissionMethods from './TestNewPermissionMethods';
 import UseMapExample from './UseMapExample';
 import PolylineExample from './PolylineExample';
+import WebAPIAdvancedTest from './WebAPIAdvancedTest';
 
 
 const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
@@ -90,6 +91,7 @@ export default function MamScreen() {
   const [isFollowing, setIsFollowing] = useState(true);
   const [status, requestPermission] = useLocationPermissions()
   const [showPolylineExample, setShowPolylineExample] = useState(false);
+  const [showWebAPITest, setShowWebAPITest] = useState(false);
 
   // 高级覆盖物状态
   const [showHeatMap, setShowHeatMap] = useState(false);
@@ -530,6 +532,34 @@ export default function MamScreen() {
     );
   }
 
+  if (showWebAPITest) {
+    return (
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 50,
+            left: 20,
+            zIndex: 100,
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+          onPress={() => setShowWebAPITest(false)}
+        >
+          <Text style={{ fontWeight: '600' }}>← 返回主页</Text>
+        </TouchableOpacity>
+        <WebAPIAdvancedTest />
+      </View>
+    );
+  }
+
   if (!initialPosition) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -953,6 +983,12 @@ export default function MamScreen() {
                     onPress={() => setShowPolylineExample(true)}
                   >
                     <Text style={styles.actionBtnText}>Polyline抽稀</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: '#673AB7' }]}
+                    onPress={() => setShowWebAPITest(true)}
+                  >
+                    <Text style={styles.actionBtnText}>WebAPI测试</Text>
                   </Pressable>
                 </View>
 

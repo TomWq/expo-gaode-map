@@ -339,12 +339,27 @@ try {
 
 ```typescript
 class GaodeWebAPI {
-  constructor(config?: { key?: string, timeout?: number })
+  constructor(config?: ClientConfig)
   
   geocode: GeocodeService;     // 地理编码服务
   route: RouteService;         // 路径规划服务
   poi: POIService;             // POI 搜索服务
   inputTips: InputTipsService; // 输入提示服务
+}
+
+interface ClientConfig {
+  /** 高德地图 Web API Key */
+  key?: string;
+  /** 请求超时时间（毫秒），默认 10000 */
+  timeout?: number;
+  /** 最大重试次数，默认 3 */
+  maxRetries?: number;
+  /** 重试延迟（毫秒），默认 1000 */
+  retryDelay?: number;
+  /** 是否启用缓存，默认 false */
+  enableCache?: boolean;
+  /** 缓存容量，默认 100 */
+  cacheCapacity?: number;
 }
 ```
 
@@ -352,18 +367,31 @@ class GaodeWebAPI {
 
 - `config.key`（可选）：高德地图 Web 服务 Key
   - 如果不传，会自动尝试从已初始化的基础模块（`expo-gaode-map` 或 `expo-gaode-map-navigation`）中解析 `webKey`。
-  - 只有当 `config.key` 为空且未通过 `initSDK` 配置 `webKey` 时，才会抛出初始化异常。
-- `config.timeout`（可选）：请求超时时间，默认 10000ms。
+- `config.maxRetries`：请求失败时的自动重试次数（仅针对可重试的错误码，如 QPS 超限）。
+- `config.enableCache`：是否启用 LRU 内存缓存，开启后相同的请求（URL + 参数）将直接返回缓存结果。
 
 **示例：**
 
 ```typescript
-// 方式 A：无参构造（从基础模块读取）
+// 基础用法
 const api = new GaodeWebAPI();
 
-// 方式 B：显式传入 Key
-const api = new GaodeWebAPI({ key: 'your-web-api-key' });
+// 高级配置
+const api = new GaodeWebAPI({
+  key: 'your-web-api-key',
+  maxRetries: 5,        // 失败重试 5 次
+  enableCache: true,    // 开启缓存
+  cacheCapacity: 200    // 缓存 200 条记录
+});
 ```
+
+---
+
+### 通用参数
+
+所有 Service 方法的 `options` 参数都支持以下通用选项：
+
+- `signal?: AbortSignal`：用于取消请求的信号对象。
 
 ---
 
@@ -380,6 +408,7 @@ async regeocode(
     poitype?: string;
     roadlevel?: 0 | 1;
     homeorcorp?: 0 | 1 | 2;
+    signal?: AbortSignal; // 支持取消
   }
 ): Promise<RegeocodeResponse>
 ```

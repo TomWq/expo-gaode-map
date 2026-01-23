@@ -59,6 +59,10 @@ export interface POISearchParams {
    * @default 'v5'
    */
   version?: 'v3' | 'v5';
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -140,6 +144,10 @@ export interface POIAroundParams {
    * @default 'v5'
    */
   version?: 'v3' | 'v5';
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -194,6 +202,10 @@ export interface POIPolygonParams {
    * @default 'v5'
    */
   version?: 'v3' | 'v5';
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -390,4 +402,8 @@ export interface POIDetailParams {
    * @default 'v5'
    */
   version?: 'v3' | 'v5';
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }

@@ -38,12 +38,45 @@ ExpoGaodeMapModule.initSDK({
 const api = new GaodeWebAPI();
 ```
 
-#### 方式 2：构造函数显式传入
+#### 方式 2：构造函数显式传入 (高级配置)
 ```typescript
 const api = new GaodeWebAPI({ 
-  key: 'YOUR_WEB_API_KEY' 
+  key: 'YOUR_WEB_API_KEY',
+  enableCache: true, // 开启 LRU 缓存
+  maxRetries: 3      // 失败重试次数
 });
 ```
+
+## 高级特性 (Advanced)
+
+### 1. 缓存策略 (Caching)
+SDK 内置了 LRU (Least Recently Used) 缓存机制。开启后，对于 URL 和参数完全相同的请求，将直接返回内存中的结果，不再发起网络请求。
+
+```typescript
+const api = new GaodeWebAPI({ enableCache: true });
+// 第一次：网络请求
+await api.geocode.regeocode('116.48,39.99');
+// 第二次：命中缓存 (速度极快)
+await api.geocode.regeocode('116.48,39.99');
+```
+
+### 2. 请求取消 (Cancellation)
+在输入提示（InputTips）等场景中，用户输入速度很快，可能会产生竞态问题。所有 Service 方法均支持通过 `signal` 取消请求。
+
+```typescript
+const controller = new AbortController();
+
+api.inputTips.getTips('KFC', {
+  city: '010',
+  signal: controller.signal
+});
+
+// 取消请求
+controller.abort();
+```
+
+### 3. 自动重试 (Auto Retry)
+遇到网络错误、QPS 超限（如 `10014`）、服务器繁忙（`10016`）等可恢复错误时，SDK 会自动进行指数退避重试，默认重试 3 次。
 
 ## 路径规划服务 (Route)
 

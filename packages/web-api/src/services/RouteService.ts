@@ -12,6 +12,7 @@ import type {
   TransitRouteParams,
   TransitRouteResponse,
 } from '../types/route.types';
+import { validateCoordinate } from '../utils/validators';
 
 /**
  * 路径规划服务
@@ -24,10 +25,14 @@ export class RouteService {
    * 坐标转换辅助方法
    */
   private formatCoordinate(coord: Coordinate): string {
+    let str: string;
     if (typeof coord === 'string') {
-      return coord;
+      str = coord;
+    } else {
+      str = `${coord.longitude},${coord.latitude}`;
     }
-    return `${coord.longitude},${coord.latitude}`;
+    validateCoordinate(str);
+    return str;
   }
 
   /**
@@ -64,7 +69,7 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<DrivingRouteParams, 'origin' | 'destination'>
   ): Promise<DrivingRouteResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
@@ -81,7 +86,7 @@ export class RouteService {
     }
     
     const path = `/${version}/direction/driving`;
-    return this.client.request<DrivingRouteResponse>(path, params);
+    return this.client.request<DrivingRouteResponse>(path, { params, signal });
   }
 
   /**
@@ -107,7 +112,7 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<WalkingRouteParams, 'origin' | 'destination'>
   ): Promise<WalkingRouteResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
@@ -115,7 +120,7 @@ export class RouteService {
     };
 
     const path = `/${version}/direction/walking`;
-    return this.client.request<WalkingRouteResponse>(path, params);
+    return this.client.request<WalkingRouteResponse>(path, { params, signal });
   }
 
   /**
@@ -142,7 +147,7 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<BicyclingRouteParams, 'origin' | 'destination'>
   ): Promise<BicyclingRouteResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
@@ -150,7 +155,7 @@ export class RouteService {
     };
 
     const path = `/${version}/direction/bicycling`;
-    return this.client.request<BicyclingRouteResponse>(path, params);
+    return this.client.request<BicyclingRouteResponse>(path, { params, signal });
   }
 
   /**
@@ -162,7 +167,7 @@ export class RouteService {
    * 
    * @example
    * ```typescript
-   * const result = await api.route.electr icBike(
+   * const result = await api.route.electricBike(
    *   '116.481028,39.989643',
    *   '116.434446,39.90816'
    * );
@@ -173,7 +178,7 @@ export class RouteService {
     destination: Coordinate,
     options?: Omit<ElectricBikeRouteParams, 'origin' | 'destination'>
   ): Promise<ElectricBikeRouteResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
@@ -181,7 +186,7 @@ export class RouteService {
     };
 
     const path = `/${version}/direction/electrobike`;
-    return this.client.request<ElectricBikeRouteResponse>(path, params);
+    return this.client.request<ElectricBikeRouteResponse>(path, { params, signal });
   }
 
   /**
@@ -240,7 +245,7 @@ export class RouteService {
     city2: string,
     options?: Omit<TransitRouteParams, 'origin' | 'destination' | 'city1' | 'city2'>
   ): Promise<TransitRouteResponse> {
-    const { version = 'v5', ...rest } = options || {};
+    const { version = 'v5', signal, ...rest } = options || {};
     const params: Record<string, any> = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
@@ -250,6 +255,6 @@ export class RouteService {
     };
 
     const path = `/${version}/direction/transit/integrated`;
-    return this.client.request<TransitRouteResponse>(path, params);
+    return this.client.request<TransitRouteResponse>(path, { params, signal });
   }
 }

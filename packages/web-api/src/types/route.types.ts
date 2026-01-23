@@ -34,6 +34,10 @@ export interface BaseRouteParams {
    * @default 'v5'
    */
   version?: 'v3' | 'v5';
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
 }
 
 /**
