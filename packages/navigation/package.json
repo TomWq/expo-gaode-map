@@ -1,12 +1,12 @@
 {
   "name": "expo-gaode-map-navigation",
-  "version": "1.1.4",
+  "version": "1.1.8",
   "description": "高德地图导航功能模块 - 路径规划、导航引导，独立版本包含完整地图功能",
   "author": "<TomWq> (https://github.com/TomWq)",
   "repository": "https://github.com/TomWq/expo-gaode-map",
   "main": "build/index.js",
   "types": "build/index.d.ts",
-    "scripts": {
+  "scripts": {
     "build": "expo-module build && bun run build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean",
@@ -32,7 +32,6 @@
   "bugs": {
     "url": "https://github.com/TomWq/expo-gaode-map/issues"
   },
- 
   "files": [
     "build",
     "android",
@@ -54,5 +53,4 @@
     "导航"
   ],
   "license": "MIT"
- 
 }
