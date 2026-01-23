@@ -212,10 +212,8 @@ publish_search() {
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
-  CORE_VERSION=$(node -p "require('../core/package.json').version")
-  echo "检测到核心包版本: ${CORE_VERSION}"
-  echo "更新依赖为 ^${CORE_VERSION}..."
-  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.dependencies=pkg.dependencies||{};pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
+  # Search 包现在支持独立运行（配合 navigation），不再强制依赖 core 包
+  echo "⚠️  Search 包独立发布，跳过 expo-gaode-map 依赖注入"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
     bun publish --access public --no-git-checks
