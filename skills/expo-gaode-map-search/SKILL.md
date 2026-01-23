@@ -46,5 +46,12 @@ const result = await searchPOI({
 ### ❌ 错误：不处理搜索空结果
 搜索可能返回 0 个结果或抛出异常（如网络问题、API Key 无效），务必使用 try-catch 并检查 `result.pois.length`。
 
+## 🛡️ 类型安全最佳实践
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+
+**核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `PoiSearchOptions`, `Poi`, `InputTip` 等）。
+
+## 深度挖掘
+
 ## 参考文档
 - [原生搜索 API 详解 (Search)](./references/search.md)

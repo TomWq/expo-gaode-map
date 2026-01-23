@@ -6,7 +6,7 @@ import androidx.core.graphics.toColorInt
 object ColorParser {
     init {
         try {
-            System.loadLibrary("gaodecluster")
+            System.loadLibrary("gaodecluster_nav")
         } catch (_: Throwable) {
             // Ignore if already loaded
         }

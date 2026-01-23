@@ -12,7 +12,7 @@ import kotlin.math.*
 object GeometryUtils {
 
     init {
-        System.loadLibrary("gaodecluster")
+        System.loadLibrary("gaodecluster_nav")
     }
 
     private external fun nativeIsPointInCircle(

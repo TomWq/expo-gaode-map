@@ -49,6 +49,8 @@ const api = new GaodeWebAPI({
 
 提供多种出行方式的路径规划方案，全面支持 **V5** 版本 API。
 
+> **💡 性能优化**：API 返回的路径点串通常较长。建议使用 `ExpoGaodeMapModule.parsePolyline` 进行原生解析，并使用 `ExpoGaodeMapModule.simplifyPolyline` 进行抽稀优化，以获得最佳的渲染性能。
+
 ### 驾车路径规划 (Driving)
 
 默认使用 V5 版本接口，支持避让拥堵、多策略选择。
@@ -134,8 +136,21 @@ const result = await api.geocode.batchRegeocode([
 
 ## 最佳实践与注意事项
 
-### 错误处理
+### 类型安全 (Type Safety)
+`expo-gaode-map-web-api` 提供了完整的 TypeScript 类型定义。在处理 API 响应时，应始终导入并使用正确的类型，避免使用 `any`。
 
+**常用类型对照表：**
+
+| 服务类型 | 请求参数类型 | 响应类型 | 核心数据结构 |
+| :--- | :--- | :--- | :--- |
+| **驾车** | `DrivingRouteParams` | `DrivingRouteResponse` | `Path`, `Step`, `Tmc` |
+| **步行** | `WalkingRouteParams` | `WalkingRouteResponse` | `Path`, `Step` |
+| **骑行** | `BicyclingRouteParams` | `BicyclingRouteResponse` | `Path`, `Step` |
+| **公交** | `TransitRouteParams` | `TransitRouteResponse` | `Transit`, `Segment`, `BusLine` |
+| **地理编码** | `GeocodeParams` | `GeocodeResponse` | `Geocode` |
+| **逆地理编码** | `ReGeocodeParams` | `ReGeocodeResponse` | `ReGeocode`, `AddressComponent` |
+
+### 错误处理
 Web API 调用可能因为 Key 无效、配额耗尽或网络问题失败，建议使用 `try-catch`。
 
 ```typescript

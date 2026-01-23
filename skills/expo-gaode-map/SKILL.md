@@ -92,3 +92,10 @@ import { Cluster } from 'expo-gaode-map';
 - [几何覆盖物 (Overlays) - 折线/多边形/圆](./references/overlays.md)
 - [定位与追踪 (Location) - 权限与后台服务](./references/location.md)
 - [离线地图 (Offline) - 下载与管理](./references/offline.md)
+
+## 🛡️ 类型安全最佳实践
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+
+**核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `LatLng`, `CameraPosition`, `MapType` 等）。
+
+## 深度挖掘

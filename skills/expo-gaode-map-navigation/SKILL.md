@@ -67,3 +67,10 @@ console.log(`距离: ${result.routes[0].distance}米`);
 ## 参考文档
 - [导航 API 详解 (NaviView & Routing)](./references/navigation-api.md)
 - [核心导航指南 (Navigation Core)](./references/navigation.md)
+
+## 🛡️ 类型安全最佳实践
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+
+**核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `DriveRouteOptions`, `NaviInfo`, `DriveStrategy` 等）。
+
+## 深度挖掘

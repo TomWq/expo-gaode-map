@@ -2,7 +2,7 @@ package expo.modules.gaodemap.map.utils
 
 object ClusterNative {
     init {
-        System.loadLibrary("gaodecluster")
+        System.loadLibrary("gaodecluster_nav")
     }
 
     external fun clusterPoints(

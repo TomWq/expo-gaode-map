@@ -14,6 +14,16 @@ description: Web API 开发助手。提供基于 Web 服务的 V5 路径规划�
 - 需要在非原生环境（如纯 JS 逻辑层）进行地理编码或算路。
 - 原生搜索包无法满足特定的 API 需求时。
 
+## ⚠️ 性能优化提示
+当处理 API 返回的 `polyline` 数据时，**强烈建议**结合 `ExpoGaodeMapModule` 的原生计算能力：
+- **解析**：使用 `ExpoGaodeMapModule.parsePolyline(str)` 解析坐标串，比 JS 手动 split 快得多。
+- **优化**：使用 `ExpoGaodeMapModule.simplifyPolyline(points, tolerance)` 进行 RDP 抽稀，显著减少地图渲染压力。
+
+## 🛡️ 类型安全最佳实践
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+
+**核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `DrivingRouteResponse`, `Step`, `Path` 等）。
+
 ## 指令
 1. **Key 配置**：在基础包初始化时传入 `webKey`。
 2. **实例化**：创建 `GaodeWebAPI` 实例（无参构造）。
@@ -49,3 +59,4 @@ try {
 
 ## 参考文档
 - [Web API 详解 (Web API)](./references/web-api.md)
+- [类型定义参考 (Types)](./references/types.md)
