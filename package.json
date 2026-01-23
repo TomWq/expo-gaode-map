@@ -36,7 +36,7 @@
     "publish:search:beta": "cd packages/search && bun publish --access public --tag beta",
     "publish:navigation:beta": "cd packages/navigation && bun publish --access public --tag beta",
     "publish:web-api:beta": "cd packages/web-api && bun publish --access public --tag beta",
-    "zip:skills": "zip -r website/docs/public/expo-gaode-map-skills.zip skills -x \"*.DS_Store\" -x \"*/.git/*\"",
+    "zip:skills": "bash scripts/zip-skills.sh",
     "npm:login": "npm login --auth-type=web",
     "publish:interactive": "bash scripts/publish.sh",
     "version:core": "cd packages/core && bun version",

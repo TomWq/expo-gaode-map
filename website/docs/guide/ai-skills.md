@@ -8,19 +8,31 @@
 
 您可以直接下载并在您的项目中使用这些 AI 技能文件：
 
-<div style="margin: 20px 0;">
-  <a href="../expo-gaode-map-skills.zip" download style="display: inline-block; background: #3eaf7c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    🚀 下载 TRAE 技能包 (.zip)
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0;">
+  <a href="../expo-gaode-map.zip" download style="display: block; background: #3eaf7c; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    📦 核心地图包
+    <span style="display: block; font-size: 0.8em; font-weight: normal; opacity: 0.9">expo-gaode-map.zip</span>
+  </a>
+  <a href="../expo-gaode-map-navigation.zip" download style="display: block; background: #3eaf7c; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    🚗 导航与规划包
+    <span style="display: block; font-size: 0.8em; font-weight: normal; opacity: 0.9">expo-gaode-map-navigation.zip</span>
+  </a>
+  <a href="../expo-gaode-map-search.zip" download style="display: block; background: #3eaf7c; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    🔍 搜索服务包
+    <span style="display: block; font-size: 0.8em; font-weight: normal; opacity: 0.9">expo-gaode-map-search.zip</span>
+  </a>
+  <a href="../expo-gaode-map-web-api.zip" download style="display: block; background: #3eaf7c; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    🌐 Web API 包
+    <span style="display: block; font-size: 0.8em; font-weight: normal; opacity: 0.9">expo-gaode-map-web-api.zip</span>
   </a>
 </div>
 
 **安装步骤：**
-1. 下载上面的压缩包并解压。
-2. 您会看到一个 `expo-gaode-map-skills` 文件夹。
-3. 打开 **TRAE**，进入 **设置 > 规则和技能**。
-4. 在 **技能** 部分，点击 **创建** 按钮。
-5. 在 **新建** 窗口中，直接上传解压后的文件夹中的 `.zip` 文件或单个 `SKILL.md`。
-6. TRAE 会自动分析并导入技能。
+1. 点击上方按钮，下载您需要的技能包（.zip 文件）。
+2. 打开 **TRAE**，进入 **设置 > 规则和技能**。
+3. 在 **技能** 部分，点击 **创建** 按钮。
+4. 在 **新建** 窗口中，直接**拖拽**或**上传**您下载的 `.zip` 文件。
+5. TRAE 会自动分析并导入技能（每次导入一个）。
 
 ---
 
