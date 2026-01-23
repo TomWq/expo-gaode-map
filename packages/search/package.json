@@ -54,7 +54,5 @@
     "react": "*",
     "react-native": "*"
   },
-  "dependencies": {
-    "expo-gaode-map": "*"
-  }
+  "dependencies": {}
 }
