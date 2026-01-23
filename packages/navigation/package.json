@@ -37,6 +37,7 @@
     "build",
     "android",
     "ios",
+    "shared",
     "app.plugin.js",
     "expo-module.config.json",
     "plugin/build"

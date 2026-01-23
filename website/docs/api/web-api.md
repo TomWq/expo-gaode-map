@@ -61,26 +61,38 @@ npm install expo-gaode-map-web-api
 ### 2. 在基础模块初始化时下发 webKey
 
 ```typescript
-import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+// 或
+// import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
+// 使用 Config Plugin 时，原生 Key 已自动配置
+ExpoGaodeMapModule.initSDK({
+  webKey: 'your-web-api-key', // 必需，供 Web API 包读取
+});
+
+// 不使用 Config Plugin 时
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-key',
   iosKey: 'your-ios-key',
-  webKey: 'your-web-api-key', // 关键：供 Web API 包读取
+  webKey: 'your-web-api-key',
 });
 ```
+
 
 ### 3. 无参构造并使用
 
 ```typescript
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-// 无参：从基础模块运行时解析 webKey
+// 方式 A：无参构造（从基础模块运行时解析 webKey）
 const api = new GaodeWebAPI();
+
+// 方式 B：显式传入 Key
+const api2 = new GaodeWebAPI({ key: 'your-web-api-key' });
 
 // 逆地理编码：坐标 → 地址
 const result = await api.geocode.regeocode('116.481028,39.989643');
-console.log(result.regeocode.formatted_address);
+```console.log(result.regeocode.formatted_address);
 
 // 地理编码：地址 → 坐标
 const geo = await api.geocode.geocode('北京市朝阳区阜通东大街6号');
