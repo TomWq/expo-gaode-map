@@ -21,29 +21,18 @@ import {
  * 这样可避免导航与核心包的 SDK 冲突时无法使用搜索模块的问题。
  */
 function ensureBaseInstalled() {
-  let installed = false;
   try {
-    // 优先检测核心地图包
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('expo-gaode-map');
-    installed = true;
+    // 检查核心地图原生模块是否存在
+    // 无论是安装了 expo-gaode-map 还是 expo-gaode-map-navigation，
+    // 原生端都会注册名为 'ExpoGaodeMap' 的模块。
+    // 我们通过 requireNativeModule 来检测，避免在 JS 层面引入对包的硬依赖。
+    requireNativeModule('ExpoGaodeMap');
   } catch (_) {
-    // 再尝试导航包（内置地图能力）
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      require('expo-gaode-map-navigation');
-      installed = true;
-    } catch (_) {
-      installed = false;
-    }
-  }
-
-  if (!installed) {
     const msg =
-      '[expo-gaode-map-search] 需要先安装基础地图组件，支持以下任一包：\n' +
-      '  - expo-gaode-map（核心地图包），或\n' +
-      '  - expo-gaode-map-navigation（导航包，内置地图能力）\n' +
-      '请先安装并完成原生配置后再重试。';
+      '[expo-gaode-map-search] 未检测到基础地图原生模块。\n' +
+      '请确保已安装以下任一包并重新构建应用 (npx expo prebuild)：\n' +
+      '  - expo-gaode-map（核心地图包）\n' +
+      '  - expo-gaode-map-navigation（导航包，内置地图能力）';
     throw new Error(msg);
   }
 }
