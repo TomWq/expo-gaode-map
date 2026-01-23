@@ -154,7 +154,7 @@ ensure_unique_version() {
     if [ "$ver" == "$candidate" ] && [ "$preid" == "" ]; then
       # 第一次检查，且用户选择了 none (candidate == ver)
       # 如果已存在，则必须升级
-      echo -e "${YELLOW}⚠️  版本 ${candidate} 已存在，自动递增补丁号...${NC}"
+      echo -e "${YELLOW}⚠️  版本 ${candidate} 已存在，自动递增补丁号...${NC}" >&2
       candidate="$(node -e "const s='$candidate'.split('.');s[2]=String(Number(s[2]||0)+1);console.log(s.slice(0,3).join('.'))")"
       continue
     fi
