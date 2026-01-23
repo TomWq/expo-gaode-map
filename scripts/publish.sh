@@ -52,11 +52,13 @@ case $release_type in
     RELEASE_TAG="latest"
     PRERELEASE=""
     echo "选择版本更新类型："
+    echo "0) none (保持当前版本，不修改)"
     echo "1) patch (修订号，例如: 0.1.0 -> 0.1.1)"
     echo "2) minor (次版本号，例如: 0.1.0 -> 0.2.0)"
     echo "3) major (主版本号，例如: 0.1.0 -> 1.0.0)"
-    read -p "请选择 (1/2/3): " version_type
+    read -p "请选择 (0/1/2/3): " version_type
     case $version_type in
+      0) VERSION_FLAG="none" ;;
       1) VERSION_FLAG="patch" ;;
       2) VERSION_FLAG="minor" ;;
       3) VERSION_FLAG="major" ;;
@@ -67,11 +69,13 @@ case $release_type in
     RELEASE_TAG="next"
     PRERELEASE="next"
     echo "选择测试版本更新类型："
+    echo "0) none (保持当前版本，不修改)"
     echo "1) 基于当前版本创建测试版 (例如: 2.1.0 -> 2.1.1-next.0)"
     echo "2) 升级 minor 并创建测试版 (例如: 2.0.1 -> 2.1.0-next.0)"
     echo "3) 升级 major 并创建测试版 (例如: 2.0.1 -> 3.0.0-next.0)"
-    read -p "请选择 (1/2/3): " next_type
+    read -p "请选择 (0/1/2/3): " next_type
     case $next_type in
+      0) VERSION_FLAG="none" ;;
       1) VERSION_FLAG="prerelease --preid=next" ;;
       2) VERSION_FLAG="preminor --preid=next" ;;
       3) VERSION_FLAG="premajor --preid=next" ;;
@@ -147,6 +151,14 @@ ensure_unique_version() {
 
   # 连续检查，直到未被占用
   while version_exists "$name" "$candidate"; do
+    if [ "$ver" == "$candidate" ] && [ "$preid" == "" ]; then
+      # 第一次检查，且用户选择了 none (candidate == ver)
+      # 如果已存在，则必须升级
+      echo -e "${YELLOW}⚠️  版本 ${candidate} 已存在，自动递增补丁号...${NC}"
+      candidate="$(node -e "const s='$candidate'.split('.');s[2]=String(Number(s[2]||0)+1);console.log(s.slice(0,3).join('.'))")"
+      continue
+    fi
+
     if [[ -n "$preid" ]]; then
       candidate="$(next_prerelease "$candidate" "$preid")"
     else
