@@ -423,6 +423,7 @@ export default function App() {
 2. 检查 API Key 是否正确配置（推荐使用 Config Plugin）
 3. 运行 `npx expo prebuild --clean` 重新生成原生代码
 4. 查看控制台错误日志
+5. 安卓需要在真机上测试，否则模拟器会黑屏
 
 ### 定位不工作？
 
