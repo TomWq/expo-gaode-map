@@ -66,8 +66,15 @@ tags: polyline, polygon, circle, geometry, heatmap, multipoint
 
 ## 深度挖掘
 
-### 轨迹抽稀 (Simplification)
-`Polyline` 和 `Polygon` 支持 `simplificationTolerance` (米)。当轨迹点非常密集时，开启抽稀可以显著降低渲染压力和内存占用。
+### 轨迹优化与计算 (Polyline Optimization)
+当处理复杂轨迹或长路径时，请务必利用原生能力进行优化：
+
+- **渲染抽稀**: `Polyline` 和 `Polygon` 组件支持 `simplificationTolerance` (米) 属性。开启后，底层会自动在渲染前进行抽稀。
+- **计算抽稀**: 如果需要手动获取抽稀后的坐标点，请使用 `ExpoGaodeMapModule.simplifyPolyline(points, tolerance)`。
+- **路径纠偏/吸附**: 使用 `ExpoGaodeMapModule.getNearestPointOnPath(path, target)` 获取路径上最近的点。这在实现“点到线”的距离计算或导航吸附时非常有用。
+- **总长度计算**: 使用 `ExpoGaodeMapModule.calculatePathLength(points)`。
+
+**严禁**：不要在 JS 层编写 RDP 抽稀算法或点到线段的距离算法，原生 C++ 引擎的执行速度快几个数量级。
 
 ### GeoUtils 工具
 - **智能坐标纠错**: `GeoUtils.normalizeLatLng` 会自动检测并修复经纬度反转的问题。

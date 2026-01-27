@@ -22,9 +22,12 @@ tags: cpp-engine, jni, native-bridge, performance, geometry-math
 
 `ExpoGaodeMapModule` 不仅是桥接器，还暴露了大量纯计算方法，利用底层 C++ 引擎实现高性能几何运算，无需渲染地图即可使用。
 
+**核心原则**：涉及到地理位置计算，必须优先使用原生方法。严禁在 JS 层手写复杂的几何算法。
+
 ### 1. 几何计算
 - `distanceBetweenCoordinates(p1, p2)`: 计算两点距离。
 - `isPointInPolygon(point, polygon)`: 判断点是否在多边形内。
+- `isPointInCircle(point, center, radius)`: 判断点是否在圆内。
 - `calculatePolygonArea(polygon)`: 计算多边形面积。
 - `calculateRectangleArea(sw, ne)`: 计算矩形面积。
 - `calculateCentroid(polygon)`: 计算多边形质心。
@@ -34,6 +37,7 @@ tags: cpp-engine, jni, native-bridge, performance, geometry-math
 - `getNearestPointOnPath(path, target)`: 获取路径上距离目标点最近的点（吸附/纠偏）。
 - `getPointAtDistance(path, distance)`: 获取路径上指定距离处的点（沿路径插值）。
 - `calculatePathLength(points)`: 计算路径总长度。
+- `calculatePathBounds(points)`: 计算路径边界和中心点。
 
 ### 3. 空间索引与转换
 - `encodeGeoHash(coord, precision)`: 生成 GeoHash 字符串。

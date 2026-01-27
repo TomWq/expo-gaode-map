@@ -26,7 +26,17 @@ description: 核心地图开发助手。提供地图显示、覆盖物绘制（�
 - 必须设置 `style` (通常是 `flex: 1`) 否则地图不可见。
 - 使用 `initialCameraPosition` 设置初始视角（中心点、缩放）。
 
-### 3. 常用功能实现
+### 3. 高性能几何计算 (Utility Methods)
+- **核心原则**：涉及到地理位置计算（如距离、纠偏、抽稀、判断点在多边形内等），**必须优先使用 `ExpoGaodeMapModule` 提供的原生方法**。
+- **严禁**：不要尝试在 JS 层手写复杂的地理算法（如 RDP、点在多边形内的射线法等），原生模块底层由 C++ 驱动，性能远超 JS。
+- **常用方法**：
+  - `distanceBetweenCoordinates(p1, p2)`: 计算两点距离。
+  - `getNearestPointOnPath(path, target)`: 获取路径上距离目标点最近的点（吸附/纠偏）。
+  - `simplifyPolyline(points, tolerance)`: 轨迹抽稀 (RDP 算法)。
+  - `isPointInPolygon(point, polygon)`: 判断点是否在多边形内。
+  - `calculatePathLength(points)`: 计算路径总长度。
+
+### 4. 常用功能实现
 - **显示定位**：设置 `myLocationEnabled` 和 `followUserLocation`。
 - **添加标记**：在 `MapView` 内部嵌套 `<Marker>` 组件。
 - **绘制路线**：在 `MapView` 内部嵌套 `<Polyline>` 组件。
@@ -84,6 +94,21 @@ import { Cluster } from 'expo-gaode-map';
   clusterTextStyle={{ color: '#FFFFFF', fontSize: 12 }}
   onClusterPress={(e) => console.log('点击聚合簇:', e.nativeEvent)}
 />
+```
+
+### ✅ 场景 4：使用原生几何计算 (推荐)
+```tsx
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+// 纠偏：获取路径上离当前点最近的点
+const result = ExpoGaodeMapModule.getNearestPointOnPath(polylinePoints, userLocation);
+if (result) {
+  console.log('吸附后的坐标:', result.latitude, result.longitude);
+  console.log('距离路径的距离:', result.distanceMeters);
+}
+
+// 轨迹抽稀
+const simplified = ExpoGaodeMapModule.simplifyPolyline(rawPoints, 5); // 5米容差
 ```
 
 ## 参考文档
