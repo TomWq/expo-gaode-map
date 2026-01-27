@@ -10,8 +10,8 @@ import { LatLng, LatLngPoint } from '../types/common.types';
  */
 export function normalizeLatLng(point: LatLngPoint): LatLng {
   if (Array.isArray(point)) {
-    let longitude = point[0];
-    let latitude = point[1];
+    let longitude = Number(point[0]);
+    let latitude = Number(point[1]);
 
     // 智能纠错：如果纬度超出范围 [-90, 90] 且交换后在范围内，则认为是用户传反了
     if (Math.abs(latitude) > 90 && Math.abs(longitude) <= 90) {
@@ -29,8 +29,16 @@ export function normalizeLatLng(point: LatLngPoint): LatLng {
       latitude,
     };
   }
-  // 对象格式直接返回
-  return point;
+  // 对象格式：强制转换为数字，防止传入 string 类型导致原生层 Crash
+  if (point && typeof point === 'object') {
+    const p = point as any;
+    return {
+      latitude: Number(p.latitude),
+      longitude: Number(p.longitude),
+    };
+  }
+  
+  return point as LatLng;
 }
 
 /**

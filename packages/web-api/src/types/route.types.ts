@@ -371,7 +371,7 @@ export interface Step {
   step_distance: string;
   
   /** 以下字段需要通过 show_fields 参数设置才返回 */
-  
+  cost?: PathCost;
   /** 导航主要动作指令（需要 show_fields=navi） */
   action?: string;
   /** 导航辅助动作指令（需要 show_fields=navi） */
