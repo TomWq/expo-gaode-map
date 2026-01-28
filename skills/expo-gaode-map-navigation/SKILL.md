@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map-navigation
-description: 导航开发助手。提供路径规划（驾车/步行/骑行）、实时导航 UI、独立算路及货车/摩托车专用导航功能。
+description: 高德导航全功能一体化方案：集成完整地图能力（MapView/全部覆盖物/离线地图/定位/几何计算，无需核心包），提供官方 NaviView 导航 UI（语音/事件/路况/指南针）；支持多模式路径规划（驾车/步行/骑行/货车/摩托车/电动车）及策略/限行/途经点；具备高级独立算路能力（预估/路线预览/选择/启动）；包含 Config Plugin 自动配置；与 expo-gaode-map 存在 SDK 冲突，项目仅需安装此包。
 ---
 
 # Expo Gaode Map Navigation
@@ -65,11 +65,11 @@ console.log(`距离: ${result.routes[0].distance}米`);
 ```
 
 ## 参考文档
-- [导航 API 详解 (NaviView & Routing)](./references/navigation-api.md)
-- [核心导航指南 (Navigation Core)](./references/navigation.md)
+- [导航 API 详解 (NaviView & Routing)](./resources/navigation-api.md)
+- [核心导航指南 (Navigation Core)](./resources/navigation.md)
 
 ## 🛡️ 类型安全最佳实践
-本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。
 
 **核心原则**：
 1. **请勿使用 `any`**，始终导入并使用正确的类型（如 `DriveRouteOptions`, `NaviInfo`, `DriveStrategy` 等）。

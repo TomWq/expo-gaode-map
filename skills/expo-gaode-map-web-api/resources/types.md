@@ -1,9 +1,3 @@
----
-title: Types Reference
-impact: MEDIUM
-tags: types, typescript, interfaces, enums
----
-
 # 核心参考: 类型定义 (Types)
 
 `expo-gaode-map-web-api` 提供了全面的 TypeScript 类型定义。本文档列出了常用的核心类型，帮助开发者编写类型安全的代码。

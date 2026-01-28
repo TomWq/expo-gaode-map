@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map-search
-description: 原生搜索开发助手。提供高性能的 POI 搜索、输入提示、逆地理编码功能的开发指引。
+description: 高德原生搜索高性能方案：基于原生 SDK 实现，无 Web 配额限制；提供全场景 POI 搜索（关键字/周边/沿途/多边形/ID详情）；支持输入提示（Autocomplete）与逆地理编码（坐标转地址）；提供完整 TypeScript 定义；需依赖核心包或导航包初始化。
 ---
 
 # 原生搜索开发 (Search)
@@ -47,11 +47,11 @@ const result = await searchPOI({
 搜索可能返回 0 个结果或抛出异常（如网络问题、API Key 无效），务必使用 try-catch 并检查 `result.pois.length`。
 
 ## 🛡️ 类型安全最佳实践
-本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。
 
 **核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `PoiSearchOptions`, `Poi`, `InputTip` 等）。
 
 ## 深度挖掘
 
 ## 参考文档
-- [原生搜索 API 详解 (Search)](./references/search.md)
+- [原生搜索 API 详解 (Search)](./resources/search.md)

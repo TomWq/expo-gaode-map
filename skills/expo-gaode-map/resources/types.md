@@ -1,9 +1,3 @@
----
-title: Core Types Reference
-impact: CRITICAL
-tags: types, typescript, interfaces, enums, core
----
-
 # 核心参考: 类型定义 (Types)
 
 `expo-gaode-map` (Core) 提供了核心地图组件和基础类型定义。

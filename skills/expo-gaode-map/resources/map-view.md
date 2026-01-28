@@ -1,9 +1,3 @@
----
-title: Map View Core
-impact: CRITICAL
-tags: map-view, camera, ui-settings, gestures
----
-
 # 核心参考: Map View
 
 管理 `MapView` 的生命周期、相机控制、基本 UI 设置和地图类型。

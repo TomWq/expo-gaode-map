@@ -1,9 +1,3 @@
----
-title: Search Types Reference
-impact: HIGH
-tags: types, typescript, interfaces, search, poi
----
-
 # 搜索参考: 类型定义 (Types)
 
 `expo-gaode-map-search` 提供了搜索相关的类型定义。

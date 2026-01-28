@@ -1,9 +1,3 @@
----
-title: Navigation API
-impact: HIGH
-tags: navi-view, route-planning, independent-route, traffic, events
----
-
 # 导航 API 参考
 
 **源文件**: `packages/navigation/src`

@@ -1,9 +1,3 @@
----
-title: Geometry Overlays
-impact: HIGH
-tags: polyline, polygon, circle, geometry, heatmap, multipoint
----
-
 # 核心参考: 几何与高级覆盖物
 
 在地图上绘制线段、多边形、圆形以及处理大数据量的热力图和海量点。

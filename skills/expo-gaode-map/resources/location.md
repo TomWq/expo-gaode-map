@@ -1,9 +1,3 @@
----
-title: Location and Tracking
-impact: HIGH
-tags: location, tracking, permissions, geolocation, background-service
----
-
 # 核心参考: 定位与追踪
 
 管理用户定位显示、位置追踪以及权限处理。

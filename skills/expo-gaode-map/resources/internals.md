@@ -1,9 +1,3 @@
----
-title: Native Internals
-impact: HIGH
-tags: cpp-engine, jni, native-bridge, performance, geometry-math
----
-
 # 核心参考: 原生底层与架构 (Internals)
 
 深入理解 `expo-gaode-map` 的跨平台架构、高性能 C++ 引擎以及原生计算能力。

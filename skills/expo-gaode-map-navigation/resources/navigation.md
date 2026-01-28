@@ -1,9 +1,3 @@
----
-title: Navigation
-impact: HIGH
-tags: navigation, route-calculation, navi-view, drive, walk, ride, truck, motorcycle
----
-
 # 核心参考: 导航 (Navigation)
 
 提供路径规划（驾车、步行、骑行、货车）及原生导航界面。

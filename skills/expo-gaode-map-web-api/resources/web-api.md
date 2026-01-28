@@ -1,9 +1,3 @@
----
-title: Web API
-impact: HIGH
-tags: web-api, v5, route, geocode, input-tips, poi
----
-
 # 核心参考: Web API
 
 高德地图 Web API 模块，提供了在 React Native 环境中直接调用高德 Web 服务的能力。

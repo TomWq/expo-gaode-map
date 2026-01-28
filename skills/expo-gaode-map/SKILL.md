@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map
-description: 核心地图开发助手。提供地图显示、覆盖物绘制（标记/聚合/图形）、定位服务及离线地图功能的开发指引。
+description: Expo 高德地图核心能力：原生 MapView 渲染（标准/卫星/夜间/导航），手势与相机控制；定位服务（单次/连续/后台定位，蓝点样式与跟随）；覆盖物绘制（Marker/Polyline/Polygon/Circle/HeatMap/MultiPoint/Cluster，C++ 引擎驱动的高性能聚合）；离线地图下载与管理；类型安全的 TS API 与原生几何计算（距离、最近点吸附、轨迹抽稀、点在多边形内、路径长度）；支持 Config Plugin 自动配置与 initSDK(webKey/iosKey/androidKey) 初始化；适配 iOS/Android，隐私合规与权限处理已内置。
 ---
 
 # Expo Gaode Map
@@ -112,14 +112,14 @@ const simplified = ExpoGaodeMapModule.simplifyPolyline(rawPoints, 5); // 5米容
 ```
 
 ## 参考文档
-- [地图视图 (MapView) - 属性与事件](./references/map-view.md)
-- [标记与聚合 (Marker & Cluster) - 样式与交互](./references/marker-cluster.md)
-- [几何覆盖物 (Overlays) - 折线/多边形/圆](./references/overlays.md)
-- [定位与追踪 (Location) - 权限与后台服务](./references/location.md)
-- [离线地图 (Offline) - 下载与管理](./references/offline.md)
+- [地图视图 (MapView) - 属性与事件](./resources/map-view.md)
+- [标记与聚合 (Marker & Cluster) - 样式与交互](./resources/marker-cluster.md)
+- [几何覆盖物 (Overlays) - 折线/多边形/圆](./resources/overlays.md)
+- [定位与追踪 (Location) - 权限与后台服务](./resources/location.md)
+- [离线地图 (Offline) - 下载与管理](./resources/offline.md)
 
 ## 🛡️ 类型安全最佳实践
-本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。
 
 **核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `LatLng`, `CameraPosition`, `MapType` 等）。
 

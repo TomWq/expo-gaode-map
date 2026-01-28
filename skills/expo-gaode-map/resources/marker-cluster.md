@@ -1,9 +1,3 @@
----
-title: Marker and Clustering
-impact: CRITICAL
-tags: marker, cluster, quadtree, cpp-engine, icons
----
-
 # 核心参考: Marker 与 聚合 (Clustering)
 
 实现高性能的地图标记 (Marker) 和大规模点聚合 (Clustering)。

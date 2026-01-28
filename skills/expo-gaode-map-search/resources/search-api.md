@@ -1,9 +1,3 @@
----
-title: Search API
-impact: HIGH
-tags: poi, search, geocoding, input-tips
----
-
 # 原生搜索 API 参考
 
 **源文件**: `packages/search/src`

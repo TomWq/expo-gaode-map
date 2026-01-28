@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map-web-api
-description: Web API 开发助手。提供基于 Web 服务的 V5 路径规划、地理编码功能的开发指引。
+description: 高德 Web 服务纯 JS 完整封装：提供 V5 路径规划（驾车/新能源/步行/骑行/跨城公交）、地理编码（正/逆）、POI 搜索（关键字/周边/多边形）及输入提示；内置 LRU 缓存、自动重试与请求取消机制；全 TypeScript 类型定义；适用于跨平台逻辑层，需配合核心包或导航包配置 Key。
 ---
 
 # Web API 开发 (Web API)
@@ -20,7 +20,7 @@ description: Web API 开发助手。提供基于 Web 服务的 V5 路径规划�
 - **优化**：使用 `ExpoGaodeMapModule.simplifyPolyline(points, tolerance)` 进行 RDP 抽稀，显著减少地图渲染压力。
 
 ## 🛡️ 类型安全与稳定性
-本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./references/types.md) 了解详情。
+本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。
 
 **核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `DrivingRouteResponse`, `Step`, `Path` 等）。
 
@@ -63,5 +63,5 @@ try {
 ```
 
 ## 参考文档
-- [Web API 详解 (Web API)](./references/web-api.md)
-- [类型定义参考 (Types)](./references/types.md)
+- [Web API 详解 (Web API)](./resources/web-api.md)
+- [类型定义参考 (Types)](./resources/types.md)

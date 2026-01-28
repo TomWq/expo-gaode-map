@@ -1,9 +1,3 @@
----
-title: Offline Maps
-impact: MEDIUM
-tags: offline-map, download, city-manager, batch-operation
----
-
 # 核心参考: 离线地图 (Offline Maps)
 
 管理离线地图的下载、更新、删除及加载状态。

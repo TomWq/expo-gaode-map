@@ -1,9 +1,3 @@
----
-title: Search
-impact: HIGH
-tags: search, poi, geocoding, input-tips, nearby-search
----
-
 # 核心参考: 原生搜索 (Search)
 
 提供 POI 搜索（关键字、周边、沿途、多边形）、输入提示及逆地理编码服务。

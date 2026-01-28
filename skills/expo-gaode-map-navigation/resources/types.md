@@ -1,9 +1,3 @@
----
-title: Navigation Types Reference
-impact: HIGH
-tags: types, typescript, interfaces, enums, navigation
----
-
 # 导航参考: 类型定义 (Types)
 
 `expo-gaode-map-navigation` 提供了导航相关的类型定义。
