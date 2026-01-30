@@ -235,9 +235,6 @@ publish_search() {
     echo "   或指定版本: npm install expo-gaode-map-search@${NEW_VERSION}"
   fi
   
-  echo "恢复 workspace:* 协议..."
-  mv package.json.backup package.json
-  
   cd ../..
   
   git add packages/search/package.json || true
@@ -261,7 +258,6 @@ publish_navigation() {
   cd packages/navigation
   
   OLD_VERSION=$(node -p "require('./package.json').version")
-  cp package.json package.json.backup
   
   echo "计算新版本号..."
   NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
