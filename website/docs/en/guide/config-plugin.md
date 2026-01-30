@@ -60,9 +60,63 @@ npx expo run:android
 |-----------|------|----------|---------|-------------|
 | `iosKey` | string | No | - | iOS platform Gaode Map API Key |
 | `androidKey` | string | No | - | Android platform Gaode Map API Key |
+| `customMapSdkPath` | string | No | - | Custom Gaode Map Android SDK path (e.g., `libs/AMap_3DMap_V9.10.0_20240904.aar`), for Google Play version support |
 | `enableLocation` | boolean | No | true | Enable location functionality |
 | `enableBackgroundLocation` | boolean | No | false | Enable background location (Android & iOS) |
 | `locationDescription` | string | No | "We need to access your location to provide map services" | iOS location permission description |
+
+## Google Play Version Support
+
+If your app needs to be published on Google Play, you must use the Google Play version of the Gaode Map SDK (which complies with the 16kb Page Size requirement and removes some compliance-problematic code).
+
+### 1. Download SDK
+
+Go to the [Gaode Open Platform](https://lbs.amap.com/api/android-sdk/download) to download the SDK containing the Google Play version (usually an `.aar` file).
+
+### 2. Place SDK
+
+Place the downloaded `.aar` file in your Expo project directory, for example in the `libs/` directory.
+
+### 3. Configure Plugin
+
+Configure the `customMapSdkPath` parameter in `app.json` or `app.config.js` to point to your SDK file path:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "androidKey": "Your Key",
+          "customMapSdkPath": "libs/AMap_3DMap_V9.10.0_20240904.aar"
+        }
+      ]
+    ]
+  }
+}
+```
+
+### 4. Apply Configuration
+
+After configuration, you need to regenerate the native project for changes to take effect:
+
+```bash
+npx expo prebuild
+```
+
+### 5. Automatic Handling
+
+After configuration, the plugin will automatically handle the following:
+- **Dependency Switching**: Automatically switches to use the local AAR dependency instead of fetching the SDK from the Maven repository.
+- **Conflict Resolution**: Automatically excludes Maven dependency modules that might cause conflicts.
+- **Path Correction**: Automatically handles Gradle build path issues.
+
+### Important Notes
+
+- Ensure the `libs` directory is in the project root.
+- It is recommended that filenames do not contain special characters.
+- When using the Google Play version, some features may be restricted (such as offline maps), please refer to the official Gaode documentation.
 
 ## Auto-Configured Content
 

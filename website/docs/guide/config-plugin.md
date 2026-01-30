@@ -63,9 +63,63 @@ npx expo run:android
 |------|------|------|--------|------|
 | `iosKey` | string | 否 | - | iOS 平台的高德地图 API Key |
 | `androidKey` | string | 否 | - | Android 平台的高德地图 API Key |
+| `customMapSdkPath` | string | 否 | - | 自定义高德地图 Android SDK 路径 (如: `libs/AMap_3DMap_V9.10.0_20240904.aar`)，用于支持 Google Play 版本 |
 | `enableLocation` | boolean | 否 | true | 是否启用定位功能 |
 | `enableBackgroundLocation` | boolean | 否 | false | 是否启用后台定位（Android & iOS） |
 | `locationDescription` | string | 否 | "需要访问您的位置信息以提供地图服务" | iOS 定位权限描述 |
+
+## Google Play 版本支持
+
+如果你的应用需要上架 Google Play，必须使用高德地图 Google Play 版本的 SDK（该版本符合 16kb Page Size 要求，并移除了部分合规问题代码）。
+
+### 1. 下载 SDK
+
+前往 [高德开放平台](https://lbs.amap.com/api/android-sdk/download) 下载包含 Google Play 版本的 SDK（通常是 `.aar` 文件）。
+
+### 2. 放置 SDK
+
+将下载的 `.aar` 文件放入你的 Expo 项目目录中，例如 `libs/` 目录下。
+
+### 3. 配置插件
+
+在 `app.json` 或 `app.config.js` 中配置 `customMapSdkPath` 参数，指向你的 SDK 文件路径：
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "androidKey": "你的Key",
+          "customMapSdkPath": "libs/AMap_3DMap_V9.10.0_20240904.aar"
+        }
+      ]
+    ]
+  }
+}
+```
+
+### 4. 应用配置
+
+配置完成后，需要重新生成原生项目以使更改生效：
+
+```bash
+npx expo prebuild
+```
+
+### 5. 自动处理
+
+配置完成后，插件会自动处理以下事项：
+- **依赖切换**：自动切换为使用本地 AAR 依赖，不再拉取 Maven 仓库的 SDK。
+- **冲突解决**：自动排除可能导致冲突的 Maven 依赖模块。
+- **路径修正**：自动处理 Gradle 构建路径问题。
+
+### 注意事项
+
+- 确保 `libs` 目录在项目根目录下。
+- 文件名建议不要包含特殊字符。
+- 使用 Google Play 版本时，部分功能可能受限（如离线地图等），请参考高德官方文档。
 
 ## 自动配置内容
 
