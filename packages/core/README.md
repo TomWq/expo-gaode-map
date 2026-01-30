@@ -170,6 +170,38 @@ try {
 
 **完整错误处理指南**：[ERROR_HANDLING_GUIDE.md](./ERROR_HANDLING_GUIDE.md)
 
+### 6. Google Play 版本支持
+
+如果你的应用需要上架 Google Play，需要使用高德地图 Google Play 版本的 SDK（通过了 Google Play 的合规审核）。
+
+#### 步骤 1：下载 SDK
+前往 [高德开放平台](https://lbs.amap.com/api/android-sdk/download) 下载包含 Google Play 版本的 SDK（通常是合包，包含地图、搜索、定位功能）。
+
+#### 步骤 2：放入项目
+将下载的 `.aar` 或 `.jar` 文件放入你的 Expo 项目根目录下的 `libs` 文件夹中（如果没有则创建），例如 `libs/AMap_3DMap_GooglePlay.aar`。
+
+#### 步骤 3：配置插件
+在 `app.json` 中配置 `customMapSdkPath`：
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "androidKey": "your-android-key",
+          "iosKey": "your-ios-key",
+          "customMapSdkPath": "./libs/AMap_3DMap_GooglePlay.aar" 
+        }
+      ]
+    ]
+  }
+}
+```
+
+> **注意**：Google Play 版本的 SDK 通常是合包（包含地图+搜索+定位）。如果你的项目中引入了其他高德相关依赖（如 `expo-gaode-map-search`），可能会导致类冲突。插件会自动处理大部分冲突，但如果依然遇到 `Duplicate class` 错误，请检查是否引入了多余的依赖。
+
 支持的错误类型：
 - `SDK_NOT_INITIALIZED` - SDK 未初始化
 - `INVALID_API_KEY` - API Key 配置错误

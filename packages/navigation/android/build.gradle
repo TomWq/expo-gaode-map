@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.gaodemap.navigation'
-version = '1.0.0'
+version = '2.0.0'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -9,13 +9,11 @@ applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
 useExpoPublishing()
 
-// 与核心模块保持一致的 SDK 版本配置
 def useManagedAndroidSdkVersions = false
 if (useManagedAndroidSdkVersions) {
   useDefaultAndroidSdkVersions()
 } else {
   buildscript {
-    // Simple helper that allows the root project to override versions declared by this library.
     ext.safeExtGet = { prop, fallback ->
       rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
     }
@@ -33,17 +31,7 @@ android {
   namespace "expo.modules.gaodemap.navigation"
   defaultConfig {
     versionCode 1
-    versionName "1.0.0"
-    externalNativeBuild {
-      cmake {
-        cppFlags "-std=c++17"
-      }
-    }
-  }
-  externalNativeBuild {
-    cmake {
-      path "src/main/cpp/CMakeLists.txt"
-    }
+    versionName "2.0.0"
   }
   lintOptions {
     abortOnError false
@@ -51,6 +39,27 @@ android {
 }
 
 dependencies {
-    // 高德地图导航 SDK（包含完整的 3dmap）
-    api ('com.amap.api:navi-3dmap:latest.integration')
+    def customSdkPath = null
+    println "ExpoGaodeMapNavigation: Checking for custom SDK property in rootProject: ${rootProject.name}"
+    if (rootProject.hasProperty("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")) {
+        customSdkPath = rootProject.property("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")
+        println "ExpoGaodeMapNavigation: Found custom SDK path property: ${customSdkPath}"
+    }
+
+    if (customSdkPath) {
+        def sdkFile = rootProject.file(customSdkPath)
+        if (!sdkFile.exists()) {
+             sdkFile = new File(rootProject.projectDir.parentFile, customSdkPath)
+        }
+        
+        if (sdkFile.exists()) {
+            println "ExpoGaodeMapNavigation: Using custom Map SDK from ${sdkFile.absolutePath}"
+            implementation files(sdkFile)
+        } else {
+            println "ExpoGaodeMapNavigation: Custom SDK path configured but file not found, falling back to Maven dependency."
+            implementation 'com.amap.api:navi-3dmap:latest.integration'
+        }
+    } else {
+        implementation 'com.amap.api:navi-3dmap:latest.integration'
+    }
 }

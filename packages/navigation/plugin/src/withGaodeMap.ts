@@ -3,9 +3,12 @@ import {
   withInfoPlist,
   withAndroidManifest,
   withAppBuildGradle,
+  withGradleProperties,
   createRunOncePlugin,
   WarningAggregator,
 } from '@expo/config-plugins';
+
+const pkg = require('../../package.json');
 
 /**
  * 高德地图插件配置类型
@@ -21,6 +24,11 @@ export type GaodeMapPluginProps = {
   locationDescription?: string;
   /** 是否启用后台定位（Android & iOS） */
   enableBackgroundLocation?: boolean;
+  /** 
+   * 自定义高德地图 SDK 路径（例如 Google Play 版本）
+   * 相对于项目根目录的路径，例如 "./libs/AMap_3DMap_V9.0.0_GooglePlay.aar"
+   */
+  customMapSdkPath?: string;
 };
 
 /**
@@ -189,12 +197,50 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
 };
 
 /**
- * Android: 修改 app/build.gradle（预留扩展）
+ * Android: 修改 app/build.gradle
+ * 当使用自定义 SDK 路径时，自动注入 exclude 规则以解决 duplicate class 冲突
  */
 const withGaodeMapAppBuildGradle: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withAppBuildGradle(config, (config) => {
-    // Android 3D 地图 SDK 10.0+ 已内置搜索功能
-    // 不需要额外的 Gradle 配置
+    if (props.customMapSdkPath) {
+      // 只有在配置了 customMapSdkPath 时才注入
+      const buildGradle = config.modResults.contents;
+      
+      // 检查是否已经注入过
+      if (!buildGradle.includes('configurations.all { exclude group: "com.amap.api", module: "search" }')) {
+        const injection = `
+// [expo-gaode-map-navigation] Auto-generated to fix duplicate class issues with custom SDK
+configurations.all {
+    exclude group: "com.amap.api", module: "search"
+    exclude group: "com.amap.api", module: "location"
+}
+`;
+        config.modResults.contents = buildGradle + injection;
+      }
+    }
+    return config;
+  });
+};
+
+/**
+ * Android: 修改 gradle.properties 注入自定义 SDK 路径
+ */
+const withGaodeMapAndroidSdk: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
+  return withGradleProperties(config, (config) => {
+    if (props.customMapSdkPath) {
+      const key = 'EXPO_GAODE_MAP_CUSTOM_SDK_PATH';
+      const existing = config.modResults.find((item) => item.type === 'property' && item.key === key);
+      
+      if (existing && existing.type === 'property') {
+        existing.value = props.customMapSdkPath;
+      } else {
+        config.modResults.push({
+          type: 'property',
+          key: key,
+          value: props.customMapSdkPath,
+        });
+      }
+    }
     return config;
   });
 };
@@ -220,6 +266,7 @@ const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => 
   // 应用 Android 配置
   config = withGaodeMapAndroidManifest(config, props);
   config = withGaodeMapAppBuildGradle(config, props);
+  config = withGaodeMapAndroidSdk(config, props);          // 注入自定义 SDK 路径
 
   return config;
 };
@@ -228,4 +275,4 @@ const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => 
  * 导出为可运行一次的插件
  * 这确保插件只会运行一次，即使在配置中被多次引用
  */
-export default createRunOncePlugin(withGaodeMap, 'expo-gaode-map-navigation', '1.0.0');
+export default createRunOncePlugin(withGaodeMap, pkg.name, pkg.version);

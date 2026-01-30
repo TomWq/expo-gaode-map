@@ -190,7 +190,7 @@ export default function MamScreen() {
 
         // 配置定位选项
         ExpoGaodeMapModule.setLocatingWithReGeocode(true);
-        ExpoGaodeMapModule.setInterval(5000);
+        ExpoGaodeMapModule.setInterval(10000);
         // ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
         ExpoGaodeMapModule.setDistanceFilter(0);
         ExpoGaodeMapModule.setDesiredAccuracy(3);
@@ -208,7 +208,7 @@ export default function MamScreen() {
             longitude: loc.longitude,
           }
         })
-      
+        console.log(JSON.stringify(result.formattedAddress))
         // 使用便捷方法监听连续定位更新
         const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
           console.log('收到定位更新:', location);
@@ -579,7 +579,7 @@ export default function MamScreen() {
         trafficEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
-        mapType={2}
+        // mapType={2}
         zoomGesturesEnabled
         scrollGesturesEnabled
         worldMapSwitchEnabled

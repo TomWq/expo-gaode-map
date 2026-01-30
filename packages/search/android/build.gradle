@@ -41,10 +41,30 @@ android {
 }
 
 dependencies {
+    def customSdkPath = null
+    println "ExpoGaodeMapSearch: Checking for custom SDK property in rootProject: ${rootProject.name}"
+    if (rootProject.hasProperty("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")) {
+        customSdkPath = rootProject.property("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")
+        println "ExpoGaodeMapSearch: Found custom SDK path property: ${customSdkPath}"
+    }
 
-    // 引入搜索 SDK
-    // 不要升级 升级会导致无法使用
-    implementation('com.amap.api:search:9.4.0') {
-
+    if (customSdkPath) {
+        def sdkFile = rootProject.file(customSdkPath)
+        if (!sdkFile.exists()) {
+             sdkFile = new File(rootProject.projectDir.parentFile, customSdkPath)
+        }
+        
+        if (sdkFile.exists()) {
+            println "ExpoGaodeMapSearch: Detected custom SDK at ${sdkFile.absolutePath}, using compileOnly to avoid duplication."
+            // 使用 compileOnly 避免 Duplicate class 冲突，因为核心模块已经 implementation 了该 SDK
+            compileOnly files(sdkFile)
+        } else {
+             println "ExpoGaodeMapSearch: Custom SDK path configured but file not found, falling back to Maven dependency."
+             implementation('com.amap.api:search:9.4.0')
+        }
+    } else {
+        // 引入搜索 SDK
+        // 不要升级 升级会导致无法使用
+        implementation('com.amap.api:search:9.4.0')
     }
 }

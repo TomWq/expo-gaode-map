@@ -14,7 +14,9 @@
     "test": "expo-module test",
     "prepare": "expo-module prepare && bun run build:plugin",
     "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
-    "expo-module": "expo-module"
+    "expo-module": "expo-module",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "@expo/config-plugins": "~54.0.4",
@@ -52,5 +54,10 @@
     "高德地图",
     "导航"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "expo": "~54.0.31",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  }
 }

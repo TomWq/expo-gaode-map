@@ -54,5 +54,29 @@ android {
 
 dependencies {
     // 高德地图 3D SDK
-    implementation ('com.amap.api:3dmap:latest.integration')
+    def customSdkPath = null
+    println "ExpoGaodeMap: Checking for custom SDK property in rootProject: ${rootProject.name}"
+    if (rootProject.hasProperty("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")) {
+        customSdkPath = rootProject.property("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")
+        println "ExpoGaodeMap: Found custom SDK path property: ${customSdkPath}"
+    } else {
+        println "ExpoGaodeMap: No custom SDK path property found."
+    }
+
+    if (customSdkPath) {
+        def sdkFile = rootProject.file(customSdkPath)
+        if (!sdkFile.exists()) {
+            // Try to find the file relative to the project root (parent of android folder)
+            sdkFile = new File(rootProject.projectDir.parentFile, customSdkPath)
+        }
+
+        if (sdkFile.exists()) {
+            println "ExpoGaodeMap: Using custom Map SDK from ${sdkFile.absolutePath}"
+            implementation files(sdkFile)
+        } else {
+            throw new FileNotFoundException("ExpoGaodeMap: Could not find custom SDK at ${customSdkPath}. Please check your customMapSdkPath configuration.")
+        }
+    } else {
+        implementation ('com.amap.api:3dmap:latest.integration')
+    }
 }

@@ -446,9 +446,9 @@ class ExpoGaodeMapOfflineModule : Module() {
       putString("cityName", city.city)
       putLong("size", city.size)
       putString("status", status)
-      putInt("progress", city.getcompleteCode())
+      putInt("progress", getDownloadProgress(city))
       putString("version", city.version)
-      putLong("downloadedSize", (city.size * city.getcompleteCode() / 100))
+      putLong("downloadedSize", (city.size * getDownloadProgress(city) / 100))
     }
   }
   
@@ -461,10 +461,52 @@ class ExpoGaodeMapOfflineModule : Module() {
       putString("cityName", province.provinceName)
       putLong("size", province.size)
       putString("status", getStatusString(province.state))
-      putInt("progress", province.getcompleteCode())
+      putInt("progress", getDownloadProgress(province))
       putString("version", province.version)
       putString("provinceName", province.provinceName)
       putString("provinceCode", province.provinceCode)
+    }
+  }
+
+  /**
+   * 兼容获取 START_DOWNLOAD_FAILED 状态码
+   * 国内版拼写为 START_DOWNLOAD_FAILD，Google Play 版修正为 START_DOWNLOAD_FAILED
+   */
+  private val startDownloadFailedCode: Int by lazy {
+    try {
+      OfflineMapStatus::class.java.getField("START_DOWNLOAD_FAILED").getInt(null)
+    } catch (e: Exception) {
+      try {
+        OfflineMapStatus::class.java.getField("START_DOWNLOAD_FAILD").getInt(null)
+      } catch (e2: Exception) {
+        -1
+      }
+    }
+  }
+
+  /**
+   * 兼容获取下载进度
+   * Google Play 版本 SDK 可能修复了 getcompleteCode 的命名或使用了不同的 API
+   */
+  private fun getDownloadProgress(obj: Any): Int {
+    try {
+      // 尝试标准版的命名 (getcompleteCode)
+      val method = obj.javaClass.getMethod("getcompleteCode")
+      return method.invoke(obj) as Int
+    } catch (e: Exception) {
+      try {
+        // 尝试修正后的命名 (getCompleteCode) - Google Play 版本可能使用此命名
+        val method = obj.javaClass.getMethod("getCompleteCode")
+        return method.invoke(obj) as Int
+      } catch (e2: Exception) {
+        // 如果都失败了，尝试直接访问 completeCode 字段
+         try {
+             val field = obj.javaClass.getField("completeCode")
+             return field.getInt(obj)
+         } catch (e3: Exception) {
+             return 0
+         }
+      }
     }
   }
   
@@ -484,7 +526,7 @@ class ExpoGaodeMapOfflineModule : Module() {
       OfflineMapStatus.EXCEPTION_NETWORK_LOADING -> "downloading"  // 网络问题,可继续
       OfflineMapStatus.EXCEPTION_AMAP -> "failed"  // 认证异常
       OfflineMapStatus.EXCEPTION_SDCARD -> "failed"  // SD卡异常
-      OfflineMapStatus.START_DOWNLOAD_FAILD -> "failed"  // 开始下载失败
+      startDownloadFailedCode -> "failed"  // 兼容两种拼写的开始下载失败
       OfflineMapStatus.CHECKUPDATES -> "not_downloaded"
       OfflineMapStatus.NEW_VERSION -> "not_downloaded"
       else -> "not_downloaded"

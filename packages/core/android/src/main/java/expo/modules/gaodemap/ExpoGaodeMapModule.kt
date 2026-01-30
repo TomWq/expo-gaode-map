@@ -79,6 +79,9 @@ class ExpoGaodeMapModule : Module() {
           SDKInitializer.initSDK(appContext.reactContext!!, androidKey)
           getLocationManager() // 初始化定位管理器
           
+          // 打印当前 SDK 版本信息，便于验证依赖来源
+          android.util.Log.i("ExpoGaodeMap", "✅ SDK 初始化完成 - Version: ${MapsInitializer.getVersion()}")
+
           // 初始化成功后自动触发一次预加载
           MapPreloadManager.startPreload(appContext.reactContext!!, poolSize = 1)
         } catch (e: SecurityException) {

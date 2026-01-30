@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-search",
-  "version": "1.3.0",
+  "version": "1.3.7",
   "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索，需先安装expo-gaode-map或者expo-gaode-map-navigation",
   "main": "build/index.js",
   "types": "build/index.d.ts",
