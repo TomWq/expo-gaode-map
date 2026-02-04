@@ -124,7 +124,7 @@ public class ExpoGaodeMapModule: Module {
          * @param enable 是否开启
          */
         Function("setLoadWorldVectorMap") { (enable: Bool) in
-//            MAMapView.loadWorldVectorMap = enable
+           MAMapView.loadWorldVectorMap = enable
         }
         
         /**

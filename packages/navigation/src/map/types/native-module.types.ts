@@ -44,8 +44,6 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * 设置是否加载世界向量地图（海外地图）
    * 必须在地图初始化之前调用
    * 世界地图为高级服务，需要开通相关权限
-   * ⚠️ 警告：该属性必须在v2+以后才能使用，v1 版本不支持世界向量地图。
-   * @deprecated 当前版本不支持世界向量地图，该属性已被弃用。
    */
   setLoadWorldVectorMap(enabled: boolean): void;
 
