@@ -23,6 +23,15 @@ expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：
 
 ## 安装
 
+::: warning 版本兼容性说明
+- 如果你的项目使用 **Expo SDK 54 及以上**，请安装 默认的 版本。
+- 如果你的项目使用 **Expo SDK 53 及以下**（如 50, 51, 52, 53），请使用 **V1** 版本（Tag: `v1`）。
+  ```bash
+  npm install expo-gaode-map@v1
+  ```
+  **说明**：V1 版本除了不支持**世界地图**功能外，其余 API 与 V2 (Latest) 版本完全一致。
+:::
+
 ### 核心包（必需）
 
 ```bash

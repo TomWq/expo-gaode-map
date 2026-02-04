@@ -54,6 +54,17 @@ features:
 
 ## 快速开始
 
+::: warning 版本兼容性说明
+**请根据您的 Expo SDK 版本选择合适的包版本：**
+
+| Expo SDK 版本 | 推荐包版本 | 安装命令 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **SDK 54+** | **Latest** | `npm install expo-gaode-map` | ✅ 功能最全 <br>✅ 使用高德 iOS SDK v10.1.600+ |
+| **SDK 53 及以下** | **V1** | `npm install expo-gaode-map@v1` | ⚠️ 不支持加载世界向量地图<br>✅ 使用高德 iOS SDK v10.0.1000<br>*(注：旧版 Expo 使用新版高德 SDK 会导致 iOS 闪退)* |
+
+> **提示**：除了世界地图功能外，V1 和 Latest 版本的 API 接口完全一致，可放心切换。
+:::
+
 ### 安装
 
 ```bash
