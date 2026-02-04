@@ -44,7 +44,10 @@ const withGaodeMapIOSPermissions: ConfigPlugin<GaodeMapPluginProps> = (config, p
     return config;
   }
 
-  const description = props.locationDescription || DEFAULT_LOCATION_USAGE;
+  // 使用 IOSConfig.Permissions 简化权限配置
+  // 注意：locationDescription 的检查已移至 withGaodeMapInfoPlist 中以避免重复打印
+  const description = props.locationDescription;
+  const finalDescription = description || DEFAULT_LOCATION_USAGE;
 
   // 构建权限配置对象
   const permissionDefaults: Record<string, string> = {
@@ -52,18 +55,17 @@ const withGaodeMapIOSPermissions: ConfigPlugin<GaodeMapPluginProps> = (config, p
   };
   
   const permissionValues: Record<string, string> = {
-    NSLocationWhenInUseUsageDescription: description,
+    NSLocationWhenInUseUsageDescription: finalDescription,
   };
 
   // 如果启用后台定位，添加额外权限
   if (props.enableBackgroundLocation) {
     permissionDefaults.NSLocationAlwaysUsageDescription = DEFAULT_LOCATION_USAGE;
     permissionDefaults.NSLocationAlwaysAndWhenInUseUsageDescription = DEFAULT_LOCATION_USAGE;
-    permissionValues.NSLocationAlwaysUsageDescription = description;
-    permissionValues.NSLocationAlwaysAndWhenInUseUsageDescription = description;
+    permissionValues.NSLocationAlwaysUsageDescription = finalDescription;
+    permissionValues.NSLocationAlwaysAndWhenInUseUsageDescription = finalDescription;
   }
 
-  // 使用 IOSConfig.Permissions 简化权限配置
   return IOSConfig.Permissions.createPermissionsPlugin(permissionDefaults)(config, permissionValues);
 };
 
@@ -72,6 +74,23 @@ const withGaodeMapIOSPermissions: ConfigPlugin<GaodeMapPluginProps> = (config, p
  */
 const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withInfoPlist(config, (config) => {
+    // 检查 iOS API Key
+    if (!props.iosKey && !props.androidKey) {
+      // 仅当两个平台都未配置时提示 Notice，避免打扰单平台开发者
+      // 这里使用 console.log 而不是 WarningAggregator，因为这只是一个提示
+      console.log(
+        '\u001b[33m[expo-gaode-map] Notice: 未在 app.json 中配置 API Key。请确保在应用启动时通过代码配置 Key，否则地图将无法加载。建议在 app.json 中配置 API Key 以避免运行时错误。\u001b[0m'
+      );
+    }
+
+    // 检查 locationDescription
+    if (props.enableLocation !== false && !props.locationDescription) {
+       WarningAggregator.addWarningIOS(
+        'expo-gaode-map',
+        `未配置 iOS 定位权限描述 (locationDescription)。将使用默认描述: "${DEFAULT_LOCATION_USAGE}"。建议在 app.json 中配置以满足 App Store 审核要求。`
+      );
+    }
+
     // 添加高德地图 API Key
     if (props.iosKey) {
       config.modResults.AMapApiKey = props.iosKey;
@@ -263,14 +282,6 @@ const withGaodeMapAndroidSdk: ConfigPlugin<GaodeMapPluginProps> = (config, props
  * 主插件函数 - 组合所有修改器
  */
 const withGaodeMap: ConfigPlugin<GaodeMapPluginProps> = (config, props = {}) => {
-  // 验证配置
-  if (!props.iosKey && !props.androidKey) {
-    WarningAggregator.addWarningIOS(
-      'expo-gaode-map',
-      '未配置 API Key。请在 app.json 的 plugins 中配置 iosKey 和 androidKey'
-    );
-  }
-
   // 应用 iOS 配置
   config = withGaodeMapIOSPermissions(config, props);  // 使用 IOSConfig 添加权限
   config = withGaodeMapInfoPlist(config, props);       // 添加 API Key 和后台模式
