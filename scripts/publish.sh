@@ -45,7 +45,8 @@ echo ""
 echo "选择发布类型："
 echo "1) 正式版本 (latest)"
 echo "2) 测试版本 (next)"
-read -p "请选择 (1/2): " release_type
+echo "3) 自定义 Tag (例如: v1, legacy - 适用于维护旧版本)"
+read -p "请选择 (1/2/3): " release_type
 
 case $release_type in
   1)
@@ -82,6 +83,26 @@ case $release_type in
       *) echo "无效选择"; exit 1 ;;
     esac
     ;;
+  3)
+    read -p "请输入自定义 Tag 名称 (例如: v1, legacy): " custom_tag
+    if [ -z "$custom_tag" ]; then
+      echo "Tag 不能为空"
+      exit 1
+    fi
+    RELEASE_TAG="$custom_tag"
+    PRERELEASE="" 
+    echo "选择版本更新类型："
+    echo "0) none (保持当前版本，不修改)"
+    echo "1) patch (修订号，例如: 0.1.0 -> 0.1.1)"
+    echo "2) minor (次版本号，例如: 0.1.0 -> 0.2.0)"
+    read -p "请选择 (0/1/2): " version_type
+    case $version_type in
+      0) VERSION_FLAG="none" ;;
+      1) VERSION_FLAG="patch" ;;
+      2) VERSION_FLAG="minor" ;;
+      *) echo "无效选择"; exit 1 ;;
+    esac
+    ;;
   *) echo "无效选择"; exit 1 ;;
 esac
 
@@ -106,7 +127,7 @@ echo "🔨 构建包..."
 
 bump_version() {
   # $1: 当前版本, $2: 标志
-  node -e "const cur='$1',f='$2';const p=cur.split(/[.-]/);function out(){console.log(p.slice(0,3).join('.'))};if(f==='patch'){p[2]=String(Number(p[2])+1);out()}else if(f==='minor'){p[1]=String(Number(p[1])+1);p[2]='0';out()}else if(f==='major'){p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';out()}else if(f.startsWith('prerelease')){const id=f.split('--preid=')[1]||'next';p[2]=String(Number(p[2])+1);console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('preminor')){const id=f.split('--preid=')[1]||'next';p[1]=String(Number(p[1])+1);p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('premajor')){const id=f.split('--preid=')[1]||'next';p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}"
+  node -e "const cur='$1',f='$2';const p=cur.split(/[.-]/);function out(){console.log(p.slice(0,3).join('.'))};if(f==='none'){console.log(cur)}else if(f==='patch'){p[2]=String(Number(p[2])+1);out()}else if(f==='minor'){p[1]=String(Number(p[1])+1);p[2]='0';out()}else if(f==='major'){p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';out()}else if(f.startsWith('prerelease')){const id=f.split('--preid=')[1]||'next';p[2]=String(Number(p[2])+1);console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('preminor')){const id=f.split('--preid=')[1]||'next';p[1]=String(Number(p[1])+1);p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}else if(f.startsWith('premajor')){const id=f.split('--preid=')[1]||'next';p[0]=String(Number(p[0])+1);p[1]='0';p[2]='0';console.log(p.slice(0,3).join('.')+'-'+id+'.0')}"
 }
 
 # 版本是否已存在（查询 npm registry）
