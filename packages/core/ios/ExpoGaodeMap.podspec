@@ -19,11 +19,9 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
-  s.dependency 'AMapFoundation'
-  s.dependency 'AMapLocation'
-  s.dependency 'AMap3DMap'
-
-  s.library = 'c++'
+  s.dependency 'AMap3DMap', '10.0.1000'
+  s.dependency "AMapLocation"
+  s.dependency "AMapLocation"
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
