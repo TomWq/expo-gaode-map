@@ -111,16 +111,15 @@ if (result) {
 const simplified = ExpoGaodeMapModule.simplifyPolyline(rawPoints, 5); // 5米容差
 ```
 
-## 参考文档
-- [地图视图 (MapView) - 属性与事件](./resources/map-view.md)
-- [标记与聚合 (Marker & Cluster) - 样式与交互](./resources/marker-cluster.md)
-- [几何覆盖物 (Overlays) - 折线/多边形/圆](./resources/overlays.md)
-- [定位与追踪 (Location) - 权限与后台服务](./resources/location.md)
-- [离线地图 (Offline) - 下载与管理](./resources/offline.md)
-
 ## 🛡️ 类型安全最佳实践
 本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。
 
 **核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `LatLng`, `CameraPosition`, `MapType` 等）。
 
-## 深度挖掘
+## 参考文档
+- [核心地图 API 参考 (Core API)](./resources/core-api.md)
+- [地图视图 (MapView) - 属性与事件](./resources/map-view.md)
+- [标记与聚合 (Marker & Cluster) - 样式与交互](./resources/marker-cluster.md)
+- [几何覆盖物 (Overlays) - 折线/多边形/圆](./resources/overlays.md)
+- [定位与追踪 (Location) - 权限与后台服务](./resources/location.md)
+- [离线地图 (Offline) - 下载与管理](./resources/offline.md)

@@ -24,7 +24,6 @@
     "babel-preset-expo": "^54.0.8",
     "typescript": "~5.9.2"
   },
-  "private": false,
   "expo": {
     "autolinking": {
       "nativeModulesDir": "../packages",

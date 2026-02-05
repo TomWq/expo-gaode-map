@@ -7,19 +7,18 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "expo-module build && bun run build:plugin",
+    "build": "expo-module build && yarn build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
-    "prepare": "expo-module prepare && bun run build:plugin",
+    "prepare": "expo-module prepare && yarn build:plugin",
     "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
     "expo-module": "expo-module",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
   "devDependencies": {
-    "@expo/config-plugins": "~54.0.4",
     "@types/react": "~19.1.0",
     "expo": "^54.0.31",
     "expo-module-scripts": "^5.0.8",
@@ -30,6 +29,11 @@
     "expo": "*",
     "react": "*",
     "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
   },
   "bugs": {
     "url": "https://github.com/TomWq/expo-gaode-map/issues"
@@ -54,10 +58,5 @@
     "高德地图",
     "导航"
   ],
-  "license": "MIT",
-  "dependencies": {
-    "expo": "~54.0.31",
-    "react": "19.1.0",
-    "react-native": "0.81.5"
-  }
+  "license": "MIT"
 }

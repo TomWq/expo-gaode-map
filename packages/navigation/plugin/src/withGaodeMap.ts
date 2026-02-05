@@ -6,7 +6,7 @@ import {
   withGradleProperties,
   createRunOncePlugin,
   WarningAggregator,
-} from '@expo/config-plugins';
+} from 'expo/config-plugins';
 
 const pkg = require('../../package.json');
 

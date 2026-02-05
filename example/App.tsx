@@ -18,12 +18,13 @@ import {
   ClusterPoint,
   MapUI,
 
+
 } from 'expo-gaode-map';
 import { reGeocode } from 'expo-gaode-map-search'
 import * as MediaLibrary from 'expo-media-library';
 
 import React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
 import TestNewPermissionMethods from './TestNewPermissionMethods';
@@ -37,6 +38,8 @@ const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).u
 const WEB_API_KEY = process.env.EXPO_PUBLIC_AMAP_WEB_KEY;
 const ANDROID_KEY = process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY;
 const IOS_KEY = process.env.EXPO_PUBLIC_AMAP_IOS_KEY;
+
+
 
 // 模拟热力图数据 (在当前位置周围生成)
 const generateHeatMapData = (center: Coordinates, count: number) => {
@@ -497,6 +500,19 @@ export default function MamScreen() {
   };
 
 
+  // 使用 useMemo 创建节流后的回调，避免每次渲染都重新创建
+  // const onCameraMoveThrottled = useMemo(
+  //   () =>
+  //     throttle(({ nativeEvent }: any) => {
+  //       const { cameraPosition } = nativeEvent;
+  //       const zoom = cameraPosition.zoom ?? 0;
+  //       const bearing = cameraPosition.bearing ?? 0;
+  //       const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
+  //       setCameraInfo(info);
+  //     }, 100), // 100ms 节流，足够流畅且不卡顿
+  //   []
+  // );
+
   if (false) {
     return <TestNewPermissionMethods />;
   }
@@ -579,7 +595,7 @@ export default function MamScreen() {
         trafficEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
-        // mapType={2}
+        mapType={2}
         zoomGesturesEnabled
         scrollGesturesEnabled
         worldMapSwitchEnabled
@@ -606,13 +622,7 @@ export default function MamScreen() {
           console.log('地图长按:', e.nativeEvent);
           setIsFollowing(false);
         }}
-        onCameraMove={({ nativeEvent }) => {
-          const { cameraPosition } = nativeEvent;
-          const zoom = cameraPosition.zoom ?? 0;
-          const bearing = cameraPosition.bearing ?? 0;
-          const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
-          setCameraInfo(info);
-        }}
+        // onCameraMove={onCameraMoveThrottled}
         onCameraIdle={({ nativeEvent }) => {
           const { cameraPosition } = nativeEvent;
           const lat = cameraPosition.target?.latitude ?? 0;
