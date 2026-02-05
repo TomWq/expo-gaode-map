@@ -3,6 +3,16 @@ package expo.modules.gaodemap
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
+import expo.modules.kotlin.types.Enumerable
+
+enum class MapType(val value: Int) : Enumerable {
+  STANDARD(1),
+  SATELLITE(2),
+  NIGHT(3),
+  NAVI(4),
+  BUS(5)
+}
+
 /**
  * 高德地图视图 Module
  */
@@ -24,9 +34,9 @@ class ExpoGaodeMapViewModule : Module() {
       }
 
 
-      Prop<Int>("mapType") { view, type ->
-        view.mapType = type
-        view.setMapType(type)
+      Prop<MapType>("mapType") { view, type ->
+        view.mapType = type.value
+        view.setMapType(type.value)
       }
 
       Prop<Map<String, Any?>?>("initialCameraPosition") { view, position ->

@@ -9,7 +9,7 @@ import type {
   Point,
   LatLngPoint,
 } from './types';
-import { normalizeLatLng } from './utils/GeoUtils';
+
 import { ErrorHandler } from './utils/ErrorHandler';
 import { MapContext } from './components/MapContext';
 import { MapUI } from './components/MapUI';
@@ -54,7 +54,12 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
         throw ErrorHandler.mapViewNotInitialized(methodName as string);
       }
       try {
-        return (nativeRef.current[methodName] as T)(...args);
+        const nativeMethod = nativeRef.current[methodName];
+        if (typeof nativeMethod !== 'function') {
+           // 如果原生方法未定义，直接抛出更明确的错误，而不是让 ErrorHandler 捕获 undefined is not a function
+           throw new Error(`Method '${methodName}' is not available on native view. Make sure the native module is linked and rebuilt.`);
+        }
+        return (nativeMethod as T)(...args);
       } catch (error) {
         throw ErrorHandler.wrapNativeError(error, methodName as string);
       }
@@ -66,23 +71,9 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    * 所有方法共享相同的错误处理逻辑
    */
   const apiRef: MapViewRef = React.useMemo(() => ({
-    moveCamera: (position: CameraPosition, duration?: number) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('moveCamera');
-      }
-      const normalizedPosition = {
-        ...position,
-        target: position.target ? normalizeLatLng(position.target) : undefined,
-      };
-      return nativeRef.current.moveCamera(normalizedPosition, duration);
-    },
+    moveCamera: createApiMethod<(position: CameraPosition, duration?: number) => Promise<void>>('moveCamera'),
     getLatLng: createApiMethod<(point: Point) => Promise<LatLng>>('getLatLng'),
-    setCenter: (center: LatLngPoint, animated?: boolean) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('setCenter');
-      }
-      return nativeRef.current.setCenter(normalizeLatLng(center), animated);
-    },
+    setCenter: createApiMethod<(center: LatLngPoint, animated?: boolean) => Promise<void>>('setCenter'),
     setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
     getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
     takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
