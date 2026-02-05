@@ -123,7 +123,7 @@ echo "🔨 构建包..."
 (cd packages/core && CI=1 expo-module build && cd plugin && tsc)
 (cd packages/search && CI=1 expo-module build)
 (cd packages/navigation && CI=1 expo-module build)
-(cd packages/web-api && bun run build)
+(cd packages/web-api && yarn build)
 
 bump_version() {
   # $1: 当前版本, $2: 标志
@@ -205,9 +205,9 @@ publish_core() {
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    bun publish --access public --no-git-checks
+    npm publish --access public
   else
-    bun publish --access public --tag $RELEASE_TAG --no-git-checks
+    npm publish --access public --tag $RELEASE_TAG
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map@${NEW_VERSION}"
@@ -248,9 +248,9 @@ publish_search() {
   echo "⚠️  Search 包独立发布，跳过 expo-gaode-map 依赖注入"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    bun publish --access public --no-git-checks
+    npm publish --access public
   else
-    bun publish --access public --tag $RELEASE_TAG --no-git-checks
+    npm publish --access public --tag $RELEASE_TAG
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map-search@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map-search@${NEW_VERSION}"
@@ -291,9 +291,9 @@ publish_navigation() {
   echo "⚠️  navigation 包是独立包，跳过 expo-gaode-map 依赖更新"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    bun publish --access public --no-git-checks
+    npm publish --access public
   else
-    bun publish --access public --tag $RELEASE_TAG --no-git-checks
+    npm publish --access public --tag $RELEASE_TAG
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map-navigation@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map-navigation@${NEW_VERSION}"
@@ -337,9 +337,9 @@ publish_web_api() {
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));if(!pkg.dependencies) pkg.dependencies={}; if (pkg.dependencies['expo-gaode-map']!==undefined){pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';} fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    bun publish --access public --no-git-checks
+    npm publish --access public
   else
-    bun publish --access public --tag $RELEASE_TAG --no-git-checks
+    npm publish --access public --tag $RELEASE_TAG
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map-web-api@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map-web-api@${NEW_VERSION}"

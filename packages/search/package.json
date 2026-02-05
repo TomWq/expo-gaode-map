@@ -54,5 +54,9 @@
     "react": "*",
     "react-native": "*"
   },
-  "dependencies": {}
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
+  }
 }
