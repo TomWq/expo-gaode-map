@@ -64,10 +64,6 @@ const result = await calculateDriveRoute({
 console.log(`距离: ${result.routes[0].distance}米`);
 ```
 
-## 参考文档
-- [导航 API 详解 (NaviView & Routing)](./resources/navigation-api.md)
-- [核心导航指南 (Navigation Core)](./resources/navigation.md)
-
 ## 🛡️ 类型安全最佳实践
 本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。
 
@@ -75,4 +71,6 @@ console.log(`距离: ${result.routes[0].distance}米`);
 1. **请勿使用 `any`**，始终导入并使用正确的类型（如 `DriveRouteOptions`, `NaviInfo`, `DriveStrategy` 等）。
 2. **优先使用原生计算**：涉及到路径相关的计算（如距离、时间、吸附、抽稀等），**必须优先使用 `expo-gaode-map` (Core) 包中 `ExpoGaodeMapModule` 提供的原生几何方法**。严禁在 JS 层手写地理算法。
 
-## 深度挖掘
+## 参考文档
+- [导航 API 详解 (NaviView & Routing)](./resources/navigation-api.md)
+- [核心导航指南 (Navigation Core)](./resources/navigation.md)

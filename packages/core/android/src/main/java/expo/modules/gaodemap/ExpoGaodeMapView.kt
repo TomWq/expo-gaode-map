@@ -5,7 +5,7 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import com.amap.api.maps.AMap
-import com.amap.api.maps.MapView
+import com.amap.api.maps.TextureMapView
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.AppContext
@@ -64,23 +64,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     private val onCameraMove by EventDispatcher()
     private val onCameraIdle by EventDispatcher()
 
-    // 事件节流控制
-    /** 相机移动事件节流间隔(毫秒) */
-    private val CAMERA_MOVE_THROTTLE_MS = 100L
-    /** 上次触发相机移动事件的时间戳 */
-    private var lastCameraMoveTime = 0L
-    /** 缓存的相机移动事件数据 */
+    // 缓存的相机移动事件数据
     private var pendingCameraMoveData: Map<String, Any>? = null
-    /** 节流定时器 Runnable */
-    private val throttleRunnable = Runnable {
-        pendingCameraMoveData?.let { data ->
-            onCameraMove(data)
-            pendingCameraMoveData = null
-        }
-    }
 
     // 高德地图视图
-    private lateinit var mapView: MapView
+    private lateinit var mapView: TextureMapView
     private lateinit var aMap: AMap
 
     // 管理器
@@ -97,18 +85,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             MapsInitializer.updatePrivacyShow(context, true, true)
             MapsInitializer.updatePrivacyAgree(context, true)
 
-            // 尝试从预加载池获取 MapView
-            val preloadedMapView = MapPreloadManager.getPreloadedMapView()
-            
-            if (preloadedMapView != null) {
-                mapView = preloadedMapView
-                android.util.Log.i("ExpoGaodeMapView", "🚀 使用预加载的 MapView 实例")
-            } else {
-                // 创建地图视图
-                mapView = MapView(context)
-                mapView.onCreate(null)
-                android.util.Log.i("ExpoGaodeMapView", "⚠️ 创建新的 MapView 实例 (未命中预加载池)")
-            }
+            // 创建地图视图 - 使用 TextureMapView 以支持截图
+            mapView = TextureMapView(context)
+            mapView.onCreate(null)
             
             aMap = mapView.map
 
@@ -184,7 +163,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
                 // 相机移动中 - 应用节流优化
                 cameraPosition?.let {
-                    val currentTime = System.currentTimeMillis()
                     val visibleRegion = aMap.projection.visibleRegion
                     val eventData = mapOf(
                         "cameraPosition" to mapOf(
@@ -208,23 +186,16 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                         )
                     )
                     
-                    // 节流逻辑：100ms 内只触发一次
-                    if (currentTime - lastCameraMoveTime >= CAMERA_MOVE_THROTTLE_MS) {
-                        // 超过节流时间，立即触发事件
-                        lastCameraMoveTime = currentTime
-                        onCameraMove(eventData)
-                        // 清除待处理的事件和定时器
-                        mainHandler.removeCallbacks(throttleRunnable)
-                        pendingCameraMoveData = null
-                    } else {
-                        // 在节流时间内，缓存事件数据，使用定时器延迟触发
-                        pendingCameraMoveData = eventData
-                        mainHandler.removeCallbacks(throttleRunnable)
-                        mainHandler.postDelayed(
-                            throttleRunnable,
-                            CAMERA_MOVE_THROTTLE_MS - (currentTime - lastCameraMoveTime)
-                        )
-                    }
+                    // 使用 onCameraMove 自身的节流机制（如果在 Module 定义中配置了 Coalescing）
+                    // 或者在这里简单发送，让 JS 端处理节流，或者依赖 Expo 的事件批处理
+                    // 这里我们移除自定义的 Handler 实现，直接发送事件，简化代码逻辑
+                    // 注意：高德地图的 onCameraChange 调用频率非常高，
+                    // 建议在 Module 定义中使用 Events("onCameraMove") 时考虑是否需要原生侧节流
+                    // 目前 Expo Modules 默认没有自动节流，但为了代码简洁和避免 Handler 泄漏风险，
+                    // 我们可以依赖 JS 端的 debounce/throttle，或者如果性能是瓶颈，再加回轻量级的节流。
+                    // 鉴于之前的 Handler 实现比较复杂且容易出错，我们先简化。
+                    
+                     onCameraMove(eventData)
                 }
             }
 
@@ -493,27 +464,34 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         
         aMap.getMapScreenShot(object : AMap.OnMapScreenShotListener {
             override fun onMapScreenShot(bitmap: android.graphics.Bitmap?) {
-                // 如果已经处理过，直接返回
+                // 这个回调通常在旧版 SDK 或部分机型触发
+                // 如果已经处理过（通过带 status 的回调），则忽略
                 if (isSettled.getAndSet(true)) return
                 
-                // 旧版本回调，为了兼容性也处理
-                bitmap?.let { handleSnapshot(it, promise) } ?: run {
-                     promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+                if (bitmap == null) {
+                    promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+                    return
                 }
+                handleSnapshot(bitmap, promise)
             }
 
             override fun onMapScreenShot(bitmap: android.graphics.Bitmap?, status: Int) {
                 // 如果已经处理过，直接返回
                 if (isSettled.getAndSet(true)) return
 
-                // status != 0 表示失败
-                if (status != 0) {
-                    promise.reject("SNAPSHOT_FAILED", "Failed to take snapshot, status code: $status", null)
+                if (bitmap == null) {
+                    promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
                     return
                 }
-                bitmap?.let { handleSnapshot(it, promise) } ?: run {
-                    promise.reject("SNAPSHOT_FAILED", "Bitmap is null", null)
+
+                // 根据高德文档：
+                // status != 0 地图渲染完成，截屏无网格
+                // status == 0 地图未渲染完成，截屏有网格
+                if (status == 0) {
+                    android.util.Log.w("ExpoGaodeMapView", "Warning: Map snapshot taken before rendering completed (grid may be visible)")
                 }
+
+                handleSnapshot(bitmap, promise)
             }
         })
     }
@@ -601,10 +579,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     @Suppress("unused")
     fun onDestroy() {
                try {
-                   // 清理节流定时器
-                   mainHandler.removeCallbacks(throttleRunnable)
-                   pendingCameraMoveData = null
-                   
                    // 清理 Handler 回调,防止内存泄露
                    mainHandler.removeCallbacksAndMessages(null)
 
@@ -654,7 +628,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             return
         }
 
-        if (child is MapView) {
+        if (child is TextureMapView) {
             super.addView(child, index)
             return
         }
@@ -702,7 +676,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         try {
             val child = super.getChildAt(index)
 
-            if (child is MapView) {
+            if (child is TextureMapView) {
                 return
             }
 

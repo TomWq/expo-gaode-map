@@ -14,7 +14,7 @@ description: 高德原生搜索高性能方案：基于原生 SDK 实现，无 W
 - 需要将坐标转换为地址（逆地理编码）。
 - 需要高性能搜索，无额外网络请求开销。
 
-## 指令
+## 开发指令
 1. **依赖**：确保已安装任一基础包 (`core` 或 `navigation`) 并初始化。
 2. **POI 搜索**：
    - 关键字搜索：`searchPOI`
@@ -51,7 +51,7 @@ const result = await searchPOI({
 
 **核心原则：请勿使用 `any`**，始终导入并使用正确的类型（如 `PoiSearchOptions`, `Poi`, `InputTip` 等）。
 
-## 深度挖掘
-
 ## 参考文档
+- [原生搜索 API 参考 (Search API)](./resources/search-api.md)
 - [原生搜索 API 详解 (Search)](./resources/search.md)
+- [类型定义参考 (Types)](./resources/types.md)

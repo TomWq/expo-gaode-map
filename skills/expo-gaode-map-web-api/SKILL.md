@@ -14,6 +14,13 @@ description: 高德 Web 服务纯 JS 完整封装：提供 V5 路径规划（驾
 - 需要在非原生环境（如纯 JS 逻辑层）进行地理编码或算路。
 - 原生搜索包无法满足特定的 API 需求时。
 
+## 开发指令
+1. **Key 配置**：在基础包初始化时传入 `webKey`，或构造时传入。
+2. **实例化**：创建 `GaodeWebAPI` 实例。
+3. **调用服务**：
+   - 路径规划：`api.route.driving/walking/transit`
+   - 地理编码：`api.geocode.geocode/regeocode`
+
 ## ⚠️ 性能优化提示
 当处理 API 返回的 `polyline` 数据时，**强烈建议**结合 `ExpoGaodeMapModule` 的原生计算能力：
 - **解析**：使用 `ExpoGaodeMapModule.parsePolyline(str)` 解析坐标串，比 JS 手动 split 快得多。
@@ -28,13 +35,6 @@ description: 高德 Web 服务纯 JS 完整封装：提供 V5 路径规划（驾
 - **自动重试**：网络波动或限流时自动重试（默认 3 次）。
 - **LRU 缓存**：可开启内存缓存，减少重复请求，提升性能。
 - **请求取消**：支持 `AbortSignal`，防止输入提示等场景下的竞态问题。
-
-## 指令
-1. **Key 配置**：在基础包初始化时传入 `webKey`，或构造时传入。
-2. **实例化**：创建 `GaodeWebAPI` 实例。
-3. **调用服务**：
-   - 路径规划：`api.route.driving/walking/transit`
-   - 地理编码：`api.geocode.geocode/regeocode`
 
 ## 快速模式
 

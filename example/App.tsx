@@ -17,7 +17,7 @@ import {
   LatLng,
   ClusterPoint,
   MapUI,
-
+  throttle,
 
 } from 'expo-gaode-map';
 import { reGeocode } from 'expo-gaode-map-search'
@@ -501,17 +501,17 @@ export default function MamScreen() {
 
 
   // 使用 useMemo 创建节流后的回调，避免每次渲染都重新创建
-  // const onCameraMoveThrottled = useMemo(
-  //   () =>
-  //     throttle(({ nativeEvent }: any) => {
-  //       const { cameraPosition } = nativeEvent;
-  //       const zoom = cameraPosition.zoom ?? 0;
-  //       const bearing = cameraPosition.bearing ?? 0;
-  //       const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
-  //       setCameraInfo(info);
-  //     }, 100), // 100ms 节流，足够流畅且不卡顿
-  //   []
-  // );
+  const onCameraMoveThrottled = useMemo(
+    () =>
+      throttle(({ nativeEvent }: any) => {
+        const { cameraPosition } = nativeEvent;
+        const zoom = cameraPosition.zoom ?? 0;
+        const bearing = cameraPosition.bearing ?? 0;
+        const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
+        setCameraInfo(info);
+      }, 100), // 100ms 节流，足够流畅且不卡顿
+    []
+  );
 
   if (false) {
     return <TestNewPermissionMethods />;
@@ -622,7 +622,7 @@ export default function MamScreen() {
           console.log('地图长按:', e.nativeEvent);
           setIsFollowing(false);
         }}
-        // onCameraMove={onCameraMoveThrottled}
+        onCameraMove={onCameraMoveThrottled}
         onCameraIdle={({ nativeEvent }) => {
           const { cameraPosition } = nativeEvent;
           const lat = cameraPosition.target?.latitude ?? 0;

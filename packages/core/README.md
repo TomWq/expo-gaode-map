@@ -230,6 +230,7 @@ MIT
 
 - [在线文档](https://TomWq.github.io/expo-gaode-map/)
 - [错误处理指南](./ERROR_HANDLING_GUIDE.md) 🆕
+- [性能优化指南](./PERFORMANCE_GUIDE.md) 🆕
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map)
 - [示例项目(地图)](https://github.com/TomWq/expo-gaode-map-example)
 - [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-navigation-example)
