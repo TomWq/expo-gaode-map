@@ -239,7 +239,7 @@ publish_search() {
   
   echo "计算新版本号..."
   NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG" | tr -d '\n')
-  NEW_VERSION=$(ensure_unique_version "expo-gaode-map-navigation" "$NEW_VERSION" "$PRERELEASE" | tr -d '\n')
+  NEW_VERSION=$(ensure_unique_version "expo-gaode-map-search" "$NEW_VERSION" "$PRERELEASE" | tr -d '\n')
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
