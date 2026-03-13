@@ -208,9 +208,12 @@ export default function MamScreen() {
       setInitializing(true);
       setSdkReady(false);
       setInitialPosition(null);
-
-      ExpoGaodeMapModule.setPrivacyShow(true, true);
-      ExpoGaodeMapModule.setPrivacyAgree(true);
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+        privacyVersion: '2026-03-13', // 可选：隐私协议版本号
+      });
 
       const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
       setPrivacyStatusText(

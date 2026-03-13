@@ -2,9 +2,7 @@
 
 Overlay components must be rendered as children of `MapView`. They let you draw points, lines, polygons, circles, heatmaps, massive point sets, and clusters.
 
-> ⚠️ Overlays depend on the map instance. Make sure privacy compliance is completed before rendering `MapView`:
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+> ⚠️ Overlays depend on the map instance. Make sure privacy compliance is completed on fresh install before rendering `MapView`. After consent is granted once, native code restores it automatically on later cold starts.
 
 ## Coordinate formats
 

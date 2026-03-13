@@ -4,9 +4,8 @@
 
 > ⚠️ **隐私要求**
 >
-> 在渲染 `MapView` 或调用任何地图/定位能力前，必须先完成隐私合规：
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+> 在渲染 `MapView` 或调用任何地图/定位能力前，首次安装必须先完成隐私合规。
+> 用户同意后，原生层会自动持久化并在后续冷启动恢复隐私状态。
 >
 > 如果未完成，JS 层会直接抛出明确错误，避免原生 SDK 因隐私校验失败而异常。
 
@@ -142,8 +141,13 @@ interface MapViewRef {
 ```tsx
 import { ExpoGaodeMapModule, MapView } from 'expo-gaode-map';
 
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
 
 export default function App() {
   return (

@@ -9,20 +9,20 @@ import {
   LatLngPoint,
   CoordinateType,
 } from './types';
-import type { ExpoGaodeMapModule } from './types/native-module.types';
+import type { ExpoGaodeMapModule as NativeExpoGaodeMapModule } from './types/native-module.types';
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
 import { PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
-let nativeModuleCache: ExpoGaodeMapModule | null = null;
+let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
 
-function getNativeModule(optional = false): ExpoGaodeMapModule | null {
+function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
   if (nativeModuleCache) {
     return nativeModuleCache;
   }
 
   try {
-    nativeModuleCache = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
+    nativeModuleCache = requireNativeModule<NativeExpoGaodeMapModule>('ExpoGaodeMap');
     return nativeModuleCache;
   } catch (error) {
     if (optional) {
@@ -35,7 +35,7 @@ function getNativeModule(optional = false): ExpoGaodeMapModule | null {
 }
 
 function getBoundNativeValue(
-  module: ExpoGaodeMapModule,
+  module: NativeExpoGaodeMapModule,
   prop: PropertyKey
 ): unknown {
   const value = Reflect.get(module as object, prop, module as object);
@@ -46,7 +46,7 @@ function getBoundNativeValue(
   return value;
 }
 
-const nativeModule = new Proxy({} as ExpoGaodeMapModule, {
+const nativeModule = new Proxy({} as NativeExpoGaodeMapModule, {
   get(_target, prop) {
     const module = getNativeModule(true);
     return module ? getBoundNativeValue(module, prop) : undefined;
@@ -155,13 +155,29 @@ const helperMethods = {
     nativeModule.setPrivacyAgree(hasAgree);
   },
 
+  setPrivacyVersion(version: string): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    nativeModule.setPrivacyVersion(version);
+  },
+
+  resetPrivacyConsent(): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    nativeModule.resetPrivacyConsent();
+  },
+
   setPrivacyConfig(config: {
     hasShow: boolean;
     hasContainsPrivacy: boolean;
     hasAgree: boolean;
+    privacyVersion?: string;
   }): void {
     const nativeModule = getNativeModule();
     if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    if (typeof config.privacyVersion === 'string') {
+      nativeModule.setPrivacyVersion(config.privacyVersion);
+    }
     nativeModule.setPrivacyShow(config.hasShow, config.hasContainsPrivacy);
     nativeModule.setPrivacyAgree(config.hasAgree);
   },
@@ -174,6 +190,9 @@ const helperMethods = {
         hasContainsPrivacy: false,
         hasAgree: false,
         isReady: false,
+        privacyVersion: null,
+        agreedPrivacyVersion: null,
+        restoredFromStorage: false,
       };
     }
     return nativeModule.getPrivacyStatus();
@@ -815,6 +834,8 @@ export function getSDKConfig(): SDKConfig | null {
   return _sdkConfig;
 };
 
+export type ExpoGaodeMapModule = typeof helperMethods & NativeExpoGaodeMapModule;
+
 const ExpoGaodeMapModuleWithHelpers = new Proxy(helperMethods, {
   get(target, prop, receiver) {
     if (Reflect.has(target, prop)) {
@@ -839,7 +860,7 @@ const ExpoGaodeMapModuleWithHelpers = new Proxy(helperMethods, {
 
     return getBoundNativeValue(nativeModule, prop);
   },
-}) as typeof helperMethods & ExpoGaodeMapModule;
+}) as ExpoGaodeMapModule;
 
 /**
 * 获取用于 Web API 的 webKey（若未初始化或未提供则返回 undefined）
@@ -848,4 +869,4 @@ export function getWebKey(): string | undefined {
   return _sdkConfig?.webKey;
 }
 
-export default ExpoGaodeMapModuleWithHelpers as unknown as ExpoGaodeMapModule;
+export default ExpoGaodeMapModuleWithHelpers;

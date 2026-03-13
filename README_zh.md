@@ -99,6 +99,34 @@ npx expo run:android
 npx expo run:ios
 ```
 
+## 🔒 隐私合规接入
+
+在**首次安装**（或你的隐私协议版本变更后）时，必须先完成隐私告知与同意，再调用 `initSDK()` 或渲染 `MapView`。
+
+从当前版本开始，用户一旦同意，iOS / Android 原生层会**持久化并在后续冷启动时自动恢复**隐私状态，因此**不需要每次打开 App 都重复调用** `setPrivacyConfig()`。
+
+```ts
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+
+if (!privacyStatus.isReady) {
+  // 请在你自己的隐私弹窗“同意”回调里调用
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
+
+ExpoGaodeMapModule.initSDK({
+  webKey: 'your-web-api-key',
+});
+```
+
+如果是新安装用户且还没完成隐私同意，库会明确抛出 `PRIVACY_NOT_AGREED`，而不是让原生 SDK 直接异常。
+
 ## 🚀 快速开始
 
 详细的初始化和使用指南请查看：

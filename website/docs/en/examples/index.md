@@ -45,6 +45,14 @@ npm install expo-gaode-map
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
@@ -80,8 +88,13 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 function useMapInit() {
   useEffect(() => {
     const init = async () => {
-      ExpoGaodeMapModule.setPrivacyShow(true, true);
-      ExpoGaodeMapModule.setPrivacyAgree(true);
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+        });
+      }
 
       // Initialize SDK
       ExpoGaodeMapModule.initSDK({});

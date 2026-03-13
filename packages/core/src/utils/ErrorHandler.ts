@@ -410,6 +410,17 @@ const App = () => {
    */
   static wrapNativeError(error: unknown, context: string): GaodeMapError {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const scene = context.includes('MapView') || context.includes('渲染') ? 'map' : 'sdk';
+
+    if (
+      errorMessage.includes('PRIVACY_NOT_AGREED') ||
+      errorMessage.includes('隐私协议未完成确认') ||
+      errorMessage.includes('隐私合规校验失败') ||
+      errorMessage.includes('555570') ||
+      errorMessage.includes('确保调用SDK任何接口前先调用更新隐私合规')
+    ) {
+      return this.privacyNotAgreed(scene);
+    }
     
     // SDK 未初始化相关错误
     if (

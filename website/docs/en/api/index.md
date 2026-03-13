@@ -8,7 +8,8 @@ Complete API reference documentation.
 > 1. ✅ Required permissions are configured in native project
 > 2. ✅ Request user authorization at runtime
 > 3. ✅ Comply with privacy laws and regulations
-> 4. ✅ Call `setPrivacyShow(true, true)` and `setPrivacyAgree(true)` before `initSDK`
+> 4. ✅ On a fresh install, complete privacy consent before `initSDK`
+> 5. ✅ After consent is granted once, privacy state is persisted and auto-restored natively
 
 ## Table of Contents
 
@@ -51,8 +52,13 @@ import { MapView } from 'expo-gaode-map';
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // Complete privacy compliance first
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
 
 // Initialize SDK
 ExpoGaodeMapModule.initSDK({

@@ -21,6 +21,9 @@ export interface PrivacyStatus {
   hasContainsPrivacy: boolean;
   hasAgree: boolean;
   isReady: boolean;
+  privacyVersion?: string | null;
+  agreedPrivacyVersion?: string | null;
+  restoredFromStorage?: boolean;
 }
 
 /**

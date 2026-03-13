@@ -45,6 +45,10 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
 
   setPrivacyAgree(hasAgree: boolean): void;
 
+  setPrivacyVersion(version: string): void;
+
+  resetPrivacyConsent(): void;
+
   getPrivacyStatus(): PrivacyStatus;
 
   /**

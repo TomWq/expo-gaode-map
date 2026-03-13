@@ -6,10 +6,10 @@ This guide explains how to initialize the AMap SDK and configure permissions.
 
 ::: warning Privacy Compliance
 Before calling any AMap capability, you must first complete runtime privacy consent:
-- `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-- `ExpoGaodeMapModule.setPrivacyAgree(true)`
+On a fresh install, you must do this yourself from your app's privacy UI.
+After consent is granted once, native iOS / Android now persist and automatically restore the privacy state on later cold starts.
 
-Config Plugin only writes native keys and permission declarations. It does **not** replace the runtime privacy step.
+Config Plugin only writes native keys and permission declarations. It does **not** replace the first runtime privacy step.
 :::
 
 ### Basic Initialization
@@ -19,9 +19,17 @@ Initialize the SDK only after privacy consent is completed:
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// Sync privacy status first
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+
+if (!privacyStatus.isReady) {
+  // Call this from your own privacy dialog "Agree" callback
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
 
 // Enable World Vector Map (Overseas Map) support
 // Must be called before initSDK
@@ -32,7 +40,7 @@ ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
 });
-``````
+```
 
 ### Get API Keys
 
@@ -137,20 +145,24 @@ console.log('Has location permission:', status.granted);
 
 ## Privacy Compliance
 
-⚠️ **Important**: Before collecting location data, you must:
+⚠️ **Important**: Before collecting location data on a fresh install, you must:
 
 1. Display privacy policy to users
 2. Obtain user consent
-3. Call `setPrivacyShow(true, true)` and `setPrivacyAgree(true)`
+3. Call `setPrivacyConfig(...)`
+4. After that, privacy state is persisted natively and restored automatically on later cold starts
 
 ### Configure Privacy Compliance
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// Update privacy consent status
-ExpoGaodeMapModule.setPrivacyAgree(true);
-ExpoGaodeMapModule.setPrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyConfig({
+  hasShow: true,
+  hasContainsPrivacy: true,
+  hasAgree: true,
+  privacyVersion: '2026-03-13',
+});
 ```
 
 ### Privacy Compliance Process
@@ -160,8 +172,11 @@ ExpoGaodeMapModule.setPrivacyShow(true, true);
 function showPrivacyPolicy() {
   // Display your privacy policy UI
   // After user agrees:
-  ExpoGaodeMapModule.setPrivacyAgree(true);
-  ExpoGaodeMapModule.setPrivacyShow(true, true);
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
 }
 
 // 2. Then initialize SDK
@@ -260,8 +275,13 @@ function App() {
   async function initializeMap() {
     try {
       // 1. Configure privacy compliance
-      ExpoGaodeMapModule.setPrivacyAgree(true);
-      ExpoGaodeMapModule.setPrivacyShow(true, true);
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+        });
+      }
 
       // 2. Initialize SDK
       ExpoGaodeMapModule.initSDK({});

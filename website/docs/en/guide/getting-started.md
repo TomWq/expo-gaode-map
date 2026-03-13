@@ -86,9 +86,15 @@ If you prefer manual configuration, see [Initialization Guide](./initialization)
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 1. Complete privacy compliance first
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+// 1. On first install, complete privacy compliance once
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
 
 // 2. Initialize before using any map features
 ExpoGaodeMapModule.initSDK({
@@ -145,9 +151,14 @@ export default function App() {
 
   async function initializeMap() {
     try {
-      // 1. Configure privacy compliance
-      ExpoGaodeMapModule.setPrivacyAgree(true);
-      ExpoGaodeMapModule.setPrivacyShow(true, true);
+      // 1. On first install, save privacy consent after the user agrees
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+        });
+      }
 
       // 2. Initialize SDK
       ExpoGaodeMapModule.initSDK({});

@@ -7,16 +7,15 @@ Location, permissions, privacy compliance, and heading updates are exposed throu
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 1. Sync privacy status after the user agrees
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
-
-// Or set all privacy state at once
-ExpoGaodeMapModule.setPrivacyConfig({
-  hasShow: true,
-  hasContainsPrivacy: true,
-  hasAgree: true,
-});
+// 1. On first install, sync privacy state after the user agrees
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
 
 // 2. Initialize SDK
 ExpoGaodeMapModule.initSDK({
@@ -40,7 +39,9 @@ ExpoGaodeMapModule.start();
 | `isSDKInitialized` | - | `boolean` | Whether JS-side initialization has been called |
 | `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | Sync privacy notice display status |
 | `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | Sync user privacy consent |
+| `setPrivacyVersion` | `(version: string)` | `void` | Set a privacy policy version and invalidate older consent when it changes |
 | `setPrivacyConfig` | `PrivacyConfig` | `void` | Set privacy state in one call |
+| `resetPrivacyConsent` | - | `void` | Clear persisted privacy consent |
 | `getPrivacyStatus` | - | `PrivacyStatus` | Get current privacy state |
 | `setLoadWorldVectorMap` | `(enabled: boolean)` | `void` | Enable world vector map before initialization |
 | `getVersion` | - | `string` | Get native SDK version |
@@ -53,6 +54,7 @@ interface PrivacyConfig {
   hasShow: boolean;
   hasContainsPrivacy: boolean;
   hasAgree: boolean;
+  privacyVersion?: string;
 }
 ```
 
@@ -64,6 +66,9 @@ interface PrivacyStatus {
   hasContainsPrivacy: boolean;
   hasAgree: boolean;
   isReady: boolean;
+  privacyVersion?: string | null;
+  agreedPrivacyVersion?: string | null;
+  restoredFromStorage?: boolean;
 }
 ```
 
@@ -82,7 +87,7 @@ interface PrivacyStatus {
 
 ## Permission management
 
-> ⚠️ Permission checks and requests also depend on privacy state. Call `setPrivacyShow` / `setPrivacyAgree` first.
+> ⚠️ Permission checks and requests also depend on privacy state. Complete privacy consent on first install; later cold starts restore it automatically.
 
 ### `useLocationPermissions` (recommended)
 

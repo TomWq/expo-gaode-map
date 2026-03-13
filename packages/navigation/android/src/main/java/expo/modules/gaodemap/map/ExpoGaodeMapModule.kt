@@ -30,6 +30,12 @@ class ExpoGaodeMapModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMap")
 
+    OnCreate {
+      appContext.reactContext?.let { context ->
+        SDKInitializer.restorePersistedState(context)
+      }
+    }
+
     // ==================== SDK 初始化 ====================
     
     /**
@@ -68,6 +74,14 @@ class ExpoGaodeMapModule : Module() {
 
     Function("setPrivacyAgree") { hasAgree: Boolean ->
       SDKInitializer.setPrivacyAgree(appContext.reactContext!!, hasAgree)
+    }
+
+    Function("setPrivacyVersion") { version: String ->
+      SDKInitializer.setPrivacyVersion(appContext.reactContext!!, version)
+    }
+
+    Function("resetPrivacyConsent") {
+      SDKInitializer.resetPrivacyConsent(appContext.reactContext!!)
     }
 
     Function("getPrivacyStatus") {

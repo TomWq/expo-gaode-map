@@ -6,9 +6,8 @@
 
 ::: warning 重要：隐私合规
 根据中国大陆法律法规要求，**必须在用户首次同意隐私协议后**，再调用任何高德 SDK 相关能力。
-当前版本不会自动替你完成这一步；你需要在运行时显式调用：
-- `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-- `ExpoGaodeMapModule.setPrivacyAgree(true)`
+当前版本不会自动替你展示隐私弹窗，但**用户一旦同意后，原生层会持久化并在后续冷启动时自动恢复隐私状态**。
+也就是说：**首次安装时必须手动完成一次；后续启动通常无需重复调用。**
 :::
 
 ### 1. 隐私合规（首次使用时）
@@ -16,15 +15,24 @@
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+
+if (!privacyStatus.isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13', // 可选：隐私协议版本号
+  });
+}
 ```
 
 推荐流程：
 1. 首次进入应用先展示你的隐私协议页面
-2. 用户点击同意后调用 `setPrivacyShow` 和 `setPrivacyAgree`
-3. 然后再调用 `initSDK`
-4. 最后再请求定位权限、渲染地图或调用搜索/定位能力
+2. 用户点击同意后调用 `setPrivacyConfig(...)`（或分别调用 `setPrivacyShow` / `setPrivacyAgree`）
+3. 原生层会持久化同意状态，后续冷启动自动恢复
+4. 然后再调用 `initSDK`
+5. 最后再请求定位权限、渲染地图或调用搜索/定位能力
 
 ### 2. SDK 初始化
 
@@ -34,9 +42,17 @@ ExpoGaodeMapModule.setPrivacyAgree(true);
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 useEffect(() => {
-  // 1. 先完成隐私合规
-  ExpoGaodeMapModule.setPrivacyShow(true, true);
-  ExpoGaodeMapModule.setPrivacyAgree(true);
+  const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+
+  // 1. 首次安装时，在用户同意后同步隐私状态
+  if (!privacyStatus.isReady) {
+    ExpoGaodeMapModule.setPrivacyConfig({
+      hasShow: true,
+      hasContainsPrivacy: true,
+      hasAgree: true,
+      privacyVersion: '2026-03-13',
+    });
+  }
 
   // 如果需要开启世界地图（海外地图）
   // 必须在 initSDK 之前调用
@@ -54,11 +70,16 @@ useEffect(() => {
 
 ::: tip Config Plugin 自动配置
 如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**但运行时隐私步骤仍必须手动调用**。
-推荐仍在用户同意隐私后执行一次 `initSDK`，这样地图、定位、Web API 的初始化行为更一致。
+推荐在用户同意隐私后执行一次 `initSDK`；之后冷启动时原生会自动恢复隐私状态，你只需要继续按需调用 `initSDK`。
 
 ```tsx
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
 
 // 使用 Config Plugin 时，原生 key 可省略
 ExpoGaodeMapModule.initSDK({
@@ -165,9 +186,15 @@ export default function App() {
   useEffect(() => {
   
     const initializeApp = async () => {
-      // 1. 先完成隐私合规
-      ExpoGaodeMapModule.setPrivacyShow(true, true);
-      ExpoGaodeMapModule.setPrivacyAgree(true);
+      // 1. 首次安装时，在用户同意隐私后同步一次
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+          privacyVersion: '2026-03-13',
+        });
+      }
 
       // 2. 初始化 SDK（使用 Config Plugin 时原生 key 可省略）
       ExpoGaodeMapModule.initSDK({
@@ -212,7 +239,11 @@ A: 原生 API Key 不需要，Config Plugin 会自动配置。但如果要使用
 
 ### Q: 使用 Config Plugin 后，还需要调用隐私接口吗？
 
-A: **需要。**Config Plugin 只负责原生 key、权限声明等静态配置；`setPrivacyShow` / `setPrivacyAgree` 属于运行时合规步骤，必须在用户同意后手动调用。
+A: **首次安装时需要。**Config Plugin 只负责原生 key、权限声明等静态配置；运行时隐私同意仍必须由你在用户同意后手动设置一次。设置完成后，原生会自动持久化并在后续冷启动恢复。
+
+### Q: 每次打开 App 都要重复调用隐私接口吗？
+
+A: **通常不需要。**当前版本会在原生层保存用户已经同意的隐私状态。后续启动时会自动恢复；只有新安装、清除 App 数据、卸载重装，或者你主动升级了 `privacyVersion` 时，才需要重新走一次隐私同意流程。
 
 ### Q: 如何处理用户拒绝权限的情况?
 

@@ -4,9 +4,8 @@
 
 > ⚠️ **Privacy requirement**
 >
-> Before rendering `MapView` or calling any map / location capability, you must complete privacy compliance first:
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+> Before rendering `MapView` or calling any map / location capability, a fresh install must complete privacy compliance first.
+> Once granted, privacy state is persisted natively and auto-restored on later cold starts.
 >
 > If privacy is not ready, the JS layer throws a clear error before the native SDK can fail.
 
@@ -142,8 +141,13 @@ interface MapViewRef {
 ```tsx
 import { ExpoGaodeMapModule, MapView } from 'expo-gaode-map';
 
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
 
 export default function App() {
   return (

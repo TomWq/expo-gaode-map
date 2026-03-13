@@ -2,9 +2,7 @@
 
 Examples for building a basic map screen.
 
-> ⚠️ The examples below assume privacy compliance is already completed:
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+> ⚠️ The examples below assume privacy consent has already been completed on first install. After that, native code persists and restores the consent automatically.
 
 ## Simple map
 
@@ -32,8 +30,13 @@ import { ExpoGaodeMapModule, MapView } from 'expo-gaode-map';
 
 export default function MapWithLocation() {
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key',
     });

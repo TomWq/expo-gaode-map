@@ -8,15 +8,14 @@
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 // 1. 用户同意隐私后，先同步隐私状态
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
-
-// 或者一次性设置
-ExpoGaodeMapModule.setPrivacyConfig({
-  hasShow: true,
-  hasContainsPrivacy: true,
-  hasAgree: true,
-});
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
 
 // 2. 初始化 SDK（使用 Config Plugin 时，原生 Key 可省略）
 ExpoGaodeMapModule.initSDK({
@@ -40,7 +39,9 @@ ExpoGaodeMapModule.start();
 | `isSDKInitialized` | - | `boolean` | 当前 JS 侧是否已调用过初始化 |
 | `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | 同步隐私弹窗展示状态 |
 | `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | 同步用户是否同意隐私 |
+| `setPrivacyVersion` | `(version: string)` | `void` | 设置隐私协议版本；版本变化时会要求重新同意 |
 | `setPrivacyConfig` | `PrivacyConfig` | `void` | 一次性设置隐私状态 |
+| `resetPrivacyConsent` | - | `void` | 清空已持久化的隐私同意状态 |
 | `getPrivacyStatus` | - | `PrivacyStatus` | 获取当前隐私状态 |
 | `setLoadWorldVectorMap` | `(enabled: boolean)` | `void` | 是否启用世界向量地图，需在初始化前设置 |
 | `getVersion` | - | `string` | 获取原生 SDK 版本 |
@@ -53,6 +54,7 @@ interface PrivacyConfig {
   hasShow: boolean;
   hasContainsPrivacy: boolean;
   hasAgree: boolean;
+  privacyVersion?: string;
 }
 ```
 
@@ -64,6 +66,9 @@ interface PrivacyStatus {
   hasContainsPrivacy: boolean;
   hasAgree: boolean;
   isReady: boolean;
+  privacyVersion?: string | null;
+  agreedPrivacyVersion?: string | null;
+  restoredFromStorage?: boolean;
 }
 ```
 
@@ -82,7 +87,7 @@ interface PrivacyStatus {
 
 ## 权限管理
 
-> ⚠️ 权限检查 / 请求同样依赖隐私状态，请先完成 `setPrivacyShow` / `setPrivacyAgree`。
+> ⚠️ 权限检查 / 请求同样依赖隐私状态。首次安装时请先完成隐私同意；后续启动原生会自动恢复已同意状态。
 
 ### `useLocationPermissions`（推荐）
 

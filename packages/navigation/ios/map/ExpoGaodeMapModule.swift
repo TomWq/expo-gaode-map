@@ -44,6 +44,7 @@ public class ExpoGaodeMapModule: Module {
         Name("ExpoGaodeMap")
 
         OnCreate {
+            GaodeMapPrivacyManager.restorePersistedState()
             _ = self.trySetupApiKeyFromPlist()
         }
         
@@ -55,7 +56,15 @@ public class ExpoGaodeMapModule: Module {
             GaodeMapPrivacyManager.setPrivacyAgree(hasAgree)
         }
 
-        Function("getPrivacyStatus") { () -> [String: Bool] in
+        Function("setPrivacyVersion") { (version: String) in
+            GaodeMapPrivacyManager.setPrivacyVersion(version)
+        }
+
+        Function("resetPrivacyConsent") {
+            GaodeMapPrivacyManager.resetPrivacyConsent()
+        }
+
+        Function("getPrivacyStatus") { () -> [String: Any] in
             GaodeMapPrivacyManager.status()
         }
         

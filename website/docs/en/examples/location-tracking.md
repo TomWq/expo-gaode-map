@@ -2,6 +2,8 @@
 
 Examples for requesting permission, reading location, and tracking updates.
 
+> ⚠️ These examples use `getPrivacyStatus()` to detect whether first-time privacy consent is already available. In a real app, set privacy state from your own privacy dialog agree callback.
+
 ## Basic location
 
 ```tsx
@@ -13,8 +15,13 @@ export default function BasicLocation() {
   const [location, setLocation] = useState<ReGeocode | null>(null);
 
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key',
     });
@@ -54,8 +61,13 @@ export default function ContinuousLocation() {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key',
     });
@@ -115,8 +127,13 @@ export default function MapLocationTracking() {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key',
     });

@@ -2,9 +2,7 @@
 
 覆盖物组件必须作为 `MapView` 的子组件使用，用于在地图上绘制点、线、面和聚合图层。
 
-> ⚠️ 覆盖物依赖地图实例。请确保在渲染 `MapView` 前，已经先完成隐私合规：
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+> ⚠️ 覆盖物依赖地图实例。请确保首次安装时已经先完成隐私合规；用户同意后，原生会自动持久化并在后续冷启动恢复。
 
 ## 坐标格式
 

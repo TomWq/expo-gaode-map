@@ -55,6 +55,16 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   setPrivacyAgree(hasAgree: boolean): void;
 
   /**
+   * 设置当前隐私协议版本，用于在协议变更时使旧同意失效
+   */
+  setPrivacyVersion(version: string): void;
+
+  /**
+   * 清空已持久化的隐私同意状态
+   */
+  resetPrivacyConsent(): void;
+
+  /**
    * 获取当前隐私政策状态
    * @returns 隐私政策状态对象
    */

@@ -2,9 +2,7 @@
 
 展示如何创建一个基础的地图应用。
 
-> ⚠️ 以下示例默认你已经先完成隐私合规：
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+> ⚠️ 以下示例默认你已经在首次安装时完成过隐私同意；同意后原生会自动持久化并在后续冷启动恢复。
 
 ## 简单地图
 
@@ -36,8 +34,13 @@ import { useEffect } from 'react';
 
 export default function MapWithLocation() {
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选

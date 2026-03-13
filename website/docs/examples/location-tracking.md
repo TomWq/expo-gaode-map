@@ -2,6 +2,8 @@
 
 展示如何实现定位追踪功能。
 
+> ⚠️ 以下示例使用 `getPrivacyStatus()` 判断是否已完成首次隐私同意；真实项目里请在你自己的隐私弹窗“同意”回调中设置隐私状态。
+
 ## 基础定位
 
 获取当前位置：
@@ -15,8 +17,13 @@ export default function BasicLocation() {
   const [location, setLocation] = useState<ReGeocode | null>(null);
 
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
@@ -59,8 +66,13 @@ export default function ContinuousLocation() {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
@@ -125,8 +137,13 @@ export default function MapLocationTracking() {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    ExpoGaodeMapModule.setPrivacyShow(true, true);
-    ExpoGaodeMapModule.setPrivacyAgree(true);
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
