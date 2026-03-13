@@ -23,13 +23,17 @@
     "高德地图",
     "搜索"
   ],
-  "repository": "https://github.com/TomWq/expo-gaode-map",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TomWq/expo-gaode-map",
+    "directory": "packages/search"
+  },
   "bugs": {
     "url": "https://github.com/TomWq/expo-gaode-map/issues"
   },
-  "author": "<TomWq>(https://github.com/TomWq)",
+  "author": "TomWq <582752848@qq.com> (https://github.com/TomWq)",
   "license": "MIT",
-  "homepage": "https://github.com/TomWq/expo-gaode-map#readme",
+  "homepage": "https://tomwq.github.io/expo-gaode-map/",
   "files": [
     "build/**/*",
     "src/**/*",
