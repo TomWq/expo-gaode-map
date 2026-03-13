@@ -45,6 +45,49 @@ const nativeModule = new Proxy({} as ExpoGaodeMapModule, {
 let _sdkConfig: SDKConfig | null = null;
 let _isSDKInitialized = false;
 
+const privacySensitiveMethodNames = new Set<string>([
+  'start',
+  'stop',
+  'isStarted',
+  'getCurrentLocation',
+  'coordinateConvert',
+  'setLocatingWithReGeocode',
+  'setLocationMode',
+  'setInterval',
+  'setOnceLocation',
+  'setSensorEnable',
+  'setWifiScan',
+  'setGpsFirst',
+  'setOnceLocationLatest',
+  'setGeoLanguage',
+  'setLocationCacheEnable',
+  'setHttpTimeOut',
+  'setDesiredAccuracy',
+  'setLocationTimeout',
+  'setReGeocodeTimeout',
+  'setDistanceFilter',
+  'setPausesLocationUpdatesAutomatically',
+  'setAllowsBackgroundLocationUpdates',
+  'setLocationProtocol',
+  'startUpdatingHeading',
+  'stopUpdatingHeading',
+  'checkLocationPermission',
+  'requestLocationPermission',
+  'requestBackgroundLocationPermission',
+  'addLocationListener',
+]);
+
+function assertPrivacyReady(scene: 'map' | 'sdk' = 'sdk'): void {
+  const nativeModule = getNativeModule();
+  if (!nativeModule) {
+    throw ErrorHandler.nativeModuleUnavailable();
+  }
+  const status = nativeModule.getPrivacyStatus();
+  if (!status.isReady) {
+    throw ErrorHandler.privacyNotAgreed(scene);
+  }
+}
+
 // 扩展原生模块，添加便捷方法
 const helperMethods = {
 
@@ -168,6 +211,7 @@ const helperMethods = {
   },
 
   start(): void {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
@@ -178,6 +222,7 @@ const helperMethods = {
   },
 
   stop(): void {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
@@ -188,6 +233,7 @@ const helperMethods = {
   },
 
   isStarted(): Promise<boolean> {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
     if (!nativeModule) return Promise.resolve(false);
     try {
@@ -199,6 +245,7 @@ const helperMethods = {
   },
 
   async getCurrentLocation(): Promise<Coordinates | ReGeocode> {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -211,6 +258,7 @@ const helperMethods = {
   },
 
   async coordinateConvert(coordinate: LatLngPoint, type: CoordinateType): Promise<LatLng> {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -223,6 +271,7 @@ const helperMethods = {
   },
 
   setLocatingWithReGeocode(isReGeocode: boolean): void {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
@@ -242,6 +291,7 @@ const helperMethods = {
    * 检查位置权限状态
    */
   async checkLocationPermission(): Promise<PermissionStatus> {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -257,6 +307,7 @@ const helperMethods = {
    * 请求前台位置权限（增强版）
    */
   async requestLocationPermission(): Promise<PermissionStatus> {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -277,6 +328,7 @@ const helperMethods = {
    * 注意：必须在前台权限已授予后才能请求
    */
   async requestBackgroundLocationPermission(): Promise<PermissionStatus> {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -309,6 +361,7 @@ const helperMethods = {
   },
 
   setAllowsBackgroundLocationUpdates(allows: boolean): void {
+    assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -356,6 +409,7 @@ const helperMethods = {
    * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
    */
   addLocationListener(listener: LocationListener): { remove: () => void } {
+    assertPrivacyReady('sdk');
     const module = getNativeModule();
     if (!module) {
       throw ErrorHandler.nativeModuleUnavailable();
@@ -755,7 +809,23 @@ const ExpoGaodeMapModuleWithHelpers = new Proxy(helperMethods, {
       return Reflect.get(target, prop, receiver);
     }
     const nativeModule = getNativeModule(true);
-    return nativeModule ? Reflect.get(nativeModule as object, prop) : undefined;
+    if (!nativeModule) {
+      return undefined;
+    }
+
+    const value = Reflect.get(nativeModule as object, prop);
+    if (
+      typeof prop === 'string' &&
+      privacySensitiveMethodNames.has(prop) &&
+      typeof value === 'function'
+    ) {
+      return (...args: unknown[]) => {
+        assertPrivacyReady('sdk');
+        return (value as (...fnArgs: unknown[]) => unknown).apply(nativeModule, args);
+      };
+    }
+
+    return value;
   },
 }) as typeof helperMethods & ExpoGaodeMapModule;
 
