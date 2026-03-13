@@ -1,525 +1,466 @@
 # Type Definitions
 
-expo-gaode-map provides complete TypeScript type definitions.
+`expo-gaode-map` ships with full TypeScript definitions. This page highlights the most commonly used ones. For the full source of truth, refer to `packages/core/src/types`.
 
-## Common Types
+## Common types
 
-### LatLng
-Geographic coordinate
+### `LatLng`
 
-```typescript
+```ts
 interface LatLng {
-  latitude: number;  // Latitude
-  longitude: number; // Longitude
+  latitude: number;
+  longitude: number;
 }
 ```
 
-### Point
-Screen coordinate point
+### `LatLngPoint`
 
-```typescript
+Many map and overlay APIs accept either object or tuple coordinates:
+
+```ts
+type LatLngPoint = LatLng | [number, number] | number[];
+```
+
+### `Point`
+
+```ts
 interface Point {
   x: number;
   y: number;
 }
 ```
 
-### CameraPosition
-Map camera position
+### `CameraPosition`
 
-```typescript
+```ts
 interface CameraPosition {
-  target?: LatLng;   // Center coordinate
-  zoom?: number;     // Zoom level (3-20)
-  bearing?: number;  // Rotation angle (0-360 degrees)
-  tilt?: number;     // Tilt angle (0-60 degrees)
+  target?: LatLng;
+  zoom?: number;
+  bearing?: number;
+  tilt?: number;
 }
 ```
 
-### LatLngBounds
-Rectangle coordinate bounds
+### `LatLngBounds`
 
-```typescript
+```ts
 interface LatLngBounds {
-  southwest: LatLng; // Southwest coordinate
-  northeast: LatLng; // Northeast coordinate
+  southwest: LatLng;
+  northeast: LatLng;
 }
 ```
 
-### MapPoi
-Map point of interest (POI)
+### `MapPoi`
 
-```typescript
+```ts
 interface MapPoi {
-  id: string;        // POI ID
-  name: string;      // POI name
-  position: LatLng;  // POI coordinate
+  id: string;
+  name: string;
+  position: LatLng;
 }
 ```
 
-### MapType
-Map type enum
+### `MapType`
 
-```typescript
+```ts
 enum MapType {
-  Standard = 0,   // Standard map
-  Satellite = 1,  // Satellite map
-  Night = 2,      // Night map
-  Navi = 3,       // Navigation map
-  Bus = 4,        // Bus map (Android only)
+  Standard = 0,
+  Satellite = 1,
+  Night = 2,
+  Navi = 3,
+  Bus = 4, // Android
 }
 ```
 
-### ColorValue
-Color value type
+### `ColorValue`
 
-```typescript
+```ts
 type ColorValue = string | number;
-// Supports:
-// - Hex string: '#AARRGGBB' or '#RRGGBB'
-// - Number format: 0xAARRGGBB
 ```
 
-## Map View Types
+### `SDKConfig`
 
-### MapViewProps
-Map view properties, see [MapView Props](/en/api/mapview)
+```ts
+interface SDKConfig {
+  androidKey?: string;
+  iosKey?: string;
+  webKey?: string;
+}
+```
 
-### MapViewRef
-Map view reference methods
+### `PrivacyStatus`
 
-```typescript
+```ts
+interface PrivacyStatus {
+  hasShow: boolean;
+  hasContainsPrivacy: boolean;
+  hasAgree: boolean;
+  isReady: boolean;
+}
+```
+
+## Map types
+
+### `LocationEvent`
+
+```ts
+interface LocationEvent {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+}
+```
+
+### `CameraEvent`
+
+```ts
+interface CameraEvent {
+  cameraPosition: CameraPosition;
+  latLngBounds: LatLngBounds;
+}
+```
+
+### `MapViewRef`
+
+```ts
 interface MapViewRef {
   moveCamera(position: CameraPosition, duration?: number): Promise<void>;
   getLatLng(point: Point): Promise<LatLng>;
-  setCenter(center: LatLng, animated?: boolean): Promise<void>;
+  setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
+  takeSnapshot(): Promise<string>;
 }
 ```
 
-## Location Types
+### `MapViewProps`
 
-### Coordinates
-Basic coordinate information
+For full usage notes, see `/en/api/mapview`:
 
-```typescript
+```ts
+interface MapViewProps {
+  mapType?: MapType;
+  initialCameraPosition?: CameraPosition;
+  myLocationEnabled?: boolean;
+  followUserLocation?: boolean;
+  indoorViewEnabled?: boolean;
+  buildingsEnabled?: boolean;
+  labelsEnabled?: boolean;
+  compassEnabled?: boolean;
+  zoomControlsEnabled?: boolean;
+  scaleControlsEnabled?: boolean;
+  myLocationButtonEnabled?: boolean;
+  trafficEnabled?: boolean;
+  maxZoom?: number;
+  minZoom?: number;
+  zoomGesturesEnabled?: boolean;
+  scrollGesturesEnabled?: boolean;
+  rotateGesturesEnabled?: boolean;
+  tiltGesturesEnabled?: boolean;
+  distanceFilter?: number;
+  headingFilter?: number;
+  worldMapSwitchEnabled?: boolean;
+  customMapStyle?: {
+    styleId?: string;
+    styleDataPath?: string;
+    extraStyleDataPath?: string;
+  };
+  onMapPress?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onPressPoi?: (event: NativeSyntheticEvent<MapPoi>) => void;
+  onMapLongPress?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onCameraMove?: (event: NativeSyntheticEvent<CameraEvent>) => void;
+  onCameraIdle?: (event: NativeSyntheticEvent<CameraEvent>) => void;
+  onLoad?: (event: NativeSyntheticEvent<{}>) => void;
+  onLocation?: (event: NativeSyntheticEvent<LocationEvent>) => void;
+}
+```
+
+## Location types
+
+### `Coordinates`
+
+```ts
 interface Coordinates extends LatLng {
-  altitude: number;   // Altitude (meters)
-  accuracy: number;   // Horizontal accuracy (meters)
-  heading: number;    // Direction (degrees)
-  speed: number;      // Speed (m/s)
-  timestamp: number;  // Timestamp
-  address?: string;   // Formatted address (with reverse geocoding)
+  altitude: number;
+  accuracy: number;
+  heading: number;
+  speed: number;
+  timestamp: number;
+  isAvailableCoordinate?: boolean;
+  address?: string;
 }
 ```
 
-### ReGeocode
-Reverse geocoding information
+### `ReGeocode`
 
-```typescript
+```ts
 interface ReGeocode extends Coordinates {
-  address: string;      // Formatted address
-  country: string;      // Country
-  province: string;     // Province
-  city: string;         // City
-  district: string;     // District
-  cityCode: string;     // City code
-  adCode: string;       // Area code
-  street: string;       // Street
-  streetNumber: string; // Street number
-  poiName: string;      // POI name
-  aoiName: string;      // AOI name
+  address: string;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  cityCode: string;
+  adCode: string;
+  street: string;
+  streetNumber: string;
+  poiName: string;
+  aoiName: string;
+  description?: string;
+  coordType?: 'GCJ02' | 'WGS84';
+  buildingId?: string;
 }
 ```
 
-### LocationOptions
-Location configuration options
+### `LocationAccuracy`
 
-```typescript
-interface LocationOptions {
-  withReGeocode?: boolean;                    // Return reverse geocoding
-  accuracy?: LocationAccuracy;                // Accuracy (iOS)
-  mode?: LocationMode;                        // Mode (Android)
-  onceLocation?: boolean;                     // Single location (Android)
-  interval?: number;                          // Interval (ms, Android)
-  timeout?: number;                           // Timeout (s, iOS)
-  distanceFilter?: number;                    // Min update distance (m, iOS)
-  geoLanguage?: GeoLanguage;                  // Reverse geocoding language
-  allowsBackgroundLocationUpdates?: boolean;  // Background location
-  // ... more options
-}
-```
-
-### LocationAccuracy
-Location accuracy enum (iOS)
-
-```typescript
+```ts
 enum LocationAccuracy {
-  BestForNavigation = 0,  // Best for navigation
-  Best = 1,               // Best accuracy (~10m)
-  NearestTenMeters = 2,   // 10m accuracy
-  HundredMeters = 3,      // 100m accuracy (recommended)
-  Kilometer = 4,          // 1km accuracy
-  ThreeKilometers = 5,    // 3km accuracy
+  BestForNavigation = 0,
+  Best = 1,
+  NearestTenMeters = 2,
+  HundredMeters = 3,
+  Kilometer = 4,
+  ThreeKilometers = 5,
 }
 ```
 
-### LocationMode
-Location mode enum (Android)
+### `LocationMode`
 
-```typescript
+```ts
 enum LocationMode {
-  HighAccuracy = 1,    // High accuracy (network + GPS)
-  BatterySaving = 2,   // Battery saving (network only)
-  DeviceSensors = 3,   // Device sensors (GPS only)
+  HighAccuracy = 1,
+  BatterySaving = 2,
+  DeviceSensors = 3,
 }
 ```
 
-### CoordinateType
-Coordinate system type enum
+### `CoordinateType`
 
-```typescript
+```ts
 enum CoordinateType {
-  AMap = -1,     // AMap coordinate system
-  Baidu = 0,     // Baidu coordinate system
-  MapBar = 1,    // MapBar coordinate system
-  MapABC = 2,    // MapABC coordinate system
-  SoSoMap = 3,   // SoSo Map coordinate system
-  AliYun = 4,    // AliYun coordinate system
-  Google = 5,    // Google coordinate system
-  GPS = 6,       // GPS coordinate system
+  AMap = -1,
+  Baidu = 0,
+  MapBar = 1,
+  MapABC = 2,
+  SoSoMap = 3,
+  AliYun = 4,
+  Google = 5,
+  GPS = 6,
 }
 ```
 
-## Overlay Types
+### `GeoLanguage` / `LocationProtocol`
 
-### MarkerProps
-Marker properties
+```ts
+type GeoLanguage = 'DEFAULT' | 'EN' | 'ZH';
+type LocationProtocol = 'HTTP' | 'HTTPS';
+```
 
-```typescript
+### `PermissionStatus`
+
+```ts
+interface PermissionStatus {
+  granted: boolean;
+  status: 'granted' | 'denied' | 'undetermined';
+  fineLocation?: boolean;
+  coarseLocation?: boolean;
+  backgroundLocation?: boolean;
+  shouldShowRationale?: boolean;
+  isPermanentlyDenied?: boolean;
+  isAndroid14Plus?: boolean;
+  message?: string;
+}
+```
+
+## Overlay types
+
+### `MarkerProps`
+
+```ts
 interface MarkerProps {
-  position: LatLng;                          // Coordinate
-  icon?: string | ImageSourcePropType;       // Icon
-  iconWidth?: number;                        // Icon width (pixels)
-  iconHeight?: number;                       // Icon height (pixels)
-  title?: string;                            // Title
-  snippet?: string;                          // Description
-  draggable?: boolean;                       // Draggable
-  opacity?: number;                          // Opacity [0, 1] (Android)
-  zIndex?: number;                           // Z-index (Android)
-  children?: React.ReactNode;                // Custom view
-  customViewWidth?: number;                  // Custom view width
-  customViewHeight?: number;                 // Custom view height
+  position: LatLngPoint;
+  icon?: string | ImageSourcePropType;
+  iconWidth?: number;
+  iconHeight?: number;
+  title?: string;
+  snippet?: string;
+  opacity?: number;
+  draggable?: boolean;
+  flat?: boolean;
+  zIndex?: number;
+  anchor?: Point;
+  centerOffset?: Point;
+  animatesDrop?: boolean;
+  pinColor?: 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'magenta' | 'rose' | 'purple';
+  children?: React.ReactNode;
+  customViewWidth?: number;
+  customViewHeight?: number;
+  cacheKey?: string;
+  growAnimation?: boolean;
+  smoothMovePath?: LatLng[];
+  smoothMoveDuration?: number;
   onMarkerPress?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDragStart?: (event: NativeSyntheticEvent<LatLng>) => void;
+  onMarkerDrag?: (event: NativeSyntheticEvent<LatLng>) => void;
   onMarkerDragEnd?: (event: NativeSyntheticEvent<LatLng>) => void;
 }
 ```
 
-### PolylineProps
-Polyline properties
+### `PolylineProps`
 
-```typescript
+```ts
 interface PolylineProps {
-  points: LatLng[];          // Coordinate array
-  strokeWidth?: number;      // Line width
-  strokeColor?: ColorValue;  // Line color
-  colors?: ColorValue[];     // Segment colors
-  gradient?: boolean;        // Use gradient (Android)
-  geodesic?: boolean;        // Geodesic line (Android)
-  dotted?: boolean;          // Dotted line (Android)
-  texture?: string;          // Texture image
-  zIndex?: number;           // Z-index
+  points: LatLngPoint[];
+  strokeWidth?: number;
+  strokeColor?: ColorValue;
+  zIndex?: number;
+  colors?: ColorValue[];
+  gradient?: boolean;
+  geodesic?: boolean;
+  simplificationTolerance?: number;
+  dotted?: boolean;
+  texture?: string;
   onPolylinePress?: (event: NativeSyntheticEvent<{}>) => void;
 }
 ```
 
-### PolygonProps
-Polygon properties
+### `PolygonProps`
 
-```typescript
+```ts
 interface PolygonProps {
-  points: LatLng[];          // Vertex array
-  strokeWidth?: number;      // Stroke width
-  strokeColor?: ColorValue;  // Stroke color
-  fillColor?: ColorValue;    // Fill color
-  zIndex?: number;           // Z-index
+  points: LatLngPoint[] | LatLngPoint[][];
+  strokeWidth?: number;
+  strokeColor?: ColorValue;
+  fillColor?: ColorValue;
+  zIndex?: number;
+  simplificationTolerance?: number;
   onPolygonPress?: (event: NativeSyntheticEvent<{}>) => void;
+  onPolygonSimplified?: (
+    event: NativeSyntheticEvent<{
+      originalCount: number;
+      simplifiedCount: number;
+    }>
+  ) => void;
 }
 ```
 
-### CircleProps
-Circle properties
+### `CircleProps`
 
-```typescript
+```ts
 interface CircleProps {
-  center: LatLng;            // Center coordinate
-  radius: number;            // Radius (meters)
-  strokeWidth?: number;      // Stroke width
-  strokeColor?: ColorValue;  // Stroke color
-  fillColor?: ColorValue;    // Fill color
-  zIndex?: number;           // Z-index
+  center: LatLngPoint;
+  radius: number;
+  strokeWidth?: number;
+  strokeColor?: ColorValue;
+  fillColor?: ColorValue;
+  zIndex?: number;
   onCirclePress?: (event: NativeSyntheticEvent<{}>) => void;
 }
 ```
 
-### HeatMapProps
-Heat Map Properties
+### `HeatMapProps`
 
-```typescript
-interface HeatMapPoint {
-  latitude: number;
-  longitude: number;
-  count: number; // Weight
+```ts
+interface HeatMapGradient {
+  colors: ColorValue[];
+  startPoints: number[];
 }
 
 interface HeatMapProps {
-  data: HeatMapPoint[];    // Heat map data
-  radius?: number;         // Heat radius (meters)
-  opacity?: number;        // Opacity [0, 1]
-  gradient?: {             // Gradient config
-    colors: string[];      // Colors array
-    startPoints: number[]; // Start points array [0-1]
-  };
+  data: LatLngPoint[];
+  visible?: boolean;
+  radius?: number;
+  opacity?: number;
+  gradient?: HeatMapGradient;
+  allowRetinaAdapting?: boolean;
 }
 ```
 
-### MultiPointProps
-MassPoint Properties
+### `MultiPointProps`
 
-```typescript
+```ts
 interface MultiPointItem {
   latitude: number;
   longitude: number;
-  title?: string;
-  subtitle?: string;
-  [key: string]: any;
+  id?: string | number;
+  data?: unknown;
 }
 
 interface MultiPointProps {
-  points: MultiPointItem[];    // Points list
-  icon?: string;               // Icon URI
-  iconWidth?: number;          // Icon width
-  iconHeight?: number;         // Icon height
-  onMultiPointPress?: (event: NativeSyntheticEvent<{
-    index: number;
-  }>) => void;
+  points: MultiPointItem[];
+  icon?: string | ImageSourcePropType;
+  iconWidth?: number;
+  iconHeight?: number;
+  onMultiPointPress?: (
+    event: NativeSyntheticEvent<{
+      index: number;
+      item: MultiPointItem;
+    }>
+  ) => void;
 }
 ```
 
-### ClusterProps
-Cluster Properties
+### `ClusterProps`
 
-```typescript
+```ts
 interface ClusterPoint {
+  latitude?: number;
+  longitude?: number;
+  position?: LatLngPoint;
+  properties?: Record<string, unknown>;
+}
+
+interface ClusterParams {
+  count: number;
   latitude: number;
   longitude: number;
-  [key: string]: any;
-}
-
-interface ClusterStyle extends ViewStyle {
-  width?: number;
-  height?: number;
-  backgroundColor?: string;
-  borderColor?: string;
-  borderWidth?: number;
-}
-
-interface ClusterBucket {
-  minPoints: number;
-  backgroundColor?: string;
-  borderColor?: string;
-  borderWidth?: number;
+  pois?: ClusterPoint[];
+  id?: number;
+  position?: LatLng;
 }
 
 interface ClusterProps {
-  points: ClusterPoint[];      // Point list
-  radius?: number;             // Cluster radius
-  minClusterSize?: number;     // Min cluster size
-  clusterStyle?: ClusterStyle; // Base cluster style
-  clusterTextStyle?: TextStyle;// Cluster text style
-  clusterBuckets?: ClusterBucket[]; // Tiered style
-  onClusterPress?: (event: NativeSyntheticEvent<{
-    count: number;
-    pois: ClusterPoint[];
-  }>) => void;
+  radius?: number;
+  minClusterSize?: number;
+  clusterStyle?: ViewStyle;
+  clusterBuckets?: ({ minPoints: number } & ViewStyle)[];
+  clusterTextStyle?: TextStyle;
+  points: ClusterPoint[];
+  renderMarker?: (item: ClusterPoint) => React.ReactNode; // not implemented
+  renderCluster?: (params: ClusterParams) => React.ReactNode; // not implemented
+  onClusterPress?: (event: NativeSyntheticEvent<ClusterParams>) => void;
 }
 ```
 
-## Native Module Types
+## Module event types
 
-### ExpoGaodeMapModule
-
-The native module instance type that defines all available native methods.
-It corresponds to `src/types/native-module.types.ts` and is exported from the
-package entry.
-
-```typescript
-interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
-  addListener(
-    eventName: keyof ExpoGaodeMapModuleEvents | string,
-    listener: (...args: any[]) => void,
-  ): { remove: () => void };
-
-
-
-  initSDK(config: SDKConfig): void;
-
-  setLoadWorldVectorMap(enabled: boolean): void;
-
-  getVersion(): string;
-
-  start(): void;
-
-  stop(): void;
-
-  isStarted(): Promise<boolean>;
-
-  getCurrentLocation(): Promise<Coordinates | ReGeocode>;
-
-  coordinateConvert(coordinate: LatLng, type: CoordinateType): Promise<LatLng>;
-
-  setLocatingWithReGeocode(isReGeocode: boolean): void;
-
-  setLocationMode(mode: LocationMode): void;
-
-  setInterval(interval: number): void;
-
-  setOnceLocation(isOnceLocation: boolean): void;
-
-  setSensorEnable(sensorEnable: boolean): void;
-
-  setWifiScan(wifiScan: boolean): void;
-
-  setGpsFirst(gpsFirst: boolean): void;
-
-  setOnceLocationLatest(onceLocationLatest: boolean): void;
-
-  setGeoLanguage(language: string): void;
-
-  setLocationCacheEnable(locationCacheEnable: boolean): void;
-
-  setHttpTimeOut(httpTimeOut: number): void;
-
-  setDesiredAccuracy(accuracy: LocationAccuracy): void;
-
-  setLocationTimeout(timeout: number): void;
-
-  setReGeocodeTimeout(timeout: number): void;
-
-  setDistanceFilter(distance: number): void;
-
-  setPausesLocationUpdatesAutomatically(pauses: boolean): void;
-
-  setAllowsBackgroundLocationUpdates(allows: boolean): void;
-
-  isBackgroundLocationEnabled: boolean;
-
-  setLocationProtocol(protocol: string): void;
-
-  startUpdatingHeading(): void;
-
-  stopUpdatingHeading(): void;
-
-  checkLocationPermission(): Promise<PermissionStatus>;
-
-  requestLocationPermission(): Promise<PermissionStatus>;
-
-  requestBackgroundLocationPermission(): Promise<PermissionStatus>;
-
-  openAppSettings(): void;
-
-  isNativeSDKConfigured(): boolean;
-
-  addLocationListener(listener: LocationListener): { remove: () => void };
-
-  distanceBetweenCoordinates(coordinate1: LatLng, coordinate2: LatLng): number;
-
-  isPointInCircle(point: LatLng, center: LatLng, radius: number): boolean;
-
-  isPointInPolygon(point: LatLng, polygon: LatLng[] | LatLng[][]): boolean;
-
-  calculatePolygonArea(polygon: LatLng[] | LatLng[][]): number;
-
-  calculateRectangleArea(southWest: LatLng, northEast: LatLng): number;
-
-  calculateCentroid(polygon: LatLng[] | LatLng[][]): LatLng | null;
-
-  encodeGeoHash(coordinate: LatLng, precision: number): string;
-
-  simplifyPolyline(points: LatLng[], tolerance: number): LatLng[];
-
-  calculatePathLength(points: LatLng[]): number;
-
-  getNearestPointOnPath(path: LatLng[], target: LatLng): {
-    latitude: number;
-    longitude: number;
-    index: number;
-    distanceMeters: number;
-  } | null;
-
-  getPointAtDistance(points: LatLng[], distance: number): {
-    latitude: number;
-    longitude: number;
-    angle: number;
-  } | null;
-}
-```
-
-## Usage Examples
-
-### Import Types
-
-```typescript
-import type {
-  LatLng,
-  CameraPosition,
-  MapViewRef,
-  LocationOptions,
-  MarkerProps,
-} from 'expo-gaode-map';
-
-import {
-  MapType,
-  LocationAccuracy,
-  CoordinateType,
-} from 'expo-gaode-map';
-```
-
-### Use MapViewRef
-
-```typescript
-import { useRef } from 'react';
-import { MapView } from 'expo-gaode-map';
-import type { MapViewRef, LatLng } from 'expo-gaode-map';
-
-function MyMap() {
-  const mapRef = useRef<MapViewRef>(null);
-  
-  const moveToLocation = (location: LatLng) => {
-    mapRef.current?.setCenter(location, true);
-  };
-  
-  return <MapView ref={mapRef} style={{ flex: 1 }} />;
-}
-```
-
-### Type-Safe Location Config
-
-```typescript
-import type { LocationOptions } from 'expo-gaode-map';
-import { LocationAccuracy, LocationMode } from 'expo-gaode-map';
-
-const locationOptions: LocationOptions = {
-  withReGeocode: true,
-  accuracy: LocationAccuracy.HundredMeters,
-  mode: LocationMode.HighAccuracy,
-  interval: 2000,
+```ts
+type ExpoGaodeMapModuleEvents = {
+  onLocationUpdate: (location: Coordinates | ReGeocode) => void;
+  onHeadingUpdate: (heading: {
+    magneticHeading: number;
+    trueHeading: number;
+    headingAccuracy: number;
+    x: number;
+    y: number;
+    z: number;
+    timestamp: number;
+  }) => void;
 };
 ```
 
-## Related Documentation
+## Import example
 
-- [MapView API](/en/api/mapview)
-- [Location API](/en/api/location)
-- [Overlays API](/en/api/overlays)
+```ts
+import type {
+  CameraPosition,
+  Coordinates,
+  LatLng,
+  MapViewRef,
+  MarkerProps,
+  PermissionStatus,
+  PolygonProps,
+  ReGeocode,
+} from 'expo-gaode-map';
+```

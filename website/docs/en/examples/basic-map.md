@@ -1,15 +1,17 @@
 # Basic Map
 
-Learn how to create and configure a basic map.
+Examples for building a basic map screen.
 
-## Basic Display
+> ⚠️ The examples below assume privacy compliance is already completed:
+> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
+> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
 
-The simplest map display:
+## Simple map
 
 ```tsx
 import { MapView } from 'expo-gaode-map';
 
-export default function BasicMap() {
+export default function SimpleMap() {
   return (
     <MapView
       style={{ flex: 1 }}
@@ -22,168 +24,55 @@ export default function BasicMap() {
 }
 ```
 
-## Map Types
-
-Switch between different map types:
+## Map with location
 
 ```tsx
-import { MapView, MapType } from 'expo-gaode-map';
-import { useState } from 'react';
-import { View, Button } from 'react-native';
+import { useEffect } from 'react';
+import { ExpoGaodeMapModule, MapView } from 'expo-gaode-map';
 
-export default function MapWithTypes() {
-  const [mapType, setMapType] = useState(MapType.Standard);
+export default function MapWithLocation() {
+  useEffect(() => {
+    ExpoGaodeMapModule.setPrivacyShow(true, true);
+    ExpoGaodeMapModule.setPrivacyAgree(true);
+    ExpoGaodeMapModule.initSDK({
+      webKey: 'your-web-api-key',
+    });
+  }, []);
 
   return (
-    <View style={{ flex: 1 }}>
-      <MapView
-        style={{ flex: 1 }}
-        mapType={mapType}
-        initialCameraPosition={{
-          target: { latitude: 39.9, longitude: 116.4 },
-          zoom: 10,
-        }}
-      />
-      <View style={{ position: 'absolute', top: 50, right: 10 }}>
-        <Button title="Standard" onPress={() => setMapType(MapType.Standard)} />
-        <Button title="Satellite" onPress={() => setMapType(MapType.Satellite)} />
-        <Button title="Night" onPress={() => setMapType(MapType.Night)} />
-      </View>
-    </View>
+    <MapView
+      style={{ flex: 1 }}
+      initialCameraPosition={{
+        target: { latitude: 39.9, longitude: 116.4 },
+        zoom: 10,
+      }}
+      myLocationEnabled
+    />
   );
 }
 ```
 
-## Control Display
-
-Configure map controls:
-
-```tsx
-<MapView
-  style={{ flex: 1 }}
-  initialCameraPosition={{
-    target: { latitude: 39.9, longitude: 116.4 },
-    zoom: 10,
-  }}
-  // Controls
-  compassEnabled={true}
-  scaleControlsEnabled={true}
-  zoomControlsEnabled={true}  // Android only
-  
-  // Layers
-  trafficEnabled={true}
-  buildingsEnabled={true}
-  
-  // Gestures
-  zoomGesturesEnabled={true}
-  scrollGesturesEnabled={true}
-  rotateGesturesEnabled={true}
-  tiltGesturesEnabled={true}
-/>
-```
-
-## Camera Control
-
-Use ref to control camera:
+## Full featured map
 
 ```tsx
 import { useRef } from 'react';
-import { View, Button } from 'react-native';
-import { MapView, type MapViewRef } from 'expo-gaode-map';
+import { View, Button, StyleSheet } from 'react-native';
+import {
+  Circle,
+  MapView,
+  Marker,
+  Polyline,
+  type MapViewRef,
+} from 'expo-gaode-map';
 
-export default function MapWithCamera() {
-  const mapRef = useRef<MapViewRef>(null);
+export default function FullFeaturedMap() {
+  const mapRef = useRef<MapViewRef | null>(null);
 
-  const moveToBeijing = () => {
-    mapRef.current?.moveCamera(
+  const handleMoveCamera = async () => {
+    await mapRef.current?.moveCamera(
       {
-        target: { latitude: 39.9, longitude: 116.4 },
-        zoom: 12,
-      },
-      1000 // Animation duration
-    );
-  };
-
-  const zoomIn = async () => {
-    const position = await mapRef.current?.getCameraPosition();
-    if (position && position.zoom) {
-      mapRef.current?.setZoom(position.zoom + 1, true);
-    }
-  };
-
-  return (
-    <View style={{ flex: 1 }}>
-      <MapView
-        ref={mapRef}
-        style={{ flex: 1 }}
-        initialCameraPosition={{
-          target: { latitude: 39.9, longitude: 116.4 },
-          zoom: 10,
-        }}
-      />
-      <View style={{ position: 'absolute', bottom: 50, left: 10 }}>
-        <Button title="Go to Beijing" onPress={moveToBeijing} />
-        <Button title="Zoom In" onPress={zoomIn} />
-      </View>
-    </View>
-  );
-}
-```
-
-## Map Events
-
-Listen to map events:
-
-```tsx
-import { MapView } from 'expo-gaode-map';
-
-export default function MapWithEvents() {
-  return (
-    <MapView
-      style={{ flex: 1 }}
-      initialCameraPosition={{
-        target: { latitude: 39.9, longitude: 116.4 },
-        zoom: 10,
-      }}
-      onLoad={() => {
-        console.log('Map loaded');
-      }}
-      onMapPress={(e) => {
-        console.log('Map pressed:', e.nativeEvent);
-      }}
-      onMapLongPress={(e) => {
-        console.log('Map long pressed:', e.nativeEvent);
-      }}
-      onCameraMove={(e) => {
-        console.log('Camera moving:', e.nativeEvent);
-      }}
-      onCameraIdle={(e) => {
-        console.log('Camera idle:', e.nativeEvent);
-      }}
-    />
-  );
-}
-```
-
-## Complete Example
-
-A complete map application with all features:
-
-```tsx
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Button } from 'react-native';
-import { MapView, MapType, type MapViewRef } from 'expo-gaode-map';
-
-export default function CompleteMapExample() {
-  const mapRef = useRef<MapViewRef>(null);
-  const [mapType, setMapType] = useState(MapType.Standard);
-  const [trafficEnabled, setTrafficEnabled] = useState(false);
-
-  const moveToShanghai = () => {
-    mapRef.current?.moveCamera(
-      {
-        target: { latitude: 31.2, longitude: 121.5 },
-        zoom: 12,
+        target: { latitude: 40.0, longitude: 116.5 },
+        zoom: 15,
       },
       1000
     );
@@ -194,54 +83,56 @@ export default function CompleteMapExample() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        mapType={mapType}
-        trafficEnabled={trafficEnabled}
         initialCameraPosition={{
           target: { latitude: 39.9, longitude: 116.4 },
           zoom: 10,
         }}
-        compassEnabled={true}
-        scaleControlsEnabled={true}
-        onLoad={() => console.log('Map ready')}
-      />
-      
+        myLocationEnabled
+        trafficEnabled
+        onMapPress={(e) => console.log('Map press', e.nativeEvent)}
+      >
+        <Circle
+          center={{ latitude: 39.9, longitude: 116.4 }}
+          radius={1000}
+          fillColor="#8800FF00"
+        />
+
+        <Marker
+          position={{ latitude: 39.95, longitude: 116.45 }}
+          title="Marker"
+        />
+
+        <Polyline
+          points={[
+            { latitude: 39.9, longitude: 116.4 },
+            { latitude: 39.95, longitude: 116.45 },
+          ]}
+          strokeWidth={5}
+          strokeColor="#FFFF0000"
+        />
+      </MapView>
+
       <View style={styles.controls}>
-        <Button
-          title={mapType === MapType.Standard ? 'Satellite' : 'Standard'}
-          onPress={() => 
-            setMapType(mapType === MapType.Standard ? MapType.Satellite : MapType.Standard)
-          }
-        />
-        <Button
-          title={trafficEnabled ? 'Hide Traffic' : 'Show Traffic'}
-          onPress={() => setTrafficEnabled(!trafficEnabled)}
-        />
-        <Button title="Go to Shanghai" onPress={moveToShanghai} />
+        <Button title="Move Camera" onPress={handleMoveCamera} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
   controls: {
     position: 'absolute',
-    top: 50,
-    right: 10,
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
 });
 ```
 
-## Next Steps
+## Related
 
-- [Location Tracking](/en/examples/location-tracking) - Add location features
-- [Overlays](/en/examples/overlays) - Add markers and shapes
-- [MapView API](/en/api/mapview) - Complete API reference
+- [MapView API](/en/api/mapview)
+- [Location Tracking](/en/examples/location-tracking)
+- [Overlays](/en/examples/overlays)

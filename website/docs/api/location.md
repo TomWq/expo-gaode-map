@@ -1,141 +1,137 @@
 # 定位 API
 
-完整的定位功能 API 文档。
+定位、权限、隐私合规和方向监听相关能力都通过 `ExpoGaodeMapModule` 提供。
 
-> ⚠️ **权限要求**: 所有定位 API 都需要定位权限。使用前请先调用权限检查和请求方法。
->
-> ⚠️ **隐私要求**: 调用 `initSDK`、定位、地图等任何高德能力前，必须先调用：
-> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
-> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
-
-## 定位控制
-
-所有定位 API 通过 `ExpoGaodeMapModule` 调用：
+## 推荐调用顺序
 
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 1. 先完成隐私合规
+// 1. 用户同意隐私后，先同步隐私状态
 ExpoGaodeMapModule.setPrivacyShow(true, true);
 ExpoGaodeMapModule.setPrivacyAgree(true);
 
-// 2. 初始化 SDK（使用 Config Plugin 时原生 Key 可省略）
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
+// 或者一次性设置
+ExpoGaodeMapModule.setPrivacyConfig({
+  hasShow: true,
+  hasContainsPrivacy: true,
+  hasAgree: true,
 });
 
-// 开始连续定位
+// 2. 初始化 SDK（使用 Config Plugin 时，原生 Key 可省略）
+ExpoGaodeMapModule.initSDK({
+  webKey: 'your-web-api-key',
+});
+
+// 3. 请求定位权限
+await ExpoGaodeMapModule.requestLocationPermission();
+
+// 4. 开始定位
 ExpoGaodeMapModule.start();
-
-// 停止定位
-ExpoGaodeMapModule.stop();
-
-// 获取当前位置
-const location = await ExpoGaodeMapModule.getCurrentLocation();
 ```
 
-## API 列表
+> ⚠️ 从当前版本开始，如果在隐私同意前调用地图 / 定位能力，JS 层会明确抛出 `PRIVACY_NOT_AGREED` 相关错误，避免原生 SDK 直接崩溃。
+
+## SDK 与隐私
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| `initSDK` | `{androidKey?, iosKey?, webKey?}` | `void` | 初始化 SDK（使用 Config Plugin 时原生 Key 可省略） |
-| `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | 同步隐私弹窗展示状态，必须先于 `initSDK` 调用 |
-| `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | 同步用户隐私同意状态，必须先于 `initSDK` 调用 |
-| `setLoadWorldVectorMap` | `enabled: boolean` | `void` | 开启/关闭世界向量地图（海外地图），需在初始化前调用 |
+| `initSDK` | `SDKConfig` | `void` | 初始化 SDK，使用 Config Plugin 时原生 Key 可省略 |
+| `isSDKInitialized` | - | `boolean` | 当前 JS 侧是否已调用过初始化 |
+| `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | 同步隐私弹窗展示状态 |
+| `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | 同步用户是否同意隐私 |
+| `setPrivacyConfig` | `PrivacyConfig` | `void` | 一次性设置隐私状态 |
+| `getPrivacyStatus` | - | `PrivacyStatus` | 获取当前隐私状态 |
+| `setLoadWorldVectorMap` | `(enabled: boolean)` | `void` | 是否启用世界向量地图，需在初始化前设置 |
+| `getVersion` | - | `string` | 获取原生 SDK 版本 |
+| `isNativeSDKConfigured` | - | `boolean` | 原生侧是否已配置 API Key |
+
+### PrivacyConfig
+
+```ts
+interface PrivacyConfig {
+  hasShow: boolean;
+  hasContainsPrivacy: boolean;
+  hasAgree: boolean;
+}
+```
+
+### PrivacyStatus
+
+```ts
+interface PrivacyStatus {
+  hasShow: boolean;
+  hasContainsPrivacy: boolean;
+  hasAgree: boolean;
+  isReady: boolean;
+}
+```
+
+## 定位控制
+
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
 | `start` | - | `void` | 开始连续定位 |
 | `stop` | - | `void` | 停止定位 |
-| `isStarted` | - | `Promise<boolean>` | 检查是否正在定位 |
-| `getCurrentLocation` | - | `Promise<Location>` | 获取当前位置 |
+| `isStarted` | - | `Promise<boolean>` | 是否正在定位 |
+| `getCurrentLocation` | - | `Promise<Coordinates \| ReGeocode>` | 获取单次定位结果 |
+| `coordinateConvert` | `(coordinate, type)` | `Promise<LatLng>` | 坐标系转换 |
+| `addLocationListener` | `(listener)` | `{ remove(): void }` | 监听位置更新 |
+
+> `addLocationListener` 现在只接收一个回调函数，不再需要传事件名。
 
 ## 权限管理
 
-### useLocationPermissions Hook (推荐)
+> ⚠️ 权限检查 / 请求同样依赖隐私状态，请先完成 `setPrivacyShow` / `setPrivacyAgree`。
 
-使用 React Hook 简化权限管理，自动处理权限状态和请求：
+### `useLocationPermissions`（推荐）
 
 ```tsx
-import { useLocationPermissions } from 'expo-gaode-map';
+import { useEffect } from 'react';
+import { ExpoGaodeMapModule, useLocationPermissions } from 'expo-gaode-map';
 
-function MyComponent() {
+export default function PermissionExample() {
   const [status, requestPermission] = useLocationPermissions();
 
   useEffect(() => {
-    const init = async () => {
-      // 请求权限
-      await requestPermission();
-      
-      // 检查权限状态
-      if (status?.granted) {
-        ExpoGaodeMapModule.start();
-      }
-    };
-    
-    init();
-  }, [status, requestPermission]);
+    ExpoGaodeMapModule.setPrivacyConfig({
+      hasShow: true,
+      hasContainsPrivacy: true,
+      hasAgree: true,
+    });
+  }, []);
 
   return (
-    <View>
-      {status?.granted ? (
-        <Text>✅ 权限已授予</Text>
-      ) : (
-        <Button title="请求定位权限" onPress={requestPermission} />
-      )}
-    </View>
+    <Button
+      title={status?.granted ? '已授权' : '请求权限'}
+      onPress={requestPermission}
+    />
   );
 }
 ```
 
-#### 返回值
+### 权限方法
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `status` | `PermissionStatus \| null` | 当前权限状态对象 |
-| `requestPermission` | `() => Promise<PermissionStatus>` | 请求权限的方法 |
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `checkLocationPermission` | - | `Promise<PermissionStatus>` | 检查前台定位权限 |
+| `requestLocationPermission` | - | `Promise<PermissionStatus>` | 请求前台定位权限 |
+| `requestBackgroundLocationPermission` | - | `Promise<PermissionStatus>` | 请求后台定位权限 |
+| `openAppSettings` | - | `void` | 打开系统设置页 |
 
-#### PermissionStatus 类型
+### PermissionStatus
 
-```typescript
+```ts
 interface PermissionStatus {
-  granted: boolean;           // 是否已授权
-  status: 'granted' | 'denied' | 'notDetermined'; // 权限状态
-  fineLocation?: boolean;      // Android: 精确位置权限
-  coarseLocation?: boolean;    // Android: 粗略位置权限
-  backgroundLocation?: boolean; // Android: 后台位置权限
-  shouldShowRationale?: boolean; // Android: 是否应显示权限说明
-  isPermanentlyDenied?: boolean; // Android: 权限是否被永久拒绝
-  isAndroid14Plus?: boolean;    // Android: 是否为 Android 14+
-  message?: string;            // 额外的消息说明
-}
-```
-
-### 手动检查权限
-
-```tsx
-const status = await ExpoGaodeMapModule.checkLocationPermission();
-console.log(status.granted); // true 或 false
-console.log(status.status);  // "granted" | "denied" | "notDetermined"
-```
-
-### 手动请求权限
-
-```tsx
-const result = await ExpoGaodeMapModule.requestLocationPermission();
-if (result.granted) {
-  console.log('权限已授予');
-} else {
-  console.log('权限被拒绝');
-}
-```
-
-### 请求后台位置权限（Android 10+）
-
-```tsx
-const result = await ExpoGaodeMapModule.requestBackgroundLocationPermission();
-if (result.granted) {
-  console.log('后台定位权限已授予');
-} else if (result.isPermanentlyDenied) {
-  console.log('权限被永久拒绝，需要引导用户到设置页面');
-  ExpoGaodeMapModule.openAppSettings();
+  granted: boolean;
+  status: 'granted' | 'denied' | 'undetermined';
+  fineLocation?: boolean;
+  coarseLocation?: boolean;
+  backgroundLocation?: boolean;
+  shouldShowRationale?: boolean;
+  isPermanentlyDenied?: boolean;
+  isAndroid14Plus?: boolean;
+  message?: string;
 }
 ```
 
@@ -145,245 +141,201 @@ if (result.granted) {
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setLocatingWithReGeocode` | `boolean` | 是否返回逆地理信息 |
-| `setInterval` | `number` | 定位间隔（毫秒） |
-| `setGeoLanguage` | `number` | 逆地理语言 |
+| `setLocatingWithReGeocode` | `(enabled: boolean)` | 是否返回逆地理信息 |
+| `setInterval` | `(interval: number)` | 定位间隔，毫秒 |
+| `setGeoLanguage` | `('DEFAULT' \| 'EN' \| 'ZH')` | 逆地理返回语言 |
 
-### Android 专用配置
-
-| 方法 | 参数 | 说明 |
-|------|------|------|
-| `setLocationMode` | `0 \| 1 \| 2` | 定位模式（0: 高精度, 1: 省电, 2: 仅设备） |
-| `setOnceLocation` | `boolean` | 是否单次定位 |
-| `setSensorEnable` | `boolean` | 是否使用设备传感器 |
-
-### iOS 专用配置
+### Android 专用
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
-| `setLocationTimeout` | `number` | 定位超时时间（秒） |
-| `setReGeocodeTimeout` | `number` | 逆地理超时时间（秒） |
-| `setDesiredAccuracy` | `number` | 期望精度（0-5） |
+| `setLocationMode` | `(mode: LocationMode)` | 定位模式 |
+| `setOnceLocation` | `(enabled: boolean)` | 是否单次定位 |
+| `setSensorEnable` | `(enabled: boolean)` | 是否启用设备传感器 |
+| `setWifiScan` | `(enabled: boolean)` | 是否允许 Wi‑Fi 扫描 |
+| `setGpsFirst` | `(enabled: boolean)` | 是否 GPS 优先 |
+| `setOnceLocationLatest` | `(enabled: boolean)` | 是否等待 Wi‑Fi 列表刷新后再返回结果 |
+| `setLocationCacheEnable` | `(enabled: boolean)` | 是否启用定位缓存 |
+| `setHttpTimeOut` | `(timeout: number)` | 网络请求超时，毫秒 |
+| `setLocationProtocol` | `('HTTP' \| 'HTTPS')` | 网络协议 |
+
+### iOS 专用
+
+| 方法 | 参数 | 说明 |
+|------|------|------|
+| `setDesiredAccuracy` | `(accuracy: LocationAccuracy)` | 期望定位精度 |
+| `setLocationTimeout` | `(seconds: number)` | 定位超时 |
+| `setReGeocodeTimeout` | `(seconds: number)` | 逆地理超时 |
+| `setDistanceFilter` | `(meters: number)` | 最小距离过滤 |
+| `setPausesLocationUpdatesAutomatically` | `(enabled: boolean)` | 是否允许系统自动暂停定位 |
+| `setAllowsBackgroundLocationUpdates` | `(enabled: boolean)` | 是否允许后台定位 |
+| `startUpdatingHeading` | - | 开始监听朝向 |
+| `stopUpdatingHeading` | - | 停止监听朝向 |
 
 ## 事件监听
 
 ### 监听位置更新
 
 ```tsx
-const subscription = ExpoGaodeMapModule.addLocationListener(
-  'onLocationUpdate',
-  (location) => {
-    console.log('位置更新:', location);
-  }
-);
+const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
+  console.log('位置更新:', location);
+});
 
-// 取消监听
 subscription.remove();
 ```
 
-### 监听方向更新（iOS）
+### 监听朝向更新（iOS）
+
+朝向更新事件走原生事件订阅，不走 `addLocationListener`：
 
 ```tsx
-const subscription = ExpoGaodeMapModule.addLocationListener(
-  'onHeadingUpdate',
-  (heading) => {
-    console.log('方向更新:', heading);
-  }
-);
+const subscription = ExpoGaodeMapModule.addListener('onHeadingUpdate', (heading) => {
+  console.log('方向更新:', heading);
+});
 
-// 取消监听
+ExpoGaodeMapModule.startUpdatingHeading();
+
 subscription.remove();
+ExpoGaodeMapModule.stopUpdatingHeading();
 ```
 
 ## 坐标转换
 
 ```tsx
+import { CoordinateType, ExpoGaodeMapModule } from 'expo-gaode-map';
+
 const converted = await ExpoGaodeMapModule.coordinateConvert(
   { latitude: 39.9, longitude: 116.4 },
-  0 // 转换类型
+  CoordinateType.GPS
 );
 ```
 
-## Location 类型
+## 主要类型
 
-```typescript
-interface Location {
-  // 基础位置信息
+### Coordinates
+
+```ts
+interface Coordinates {
   latitude: number;
   longitude: number;
-  accuracy: number;
   altitude: number;
-  bearing: number;
+  accuracy: number;
+  heading: number;
   speed: number;
-  
-  // 地址信息（需要开启逆地理）
+  timestamp: number;
+  isAvailableCoordinate?: boolean;
   address?: string;
-  province?: string;
-  city?: string;
-  district?: string;
-  street?: string;
-  
-  // 其他信息
-  provider?: string;
-  timestamp?: number;
+}
+```
+
+### ReGeocode
+
+```ts
+interface ReGeocode extends Coordinates {
+  address: string;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  cityCode: string;
+  adCode: string;
+  street: string;
+  streetNumber: string;
+  poiName: string;
+  aoiName: string;
+  description?: string;
+  coordType?: 'GCJ02' | 'WGS84';
+  buildingId?: string;
+}
+```
+
+### LocationMode
+
+```ts
+enum LocationMode {
+  HighAccuracy = 1,
+  BatterySaving = 2,
+  DeviceSensors = 3,
+}
+```
+
+### LocationAccuracy
+
+```ts
+enum LocationAccuracy {
+  BestForNavigation = 0,
+  Best = 1,
+  NearestTenMeters = 2,
+  HundredMeters = 3,
+  Kilometer = 4,
+  ThreeKilometers = 5,
 }
 ```
 
 ## 完整示例
 
-### 使用 useLocationPermissions Hook（推荐）
-
 ```tsx
-import { useEffect, useState } from 'react';
-import { 
-  ExpoGaodeMapModule, 
-  useLocationPermissions,
-  type Location 
+import { useEffect, useRef, useState } from 'react';
+import { Button, Text, View } from 'react-native';
+import {
+  ExpoGaodeMapModule,
+  LocationMode,
+  type ReGeocode,
 } from 'expo-gaode-map';
 
 export default function LocationExample() {
-  const [location, setLocation] = useState<Location | null>(null);
-  const [status, requestPermission] = useLocationPermissions();
+  const [location, setLocation] = useState<ReGeocode | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    const init = async () => {
-      // 请求定位权限
-      await requestPermission();
-      
-      // 检查权限是否已授予
-      if (!status?.granted) {
-        console.log('未授予定位权限');
-        return;
-      }
-
-      // 初始化（使用 Config Plugin 时可传空对象）
-      ExpoGaodeMapModule.initSDK({
-        webKey: 'your-web-api-key', // 可选
+    const run = async () => {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
       });
 
-      // 配置
+      ExpoGaodeMapModule.initSDK({});
+
+      const permission = await ExpoGaodeMapModule.requestLocationPermission();
+      if (!permission.granted) return;
+
       ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+      ExpoGaodeMapModule.setLocationMode(LocationMode.HighAccuracy);
       ExpoGaodeMapModule.setInterval(2000);
 
-      // 监听位置更新
-      const sub = ExpoGaodeMapModule.addLocationListener(
-        'onLocationUpdate',
-        setLocation
-      );
+      const sub = ExpoGaodeMapModule.addLocationListener((result) => {
+        setLocation(result as ReGeocode);
+      });
 
-      // 开始定位
       ExpoGaodeMapModule.start();
+      startedRef.current = true;
 
       return () => {
         sub.remove();
-        ExpoGaodeMapModule.stop();
-      };
-    };
-
-    init();
-  }, [status, requestPermission]);
-
-  return (
-    <View>
-      {status?.granted ? (
-        <>
-          <Text>✅ 定位权限已授予</Text>
-          {location && (
-            <Text>
-              位置: {location.latitude}, {location.longitude}
-              {location.address && `\n地址: ${location.address}`}
-            </Text>
-          )}
-        </>
-      ) : (
-        <>
-          <Text>⚠️ 需要定位权限</Text>
-          <Button title="请求权限" onPress={requestPermission} />
-        </>
-      )}
-    </View>
-  );
-}
-```
-
-### 使用手动权限管理
-
-```tsx
-import { useEffect, useState } from 'react';
-import { ExpoGaodeMapModule, type Location } from 'expo-gaode-map';
-
-export default function LocationExample() {
-  const [location, setLocation] = useState<Location | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const init = async () => {
-      // 1. 检查权限
-      const permission = await ExpoGaodeMapModule.checkLocationPermission();
-      
-      if (!permission.granted) {
-        // 2. 请求权限
-        const result = await ExpoGaodeMapModule.requestLocationPermission();
-        
-        if (!result.granted) {
-          setHasPermission(false);
-          return;
+        if (startedRef.current) {
+          ExpoGaodeMapModule.stop();
         }
-      }
-
-      setHasPermission(true);
-
-      // 3. 初始化（使用 Config Plugin 时可传空对象）
-      ExpoGaodeMapModule.initSDK({
-        webKey: 'your-web-api-key', // 可选
-      });
-
-      // 4. 配置
-      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
-      ExpoGaodeMapModule.setInterval(2000);
-
-      // 5. 监听
-      const sub = ExpoGaodeMapModule.addLocationListener(
-        'onLocationUpdate',
-        setLocation
-      );
-
-      // 6. 开始定位
-      ExpoGaodeMapModule.start();
-
-      return () => {
-        sub.remove();
-        ExpoGaodeMapModule.stop();
       };
     };
 
-    init();
+    const cleanup = run();
+    return () => {
+      cleanup.then((fn) => fn?.()).catch(() => {});
+    };
   }, []);
 
   return (
     <View>
-      {hasPermission === null ? (
-        <Text>正在检查权限...</Text>
-      ) : hasPermission ? (
-        <>
-          <Text>✅ 定位权限已授予</Text>
-          {location && (
-            <Text>
-              位置: {location.latitude}, {location.longitude}
-              {location.address && `\n地址: ${location.address}`}
-            </Text>
-          )}
-        </>
-      ) : (
-        <Text>❌ 未授予定位权限</Text>
-      )}
+      <Button
+        title="获取当前位置"
+        onPress={async () => {
+          const current = await ExpoGaodeMapModule.getCurrentLocation();
+          console.log(current);
+        }}
+      />
+      <Text>{location ? location.address : '等待定位中...'}</Text>
     </View>
   );
 }
 ```
-
-## 相关文档
-
-- [初始化指南](/guide/initialization)
-- [MapView API](/api/mapview)
-- [使用示例](/examples/location-tracking)

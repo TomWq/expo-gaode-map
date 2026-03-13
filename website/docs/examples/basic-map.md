@@ -2,6 +2,10 @@
 
 展示如何创建一个基础的地图应用。
 
+> ⚠️ 以下示例默认你已经先完成隐私合规：
+> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
+> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
+
 ## 简单地图
 
 最简单的地图显示：
@@ -32,6 +36,8 @@ import { useEffect } from 'react';
 
 export default function MapWithLocation() {
   useEffect(() => {
+    ExpoGaodeMapModule.setPrivacyShow(true, true);
+    ExpoGaodeMapModule.setPrivacyAgree(true);
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
@@ -67,7 +73,7 @@ import {
 } from 'expo-gaode-map';
 
 export default function FullFeaturedMap() {
-  const mapRef = useRef<MapViewRef>(null);
+  const mapRef = useRef<MapViewRef | null>(null);
 
   const handleMoveCamera = async () => {
     await mapRef.current?.moveCamera(
@@ -108,8 +114,8 @@ export default function FullFeaturedMap() {
             { latitude: 39.9, longitude: 116.4 },
             { latitude: 39.95, longitude: 116.45 },
           ]}
-          width={5}
-          color="#FFFF0000"
+          strokeWidth={5}
+          strokeColor="#FFFF0000"
         />
       </MapView>
 

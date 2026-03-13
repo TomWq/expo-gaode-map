@@ -30,8 +30,15 @@
 
 ## 3. ExpoGaodeMapModule (定位与高性能工具)
 
+### 隐私合规前置
+- `setPrivacyShow(hasShow, hasContainsPrivacy)`: 告知 SDK 是否已向用户展示隐私政策。
+- `setPrivacyAgree(hasAgree)`: 告知 SDK 用户是否已同意隐私政策。
+- `getPrivacyStatus()`: 获取当前隐私状态。
+- **约束**：`initSDK()`、`MapView` 渲染、定位相关 API 调用前，必须先完成上述设置。
+- **升级提示**：未完成时，JS 层会优先抛出 `PRIVACY_NOT_AGREED`，而不是继续进入原生层。
+
 ### 基础功能
-- `initSDK({ androidKey, iosKey, webKey })`: 初始化 SDK。
+- `initSDK({ androidKey, iosKey, webKey })`: 初始化 SDK（前提：隐私状态已就绪）。
 - `getCurrentLocation()`: 获取当前位置。
 - `start()` / `stop()`: 开启/停止持续定位。
 - `getVersion()`: 获取 SDK 版本。

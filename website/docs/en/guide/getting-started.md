@@ -150,15 +150,12 @@ export default function App() {
       ExpoGaodeMapModule.setPrivacyShow(true, true);
 
       // 2. Initialize SDK
-      ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-api-key',
-        iosKey: 'your-ios-api-key',
-      });
+      ExpoGaodeMapModule.initSDK({});
 
       // 3. Request location permission
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
       
-      if (granted) {
+      if (result.granted) {
         setIsReady(true);
       } else {
         Alert.alert('Location permission is required');

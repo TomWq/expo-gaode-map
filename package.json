@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-monorepo",
-  "version": "2.2.23",
+  "version": "2.2.26",
   "private": true,
   "workspaces": [
     "packages/*",

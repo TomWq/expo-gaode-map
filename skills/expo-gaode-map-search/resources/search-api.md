@@ -4,6 +4,10 @@
 
 提供基于高德原生 SDK 的高性能搜索服务，涵盖 POI 检索、输入提示及逆地理编码。
 
+## 使用前提
+- 已通过 `expo-gaode-map` 或 `expo-gaode-map-navigation` 完成原生 Key 配置。
+- 如果是通过基础包的 `initSDK()` 传 key，则应先完成隐私确认，再执行初始化。
+
 ## 1. 核心搜索方法
 
 ### POI 关键字搜索 (`searchPOI`)

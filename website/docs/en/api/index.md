@@ -56,8 +56,7 @@ ExpoGaodeMapModule.setPrivacyAgree(true);
 
 // Initialize SDK
 ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
+  webKey: 'your-web-api-key', // only needed for Web API features
 });
 
 // Get current location

@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map-search
-description: 高德原生搜索高性能方案：基于原生 SDK 实现，无 Web 配额限制；提供全场景 POI 搜索（关键字/周边/沿途/多边形/ID详情）；支持输入提示（Autocomplete）与逆地理编码（坐标转地址）；提供完整 TypeScript 定义；需依赖核心包或导航包初始化。
+description: 高德原生搜索高性能方案：基于原生 SDK 实现，无 Web 配额限制；提供全场景 POI 搜索（关键字/周边/沿途/多边形/ID详情）；支持输入提示（Autocomplete）与逆地理编码（坐标转地址）；提供完整 TypeScript 定义；通常依赖核心包或导航包完成 Key 配置。
 ---
 
 # 原生搜索开发 (Search)
@@ -15,7 +15,9 @@ description: 高德原生搜索高性能方案：基于原生 SDK 实现，无 W
 - 需要高性能搜索，无额外网络请求开销。
 
 ## 开发指令
-1. **依赖**：确保已安装任一基础包 (`core` 或 `navigation`) 并初始化。
+1. **依赖**：确保已安装任一基础包 (`core` 或 `navigation`) 并完成 Key 配置。
+   - 如果通过基础包调用 `initSDK()` 传 key，则也要先完成隐私确认。
+   - 如果基础包已经通过 Config Plugin 注入了原生 key，可以直接 `initSearch()` 做配置检查。
 2. **POI 搜索**：
    - 关键字搜索：`searchPOI`
    - 周边搜索：`searchNearby`
@@ -45,6 +47,9 @@ const result = await searchPOI({
 
 ### ❌ 错误：不处理搜索空结果
 搜索可能返回 0 个结果或抛出异常（如网络问题、API Key 无效），务必使用 try-catch 并检查 `result.pois.length`。
+
+### 升级提示
+如果你的项目在基础包中仍使用 `initSDK()` 传入 key，那么升级后请先补上隐私确认流程；否则初始化阶段可能先失败，而不是进入搜索逻辑。
 
 ## 🛡️ 类型安全最佳实践
 本库提供了完整的 TypeScript 定义，请参考 [类型定义文档](./resources/types.md) 了解详情。

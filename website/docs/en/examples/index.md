@@ -80,15 +80,15 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 function useMapInit() {
   useEffect(() => {
     const init = async () => {
+      ExpoGaodeMapModule.setPrivacyShow(true, true);
+      ExpoGaodeMapModule.setPrivacyAgree(true);
+
       // Initialize SDK
-      ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-key',
-        iosKey: 'your-ios-key',
-      });
+      ExpoGaodeMapModule.initSDK({});
 
       // Request permission
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
-      if (!granted) {
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
+      if (!result.granted) {
         console.log('Location permission denied');
       }
     };

@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map-web-api
-description: 高德 Web 服务纯 JS 完整封装：提供 V5 路径规划（驾车/新能源/步行/骑行/跨城公交）、地理编码（正/逆）、POI 搜索（关键字/周边/多边形）及输入提示；内置 LRU 缓存、自动重试与请求取消机制；全 TypeScript 类型定义；适用于跨平台逻辑层，需配合核心包或导航包配置 Key。
+description: 高德 Web 服务纯 JS 完整封装：提供 V5 路径规划（驾车/新能源/步行/骑行/跨城公交）、地理编码（正/逆）、POI 搜索（关键字/周边/多边形）及输入提示；内置 LRU 缓存、自动重试与请求取消机制；全 TypeScript 类型定义；适用于跨平台逻辑层，可配合核心包/导航包下发 `webKey`，也可直接构造传 key。
 ---
 
 # Web API 开发 (Web API)
@@ -15,7 +15,10 @@ description: 高德 Web 服务纯 JS 完整封装：提供 V5 路径规划（驾
 - 原生搜索包无法满足特定的 API 需求时。
 
 ## 开发指令
-1. **Key 配置**：在基础包初始化时传入 `webKey`，或构造时传入。
+1. **Key 配置**：
+   - 方式 A：在基础包初始化时传入 `webKey`
+   - 方式 B：直接 `new GaodeWebAPI({ key })`
+   - 注意：如果走方式 A，且基础包通过 `initSDK()` 初始化，那么也要先完成隐私确认
 2. **实例化**：创建 `GaodeWebAPI` 实例。
 3. **调用服务**：
    - 路径规划：`api.route.driving/walking/transit`

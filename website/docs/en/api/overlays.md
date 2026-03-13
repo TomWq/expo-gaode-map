@@ -1,117 +1,80 @@
 # Overlays API
 
-Overlay components are used to display various graphic elements on the map.
+Overlay components must be rendered as children of `MapView`. They let you draw points, lines, polygons, circles, heatmaps, massive point sets, and clusters.
 
-## Circle
+> ⚠️ Overlays depend on the map instance. Make sure privacy compliance is completed before rendering `MapView`:
+> - `ExpoGaodeMapModule.setPrivacyShow(true, true)`
+> - `ExpoGaodeMapModule.setPrivacyAgree(true)`
 
-### Properties
+## Coordinate formats
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `center` | `LatLng` | - | Circle center coordinate (required) |
-| `radius` | `number` | - | Radius (meters) |
-| `fillColor` | `string` | - | Fill color |
-| `strokeColor` | `string` | - | Stroke color |
-| `strokeWidth` | `number` | `1` | Stroke width |
+All overlay coordinates support:
 
-### Example
+- object form: `{ latitude, longitude }`
+- array form: `[longitude, latitude]`
 
-```tsx
-<MapView>
-  <Circle
-    center={{ latitude: 39.9, longitude: 116.4 }}
-    radius={1000}
-    fillColor="#8800FF00"
-    strokeColor="#FFFF0000"
-    strokeWidth={2}
-    onPress={() => console.log('Circle pressed')}
-  />
-</MapView>
-```
+---
 
 ## Marker
 
-### Properties
+### Props
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `position` | `LatLng` | - | Marker coordinate (required) |
+| `position` | `LatLngPoint` | - | Marker coordinate, required |
+| `icon` | `string \| ImageSourcePropType` | - | Custom icon |
+| `iconWidth` | `number` | `40` | Icon width, only used with `icon` |
+| `iconHeight` | `number` | `40` | Icon height, only used with `icon` |
 | `title` | `string` | - | Title |
-| `snippet` | `string` | - | Description |
-| `draggable` | `boolean` | `false` | Whether draggable |
-| `icon` | `string` | - | Custom icon |
-| `iconWidth` | `number` | `40` | Icon width |
-| `iconHeight` | `number` | `40` | Icon height |
-| `growAnimation` | `boolean` | `false` | Enable grow animation (Android/iOS) |
-| `animatesDrop` | `boolean` | `false` | Enable drop animation (iOS) |
-| `smoothMovePath` | `LatLng[]` or `number[][]` | - | Smooth move path coordinates array |
-| `smoothMoveDuration` | `number` | `10` | Smooth move duration (seconds) |
+| `snippet` | `string` | - | Subtitle / description |
+| `opacity` | `number` | - | Opacity between `0 ~ 1`, Android only |
+| `draggable` | `boolean` | `false` | Whether the marker is draggable |
+| `flat` | `boolean` | `false` | Lay marker flat on the map, Android only |
+| `zIndex` | `number` | - | Z index, Android only |
+| `anchor` | `Point` | - | Anchor ratio, Android only |
+| `centerOffset` | `Point` | - | View offset, iOS only |
+| `animatesDrop` | `boolean` | `false` | Drop animation, iOS only |
+| `pinColor` | `'red' \| 'orange' \| 'yellow' \| 'green' \| 'cyan' \| 'blue' \| 'violet' \| 'magenta' \| 'rose' \| 'purple'` | - | Default pin color |
+| `children` | `React.ReactNode` | - | Custom marker content |
+| `customViewWidth` | `number` | `0` | Custom view width, recommended when using `children` |
+| `customViewHeight` | `number` | `0` | Custom view height, recommended when using `children` |
+| `cacheKey` | `string` | - | Cache key for custom marker rendering |
+| `growAnimation` | `boolean` | `false` | Grow animation on Android / iOS |
+| `smoothMovePath` | `LatLng[]` | - | Path for smooth movement |
+| `smoothMoveDuration` | `number` | `10` | Total movement duration in seconds |
 
-### Marker Animation
+### Events
 
-Markers support various animations to enhance interactivity.
-
-- **Grow Animation** (`growAnimation`): The marker grows from the ground. Suitable for entrance animation. Supported on Android and iOS.
-- **Drop Animation** (`animatesDrop`): The marker drops from above. Supported on iOS only.
-
-```tsx
-<Marker
-  position={{ latitude: 39.9, longitude: 116.4 }}
-  growAnimation={true} // Enable grow animation
-  animatesDrop={true}  // Enable drop animation (iOS)
-/>
-```
-
-### Smooth Movement
-
-Markers support smooth movement along a specified path.
-
-```tsx
-<Marker
-  position={{ latitude: 39.9, longitude: 116.4 }}
-  smoothMovePath={[
-    { latitude: 39.91, longitude: 116.41 },
-    { latitude: 39.92, longitude: 116.42 }
-  ]}
-  smoothMoveDuration={5}
-/>
-```
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `onMarkerPress` | `NativeSyntheticEvent<LatLng>` | Marker tap |
+| `onMarkerDragStart` | `NativeSyntheticEvent<LatLng>` | Drag start |
+| `onMarkerDrag` | `NativeSyntheticEvent<LatLng>` | Dragging |
+| `onMarkerDragEnd` | `NativeSyntheticEvent<LatLng>` | Drag end |
 
 ### Example
 
 ```tsx
-<MapView>
+<MapView style={{ flex: 1 }}>
   <Marker
     position={{ latitude: 39.9, longitude: 116.4 }}
     title="Beijing"
     snippet="Capital of China"
-    draggable={true}
-    onPress={() => console.log('Marker pressed')}
-    onDragEnd={(e) => console.log('Drag ended', e.nativeEvent)}
+    draggable
+    onMarkerPress={(e) => console.log('Marker pressed', e.nativeEvent)}
+    onMarkerDragEnd={(e) => console.log('Drag end', e.nativeEvent)}
   />
 </MapView>
 ```
 
-### Custom Icon
-
-```tsx
-import { Image } from 'react-native';
-
-const iconUri = Image.resolveAssetSource(require('./marker.png')).uri;
-
-<Marker
-  position={{ latitude: 39.9, longitude: 116.4 }}
-  icon={iconUri}
-  iconWidth={50}
-  iconHeight={50}
-/>
-```
-
-### Custom View
+### Custom view
 
 ```tsx
 <Marker
   position={{ latitude: 39.9, longitude: 116.4 }}
+  customViewWidth={96}
+  customViewHeight={40}
+  cacheKey="custom-marker-1"
 >
   <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 8 }}>
     <Text>Custom Content</Text>
@@ -119,81 +82,326 @@ const iconUri = Image.resolveAssetSource(require('./marker.png')).uri;
 </Marker>
 ```
 
+### Smooth movement
+
+```tsx
+<Marker
+  position={{ latitude: 39.9, longitude: 116.4 }}
+  smoothMovePath={[
+    { latitude: 39.91, longitude: 116.41 },
+    { latitude: 39.92, longitude: 116.42 },
+    { latitude: 39.93, longitude: 116.43 },
+  ]}
+  smoothMoveDuration={5}
+/>
+```
+
+---
+
 ## Polyline
 
-### Properties
+### Props
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `points` | `LatLng[]` | - | Polyline coordinate array (required) |
-| `width` | `number` | `5` | Line width |
-| `color` | `string` | - | Line color |
-| `texture` | `string` | - | Texture image URL |
+| `points` | `LatLngPoint[]` | - | Polyline coordinates, required |
+| `strokeWidth` | `number` | - | Line width |
+| `strokeColor` | `ColorValue` | - | Line color |
+| `zIndex` | `number` | - | Z index |
+| `colors` | `ColorValue[]` | - | Segment colors |
+| `gradient` | `boolean` | `false` | Gradient line, Android only |
+| `geodesic` | `boolean` | `false` | Geodesic line, Android only |
+| `simplificationTolerance` | `number` | - | Path simplification tolerance in meters |
+| `dotted` | `boolean` | `false` | Dotted line, Android only |
+| `texture` | `string` | - | Texture image |
+
+### Events
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `onPolylinePress` | `NativeSyntheticEvent<{}>` | Polyline tap |
 
 ### Example
 
 ```tsx
-<MapView>
-  <Polyline
-    points={[
-      { latitude: 39.9, longitude: 116.4 },
-      { latitude: 39.95, longitude: 116.45 },
-      { latitude: 40.0, longitude: 116.5 },
-    ]}
-    width={5}
-    color="#FFFF0000"
-    onPress={() => console.log('Polyline pressed')}
-  />
-</MapView>
+<Polyline
+  points={[
+    { latitude: 39.9, longitude: 116.4 },
+    { latitude: 39.95, longitude: 116.45 },
+    { latitude: 40.0, longitude: 116.5 },
+  ]}
+  strokeWidth={5}
+  strokeColor="#FF1677FF"
+  simplificationTolerance={2}
+  onPolylinePress={() => console.log('Polyline pressed')}
+/>
 ```
+
+---
 
 ## Polygon
 
-### Properties
+### Props
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `points` | `LatLng[]` | - | Polygon vertex array (required) |
-| `fillColor` | `string` | - | Fill color |
-| `strokeColor` | `string` | - | Stroke color |
-| `strokeWidth` | `number` | `1` | Stroke width |
+| `points` | `LatLngPoint[] \| LatLngPoint[][]` | - | Polygon coordinates, supports holes |
+| `strokeWidth` | `number` | - | Stroke width |
+| `strokeColor` | `ColorValue` | - | Stroke color |
+| `fillColor` | `ColorValue` | - | Fill color |
+| `zIndex` | `number` | - | Z index |
+| `simplificationTolerance` | `number` | - | Boundary simplification tolerance in meters |
+
+### Events
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `onPolygonPress` | `NativeSyntheticEvent<{}>` | Polygon tap |
+| `onPolygonSimplified` | `NativeSyntheticEvent<{ originalCount: number; simplifiedCount: number }>` | Simplification finished |
 
 ### Example
 
 ```tsx
-<MapView>
-  <Polygon
-    points={[
+<Polygon
+  points={[
+    [
       { latitude: 39.9, longitude: 116.3 },
-      { latitude: 39.9, longitude: 116.4 },
-      { latitude: 39.8, longitude: 116.4 },
-    ]}
-    fillColor="#8800FF00"
-    strokeColor="#FFFF0000"
-    strokeWidth={2}
-    onPress={() => console.log('Polygon pressed')}
-  />
-</MapView>
+      { latitude: 39.9, longitude: 116.5 },
+      { latitude: 39.8, longitude: 116.5 },
+      { latitude: 39.8, longitude: 116.3 },
+    ],
+    [
+      { latitude: 39.87, longitude: 116.37 },
+      { latitude: 39.87, longitude: 116.43 },
+      { latitude: 39.83, longitude: 116.43 },
+      { latitude: 39.83, longitude: 116.37 },
+    ],
+  ]}
+  fillColor="#5533AAFF"
+  strokeColor="#FF1677FF"
+  strokeWidth={2}
+  onPolygonSimplified={(e) => console.log(e.nativeEvent)}
+/>
 ```
 
-## Color Format
+---
 
-Overlay colors use ARGB format: `#AARRGGBB`
+## Circle
 
-- `AA`: Alpha (00-FF)
-- `RR`: Red (00-FF)
-- `GG`: Green (00-FF)
-- `BB`: Blue (00-FF)
+### Props
 
-Examples:
-- `#FFFF0000` - Opaque red
-- `#8800FF00` - 50% transparent green
-- `#FF0000FF` - Opaque blue
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `center` | `LatLngPoint` | - | Center coordinate, required |
+| `radius` | `number` | - | Radius in meters, required |
+| `strokeWidth` | `number` | - | Stroke width |
+| `strokeColor` | `ColorValue` | - | Stroke color |
+| `fillColor` | `ColorValue` | - | Fill color |
+| `zIndex` | `number` | - | Z index |
 
-## Complete Example
+### Events
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `onCirclePress` | `NativeSyntheticEvent<{}>` | Circle tap |
+
+### Example
 
 ```tsx
-import { MapView, Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
+<Circle
+  center={{ latitude: 39.9, longitude: 116.4 }}
+  radius={1000}
+  fillColor="#2200FF00"
+  strokeColor="#FF00AA00"
+  strokeWidth={2}
+  onCirclePress={() => console.log('Circle pressed')}
+/>
+```
+
+---
+
+## HeatMap
+
+### Props
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `data` | `LatLngPoint[]` | - | Heat points, required |
+| `visible` | `boolean` | `true` | Whether the heatmap is visible |
+| `radius` | `number` | - | Heat radius in meters |
+| `opacity` | `number` | - | Opacity between `0 ~ 1` |
+| `gradient` | `{ colors: ColorValue[]; startPoints: number[] }` | - | Gradient configuration |
+| `allowRetinaAdapting` | `boolean` | `false` | Retina heatmap support, iOS only |
+
+### Example
+
+```tsx
+<HeatMap
+  data={[
+    { latitude: 39.9, longitude: 116.4 },
+    { latitude: 39.91, longitude: 116.41 },
+    { latitude: 39.92, longitude: 116.42 },
+  ]}
+  radius={40}
+  opacity={0.7}
+  gradient={{
+    colors: ['#00F5FF', '#00FF7F', '#FFFF00', '#FF4500'],
+    startPoints: [0.2, 0.4, 0.7, 1.0],
+  }}
+/>
+```
+
+---
+
+## MultiPoint
+
+Best for rendering large static point datasets more efficiently than individual `Marker` components.
+
+### `MultiPointItem`
+
+```ts
+interface MultiPointItem {
+  latitude: number;
+  longitude: number;
+  id?: string | number;
+  data?: unknown;
+}
+```
+
+### Props
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `points` | `MultiPointItem[]` | - | Massive point list, required |
+| `icon` | `string \| ImageSourcePropType` | - | Shared icon |
+| `iconWidth` | `number` | - | Icon width |
+| `iconHeight` | `number` | - | Icon height |
+
+### Events
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `onMultiPointPress` | `NativeSyntheticEvent<{ index: number; item: MultiPointItem }>` | Tap one point |
+
+### Example
+
+```tsx
+<MultiPoint
+  points={[
+    { id: 1, latitude: 39.9, longitude: 116.4, data: { name: 'A' } },
+    { id: 2, latitude: 39.91, longitude: 116.41, data: { name: 'B' } },
+  ]}
+  icon="https://example.com/pin.png"
+  iconWidth={24}
+  iconHeight={24}
+  onMultiPointPress={(e) => console.log(e.nativeEvent.item)}
+/>
+```
+
+---
+
+## Cluster
+
+### `ClusterPoint`
+
+```ts
+interface ClusterPoint {
+  latitude?: number;
+  longitude?: number;
+  position?: LatLngPoint;
+  properties?: Record<string, unknown>;
+}
+```
+
+### Props
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `points` | `ClusterPoint[]` | - | Cluster points, required |
+| `radius` | `number` | - | Cluster radius |
+| `minClusterSize` | `number` | - | Minimum number of points to form a cluster |
+| `clusterStyle` | `ViewStyle` | - | Base cluster style |
+| `clusterBuckets` | `({ minPoints: number } & ViewStyle)[]` | - | Tiered cluster style rules |
+| `clusterTextStyle` | `TextStyle` | - | Cluster count text style |
+| `renderMarker` | `(item: ClusterPoint) => React.ReactNode` | - | Not implemented yet |
+| `renderCluster` | `(params: ClusterParams) => React.ReactNode` | - | Not implemented yet |
+
+### Events
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `onClusterPress` | `NativeSyntheticEvent<ClusterParams>` | Tap a cluster |
+
+### `ClusterParams`
+
+```ts
+interface ClusterParams {
+  count: number;
+  latitude: number;
+  longitude: number;
+  pois?: ClusterPoint[];
+  id?: number;
+  position?: LatLng;
+}
+```
+
+### Example
+
+```tsx
+<Cluster
+  points={[
+    { latitude: 39.9, longitude: 116.4, properties: { id: 1 } },
+    { latitude: 39.901, longitude: 116.401, properties: { id: 2 } },
+    { position: [116.402, 39.902], properties: { id: 3 } },
+  ]}
+  radius={30}
+  minClusterSize={2}
+  clusterStyle={{
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1677FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }}
+  clusterTextStyle={{
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  }}
+  clusterBuckets={[
+    { minPoints: 1, backgroundColor: '#00BFFF' },
+    { minPoints: 10, backgroundColor: '#FFA500' },
+    { minPoints: 50, backgroundColor: '#FF4500' },
+  ]}
+  onClusterPress={(e) => console.log(e.nativeEvent.count)}
+/>
+```
+
+---
+
+## Color formats
+
+Overlay colors support:
+
+- `'#AARRGGBB'`
+- `'#RRGGBB'`
+- `'red'` / `'rgba(...)'`
+- Android also supports numeric colors such as `0xFF1677FF`
+
+## Combined example
+
+```tsx
+import {
+  MapView,
+  Marker,
+  Polyline,
+  Polygon,
+  Circle,
+  HeatMap,
+  MultiPoint,
+  Cluster,
+} from 'expo-gaode-map';
 
 export default function OverlaysExample() {
   return (
@@ -201,162 +409,34 @@ export default function OverlaysExample() {
       style={{ flex: 1 }}
       initialCameraPosition={{
         target: { latitude: 39.9, longitude: 116.4 },
-        zoom: 10,
+        zoom: 11,
       }}
     >
-      {/* Circle */}
-      <Circle
-        center={{ latitude: 39.9, longitude: 116.4 }}
-        radius={1000}
-        fillColor="#8800FF00"
-        strokeColor="#FFFF0000"
-      />
-
-      {/* Marker */}
-      <Marker
-        position={{ latitude: 39.95, longitude: 116.45 }}
-        title="Marker"
-      />
-
-      {/* Polyline */}
+      <Circle center={{ latitude: 39.9, longitude: 116.4 }} radius={1000} />
+      <Marker position={{ latitude: 39.92, longitude: 116.42 }} title="Marker" />
       <Polyline
         points={[
           { latitude: 39.9, longitude: 116.4 },
           { latitude: 39.95, longitude: 116.45 },
         ]}
-        width={5}
-        color="#FF0000FF"
+        strokeWidth={4}
+        strokeColor="#1677FF"
       />
-
-      {/* Polygon */}
       <Polygon
         points={[
           { latitude: 39.85, longitude: 116.35 },
           { latitude: 39.85, longitude: 116.45 },
-          { latitude: 39.75, longitude: 116.40 },
+          { latitude: 39.75, longitude: 116.4 },
         ]}
-        fillColor="#880000FF"
+        fillColor="#2200AAFF"
+      />
+      <HeatMap
+        data={[
+          { latitude: 39.91, longitude: 116.38 },
+          { latitude: 39.92, longitude: 116.39 },
+        ]}
       />
     </MapView>
   );
 }
 ```
-
-## Cluster
-
-Used to display large amounts of point data, automatically clustering nearby points.
-
-### Properties
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `points` | `ClusterPoint[]` | - | Cluster point data array (required) |
-| `radius` | `number` | `30` | Cluster radius |
-| `minClusterSize` | `number` | `1` | Minimum cluster size (count >= this value shows cluster style) |
-| `clusterStyle` | `ViewStyle` | - | Base cluster style (backgroundColor, borderColor, borderWidth, width, height) |
-| `clusterTextStyle` | `TextStyle` | - | Cluster text style (color, fontSize, fontWeight) |
-| `clusterBuckets` | `Bucket[]` | - | Tiered style configuration |
-| `onClusterPress` | `function` | - | Press event |
-
-### Tiered Style (clusterBuckets)
-
-The `clusterBuckets` property allows displaying different colors based on the cluster count.
-
-```tsx
-clusterBuckets={[
-  { minPoints: 1, backgroundColor: '#00BFFF' }, // 1: Blue
-  { minPoints: 2, backgroundColor: '#32CD32' }, // 2-4: Green
-  { minPoints: 5, backgroundColor: '#FFA500' }, // 5-9: Orange
-  { minPoints: 10, backgroundColor: '#FF4500' } // 10+: Red
-]}
-```
-
-### Example
-
-```tsx
-<Cluster
-  points={data}
-  radius={30}
-  minClusterSize={1}
-  clusterBuckets={[
-    { minPoints: 1, backgroundColor: '#00BFFF' },
-    { minPoints: 5, backgroundColor: '#FFA500' }
-  ]}
-  clusterStyle={{
-    width: 40,
-    height: 40,
-    borderColor: 'white',
-    borderWidth: 2,
-  }}
-  onClusterPress={(e) => console.log(e.nativeEvent)}
-/>
-```
-
-## MultiPoint (MassPoint)
-
-Used to display thousands of points on the map, with better performance than standard Markers.
-
-### Properties
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `points` | `MultiPointItem[]` | - | Point data array (required) |
-| `icon` | `string` | - | Icon resource URI |
-| `iconWidth` | `number` | - | Icon width |
-| `iconHeight` | `number` | - | Icon height |
-| `onMultiPointPress` | `function` | - | Press event |
-
-### Example
-
-```tsx
-import { Image } from 'react-native';
-const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
-
-<MultiPoint
-  points={points}
-  icon={iconUri}
-  iconWidth={30}
-  iconHeight={30}
-  onMultiPointPress={(e) => console.log('Clicked index:', e.nativeEvent.index)}
-/>
-```
-
-## HeatMap
-
-Used to display data density distribution.
-
-### Android Notes
-
-If you use HeatMap on Android, you must enable Jetifier in your app's `android/gradle.properties` (otherwise you may hit `java.lang.NoClassDefFoundError: android.support.v4.util.LongSparseArray` and the heatmap won't render):
-
-```
-android.enableJetifier=true
-```
-
-### Properties
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `data` | `HeatMapPoint[]` | - | Heat map data (lat, lng, count) |
-| `radius` | `number` | `12` | Heat radius |
-| `opacity` | `number` | `0.6` | Opacity (0-1) |
-| `gradient` | `object` | - | Gradient configuration |
-
-### Example
-
-```tsx
-<HeatMap
-  data={points}
-  radius={30}
-  opacity={0.5}
-  gradient={{
-    colors: ['blue', 'green', 'red'],
-    startPoints: [0.2, 0.5, 0.9]
-  }}
-/>
-```
-
-## Related Documentation
-
-- [MapView API](/en/api/mapview)
-- [Overlay Examples](/en/examples/overlays)

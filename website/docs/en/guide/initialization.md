@@ -116,8 +116,8 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 async function requestLocationPermission() {
   try {
-    const granted = await ExpoGaodeMapModule.requestLocationPermission();
-    if (granted) {
+    const result = await ExpoGaodeMapModule.requestLocationPermission();
+    if (result.granted) {
       console.log('Location permission granted');
     } else {
       console.log('Location permission denied');
@@ -131,8 +131,8 @@ async function requestLocationPermission() {
 ### Check Permission Status
 
 ```typescript
-const hasPermission = await ExpoGaodeMapModule.hasLocationPermission();
-console.log('Has location permission:', hasPermission);
+const status = await ExpoGaodeMapModule.checkLocationPermission();
+console.log('Has location permission:', status.granted);
 ```
 
 ## Privacy Compliance
@@ -166,8 +166,7 @@ function showPrivacyPolicy() {
 
 // 2. Then initialize SDK
 ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
+  webKey: 'your-web-api-key', // only needed for Web API features
 });
 
 // 3. Request location permission
@@ -224,13 +223,13 @@ See [Config Plugin Guide](./config-plugin) for details.
 
 ```typescript
 // Check current permission status
-const status = await ExpoGaodeMapModule.hasLocationPermission();
+const status = await ExpoGaodeMapModule.checkLocationPermission();
 
-if (!status) {
+if (!status.granted) {
   // Request permission
-  const granted = await ExpoGaodeMapModule.requestLocationPermission();
+  const result = await ExpoGaodeMapModule.requestLocationPermission();
   
-  if (!granted) {
+  if (!result.granted) {
     // Guide user to settings
     Alert.alert(
       'Permission Required',
@@ -265,15 +264,12 @@ function App() {
       ExpoGaodeMapModule.setPrivacyShow(true, true);
 
       // 2. Initialize SDK
-      ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-api-key',
-        iosKey: 'your-ios-api-key',
-      });
+      ExpoGaodeMapModule.initSDK({});
 
       // 3. Request location permission
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
       
-      if (granted) {
+      if (result.granted) {
         setIsReady(true);
       } else {
         Alert.alert('Location permission is required');
