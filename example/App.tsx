@@ -654,7 +654,7 @@ export default function MamScreen() {
               <Text style={styles.privacyTitle}>隐私保护提示</Text>
               <Text style={styles.privacyDesc}>
                 为了使用地图展示、定位与搜索服务，我们会在你同意后再调用
-                `setPrivacyShow(true, true)`、`setPrivacyAgree(true)`、`initSDK()`。
+                
               </Text>
               <Text style={styles.privacyMeta}>同意前不会进入地图页，也不会初始化地图 SDK。</Text>
 

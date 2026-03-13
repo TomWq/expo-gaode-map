@@ -1,6 +1,6 @@
 import AMapFoundationKit
 import AMapLocationKit
-import MAMapKit
+import AMapNaviKit
 import Foundation
 
 extension Notification.Name {

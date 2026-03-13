@@ -121,8 +121,11 @@ useEffect(() => {
 import ExpoGaodeMapModule from 'expo-gaode-map';
 
 // 应用启动后，先展示你自己的隐私弹窗
-ExpoGaodeMapModule.setPrivacyShow(true, true);
-ExpoGaodeMapModule.setPrivacyAgree(true);
+ExpoGaodeMapModule.setPrivacyConfig({
+  hasShow: true,
+  hasContainsPrivacy: true,
+  hasAgree: true,
+});
 
 // 然后再初始化 SDK / 渲染地图
 ExpoGaodeMapModule.initSDK({
