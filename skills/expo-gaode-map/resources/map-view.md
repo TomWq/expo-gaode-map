@@ -4,6 +4,16 @@
 
 ## 快速参考
 
+### 渲染前置条件
+```ts
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+ExpoGaodeMapModule.setPrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyAgree(true);
+```
+
+> 从新版本开始，若在隐私未确认前直接渲染 `<MapView>`，JS 层会先抛出 `PRIVACY_NOT_AGREED`。
+
 ### 核心属性 (Props)
 
 | 属性 | 类型 | 说明 |
@@ -71,3 +81,4 @@ const snapshotPath = await mapRef.current?.takeSnapshot();
 ### 常见陷阱
 1. **坐标系转换**: 库内方法（如 `coordinateConvert`）可用于将 GPS 坐标转换为高德 GCJ-02 坐标。
 2. **异步执行**: `MapViewRef` 的方法返回 Promise，确保在调用前地图已加载（可通过 `onLoad` 事件确认）。
+3. **升级迁移**: 老项目若直接 import 后渲染地图页，现在需要先补上隐私确认流程，否则会先收到 JS 层错误而不是原生崩溃。

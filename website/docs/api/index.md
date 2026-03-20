@@ -8,7 +8,8 @@
 > 1. ✅ 已在原生项目中配置必需的权限声明
 > 2. ✅ 在运行时请求用户授权
 > 3. ✅ 遵守《个人信息保护法》等隐私法规
-> 4. ✅ 配置高德 SDK 隐私合规接口
+> 4. ✅ 首次安装时先完成隐私同意，再调用 `setPrivacyConfig(...)` 或 `setPrivacyShow(...)` / `setPrivacyAgree(...)`
+> 5. ✅ 同意后原生会自动持久化并在后续冷启动恢复
 
 ## 目录
 
@@ -49,7 +50,16 @@ import { MapView } from 'expo-gaode-map';
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 使用 Config Plugin 时，原生 Key 已自动配置
+// 先完成隐私合规
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
+// 再初始化 SDK（使用 Config Plugin 时，原生 Key 可省略）
 ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
 });

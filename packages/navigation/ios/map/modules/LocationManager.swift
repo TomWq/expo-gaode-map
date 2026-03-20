@@ -28,18 +28,17 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
 
     override init() {
         super.init()
-        initLocationManager()
     }
 
     // MARK: - 连续定位控制
 
     func start() {
-        locationManager?.startUpdatingLocation()
+        ensureLocationManager()?.startUpdatingLocation()
         isLocationStarted = true
     }
 
     func stop() {
-        locationManager?.stopUpdatingLocation()
+        ensureLocationManager()?.stopUpdatingLocation()
         isLocationStarted = false
     }
 
@@ -50,19 +49,19 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     // MARK: - 高德定位配置 API
 
     func setLocatingWithReGeocode(_ isReGeocode: Bool) {
-        locationManager?.locatingWithReGeocode = isReGeocode
+        ensureLocationManager()?.locatingWithReGeocode = isReGeocode
     }
 
     func setDistanceFilter(_ distance: Double) {
-        locationManager?.distanceFilter = distance
+        ensureLocationManager()?.distanceFilter = distance
     }
 
     func setLocationTimeout(_ timeout: Int) {
-        locationManager?.locationTimeout = timeout
+        ensureLocationManager()?.locationTimeout = timeout
     }
 
     func setReGeocodeTimeout(_ timeout: Int) {
-        locationManager?.reGeocodeTimeout = timeout
+        ensureLocationManager()?.reGeocodeTimeout = timeout
     }
 
     func setDesiredAccuracy(_ accuracy: Int) {
@@ -76,11 +75,11 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         case 5: value = kCLLocationAccuracyThreeKilometers
         default: value = kCLLocationAccuracyBest
         }
-        locationManager?.desiredAccuracy = value
+        ensureLocationManager()?.desiredAccuracy = value
     }
 
     func setPausesLocationUpdatesAutomatically(_ pauses: Bool) {
-        locationManager?.pausesLocationUpdatesAutomatically = pauses
+        ensureLocationManager()?.pausesLocationUpdatesAutomatically = pauses
     }
 
     func setAllowsBackgroundLocationUpdates(_ allows: Bool) {
@@ -91,14 +90,14 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
                 return
             }
         }
-        locationManager?.allowsBackgroundLocationUpdates = allows
+        ensureLocationManager()?.allowsBackgroundLocationUpdates = allows
     }
 
     func setGeoLanguage(_ language: Int) {
         switch language {
-        case 0: locationManager?.reGeocodeLanguage = .default
-        case 1: locationManager?.reGeocodeLanguage = .chinse
-        case 2: locationManager?.reGeocodeLanguage = .english
+        case 0: ensureLocationManager()?.reGeocodeLanguage = .default
+        case 1: ensureLocationManager()?.reGeocodeLanguage = .chinse
+        case 2: ensureLocationManager()?.reGeocodeLanguage = .english
         default: break
         }
     }
@@ -106,26 +105,41 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     // MARK: - 方向
 
     func startUpdatingHeading() {
-        locationManager?.startUpdatingHeading()
+        ensureLocationManager()?.startUpdatingHeading()
     }
 
     func stopUpdatingHeading() {
-        locationManager?.stopUpdatingHeading()
+        ensureLocationManager()?.stopUpdatingHeading()
     }
 
     // MARK: - 初始化
 
-    private func initLocationManager() {
-        locationManager = AMapLocationManager()
-        locationManager?.delegate = self
+    @discardableResult
+    private func ensureLocationManager() -> AMapLocationManager? {
+        if let locationManager {
+            return locationManager
+        }
+
+        guard GaodeMapPrivacyManager.isReady else {
+            log.warn("⚠️ [ExpoGaodeMap] iOS 定位模块在隐私同意前不会初始化 AMapLocationManager")
+            return nil
+        }
+
+        GaodeMapPrivacyManager.applyPrivacyState()
+
+        let manager = AMapLocationManager()
+        manager.delegate = self
 
         // 默认配置
-        locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        locationManager?.distanceFilter = 10
-        locationManager?.locationTimeout = 10
-        locationManager?.reGeocodeTimeout = 5
-        locationManager?.locatingWithReGeocode = true
-        locationManager?.pausesLocationUpdatesAutomatically = false
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.distanceFilter = 10
+        manager.locationTimeout = 10
+        manager.reGeocodeTimeout = 5
+        manager.locatingWithReGeocode = true
+        manager.pausesLocationUpdatesAutomatically = false
+
+        locationManager = manager
+        return manager
     }
 
     // MARK: - Delegate（连续定位回调）
@@ -184,6 +198,11 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
      * @param promise Promise
      */
     func coordinateConvert(_ coordinate: [String: Double], type: Int, promise: Promise) {
+        guard GaodeMapPrivacyManager.isReady else {
+            promise.reject("PRIVACY_NOT_AGREED", "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree")
+            return
+        }
+
         guard let lat = coordinate["latitude"],
               let lon = coordinate["longitude"] else {
             promise.reject("INVALID_ARGUMENT", "Invalid coordinate")

@@ -13,6 +13,7 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import expo.modules.gaodemap.managers.CameraManager
 import expo.modules.gaodemap.managers.UIManager
+import expo.modules.gaodemap.modules.SDKInitializer
 import expo.modules.gaodemap.overlays.*
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
@@ -81,9 +82,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     init {
         try {
-            // 确保隐私合规已设置
-            MapsInitializer.updatePrivacyShow(context, true, true)
-            MapsInitializer.updatePrivacyAgree(context, true)
+            SDKInitializer.applyPrivacyState(context)
 
             // 创建地图视图 - 使用 TextureMapView 以支持截图
             mapView = TextureMapView(context)

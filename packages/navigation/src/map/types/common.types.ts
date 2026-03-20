@@ -17,6 +17,34 @@ export interface SDKConfig {
 }
 
 /**
+ * 隐私同意配置
+ * 推荐优先使用该配置对象一次性完成隐私状态同步
+ */
+export interface PrivacyConfig {
+  /** 是否已经向用户展示隐私弹窗或隐私说明 */
+  hasShow: boolean;
+  /** 展示内容中是否包含隐私政策条款 */
+  hasContainsPrivacy: boolean;
+  /** 用户是否已经同意隐私政策 */
+  hasAgree: boolean;
+  /** 可选的隐私协议版本号；变更后会要求重新同意 */
+  privacyVersion?: string;
+}
+
+/**
+ * 隐私政策状态
+ */
+export interface PrivacyStatus {
+  hasShow: boolean;
+  hasContainsPrivacy: boolean;
+  hasAgree: boolean;
+  isReady: boolean;
+  privacyVersion?: string | null;
+  agreedPrivacyVersion?: string | null;
+  restoredFromStorage?: boolean;
+}
+
+/**
  * 权限状态（增强版，支持 Android 14+ 和 iOS 17+）
  */
 export interface PermissionStatus extends PermissionResponse{

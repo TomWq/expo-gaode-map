@@ -36,7 +36,7 @@ import {
   unref,
   watch,
   watchEffect
-} from "./chunk-ADVWCYKY.js";
+} from "./chunk-ELXMO34Z.js";
 
 // node_modules/@vueuse/shared/dist/index.js
 function computedEager(fn, options) {
@@ -684,7 +684,7 @@ function syncRef(left, right, ...[options]) {
   const watchers = [];
   const transformLTR = "ltr" in transform && transform.ltr || ((v) => v);
   const transformRTL = "rtl" in transform && transform.rtl || ((v) => v);
-  if (direction === "both" || direction === "ltr") watchers.push(pausableWatch(left, (newValue) => {
+  if (direction === "both" || direction === "ltr") watchers.push(watchPausable(left, (newValue) => {
     watchers.forEach((w) => w.pause());
     right.value = transformLTR(newValue);
     watchers.forEach((w) => w.resume());
@@ -693,7 +693,7 @@ function syncRef(left, right, ...[options]) {
     deep,
     immediate
   }));
-  if (direction === "both" || direction === "rtl") watchers.push(pausableWatch(right, (newValue) => {
+  if (direction === "both" || direction === "rtl") watchers.push(watchPausable(right, (newValue) => {
     watchers.forEach((w) => w.pause());
     left.value = transformRTL(newValue);
     watchers.forEach((w) => w.resume());
@@ -2225,6 +2225,7 @@ function useAsyncState(promise, initialState, options) {
         isReady.value = true;
       }
       onSuccess(data);
+      return data;
     } catch (e) {
       if (executionId === executionsCount) error.value = e;
       onError(e);
@@ -2232,7 +2233,6 @@ function useAsyncState(promise, initialState, options) {
     } finally {
       if (executionId === executionsCount) isLoading.value = false;
     }
-    return state.value;
   }
   if (immediate) execute(delay);
   const shell = {
@@ -2925,7 +2925,7 @@ function useStorage(key, defaults$1, storage, options = {}) {
   const rawInit = toValue(defaults$1);
   const type = guessSerializerType(rawInit);
   const serializer = (_options$serializer = options.serializer) !== null && _options$serializer !== void 0 ? _options$serializer : StorageSerializers[type];
-  const { pause: pauseWatch, resume: resumeWatch } = pausableWatch(data, (newValue) => write(newValue), {
+  const { pause: pauseWatch, resume: resumeWatch } = watchPausable(data, (newValue) => write(newValue), {
     flush,
     deep,
     eventFilter
@@ -3126,46 +3126,63 @@ function useConfirmDialog(revealed = shallowRef(false)) {
     onCancel: cancelHook.on
   };
 }
-function useCountdown(initialCountdown, options) {
-  var _options$interval, _options$immediate;
+function getDefaultScheduler$8(options) {
+  if ("interval" in options || "immediate" in options) {
+    const { interval = 1e3, immediate = false } = options;
+    return (cb) => useIntervalFn(cb, interval, { immediate });
+  }
+  return (cb) => useIntervalFn(cb, 1e3, { immediate: false });
+}
+function useCountdown(initialCountdown, options = {}) {
   const remaining = shallowRef(toValue(initialCountdown));
-  const intervalController = useIntervalFn(() => {
-    var _options$onTick;
+  const { scheduler = getDefaultScheduler$8(options), onTick, onComplete } = options;
+  const controls = scheduler(() => {
     const value = remaining.value - 1;
     remaining.value = value < 0 ? 0 : value;
-    options === null || options === void 0 || (_options$onTick = options.onTick) === null || _options$onTick === void 0 || _options$onTick.call(options);
+    onTick === null || onTick === void 0 || onTick();
     if (remaining.value <= 0) {
-      var _options$onComplete;
-      intervalController.pause();
-      options === null || options === void 0 || (_options$onComplete = options.onComplete) === null || _options$onComplete === void 0 || _options$onComplete.call(options);
+      controls.pause();
+      onComplete === null || onComplete === void 0 || onComplete();
     }
-  }, (_options$interval = options === null || options === void 0 ? void 0 : options.interval) !== null && _options$interval !== void 0 ? _options$interval : 1e3, { immediate: (_options$immediate = options === null || options === void 0 ? void 0 : options.immediate) !== null && _options$immediate !== void 0 ? _options$immediate : false });
+  });
   const reset = (countdown) => {
     var _toValue;
     remaining.value = (_toValue = toValue(countdown)) !== null && _toValue !== void 0 ? _toValue : toValue(initialCountdown);
   };
   const stop = () => {
-    intervalController.pause();
+    controls.pause();
     reset();
   };
   const resume = () => {
-    if (!intervalController.isActive.value) {
-      if (remaining.value > 0) intervalController.resume();
+    if (!controls.isActive.value) {
+      if (remaining.value > 0) controls.resume();
     }
   };
   const start = (countdown) => {
     reset(countdown);
-    intervalController.resume();
+    controls.resume();
   };
   return {
     remaining,
     reset,
     stop,
     start,
-    pause: intervalController.pause,
+    pause: controls.pause,
     resume,
-    isActive: intervalController.isActive
+    isActive: controls.isActive
   };
+}
+function useCssSupports(...args) {
+  let options = {};
+  if (typeof toValue(args.at(-1)) === "object") options = args.pop();
+  const [prop, value] = args;
+  const { window: window$1 = defaultWindow, ssrValue = false } = options;
+  const isMounted = useMounted();
+  return { isSupported: computed(() => {
+    isMounted.value;
+    if (!isClient) return ssrValue;
+    return args.length === 2 ? window$1 === null || window$1 === void 0 ? void 0 : window$1.CSS.supports(toValue(prop), toValue(value)) : window$1 === null || window$1 === void 0 ? void 0 : window$1.CSS.supports(toValue(prop));
+  }) };
 }
 function useCssVar(prop, target, options = {}) {
   const { window: window$1 = defaultWindow, initialValue, observe = false } = options;
@@ -3623,9 +3640,18 @@ function useDocumentVisibility(options = {}) {
   }, { passive: true });
   return visibility;
 }
+var defaultScrollConfig = {
+  speed: 2,
+  margin: 30,
+  direction: "both"
+};
+function clampContainerScroll(container) {
+  if (container.scrollLeft > container.scrollWidth - container.clientWidth) container.scrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+  if (container.scrollTop > container.scrollHeight - container.clientHeight) container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+}
 function useDraggable(target, options = {}) {
-  var _toValue;
-  const { pointerTypes, preventDefault: preventDefault$1, stopPropagation, exact, onMove, onEnd, onStart, initialValue, axis = "both", draggingElement = defaultWindow, containerElement, handle: draggingHandle = target, buttons = [0] } = options;
+  var _toValue, _toValue2, _toValue3, _scrollConfig$directi;
+  const { pointerTypes, preventDefault: preventDefault$1, stopPropagation, exact, onMove, onEnd, onStart, initialValue, axis = "both", draggingElement = defaultWindow, containerElement, handle: draggingHandle = target, buttons = [0], restrictInView, autoScroll = false } = options;
   const position = ref((_toValue = toValue(initialValue)) !== null && _toValue !== void 0 ? _toValue : {
     x: 0,
     y: 0
@@ -3639,6 +3665,75 @@ function useDraggable(target, options = {}) {
     if (toValue(preventDefault$1)) e.preventDefault();
     if (toValue(stopPropagation)) e.stopPropagation();
   };
+  const scrollConfig = toValue(autoScroll);
+  const scrollSettings = typeof scrollConfig === "object" ? {
+    speed: (_toValue2 = toValue(scrollConfig.speed)) !== null && _toValue2 !== void 0 ? _toValue2 : defaultScrollConfig.speed,
+    margin: (_toValue3 = toValue(scrollConfig.margin)) !== null && _toValue3 !== void 0 ? _toValue3 : defaultScrollConfig.margin,
+    direction: (_scrollConfig$directi = scrollConfig.direction) !== null && _scrollConfig$directi !== void 0 ? _scrollConfig$directi : defaultScrollConfig.direction
+  } : defaultScrollConfig;
+  const getScrollAxisValues = (value) => typeof value === "number" ? [value, value] : [value.x, value.y];
+  const handleAutoScroll = (container, targetRect, position$1) => {
+    const { clientWidth, clientHeight, scrollLeft, scrollTop, scrollWidth, scrollHeight } = container;
+    const [marginX, marginY] = getScrollAxisValues(scrollSettings.margin);
+    const [speedX, speedY] = getScrollAxisValues(scrollSettings.speed);
+    let deltaX = 0;
+    let deltaY = 0;
+    if (scrollSettings.direction === "x" || scrollSettings.direction === "both") {
+      if (position$1.x < marginX && scrollLeft > 0) deltaX = -speedX;
+      else if (position$1.x + targetRect.width > clientWidth - marginX && scrollLeft < scrollWidth - clientWidth) deltaX = speedX;
+    }
+    if (scrollSettings.direction === "y" || scrollSettings.direction === "both") {
+      if (position$1.y < marginY && scrollTop > 0) deltaY = -speedY;
+      else if (position$1.y + targetRect.height > clientHeight - marginY && scrollTop < scrollHeight - clientHeight) deltaY = speedY;
+    }
+    if (deltaX || deltaY) container.scrollBy({
+      left: deltaX,
+      top: deltaY,
+      behavior: "auto"
+    });
+  };
+  let autoScrollInterval = null;
+  const startAutoScroll = () => {
+    const container = toValue(containerElement);
+    if (container && !autoScrollInterval) autoScrollInterval = setInterval(() => {
+      const targetRect = toValue(target).getBoundingClientRect();
+      const { x, y } = position.value;
+      const relativePosition = {
+        x: x - container.scrollLeft,
+        y: y - container.scrollTop
+      };
+      if (relativePosition.x >= 0 && relativePosition.y >= 0) {
+        handleAutoScroll(container, targetRect, relativePosition);
+        relativePosition.x += container.scrollLeft;
+        relativePosition.y += container.scrollTop;
+        position.value = relativePosition;
+      }
+    }, 1e3 / 60);
+  };
+  const stopAutoScroll = () => {
+    if (autoScrollInterval) {
+      clearInterval(autoScrollInterval);
+      autoScrollInterval = null;
+    }
+  };
+  const isPointerNearEdge = (pointer, container, margin, targetRect) => {
+    const [marginX, marginY] = typeof margin === "number" ? [margin, margin] : [margin.x, margin.y];
+    const { clientWidth, clientHeight } = container;
+    return pointer.x < marginX || pointer.x + targetRect.width > clientWidth - marginX || pointer.y < marginY || pointer.y + targetRect.height > clientHeight - marginY;
+  };
+  const checkAutoScroll = () => {
+    if (toValue(options.disabled) || !pressedDelta.value) return;
+    const container = toValue(containerElement);
+    if (!container) return;
+    const targetRect = toValue(target).getBoundingClientRect();
+    const { x, y } = position.value;
+    if (isPointerNearEdge({
+      x: x - container.scrollLeft,
+      y: y - container.scrollTop
+    }, container, scrollSettings.margin, targetRect)) startAutoScroll();
+    else stopAutoScroll();
+  };
+  if (toValue(autoScroll)) watch(position, checkAutoScroll);
   const start = (e) => {
     var _container$getBoundin;
     if (!toValue(buttons).includes(e.button)) return;
@@ -3648,8 +3743,8 @@ function useDraggable(target, options = {}) {
     const containerRect = container === null || container === void 0 || (_container$getBoundin = container.getBoundingClientRect) === null || _container$getBoundin === void 0 ? void 0 : _container$getBoundin.call(container);
     const targetRect = toValue(target).getBoundingClientRect();
     const pos = {
-      x: e.clientX - (container ? targetRect.left - containerRect.left + container.scrollLeft : targetRect.left),
-      y: e.clientY - (container ? targetRect.top - containerRect.top + container.scrollTop : targetRect.top)
+      x: e.clientX - (container ? targetRect.left - containerRect.left + (autoScroll ? 0 : container.scrollLeft) : targetRect.left),
+      y: e.clientY - (container ? targetRect.top - containerRect.top + (autoScroll ? 0 : container.scrollTop) : targetRect.top)
     };
     if ((onStart === null || onStart === void 0 ? void 0 : onStart(pos, e)) === false) return;
     pressedDelta.value = pos;
@@ -3659,6 +3754,7 @@ function useDraggable(target, options = {}) {
     if (toValue(options.disabled) || !filterEvent(e)) return;
     if (!pressedDelta.value) return;
     const container = toValue(containerElement);
+    if (container instanceof HTMLElement) clampContainerScroll(container);
     const targetRect = toValue(target).getBoundingClientRect();
     let { x, y } = position.value;
     if (axis === "x" || axis === "both") {
@@ -3668,6 +3764,26 @@ function useDraggable(target, options = {}) {
     if (axis === "y" || axis === "both") {
       y = e.clientY - pressedDelta.value.y;
       if (container) y = Math.min(Math.max(0, y), container.scrollHeight - targetRect.height);
+    }
+    if (toValue(autoScroll) && container) {
+      if (autoScrollInterval === null) handleAutoScroll(container, targetRect, {
+        x,
+        y
+      });
+      x += container.scrollLeft;
+      y += container.scrollTop;
+    }
+    if (container && (restrictInView || autoScroll)) {
+      if (axis !== "y") {
+        const relativeX = x - container.scrollLeft;
+        if (relativeX < 0) x = container.scrollLeft;
+        else if (relativeX > container.clientWidth - targetRect.width) x = container.clientWidth - targetRect.width + container.scrollLeft;
+      }
+      if (axis !== "x") {
+        const relativeY = y - container.scrollTop;
+        if (relativeY < 0) y = container.scrollTop;
+        else if (relativeY > container.clientHeight - targetRect.height) y = container.clientHeight - targetRect.height + container.scrollTop;
+      }
     }
     position.value = {
       x,
@@ -3680,6 +3796,7 @@ function useDraggable(target, options = {}) {
     if (toValue(options.disabled) || !filterEvent(e)) return;
     if (!pressedDelta.value) return;
     pressedDelta.value = void 0;
+    if (autoScroll) stopAutoScroll();
     onEnd === null || onEnd === void 0 || onEnd(position.value, e);
     handleEvent(e);
   };
@@ -3699,7 +3816,11 @@ function useDraggable(target, options = {}) {
     ...toRefs2(position),
     position,
     isDragging: computed(() => !!pressedDelta.value),
-    style: computed(() => `left:${position.value.x}px;top:${position.value.y}px;`)
+    style: computed(() => `
+      left: ${position.value.x}px;
+      top: ${position.value.y}px;
+      ${autoScroll ? "text-wrap: nowrap;" : ""}
+    `)
   };
 }
 function useDropZone(target, options = {}) {
@@ -3876,21 +3997,27 @@ function useElementBounding(target, options = {}) {
     update
   };
 }
+function getDefaultScheduler$7(options) {
+  if ("interval" in options || "immediate" in options) {
+    const { interval = "requestAnimationFrame", immediate = true } = options;
+    return interval === "requestAnimationFrame" ? (cb) => useRafFn(cb, { immediate }) : (cb) => useIntervalFn(cb, interval, { immediate });
+  }
+  return useRafFn;
+}
 function useElementByPoint(options) {
-  const { x, y, document: document$1 = defaultDocument, multiple, interval = "requestAnimationFrame", immediate = true } = options;
+  const { x, y, document: document$1 = defaultDocument, multiple, scheduler = getDefaultScheduler$7(options) } = options;
   const isSupported = useSupported(() => {
     if (toValue(multiple)) return document$1 && "elementsFromPoint" in document$1;
     return document$1 && "elementFromPoint" in document$1;
   });
   const element = shallowRef(null);
-  const cb = () => {
-    var _document$elementsFro, _document$elementFrom;
-    element.value = toValue(multiple) ? (_document$elementsFro = document$1 === null || document$1 === void 0 ? void 0 : document$1.elementsFromPoint(toValue(x), toValue(y))) !== null && _document$elementsFro !== void 0 ? _document$elementsFro : [] : (_document$elementFrom = document$1 === null || document$1 === void 0 ? void 0 : document$1.elementFromPoint(toValue(x), toValue(y))) !== null && _document$elementFrom !== void 0 ? _document$elementFrom : null;
-  };
   return {
     isSupported,
     element,
-    ...interval === "requestAnimationFrame" ? useRafFn(cb, { immediate }) : useIntervalFn(cb, interval, { immediate })
+    ...scheduler(() => {
+      var _document$elementsFro, _document$elementFrom;
+      element.value = toValue(multiple) ? (_document$elementsFro = document$1 === null || document$1 === void 0 ? void 0 : document$1.elementsFromPoint(toValue(x), toValue(y))) !== null && _document$elementsFro !== void 0 ? _document$elementsFro : [] : (_document$elementFrom = document$1 === null || document$1 === void 0 ? void 0 : document$1.elementFromPoint(toValue(x), toValue(y))) !== null && _document$elementFrom !== void 0 ? _document$elementFrom : null;
+    })
   };
 }
 function useElementHover(el, options = {}) {
@@ -3963,7 +4090,7 @@ function useElementSize(target, initialSize = {
   };
 }
 function useIntersectionObserver(target, callback, options = {}) {
-  const { root, rootMargin = "0px", threshold = 0, window: window$1 = defaultWindow, immediate = true } = options;
+  const { root, rootMargin, threshold = 0, window: window$1 = defaultWindow, immediate = true } = options;
   const isSupported = useSupported(() => window$1 && "IntersectionObserver" in window$1);
   const targets = computed(() => {
     return toArray(toValue(target)).map(unrefElement).filter(notNullish);
@@ -3973,14 +4100,15 @@ function useIntersectionObserver(target, callback, options = {}) {
   const stopWatch = isSupported.value ? watch(() => [
     targets.value,
     unrefElement(root),
+    toValue(rootMargin),
     isActive.value
-  ], ([targets$1, root$1]) => {
+  ], ([targets$1, root$1, rootMargin$1]) => {
     cleanup();
     if (!isActive.value) return;
     if (!targets$1.length) return;
     const observer = new IntersectionObserver(callback, {
       root: unrefElement(root$1),
-      rootMargin,
+      rootMargin: rootMargin$1,
       threshold
     });
     targets$1.forEach((el) => el && observer.observe(el));
@@ -4029,7 +4157,7 @@ function useElementVisibility(element, options = {}) {
     root: scrollTarget,
     window: window$1,
     threshold,
-    rootMargin: toValue(rootMargin)
+    rootMargin
   });
   return elementIsVisible;
 }
@@ -5210,21 +5338,22 @@ function useInfiniteScroll(element, onLoadMore, options = {}) {
   });
   function checkAndLoad() {
     state.measure();
-    if (!observedElement.value || !isElementVisible.value || !canLoad.value) return;
+    if (!observedElement.value || !isElementVisible.value || !canLoad.value || promise.value) return;
     const { scrollHeight, clientHeight, scrollWidth, clientWidth } = observedElement.value;
     const isNarrower = direction === "bottom" || direction === "top" ? scrollHeight <= clientHeight : scrollWidth <= clientWidth;
-    if (state.arrivedState[direction] || isNarrower) {
-      if (!promise.value) promise.value = Promise.all([onLoadMore(state), new Promise((resolve) => setTimeout(resolve, interval))]).finally(() => {
-        promise.value = null;
-        nextTick(() => checkAndLoad());
-      });
-    }
+    if (state.arrivedState[direction] || isNarrower) promise.value = Promise.all([onLoadMore(state), new Promise((resolve) => setTimeout(resolve, interval))]).finally(() => {
+      promise.value = null;
+      nextTick(() => checkAndLoad());
+    });
   }
   tryOnUnmounted(watch(() => [
     state.arrivedState[direction],
     isElementVisible.value,
     canLoad.value
-  ], checkAndLoad, { immediate: true }));
+  ], checkAndLoad, {
+    immediate: true,
+    flush: "post"
+  }));
   return {
     isLoading,
     reset() {
@@ -5313,7 +5442,7 @@ function useMagicKeys(options = {}) {
     var _e$key, _e$code;
     const key = (_e$key = e.key) === null || _e$key === void 0 ? void 0 : _e$key.toLowerCase();
     const values = [(_e$code = e.code) === null || _e$code === void 0 ? void 0 : _e$code.toLowerCase(), key].filter(Boolean);
-    if (key === "") return;
+    if (!key) return;
     if (key) if (value) current.add(key);
     else current.delete(key);
     for (const key$1 of values) {
@@ -5587,16 +5716,23 @@ function useMemoize(resolver, options) {
   memoized.cache = cache;
   return memoized;
 }
+function getDefaultScheduler$6(options) {
+  if ("interval" in options || "immediate" in options || "immediateCallback" in options) {
+    const { interval = 1e3, immediate, immediateCallback } = options;
+    return (cb) => useIntervalFn(cb, interval, {
+      immediate,
+      immediateCallback
+    });
+  }
+  return useIntervalFn;
+}
 function useMemory(options = {}) {
   const memory = ref();
   const isSupported = useSupported(() => typeof performance !== "undefined" && "memory" in performance);
   if (isSupported.value) {
-    const { interval = 1e3 } = options;
-    useIntervalFn(() => {
+    const { scheduler = getDefaultScheduler$6 } = options;
+    scheduler(() => {
       memory.value = performance.memory;
-    }, interval, {
-      immediate: options.immediate,
-      immediateCallback: options.immediateCallback
     });
   }
   return {
@@ -5853,11 +5989,18 @@ function useNetwork(options = {}) {
     type: readonly(type)
   };
 }
+function getDefaultScheduler$5(options) {
+  if ("interval" in options || "immediate" in options) {
+    const { interval = "requestAnimationFrame", immediate = true } = options;
+    return interval === "requestAnimationFrame" ? (fn) => useRafFn(fn, { immediate }) : (fn) => useIntervalFn(fn, interval, options);
+  }
+  return useRafFn;
+}
 function useNow(options = {}) {
-  const { controls: exposeControls = false, interval = "requestAnimationFrame", immediate = true } = options;
+  const { controls: exposeControls = false, scheduler = getDefaultScheduler$5(options) } = options;
   const now2 = ref(/* @__PURE__ */ new Date());
   const update = () => now2.value = /* @__PURE__ */ new Date();
-  const controls = interval === "requestAnimationFrame" ? useRafFn(update, { immediate }) : useIntervalFn(update, interval, { immediate });
+  const controls = scheduler(update);
   if (exposeControls) return {
     now: now2,
     ...controls
@@ -7041,10 +7184,17 @@ var DEFAULT_MESSAGES = {
 function DEFAULT_FORMATTER(date) {
   return date.toISOString().slice(0, 10);
 }
+function getDefaultScheduler$4(options) {
+  if ("updateInterval" in options) {
+    const { updateInterval = 3e4 } = options;
+    return (cb) => useIntervalFn(cb, updateInterval);
+  }
+  return (cb) => useIntervalFn(cb, 3e4);
+}
 function useTimeAgo(time, options = {}) {
-  const { controls: exposeControls = false, updateInterval = 3e4 } = options;
+  const { controls: exposeControls = false, scheduler = getDefaultScheduler$4(options) } = options;
   const { now: now2, ...controls } = useNow({
-    interval: updateInterval,
+    scheduler,
     controls: true
   });
   const timeAgo = computed(() => formatTimeAgo(new Date(toValue(time)), options, toValue(now2)));
@@ -7116,10 +7266,17 @@ var UNITS = [
     ms: 1e3
   }
 ];
+function getDefaultScheduler$3(options) {
+  if ("updateInterval" in options) {
+    const { updateInterval = 3e4 } = options;
+    return (cb) => useIntervalFn(cb, updateInterval);
+  }
+  return (cb) => useIntervalFn(cb, 3e4);
+}
 function useTimeAgoIntl(time, options = {}) {
-  const { controls: exposeControls = false, updateInterval = 3e4 } = options;
+  const { controls: exposeControls = false, scheduler = getDefaultScheduler$3(options) } = options;
   const { now: now2, ...controls } = useNow({
-    interval: updateInterval,
+    scheduler,
     controls: true
   });
   const result = computed(() => getTimeAgoIntlResult(new Date(toValue(time)), options, toValue(now2)));
@@ -7191,15 +7348,21 @@ function useTimeoutPoll(fn, interval, options = {}) {
     resume
   };
 }
+function getDefaultScheduler$2(options) {
+  if ("interval" in options || "immediate" in options) {
+    const { interval = "requestAnimationFrame", immediate = true } = options;
+    return interval === "requestAnimationFrame" ? (cb) => useRafFn(cb, { immediate }) : (cb) => useIntervalFn(cb, interval, { immediate });
+  }
+  return useRafFn;
+}
 function useTimestamp(options = {}) {
-  const { controls: exposeControls = false, offset = 0, immediate = true, interval = "requestAnimationFrame", callback } = options;
+  const { controls: exposeControls = false, offset = 0, scheduler = getDefaultScheduler$2(options), callback } = options;
   const ts = shallowRef(timestamp() + offset);
   const update = () => ts.value = timestamp() + offset;
-  const cb = callback ? () => {
+  const controls = scheduler(callback ? () => {
     update();
     callback(ts.value);
-  } : update;
-  const controls = interval === "requestAnimationFrame" ? useRafFn(cb, { immediate }) : useIntervalFn(cb, interval, { immediate });
+  } : update);
   if (exposeControls) return {
     timestamp: ts,
     ...controls
@@ -7513,7 +7676,7 @@ function useUrlSearchParams(mode = "history", options = {}) {
     }
     Array.from(unusedKeys).forEach((key) => delete state[key]);
   }
-  const { pause, resume } = pausableWatch(state, () => {
+  const { pause, resume } = watchPausable(state, () => {
     const params = new URLSearchParams("");
     Object.keys(state).forEach((key) => {
       const mapEntry = state[key];
@@ -7657,22 +7820,26 @@ function useVModels(props, emit, options = {}) {
   for (const key in props) ret[key] = useVModel(props, key, emit, options);
   return ret;
 }
+function getDefaultScheduler$1(options = { interval: 0 }) {
+  const { interval } = options;
+  if (interval === 0) return;
+  return (fn) => useIntervalFn(fn, interval, {
+    immediate: false,
+    immediateCallback: false
+  });
+}
 function useVibrate(options) {
-  const { pattern = [], interval = 0, navigator: navigator$1 = defaultNavigator } = options || {};
+  const { pattern = [], scheduler = getDefaultScheduler$1(options), navigator: navigator$1 = defaultNavigator } = options || {};
   const isSupported = useSupported(() => typeof navigator$1 !== "undefined" && "vibrate" in navigator$1);
   const patternRef = toRef2(pattern);
-  let intervalControls;
   const vibrate = (pattern$1 = patternRef.value) => {
     if (isSupported.value) navigator$1.vibrate(pattern$1);
   };
+  const intervalControls = scheduler === null || scheduler === void 0 ? void 0 : scheduler(vibrate);
   const stop = () => {
     if (isSupported.value) navigator$1.vibrate(0);
     intervalControls === null || intervalControls === void 0 || intervalControls.pause();
   };
-  if (interval > 0) intervalControls = useIntervalFn(vibrate, interval, {
-    immediate: false,
-    immediateCallback: false
-  });
   return {
     isSupported,
     pattern,
@@ -7960,6 +8127,13 @@ function resolveNestedOptions(options) {
   if (options === true) return {};
   return options;
 }
+function getDefaultScheduler(options) {
+  if ("interval" in options) {
+    const { interval = 1e3 } = options;
+    return (cb) => useIntervalFn(cb, interval, { immediate: false });
+  }
+  return (cb) => useIntervalFn(cb, 1e3, { immediate: false });
+}
 function useWebSocket(url, options = {}) {
   const { onConnected, onDisconnected, onError, onMessage, immediate = true, autoConnect = true, autoClose = true, protocols = [] } = options;
   const data = ref(null);
@@ -8047,15 +8221,15 @@ function useWebSocket(url, options = {}) {
     };
   };
   if (options.heartbeat) {
-    const { message = DEFAULT_PING_MESSAGE, interval = 1e3, pongTimeout = 1e3 } = resolveNestedOptions(options.heartbeat);
-    const { pause, resume } = useIntervalFn(() => {
+    const { message = DEFAULT_PING_MESSAGE, scheduler = getDefaultScheduler(resolveNestedOptions(options.heartbeat)), pongTimeout = 1e3 } = resolveNestedOptions(options.heartbeat);
+    const { pause, resume } = scheduler(() => {
       send(toValue(message), false);
       if (pongTimeoutWait != null) return;
       pongTimeoutWait = setTimeout(() => {
         close();
         explicitlyClosed = false;
       }, pongTimeout);
-    }, interval, { immediate: false });
+    });
     heartbeatPause = pause;
     heartbeatResume = resume;
   }
@@ -8444,6 +8618,7 @@ export {
   useColorMode,
   useConfirmDialog,
   useCountdown,
+  useCssSupports,
   useCssVar,
   useCurrentElement,
   useCycleList,
@@ -8559,4 +8734,4 @@ export {
   useWindowScroll,
   useWindowSize
 };
-//# sourceMappingURL=chunk-2762AXES.js.map
+//# sourceMappingURL=chunk-FUHBMJUU.js.map

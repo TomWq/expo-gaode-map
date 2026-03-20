@@ -35,15 +35,24 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // 1. 初始化 SDK（使用 Config Plugin 时可传空对象）
+        // 1. 首次安装时，在用户同意隐私后保存隐私状态
+        if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+          ExpoGaodeMapModule.setPrivacyConfig({
+            hasShow: true,
+            hasContainsPrivacy: true,
+            hasAgree: true,
+          });
+        }
+
+        // 2. 初始化 SDK（使用 Config Plugin 时可传空对象）
         ExpoGaodeMapModule.initSDK({
           webKey: 'your-web-api-key', // 可选
         });
         
-        // 2. 检查权限
+        // 3. 检查权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();
         
-        // 3. 请求权限（如果需要）
+        // 4. 请求权限（如果需要）
         if (!status.granted) {
           const result = await ExpoGaodeMapModule.requestLocationPermission();
           
@@ -73,7 +82,7 @@ export default function App() {
           }
         }
         
-        // 4. 获取位置
+        // 5. 获取位置
         const location = await ExpoGaodeMapModule.getCurrentLocation();
         setInitialPosition({
           target: {

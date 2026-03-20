@@ -6,6 +6,12 @@
 // 创建原生模块 Mock
 const createNativeModuleMock = () => ({
   initSDK: jest.fn(),
+  getPrivacyStatus: jest.fn(() => ({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    isReady: true,
+  })),
   getVersion: jest.fn(() => '1.0.0'),
   isNativeSDKConfigured: jest.fn(() => true),
   getCurrentLocation: jest.fn(() => Promise.resolve({

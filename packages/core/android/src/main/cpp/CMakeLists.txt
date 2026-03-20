@@ -22,3 +22,5 @@ find_library(log-lib log)
 target_link_libraries(gaodecluster
     ${log-lib}
 )
+
+target_link_options(gaodecluster PRIVATE "-Wl,-z,max-page-size=16384")

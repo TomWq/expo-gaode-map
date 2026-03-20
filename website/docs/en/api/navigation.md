@@ -51,6 +51,14 @@ Add to [`app.json`](app.json):
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-key',
   iosKey: 'your-ios-key',

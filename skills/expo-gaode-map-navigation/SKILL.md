@@ -1,6 +1,6 @@
 ---
 name: expo-gaode-map-navigation
-description: 高德导航全功能一体化方案：集成完整地图能力（MapView/全部覆盖物/离线地图/定位/几何计算，无需核心包），提供官方 NaviView 导航 UI（语音/事件/路况/指南针）；支持多模式路径规划（驾车/步行/骑行/货车/摩托车/电动车）及策略/限行/途经点；具备高级独立算路能力（预估/路线预览/选择/启动）；包含 Config Plugin 自动配置；与 expo-gaode-map 存在 SDK 冲突，项目仅需安装此包。
+description: 高德导航全功能一体化方案：集成完整地图能力（MapView/全部覆盖物/离线地图/定位/几何计算，无需核心包），提供官方 NaviView 导航 UI（语音/事件/路况/指南针）；支持多模式路径规划（驾车/步行/骑行/货车/摩托车/电动车）及策略/限行/途经点；具备高级独立算路能力（预估/路线预览/选择/启动）；包含 Config Plugin 自动配置；与 expo-gaode-map 存在 SDK 冲突，项目仅需安装此包。若使用本包导出的地图或定位能力，同样必须先完成 `setPrivacyShow`、`setPrivacyAgree`。
 ---
 
 # Expo Gaode Map Navigation
@@ -20,6 +20,7 @@ description: 高德导航全功能一体化方案：集成完整地图能力（M
 - 使用 `<ExpoGaodeMapNaviView>` 组件嵌入导航界面。
 - 通过 `ref` 调用 `startNavigation` 和 `stopNavigation`。
 - 必须设置 `style` (通常是 `flex: 1`)。
+- 如果同时使用本包导出的 `MapView` / `ExpoGaodeMapModule` / 定位能力，必须先完成隐私确认。
 
 ### 2. 路径规划 (Routing)
 - **驾车**: `calculateDriveRoute`
@@ -35,10 +36,14 @@ description: 高德导航全功能一体化方案：集成完整地图能力（M
 
 ### ✅ 场景 1：嵌入式导航 UI
 ```tsx
-import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
+import { useRef } from 'react';
+import {
+  ExpoGaodeMapNaviView,
+  type ExpoGaodeMapNaviViewRef,
+} from 'expo-gaode-map-navigation';
 
 // 必须使用 ref 来控制导航开始/结束
-const naviRef = useRef(null);
+const naviRef = useRef<ExpoGaodeMapNaviViewRef>(null);
 
 <ExpoGaodeMapNaviView
   ref={naviRef}
@@ -69,7 +74,12 @@ console.log(`距离: ${result.routes[0].distance}米`);
 
 **核心原则**：
 1. **请勿使用 `any`**，始终导入并使用正确的类型（如 `DriveRouteOptions`, `NaviInfo`, `DriveStrategy` 等）。
-2. **优先使用原生计算**：涉及到路径相关的计算（如距离、时间、吸附、抽稀等），**必须优先使用 `expo-gaode-map` (Core) 包中 `ExpoGaodeMapModule` 提供的原生几何方法**。严禁在 JS 层手写地理算法。
+2. **优先使用原生计算**：涉及到路径相关的计算（如距离、时间、吸附、抽稀等），优先使用**当前包导出的** `ExpoGaodeMapModule` 原生几何方法。严禁为了几何计算再额外安装 `expo-gaode-map`，否则会产生 SDK 冲突。
+
+## 升级提示
+- 新版本中，本包内置的地图/定位能力也遵循和核心包一致的隐私前置约束。
+- 如果老项目升级后直接渲染 `MapView` 或调用定位 API，会先收到 `PRIVACY_NOT_AGREED`。
+- 建议流程：**首次启动先弹隐私协议 -> 用户同意 -> 设置隐私状态 -> 再进入地图/导航页面**。
 
 ## 参考文档
 - [导航 API 详解 (NaviView & Routing)](./resources/navigation-api.md)

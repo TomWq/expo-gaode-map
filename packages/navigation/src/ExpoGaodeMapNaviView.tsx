@@ -1,7 +1,6 @@
-
-import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
 import type { Coordinates, ExpoGaodeMapNaviViewProps } from './types';
+import { createLazyNativeViewManager } from './map/utils/lazyNativeViewManager';
 
 /**
  * ExpoGaodeMapNaviView Ref 类型
@@ -18,8 +17,19 @@ export interface ExpoGaodeMapNaviViewRef {
   stopNavigation: () => Promise<void>;
 }
 
+interface NativeExpoGaodeMapNaviViewRef {
+  startNavigation: (
+    startLatitude: number,
+    startLongitude: number,
+    endLatitude: number,
+    endLongitude: number
+  ) => Promise<void>;
+  stopNavigation: () => Promise<void>;
+}
 
-const NativeView: React.ComponentType<ExpoGaodeMapNaviViewProps & { ref?: React.Ref<any> }> = requireNativeViewManager('ExpoGaodeMapNaviView');
+const getNativeView = createLazyNativeViewManager<
+  ExpoGaodeMapNaviViewProps & { ref?: React.Ref<NativeExpoGaodeMapNaviViewRef> }
+>('ExpoGaodeMapNaviView');
 
 /**
  * 高德导航视图组件
@@ -55,7 +65,8 @@ const NativeView: React.ComponentType<ExpoGaodeMapNaviViewProps & { ref?: React.
  * ```
  */
 export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, ExpoGaodeMapNaviViewProps>((props, ref) => {
-  const nativeRef = React.useRef<any>(null);
+  const nativeRef = React.useRef<NativeExpoGaodeMapNaviViewRef | null>(null);
+  const NativeView = React.useMemo(() => getNativeView(), []);
   
   // 创建 API 引用
   const apiRef: ExpoGaodeMapNaviViewRef = React.useMemo(() => ({

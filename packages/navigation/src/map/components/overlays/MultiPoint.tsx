@@ -1,9 +1,8 @@
-
-import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
 import type { MultiPointProps } from '../../types';
+import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 
-const NativeMultiPoint = requireNativeViewManager('MultiPointView');
+const getNativeMultiPoint = createLazyNativeViewManager<MultiPointProps>('MultiPointView');
 
 
 /**
@@ -13,5 +12,6 @@ const NativeMultiPoint = requireNativeViewManager('MultiPointView');
  * @returns 渲染原生高德地图多点标记组件
  */
 export default function MultiPoint(props: MultiPointProps) {
+  const NativeMultiPoint = React.useMemo(() => getNativeMultiPoint(), []);
   return <NativeMultiPoint {...props} />;
 }

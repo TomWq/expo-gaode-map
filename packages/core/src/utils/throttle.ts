@@ -7,9 +7,13 @@
  * @param limit 时间间隔（毫秒）
  * @returns 节流后的函数
  */
-export function throttle<T extends (...args: any[]) => void>(func: T, limit: number): T {
-  let inThrottle: boolean;
-  return function(this: any, ...args: any[]) {
+export function throttle<T extends (this: ThisParameterType<T>, ...args: Parameters<T>) => void>(
+  func: T,
+  limit: number
+): T {
+  let inThrottle = false;
+
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;

@@ -9,38 +9,112 @@ import {
   LatLngPoint,
   CoordinateType,
 } from './types';
-import type { ExpoGaodeMapModule } from './types/native-module.types';
+import type { ExpoGaodeMapModule as NativeExpoGaodeMapModule } from './types/native-module.types';
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
-import { SDKConfig, PermissionStatus } from './types/common.types';
+import { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
-// 获取原生模块实例 - 添加容错处理
-let nativeModule: ExpoGaodeMapModule | null = null;
+let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
 
-try {
-  nativeModule = requireNativeModule<ExpoGaodeMapModule>('ExpoGaodeMap');
-} catch (error) {
-  const moduleError = ErrorHandler.nativeModuleUnavailable();
-  ErrorLogger.log(moduleError);
+function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
+  if (nativeModuleCache) {
+    return nativeModuleCache;
+  }
+
+  try {
+    nativeModuleCache = requireNativeModule<NativeExpoGaodeMapModule>('ExpoGaodeMap');
+    return nativeModuleCache;
+  } catch (error) {
+    if (optional) {
+      return null;
+    }
+    const moduleError = ErrorHandler.nativeModuleUnavailable();
+    ErrorLogger.log(moduleError);
+    throw moduleError;
+  }
 }
+
+function getBoundNativeValue(
+  module: NativeExpoGaodeMapModule,
+  prop: PropertyKey
+): unknown {
+  const value = Reflect.get(module as object, prop, module as object);
+  if (typeof value === 'function') {
+    return (...args: unknown[]) =>
+      (value as (...fnArgs: unknown[]) => unknown).apply(module, args);
+  }
+  return value;
+}
+
+const nativeModule = new Proxy({} as NativeExpoGaodeMapModule, {
+  get(_target, prop) {
+    const module = getNativeModule(true);
+    return module ? getBoundNativeValue(module, prop) : undefined;
+  },
+});
 
 // 记录最近一次 initSDK 的配置（含 webKey）
 let _sdkConfig: SDKConfig | null = null;
 let _isSDKInitialized = false;
 
+const privacySensitiveMethodNames = new Set<string>([
+  'start',
+  'stop',
+  'isStarted',
+  'getCurrentLocation',
+  'coordinateConvert',
+  'setLocatingWithReGeocode',
+  'setLocationMode',
+  'setInterval',
+  'setOnceLocation',
+  'setSensorEnable',
+  'setWifiScan',
+  'setGpsFirst',
+  'setOnceLocationLatest',
+  'setGeoLanguage',
+  'setLocationCacheEnable',
+  'setHttpTimeOut',
+  'setDesiredAccuracy',
+  'setLocationTimeout',
+  'setReGeocodeTimeout',
+  'setDistanceFilter',
+  'setPausesLocationUpdatesAutomatically',
+  'setAllowsBackgroundLocationUpdates',
+  'setLocationProtocol',
+  'startUpdatingHeading',
+  'stopUpdatingHeading',
+  'checkLocationPermission',
+  'requestLocationPermission',
+  'requestBackgroundLocationPermission',
+  'addLocationListener',
+]);
+
+function assertPrivacyReady(scene: 'map' | 'sdk' = 'sdk'): void {
+  const nativeModule = getNativeModule();
+  if (!nativeModule) {
+    throw ErrorHandler.nativeModuleUnavailable();
+  }
+  const status = nativeModule.getPrivacyStatus();
+  if (!status.isReady) {
+    throw ErrorHandler.privacyNotAgreed(scene);
+  }
+}
+
 // 扩展原生模块，添加便捷方法
-const ExpoGaodeMapModuleWithHelpers = {
-  ...(nativeModule || {}),
+const helperMethods = {
 
   /**
    * 初始化 SDK，并缓存配置（包含 webKey）
    * 注意：允许不提供任何 API Key，因为原生端可能已通过 Config Plugin 配置
    */
   initSDK(config: SDKConfig): void {
-    if (!nativeModule) {
-      throw ErrorHandler.nativeModuleUnavailable();
-    }
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
     try {
+      const privacyStatus = nativeModule.getPrivacyStatus();
+      if (!privacyStatus.isReady) {
+        throw ErrorHandler.privacyNotAgreed('sdk');
+      }
 
        // 检查是否有任何 key 被提供
     const hasJSKeys = !!(config.androidKey || config.iosKey);
@@ -73,7 +147,80 @@ const ExpoGaodeMapModuleWithHelpers = {
     return _isSDKInitialized;
   },
 
+  /**
+   * 设置是否显示隐私政策弹窗
+   * @deprecated 请优先使用 `setPrivacyConfig`
+   */
+  setPrivacyShow(hasShow: boolean, hasContainsPrivacy?: boolean): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    nativeModule.setPrivacyShow(hasShow, hasContainsPrivacy ?? hasShow);
+  },
+
+  /**
+   * 设置用户是否同意隐私政策
+   * @deprecated 请优先使用 `setPrivacyConfig`
+   */
+  setPrivacyAgree(hasAgree: boolean): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    nativeModule.setPrivacyAgree(hasAgree);
+  },
+
+  /**
+   * 设置当前隐私协议版本
+   * 当版本号变化时，之前的同意状态会失效
+   */
+  setPrivacyVersion(version: string): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    nativeModule.setPrivacyVersion(version);
+  },
+
+  /**
+   * 清空已持久化的隐私同意状态
+   */
+  resetPrivacyConsent(): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    nativeModule.resetPrivacyConsent();
+  },
+
+  /**
+   * 一次性同步完整的隐私状态
+   * 推荐业务层只调用这个方法
+   */
+  setPrivacyConfig(config: PrivacyConfig): void {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    if (typeof config.privacyVersion === 'string') {
+      nativeModule.setPrivacyVersion(config.privacyVersion);
+    }
+    nativeModule.setPrivacyShow(
+      config.hasShow,
+      config.hasContainsPrivacy ?? config.hasShow
+    );
+    nativeModule.setPrivacyAgree(config.hasAgree);
+  },
+
+  getPrivacyStatus(): PrivacyStatus {
+    const nativeModule = getNativeModule();
+    if (!nativeModule) {
+      return {
+        hasShow: false,
+        hasContainsPrivacy: false,
+        hasAgree: false,
+        isReady: false,
+        privacyVersion: null,
+        agreedPrivacyVersion: null,
+        restoredFromStorage: false,
+      };
+    }
+    return nativeModule.getPrivacyStatus();
+  },
+
   calculateDistanceBetweenPoints(p1: LatLngPoint, p2: LatLngPoint): number {
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -84,6 +231,7 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -94,6 +242,7 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   setLoadWorldVectorMap(enabled: boolean): void {
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
       nativeModule.setLoadWorldVectorMap(enabled);
@@ -103,6 +252,7 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   getVersion(): string {
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return '0.0.0';
     try {
       return nativeModule.getVersion();
@@ -113,6 +263,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   start(): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
       nativeModule.start();
@@ -122,6 +274,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   stop(): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
       nativeModule.stop();
@@ -131,6 +285,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   isStarted(): Promise<boolean> {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return Promise.resolve(false);
     try {
       return nativeModule.isStarted();
@@ -141,6 +297,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   async getCurrentLocation(): Promise<Coordinates | ReGeocode> {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -152,6 +310,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   async coordinateConvert(coordinate: LatLngPoint, type: CoordinateType): Promise<LatLng> {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -163,6 +323,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   setLocatingWithReGeocode(isReGeocode: boolean): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return;
     try {
       nativeModule.setLocatingWithReGeocode(isReGeocode);
@@ -172,6 +334,7 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   get isBackgroundLocationEnabled(): boolean {
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) return false;
     return nativeModule.isBackgroundLocationEnabled === true;
   },
@@ -180,6 +343,8 @@ const ExpoGaodeMapModuleWithHelpers = {
    * 检查位置权限状态
    */
   async checkLocationPermission(): Promise<PermissionStatus> {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -194,6 +359,8 @@ const ExpoGaodeMapModuleWithHelpers = {
    * 请求前台位置权限（增强版）
    */
   async requestLocationPermission(): Promise<PermissionStatus> {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -213,6 +380,8 @@ const ExpoGaodeMapModuleWithHelpers = {
    * 注意：必须在前台权限已授予后才能请求
    */
   async requestBackgroundLocationPermission(): Promise<PermissionStatus> {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -232,6 +401,7 @@ const ExpoGaodeMapModuleWithHelpers = {
    * 引导用户手动授予权限
    */
   openAppSettings(): void {
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -243,6 +413,8 @@ const ExpoGaodeMapModuleWithHelpers = {
   },
 
   setAllowsBackgroundLocationUpdates(allows: boolean): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule();
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -289,14 +461,19 @@ const ExpoGaodeMapModuleWithHelpers = {
    * 注意：如果使用 Config Plugin 配置了 API Key，无需调用 initSDK()
    */
   addLocationListener(listener: LocationListener): { remove: () => void } {
-    if (!nativeModule) {
+    assertPrivacyReady('sdk');
+    const module = getNativeModule();
+    if (!module) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
-    if (!nativeModule?.addListener) {
+    if (!module.addListener) {
       ErrorLogger.warn('Native module does not support events');
+      return {
+        remove: () => { },
+      };
     }
-   
-    return nativeModule?.addListener?.('onLocationUpdate', listener) || {
+
+    return module.addListener('onLocationUpdate', listener) || {
       remove: () => { },
     };
   },
@@ -698,7 +875,36 @@ const ExpoGaodeMapModuleWithHelpers = {
 */
 export function getSDKConfig(): SDKConfig | null {
   return _sdkConfig;
-}
+};
+
+export type ExpoGaodeMapModule =
+  Omit<NativeExpoGaodeMapModule, keyof typeof helperMethods> & typeof helperMethods;
+
+const ExpoGaodeMapModuleWithHelpers = new Proxy(helperMethods, {
+  get(target, prop, receiver) {
+    if (Reflect.has(target, prop)) {
+      return Reflect.get(target, prop, receiver);
+    }
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      return undefined;
+    }
+
+    const value = Reflect.get(nativeModule as object, prop, nativeModule as object);
+    if (
+      typeof prop === 'string' &&
+      privacySensitiveMethodNames.has(prop) &&
+      typeof value === 'function'
+    ) {
+      return (...args: unknown[]) => {
+        assertPrivacyReady('sdk');
+        return (value as (...fnArgs: unknown[]) => unknown).apply(nativeModule, args);
+      };
+    }
+
+    return getBoundNativeValue(nativeModule, prop);
+  },
+}) as ExpoGaodeMapModule;
 
 /**
 * 获取用于 Web API 的 webKey（若未初始化或未提供则返回 undefined）
@@ -707,4 +913,4 @@ export function getWebKey(): string | undefined {
   return _sdkConfig?.webKey;
 }
 
-export default ExpoGaodeMapModuleWithHelpers as unknown as ExpoGaodeMapModule;
+export default ExpoGaodeMapModuleWithHelpers;

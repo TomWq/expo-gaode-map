@@ -393,6 +393,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      */
     fun setCacheKey(key: String?) {
         cacheKey = key
+        updateMarkerIcon()
     }
 
     /**

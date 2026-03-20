@@ -86,7 +86,17 @@ If you prefer manual configuration, see [Initialization Guide](./initialization)
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// Initialize before using any map features
+// 1. On first install, complete privacy compliance once
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
+
+// 2. Initialize before using any map features
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
@@ -141,20 +151,22 @@ export default function App() {
 
   async function initializeMap() {
     try {
-      // 1. Configure privacy compliance
-      ExpoGaodeMapModule.updatePrivacyAgree(true);
-      ExpoGaodeMapModule.updatePrivacyShow(true, true);
+      // 1. On first install, save privacy consent after the user agrees
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+        });
+      }
 
       // 2. Initialize SDK
-      ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-api-key',
-        iosKey: 'your-ios-api-key',
-      });
+      ExpoGaodeMapModule.initSDK({});
 
       // 3. Request location permission
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
       
-      if (granted) {
+      if (result.granted) {
         setIsReady(true);
       } else {
         Alert.alert('Location permission is required');

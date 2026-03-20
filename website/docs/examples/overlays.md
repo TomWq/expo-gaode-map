@@ -2,6 +2,8 @@
 
 展示各种覆盖物的使用方法。
 
+> ⚠️ 以下示例默认你已经先完成隐私合规并成功渲染 `MapView`。
+
 ## Circle (圆形)
 
 ```tsx
@@ -22,7 +24,7 @@ export default function CircleExample() {
         fillColor="#8800FF00"
         strokeColor="#FFFF0000"
         strokeWidth={2}
-        onPress={() => console.log('圆形被点击')}
+        onCirclePress={() => console.log('圆形被点击')}
       />
     </MapView>
   );
@@ -50,7 +52,7 @@ export default function MarkerExample() {
         title="北京"
         snippet="中国首都"
         draggable={true}
-        onPress={() => console.log('标记被点击')}
+        onMarkerPress={() => console.log('标记被点击')}
       />
     </MapView>
   );
@@ -136,9 +138,9 @@ export default function PolylineExample() {
           { latitude: 39.95, longitude: 116.45 },
           { latitude: 40.0, longitude: 116.5 },
         ]}
-        width={5}
-        color="#FFFF0000"
-        onPress={() => console.log('折线被点击')}
+        strokeWidth={5}
+        strokeColor="#FFFF0000"
+        onPolylinePress={() => console.log('折线被点击')}
       />
     </MapView>
   );
@@ -168,7 +170,7 @@ export default function PolygonExample() {
         fillColor="#8800FF00"
         strokeColor="#FFFF0000"
         strokeWidth={2}
-        onPress={() => console.log('多边形被点击')}
+        onPolygonPress={() => console.log('多边形被点击')}
       />
     </MapView>
   );
@@ -219,9 +221,10 @@ const iconUri = Image.resolveAssetSource(require('./point.png')).uri;
 
 export default function MultiPointExample() {
   const points = Array.from({ length: 1000 }).map((_, i) => ({
+    id: i,
     latitude: 39.9 + (Math.random() - 0.5) * 0.2,
     longitude: 116.4 + (Math.random() - 0.5) * 0.2,
-    title: `Point ${i}`
+    data: { name: `Point ${i}` }
   }));
 
   return (
@@ -249,7 +252,6 @@ export default function HeatMapExample() {
   const points = Array.from({ length: 500 }).map(() => ({
     latitude: 39.9 + (Math.random() - 0.5) * 0.1,
     longitude: 116.4 + (Math.random() - 0.5) * 0.1,
-    count: Math.random() * 10
   }));
 
   return (
@@ -302,8 +304,8 @@ export default function CombinedOverlays() {
           { latitude: 39.9, longitude: 116.4 },
           { latitude: 39.95, longitude: 116.45 },
         ]}
-        width={5}
-        color="#FF0000FF"
+        strokeWidth={5}
+        strokeColor="#FF0000FF"
       />
 
       {/* 多边形 */}

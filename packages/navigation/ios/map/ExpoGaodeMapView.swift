@@ -109,27 +109,14 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private var zoomVelocity: Double = 0
     private let friction: Double = 0.92 // 摩擦系数，越接近 1 滑得越远
     private let velocityThreshold: Double = 0.001 // 停止阈值
+    private var privacyObserver: NSObjectProtocol?
     
     // MARK: - 初始化
     
     required init(appContext: AppContext? = nil) {
         super.init(appContext: appContext)
         
-        // 确保隐私合规已设置
-        MAMapView.updatePrivacyAgree(.didAgree)
-        MAMapView.updatePrivacyShow(.didShow, privacyInfo: .didContain)
-        
-        // 创建 MAMapView
-        // 尝试从预加载池获取 MapView
-        if let preloaded = MapPreloadManager.shared.getPreloadedMapView() {
-            mapView = preloaded
-            mapView.frame = bounds
-        } else {
-            mapView = MAMapView(frame: bounds)
-        }
-        
-        mapView.delegate = self
-        mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        GaodeMapPrivacyManager.applyPrivacyState()
 
         // 创建 MKMapView
         appleMapView = MKMapView(frame: bounds)
@@ -155,36 +142,25 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 2.   - markerContainer (隐藏)
         // 3.   - overlayContainer (隐藏)
         // 4.   - appleMapView (隐藏)
-        // 5.   - mapView (可见，在最上层)
+        // 5.   - mapView (隐私合规完成后再创建，在最上层)
         addSubview(markerContainer)
         addSubview(overlayContainer)
         addSubview(appleMapView)
-        addSubview(mapView)
-        
-        cameraManager = CameraManager(mapView: mapView)
-        uiManager = UIManager(mapView: mapView)
-        
-        // 设置定位变化回调
-        uiManager.onLocationChanged = { [weak self] latitude, longitude, accuracy in
-            self?.onLocation([
-                "latitude": latitude,
-                "longitude": longitude,
-                "accuracy": accuracy,
-                "timestamp": Date().timeIntervalSince1970 * 1000
-            ])
+
+        privacyObserver = NotificationCenter.default.addObserver(
+            forName: .gaodeMapPrivacyStatusDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePrivacyStatusChanged()
         }
-        
-        setupDefaultConfig()
-        
-        // 添加 Pinch 手势以支持惯性缩放
-        pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
-        pinchGesture.delegate = self
-        mapView.addGestureRecognizer(pinchGesture)
+
+        ensureMapViewIfReady()
     }
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        mapView.frame = bounds
+        mapView?.frame = bounds
         appleMapView.frame = bounds
         // 🔑 移除自动调用 setupAllOverlayViews()，避免频繁触发
         // layoutSubviews 会在任何视图变化时调用，导致不必要的批量刷新
@@ -197,6 +173,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil {
+            ensureMapViewIfReady()
           
             // 🔑 只在首次添加到窗口时批量设置，后续添加通过 didAddSubview 单独处理
             setupAllOverlayViews()
@@ -208,6 +185,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 这个函数是幂等的，重复调用是安全的
      */
     private func setupAllOverlayViews() {
+        guard let mapView else {
+            return
+        }
+
         // 统一从 overlayViews 数组设置所有覆盖物（包括 MarkerView）
         for view in overlayViews {
             if let markerView = view as? MarkerView {
@@ -240,7 +221,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             // 🔑 关键：MarkerView 不能隐藏，否则 children 无法渲染成图片
             // 通过 hitTest 返回 nil 已经确保不阻挡地图交互
             overlayViews.append(markerView)
-            markerView.setMap(mapView)
+            if let mapView {
+                markerView.setMap(mapView)
+            }
           
             return
         }
@@ -250,7 +233,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             circleView.alpha = 0
             circleView.isHidden = true
             overlayViews.append(circleView)
-            circleView.setMap(mapView)
+            if let mapView {
+                circleView.setMap(mapView)
+            }
          
             return
         } else if let polylineView = view as? PolylineView {
@@ -258,7 +243,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             polylineView.alpha = 0
             polylineView.isHidden = true
             overlayViews.append(polylineView)
-            polylineView.setMap(mapView)
+            if let mapView {
+                polylineView.setMap(mapView)
+            }
            
             return
         } else if let polygonView = view as? PolygonView {
@@ -266,7 +253,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             polygonView.alpha = 0
             polygonView.isHidden = true
             overlayViews.append(polygonView)
-            polygonView.setMap(mapView)
+            if let mapView {
+                polygonView.setMap(mapView)
+            }
           
             return
         } else if let heatMapView = view as? HeatMapView {
@@ -274,7 +263,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             heatMapView.alpha = 0
             heatMapView.isHidden = true
             overlayViews.append(heatMapView)
-            heatMapView.setMap(mapView)
+            if let mapView {
+                heatMapView.setMap(mapView)
+            }
            
             return
         } else if let multiPointView = view as? MultiPointView {
@@ -282,7 +273,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             multiPointView.alpha = 0
             multiPointView.isHidden = true
             overlayViews.append(multiPointView)
-            multiPointView.setMap(mapView)
+            if let mapView {
+                multiPointView.setMap(mapView)
+            }
            
             return
         } else if let clusterView = view as? ClusterView {
@@ -290,7 +283,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             clusterView.alpha = 0
             clusterView.isHidden = true
             overlayViews.append(clusterView)
-            clusterView.setMap(mapView)
+            if let mapView {
+                clusterView.setMap(mapView)
+            }
             
             return
         }
@@ -324,7 +319,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
           
             // 🔑 新架构下也不能隐藏 MarkerView，否则 children 无法渲染
             overlayViews.append(markerView)
-            markerView.setMap(mapView)
+            if let mapView {
+                markerView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()，避免所有覆盖物重新设置
             return
         }
@@ -339,7 +336,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             circleView.alpha = 0
             circleView.isHidden = true
             overlayViews.append(circleView)
-            circleView.setMap(mapView)
+            if let mapView {
+                circleView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()
             return
         } else if let polylineView = subview as? PolylineView {
@@ -351,7 +350,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             polylineView.alpha = 0
             polylineView.isHidden = true
             overlayViews.append(polylineView)
-            polylineView.setMap(mapView)
+            if let mapView {
+                polylineView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()
             return
         } else if let polygonView = subview as? PolygonView {
@@ -363,7 +364,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             polygonView.alpha = 0
             polygonView.isHidden = true
             overlayViews.append(polygonView)
-            polygonView.setMap(mapView)
+            if let mapView {
+                polygonView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()
             return
         } else if let heatMapView = subview as? HeatMapView {
@@ -375,7 +378,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             heatMapView.alpha = 0
             heatMapView.isHidden = true
             overlayViews.append(heatMapView)
-            heatMapView.setMap(mapView)
+            if let mapView {
+                heatMapView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()
             return
         } else if let multiPointView = subview as? MultiPointView {
@@ -387,7 +392,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             multiPointView.alpha = 0
             multiPointView.isHidden = true
             overlayViews.append(multiPointView)
-            multiPointView.setMap(mapView)
+            if let mapView {
+                multiPointView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()
             return
         } else if let clusterView = subview as? ClusterView {
@@ -399,7 +406,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             clusterView.alpha = 0
             clusterView.isHidden = true
             overlayViews.append(clusterView)
-            clusterView.setMap(mapView)
+            if let mapView {
+                clusterView.setMap(mapView)
+            }
             // 🔑 关键修复：不再调用 setupAllOverlayViews()
             return
         }
@@ -419,17 +428,17 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
         } else if let circleView = subview as? CircleView {
             overlayViews.removeAll { $0 === circleView }
-            if let circle = circleView.circle {
+            if let mapView, let circle = circleView.circle {
                 mapView.remove(circle)
             }
         } else if let polylineView = subview as? PolylineView {
             overlayViews.removeAll { $0 === polylineView }
-            if let polyline = polylineView.polyline {
+            if let mapView, let polyline = polylineView.polyline {
                 mapView.remove(polyline)
             }
         } else if let polygonView = subview as? PolygonView {
             overlayViews.removeAll { $0 === polygonView }
-            if let polygon = polygonView.polygon {
+            if let mapView, let polygon = polygonView.polygon {
                 mapView.remove(polygon)
             }
         } else if let heatMapView = subview as? HeatMapView {
@@ -447,6 +456,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 设置默认配置
      */
     private func setupDefaultConfig() {
+        guard let uiManager else {
+            return
+        }
+
         uiManager.setMapType(0)
         uiManager.setShowsScale(showsScale)
         uiManager.setShowsCompass(showsCompass)
@@ -462,6 +475,12 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 在 Props 更新时调用
      */
     func applyProps() {
+        ensureMapViewIfReady()
+        guard let uiManager else {
+            updateAppleMapStyle()
+            return
+        }
+
         uiManager.setMapType(mapType)
         
         // 如果有初始位置，设置相机位置
@@ -479,6 +498,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setShowsTraffic(showsTraffic)
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
+        if let customMapStyleData {
+            uiManager.setCustomMapStyle(customMapStyleData)
+        }
         
         // 更新苹果地图样式
         updateAppleMapStyle()
@@ -573,33 +595,38 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // MARK: - 缩放控制
     
     func setMaxZoom(_ maxZoom: Double) {
-        cameraManager.setMaxZoomLevel(CGFloat(maxZoom))
+        cameraManager?.setMaxZoomLevel(CGFloat(maxZoom))
     }
     
     func setMinZoom(_ minZoom: Double) {
-        cameraManager.setMinZoomLevel(CGFloat(minZoom))
+        cameraManager?.setMinZoomLevel(CGFloat(minZoom))
     }
     
     // MARK: - 相机控制
     
     func moveCamera(position: [String: Any], duration: Int) {
-        cameraManager.moveCamera(position: position, duration: duration)
+        ensureMapViewIfReady()
+        cameraManager?.moveCamera(position: position, duration: duration)
     }
     
     func getLatLng(point: [String: Double]) -> [String: Double] {
-        return cameraManager.getLatLng(point: point)
+        ensureMapViewIfReady()
+        return cameraManager?.getLatLng(point: point) ?? [:]
     }
     
     func setCenter(center: [String: Double], animated: Bool) {
-        cameraManager.setCenter(center: center, animated: animated)
+        ensureMapViewIfReady()
+        cameraManager?.setCenter(center: center, animated: animated)
     }
     
     func setZoom(zoom: Double, animated: Bool) {
-        cameraManager.setZoomLevel(zoom: CGFloat(zoom), animated: animated)
+        ensureMapViewIfReady()
+        cameraManager?.setZoomLevel(zoom: CGFloat(zoom), animated: animated)
     }
     
     func getCameraPosition() -> [String: Any] {
-        return cameraManager.getCameraPosition()
+        ensureMapViewIfReady()
+        return cameraManager?.getCameraPosition() ?? [:]
     }
     
     
@@ -607,17 +634,17 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     
     func setShowsTraffic(_ show: Bool) {
         showsTraffic = show
-        uiManager.setShowsTraffic(show)
+        uiManager?.setShowsTraffic(show)
     }
     
     func setShowsBuildings(_ show: Bool) {
         showsBuildings = show
-        uiManager.setShowsBuildings(show)
+        uiManager?.setShowsBuildings(show)
     }
     
     func setShowsIndoorMap(_ show: Bool) {
         showsIndoorMap = show
-        uiManager.setShowsIndoorMap(show)
+        uiManager?.setShowsIndoorMap(show)
     }
     
     /**
@@ -628,18 +655,18 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         customMapStyleData = styleData
         // 如果地图已加载，立即应用样式
         if isMapLoaded {
-            uiManager.setCustomMapStyle(styleData)
+            uiManager?.setCustomMapStyle(styleData)
         }
     }
     
     func setFollowUserLocation(_ follow: Bool) {
         followUserLocation = follow
-        uiManager.setShowsUserLocation(showsUserLocation, followUser: follow)
+        uiManager?.setShowsUserLocation(showsUserLocation, followUser: follow)
     }
     
     func setShowsUserLocation(_ show: Bool) {
         showsUserLocation = show
-        uiManager.setShowsUserLocation(show, followUser: followUserLocation)
+        uiManager?.setShowsUserLocation(show, followUser: followUserLocation)
         if show {
             applyUserLocationStyle()
         }
@@ -648,7 +675,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     func setUserLocationRepresentation(_ config: [String: Any]) {
         userLocationRepresentation = config
         if showsUserLocation {
-            uiManager.setUserLocationRepresentation(config)
+            uiManager?.setUserLocationRepresentation(config)
         }
     }
     
@@ -657,7 +684,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      */
     private func applyUserLocationStyle() {
         guard let config = userLocationRepresentation else { return }
-        uiManager.setUserLocationRepresentation(config)
+        uiManager?.setUserLocationRepresentation(config)
     }
     
 
@@ -665,6 +692,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // MARK: - 地图切换逻辑
 
     func handleMapviewRegionChange(mapView: UIView) {
+        guard self.mapView != nil else {
+            return
+        }
+
         if !enableWorldMapSwitch {
             return
         }
@@ -707,12 +738,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     }
 
     func performSwitching() {
+        guard let mapView else {
+            return
+        }
         
         self.isSwitching = true
 
-        let isGaodeCurrentlyVisible = !self.mapView.isHidden
+        let isGaodeCurrentlyVisible = !mapView.isHidden
         
-        self.mapView.isHidden = isGaodeCurrentlyVisible
+        mapView.isHidden = isGaodeCurrentlyVisible
         self.appleMapView.isHidden = !isGaodeCurrentlyVisible
 
         if !isGaodeCurrentlyVisible {
@@ -720,15 +754,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             let region = self.MARegionForMKRegion(mkRegion: self.appleMapView.region)
             // 简单的合法性检查
             if region.span.latitudeDelta > 0 && region.span.longitudeDelta > 0 {
-                self.mapView.region = region
+                mapView.region = region
             }
-            self.mapView.centerCoordinate = self.appleMapView.centerCoordinate
-            self.mapView.rotationDegree = CGFloat(self.appleMapView.camera.heading)
+            mapView.centerCoordinate = self.appleMapView.centerCoordinate
+            mapView.rotationDegree = CGFloat(self.appleMapView.camera.heading)
         } else {
             // 切换到苹果 (Gaode -> Apple)
-            let gaodeRegion = self.mapView.region
-            let gaodeCenter = self.mapView.centerCoordinate
-            let gaodeHeading = self.mapView.rotationDegree
+            let gaodeRegion = mapView.region
+            let gaodeCenter = mapView.centerCoordinate
+            let gaodeHeading = mapView.rotationDegree
             
 
             // 1. 设置 Region
@@ -787,6 +821,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             UIGraphicsEndImageContext()
             
             saveSnapshot(image: image, completion: completion)
+            return
+        }
+
+        guard let mapView else {
+            completion(nil, NSError(domain: "ExpoGaodeMap", code: -2, userInfo: [NSLocalizedDescriptionKey: "Map view is not initialized yet"]))
             return
         }
         
@@ -860,6 +899,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         throttleTimer?.invalidate()
         throttleTimer = nil
         pendingCameraMoveData = nil
+        if let privacyObserver {
+            NotificationCenter.default.removeObserver(privacyObserver)
+        }
         
         // 清理代理,停止接收回调
         mapView?.delegate = nil
@@ -886,6 +928,47 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         appleMapView = nil
         cameraManager = nil
         uiManager = nil
+    }
+
+    @objc
+    private func handlePrivacyStatusChanged() {
+        ensureMapViewIfReady()
+        applyProps()
+        setupAllOverlayViews()
+    }
+
+    private func ensureMapViewIfReady() {
+        guard mapView == nil, GaodeMapPrivacyManager.isReady else {
+            return
+        }
+
+        GaodeMapPrivacyManager.applyPrivacyState()
+
+        let resolvedMapView = MAMapView(frame: bounds)
+        resolvedMapView.frame = bounds
+        resolvedMapView.delegate = self
+        resolvedMapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        mapView = resolvedMapView
+        super.addSubview(resolvedMapView)
+
+        cameraManager = CameraManager(mapView: resolvedMapView)
+        uiManager = UIManager(mapView: resolvedMapView)
+        uiManager.onLocationChanged = { [weak self] latitude, longitude, accuracy in
+            self?.onLocation([
+                "latitude": latitude,
+                "longitude": longitude,
+                "accuracy": accuracy,
+                "timestamp": Date().timeIntervalSince1970 * 1000
+            ])
+        }
+
+        setupDefaultConfig()
+
+        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        pinchGesture.delegate = self
+        resolvedMapView.addGestureRecognizer(pinchGesture)
+        self.pinchGesture = pinchGesture
     }
 }
 

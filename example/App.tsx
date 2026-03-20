@@ -7,25 +7,25 @@ import {
   Marker,
   Polygon,
   Polyline,
-  useLocationPermissions,
   MultiPoint,
   HeatMap,
   Cluster,
   type CameraPosition,
   type Coordinates,
   type ReGeocode,
-  LatLng,
+  type LatLng,
   ClusterPoint,
   MapUI,
-
-
+  throttle,
+  type LatLngPoint,
+  type MultiPointItem,
 } from 'expo-gaode-map';
 import { reGeocode } from 'expo-gaode-map-search'
 import * as MediaLibrary from 'expo-media-library';
 
 import React from 'react';
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Alert, Image, Platform, Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
 import TestNewPermissionMethods from './TestNewPermissionMethods';
 import UseMapExample from './UseMapExample';
@@ -39,11 +39,17 @@ const WEB_API_KEY = process.env.EXPO_PUBLIC_AMAP_WEB_KEY;
 const ANDROID_KEY = process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY;
 const IOS_KEY = process.env.EXPO_PUBLIC_AMAP_IOS_KEY;
 
-
-
 // 模拟热力图数据 (在当前位置周围生成)
+type HeatMapPoint = LatLng & { count: number };
+type GeoJsonCoordinate = [number, number];
+type ExampleMultiPoint = MultiPointItem & {
+  title: string;
+  subtitle: string;
+  customerId: string;
+};
+
 const generateHeatMapData = (center: Coordinates, count: number) => {
-  const data = [];
+  const data: HeatMapPoint[] = [];
   for (let i = 0; i < count; i++) {
     data.push({
       latitude: center.latitude + (Math.random() - 0.5) * 0.05,
@@ -56,7 +62,7 @@ const generateHeatMapData = (center: Coordinates, count: number) => {
 
 // 模拟海量点数据
 const generateMultiPointData = (center: Coordinates, count: number) => {
-  const data = [];
+  const data: ExampleMultiPoint[] = [];
   for (let i = 0; i < count; i++) {
     data.push({
       latitude: center.latitude + (Math.random() - 0.5) * 0.1,
@@ -71,13 +77,15 @@ const generateMultiPointData = (center: Coordinates, count: number) => {
 
 // 模拟原生聚合数据
 const generateClusterData = (center: Coordinates, count: number) => {
-  const data = [];
+  const data: ClusterPoint[] = [];
   for (let i = 0; i < count; i++) {
     data.push({
       latitude: center.latitude + (Math.random() - 0.5) * 0.1,
       longitude: center.longitude + (Math.random() - 0.5) * 0.1,
-      title: `Cluster Item ${i}`,
-      snippet: `Detail info ${i}`,
+      properties: {
+        title: `Cluster Item ${i}`,
+        snippet: `Detail info ${i}`,
+      },
     });
   }
   return data;
@@ -85,26 +93,30 @@ const generateClusterData = (center: Coordinates, count: number) => {
 
 export default function MamScreen() {
 
-  const mapRef = useRef<MapViewRef>(null);
+  const mapRef = useRef<MapViewRef | null>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [initialPosition, setInitialPosition] = useState<CameraPosition | null>(null);
   const [cameraInfo, setCameraInfo] = useState<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
-  const [status, requestPermission] = useLocationPermissions()
   const [showPolylineExample, setShowPolylineExample] = useState(false);
   const [showWebAPITest, setShowWebAPITest] = useState(false);
 
   // 高级覆盖物状态
   const [showHeatMap, setShowHeatMap] = useState(false);
-  const [heatMapData, setHeatMapData] = useState<LatLng[]>([]);
+  const [heatMapData, setHeatMapData] = useState<HeatMapPoint[]>([]);
 
   const [showMultiPoint, setShowMultiPoint] = useState(false);
-  const [multiPointData, setMultiPointData] = useState<any[]>([]);
+  const [multiPointData, setMultiPointData] = useState<ExampleMultiPoint[]>([]);
 
   const [showCluster, setShowCluster] = useState(false);
   const [clusterData, setClusterData] = useState<ClusterPoint[]>([]);
+  const [sdkReady, setSdkReady] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+  const [privacyStatusText, setPrivacyStatusText] = useState('未确认');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(true);
+  const [currentPage, setCurrentPage] = useState<'welcome' | 'map'>('welcome');
 
   // 主题与动态色
   const colorScheme = 'dark';
@@ -143,7 +155,7 @@ export default function MamScreen() {
 
   const [dynamicPolylines, setDynamicPolylines] = useState<Array<{
     id: string;
-    points: Array<{ latitude: number; longitude: number }>;
+    points: LatLngPoint[];
     color: string;
   }>>([]);
   const polylineIdCounter = useRef(0);
@@ -159,11 +171,21 @@ export default function MamScreen() {
 
 
   // 隐私协议状态：未同意前不初始化、不渲染地图
-  const [privacyAgreed, setPrivacyAgreed] = useState(true);
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
   // 模拟从后端获取的 GeoJSON 格式轨迹数据 (数组格式 [经度, 纬度])
   // 这种数据格式在实际开发中非常常见，比如路径规划、历史轨迹回放
-  const mockGeoJsonRoute = {
+  const mockGeoJsonRoute: {
+    type: string;
+    properties: {
+      name: string;
+      color: string;
+    };
+    geometry: {
+      type: 'LineString';
+      coordinates: GeoJsonCoordinate[];
+    };
+  } = {
     type: "Feature",
     properties: {
       name: "模拟轨迹",
@@ -181,58 +203,80 @@ export default function MamScreen() {
     }
   };
 
-  useEffect(() => {
-    const init = async () => {
-      try {
+  const handleAgreePrivacyAndInitialize = async () => {
+    try {
+      setInitializing(true);
+      setSdkReady(false);
+      setInitialPosition(null);
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+        privacyVersion: '2026-03-13', // 可选：隐私协议版本号
+      });
 
-        // ExpoGaodeMapModule.initSDK({
-        //   webKey: '',
-        // })
+      const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+      setPrivacyStatusText(
+        `展示: ${privacyStatus.hasShow ? '是' : '否'} / 包含隐私: ${privacyStatus.hasContainsPrivacy ? '是' : '否'} / 同意: ${privacyStatus.hasAgree ? '是' : '否'}`
+      );
 
-        await requestPermission()
+      ExpoGaodeMapModule.initSDK({
+        // ...(ANDROID_KEY ? { androidKey: ANDROID_KEY } : {}),
+        // ...(IOS_KEY ? { iosKey: IOS_KEY } : {}),
+        // ...(WEB_API_KEY ? { webKey: WEB_API_KEY } : {}),
+      });
 
-        // 配置定位选项
-        ExpoGaodeMapModule.setLocatingWithReGeocode(true);
-        ExpoGaodeMapModule.setInterval(10000);
-        // ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
-        ExpoGaodeMapModule.setDistanceFilter(0);
-        ExpoGaodeMapModule.setDesiredAccuracy(3);
-        ExpoGaodeMapModule.startUpdatingHeading();
-        // 先获取初始位置
-        const loc = await ExpoGaodeMapModule.getCurrentLocation();
-        setLocation(loc);
-        setInitialPosition({
-          target: { latitude: loc.latitude, longitude: loc.longitude },
-          zoom: 16.6
-        });
-        const result = await reGeocode({
-          location: {
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-          }
-        })
-        console.log(JSON.stringify(result.formattedAddress))
-        // 使用便捷方法监听连续定位更新
-        const subscription = ExpoGaodeMapModule.addLocationListener((location) => {
-          console.log('收到定位更新:', location);
-          setLocation(location);
-        });
-
-        return () => {
-          subscription.remove();
-        };
-      } catch (error: any) {
-        console.error('初始化失败:', error);
-        if (error?.type) {
-          console.warn(`错误类型: ${error.type}`);
-          console.warn(`解决方案: ${error.solution}`);
-        }
-        setInitialPosition({ target: { latitude: 39.9, longitude: 116.4 }, zoom: 16.6 });
+      const permission = await ExpoGaodeMapModule.requestLocationPermission();
+      if (!permission.granted) {
+        throw new Error('定位权限未授予');
       }
-    };
 
-    init();
-  }, [privacyAgreed]);
+      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+      ExpoGaodeMapModule.setInterval(10000);
+      ExpoGaodeMapModule.setDistanceFilter(0);
+      ExpoGaodeMapModule.setDesiredAccuracy(3);
+      ExpoGaodeMapModule.startUpdatingHeading();
+
+      const loc = await ExpoGaodeMapModule.getCurrentLocation();
+      setLocation(loc);
+      setInitialPosition({
+        target: { latitude: loc.latitude, longitude: loc.longitude },
+        zoom: 16.6,
+      });
+
+      const result = await reGeocode({
+        location: {
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        },
+      });
+      console.log(JSON.stringify(result.formattedAddress));
+
+      setPrivacyAgreed(true);
+      setSdkReady(true);
+      setShowPrivacyModal(false);
+      setCurrentPage('map');
+    } catch (error: any) {
+      console.error('初始化失败:', error);
+      if (error?.type) {
+        console.warn(`错误类型: ${error.type}`);
+        console.warn(`解决方案: ${error.solution}`);
+      }
+      setPrivacyStatusText(error?.message ?? '初始化失败');
+      setPrivacyAgreed(false);
+      setSdkReady(false);
+      setInitialPosition(null);
+      setShowPrivacyModal(true);
+      setCurrentPage('welcome');
+    } finally {
+      setInitializing(false);
+    }
+  };
+
+  const handleRejectPrivacy = () => {
+    setShowPrivacyModal(false);
+    Alert.alert('提示', '未同意前将停留在欢迎页，不会初始化地图 SDK。');
+  };
 
   // 当 location 变化时更新高级覆盖物数据
   useEffect(() => {
@@ -351,7 +395,7 @@ export default function MamScreen() {
     }
     const randomOffset = () => (Math.random() - 0.5) * 0.02;
     // 使用数组格式的坐标点
-    const points = [
+    const points: GeoJsonCoordinate[] = [
       [location.longitude + randomOffset(), location.latitude + randomOffset()],
       [location.longitude + randomOffset(), location.latitude + randomOffset()],
       [location.longitude + randomOffset(), location.latitude + randomOffset()],
@@ -359,7 +403,7 @@ export default function MamScreen() {
     const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
     const newPolyline = {
       id: `polyline_${polylineIdCounter.current++}`,
-      points: points as any, // 临时规避类型检查，实际已支持
+      points,
       color: randomColor,
     };
     setDynamicPolylines(prev => [...prev, newPolyline]);
@@ -419,7 +463,7 @@ export default function MamScreen() {
         if (location) {
           const nextData = generateHeatMapData(location, 400);
           console.log('HeatMap data generated:', { length: nextData.length, sample: nextData[0] });
-          setHeatMapData(nextData as any);
+          setHeatMapData(nextData);
         }
       }
       return next;
@@ -501,17 +545,17 @@ export default function MamScreen() {
 
 
   // 使用 useMemo 创建节流后的回调，避免每次渲染都重新创建
-  // const onCameraMoveThrottled = useMemo(
-  //   () =>
-  //     throttle(({ nativeEvent }: any) => {
-  //       const { cameraPosition } = nativeEvent;
-  //       const zoom = cameraPosition.zoom ?? 0;
-  //       const bearing = cameraPosition.bearing ?? 0;
-  //       const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
-  //       setCameraInfo(info);
-  //     }, 100), // 100ms 节流，足够流畅且不卡顿
-  //   []
-  // );
+  const onCameraMoveThrottled = useMemo(
+    () =>
+      throttle(({ nativeEvent }: any) => {
+        const { cameraPosition } = nativeEvent;
+        const zoom = cameraPosition.zoom ?? 0;
+        const bearing = cameraPosition.bearing ?? 0;
+        const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
+        setCameraInfo(info);
+      }, 100), // 100ms 节流，足够流畅且不卡顿
+    []
+  );
 
   if (false) {
     return <TestNewPermissionMethods />;
@@ -576,10 +620,76 @@ export default function MamScreen() {
     );
   }
 
-  if (!initialPosition) {
+  if (currentPage === 'welcome') {
+    return (
+      <View style={[styles.container, styles.welcomeScreen]}>
+        <View style={styles.welcomeHero}>
+          <Text style={styles.welcomeBadge}>expo-gaode-map example</Text>
+          <Text style={styles.welcomeTitle}>高德地图示例应用</Text>
+          <Text style={styles.welcomeDesc}>
+            按常见 App 流程，首次进入先弹出隐私合规说明；只有用户同意后，才会初始化 SDK 并进入地图页面。
+          </Text>
+          <Pressable
+            style={styles.welcomePrimaryBtn}
+            onPress={() => setShowPrivacyModal(true)}
+          >
+            <Text style={styles.welcomePrimaryBtnText}>查看隐私弹窗</Text>
+          </Pressable>
+          <Text style={styles.privacyMeta}>当前状态：{privacyStatusText}</Text>
+        </View>
+
+        <Modal
+          visible={showPrivacyModal}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => {
+            if (!initializing) {
+              setShowPrivacyModal(false);
+            }
+          }}
+        >
+          <View style={styles.privacyModalBackdrop}>
+            <View style={styles.privacyCard}>
+              <Text style={styles.privacyTitle}>隐私保护提示</Text>
+              <Text style={styles.privacyDesc}>
+                为了使用地图展示、定位与搜索服务，我们会在你同意后再调用
+                
+              </Text>
+              <Text style={styles.privacyMeta}>同意前不会进入地图页，也不会初始化地图 SDK。</Text>
+
+              <View style={styles.privacyBtnRow}>
+                <Pressable
+                  style={[styles.privacyBtn, styles.privacyGhostBtn]}
+                  onPress={handleRejectPrivacy}
+                  disabled={initializing}
+                >
+                  <Text style={styles.privacyGhostBtnText}>暂不同意</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.privacyBtn, { backgroundColor: '#007AFF' }]}
+                  onPress={handleAgreePrivacyAndInitialize}
+                  disabled={initializing}
+                >
+                  <Text style={styles.privacyBtnText}>
+                    {initializing ? '正在初始化…' : '同意并进入地图'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  }
+
+  if (!privacyAgreed || !initialPosition) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: '#000', fontSize: 20, fontWeight: 'bold' }}>正在加载地图...</Text>
+        <Text style={{ color: '#000', fontSize: 20, fontWeight: 'bold' }}>
+          {sdkReady ? '正在加载地图...' : '正在初始化 SDK...'}
+        </Text>
+        <Text style={{ marginTop: 12, color: '#666' }}>{privacyStatusText}</Text>
       </View>
     );
   }
@@ -622,7 +732,14 @@ export default function MamScreen() {
           console.log('地图长按:', e.nativeEvent);
           setIsFollowing(false);
         }}
-        // onCameraMove={onCameraMoveThrottled}
+        onLocation={({ nativeEvent }) => {
+          setLocation((prev) => (
+            prev
+              ? { ...prev, ...nativeEvent }
+              : prev
+          ));
+        }}
+        onCameraMove={onCameraMoveThrottled}
         onCameraIdle={({ nativeEvent }) => {
           const { cameraPosition } = nativeEvent;
           const lat = cameraPosition.target?.latitude ?? 0;
@@ -880,7 +997,7 @@ export default function MamScreen() {
               <Polyline
                 key="geojson_route"
                 // 直接使用 GeoJSON 原始数据中的 coordinates 数组，无需任何转换！
-                points={mockGeoJsonRoute.geometry.coordinates as any}
+                points={mockGeoJsonRoute.geometry.coordinates}
                 strokeColor="#FF0000"
                 strokeWidth={6}
                 zIndex={100}
@@ -913,6 +1030,9 @@ export default function MamScreen() {
               />
               <View style={styles.panelInner}>
                 <Text style={[styles.panelTitle, { color: textColor }]}>常用操作</Text>
+                <Text style={[styles.chipText, { color: muted, marginBottom: 8 }]}>
+                  隐私状态：{privacyStatusText}
+                </Text>
 
                 <View style={styles.actionRow}>
                   <Pressable
@@ -1035,6 +1155,110 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  welcomeScreen: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#111827',
+  },
+  welcomeHero: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#1F2937',
+    borderRadius: 24,
+    padding: 24,
+    gap: 14,
+  },
+  welcomeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#0F172A',
+    color: '#93C5FD',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  welcomeDesc: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: '#CBD5E1',
+  },
+  welcomePrimaryBtn: {
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+  },
+  welcomePrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  privacyModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  privacyCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#1F2937',
+    borderRadius: 20,
+    padding: 20,
+    gap: 12,
+  },
+  privacyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  privacyDesc: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#D1D5DB',
+  },
+  privacyMeta: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#93C5FD',
+  },
+  privacyBtn: {
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  privacyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  privacyBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  privacyGhostBtn: {
+    backgroundColor: '#374151',
+  },
+  privacyGhostBtnText: {
+    color: '#E5E7EB',
+    fontSize: 15,
+    fontWeight: '700',
   },
   map: {
     flex: 1,

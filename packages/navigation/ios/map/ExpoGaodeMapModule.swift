@@ -40,49 +40,32 @@ public class ExpoGaodeMapModule: Module {
         return true // 已经设置过了
     }
     
-    /**
-     * 尝试启动预加载（检查 API Key 后）
-     * @param delay 延迟时间（秒）
-     * @param poolSize 预加载池大小
-     */
-    private func tryStartPreload(delay: Double = 1.0, poolSize: Int = 1) {
-        if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                let status = MapPreloadManager.shared.getStatus()
-                let isPreloading = (status["isPreloading"] as? Bool) ?? false
-                
-                if !MapPreloadManager.shared.hasPreloadedMapView() && !isPreloading {
-                   
-                    MapPreloadManager.shared.startPreload(poolSize: poolSize)
-                }
-            }
-        } else {
-            print("⚠️ ExpoGaodeMap: API Key 未设置，跳过自动预加载")
-        }
-    }
-    
     public func definition() -> ModuleDefinition {
         Name("ExpoGaodeMap")
-        
-        // 模块初始化：尝试从本地缓存恢复隐私同意状态
+
         OnCreate {
+            GaodeMapPrivacyManager.restorePersistedState()
+            _ = self.trySetupApiKeyFromPlist()
+        }
+        
+        Function("setPrivacyShow") { (hasShow: Bool, hasContainsPrivacy: Bool) in
+            GaodeMapPrivacyManager.setPrivacyShow(hasShow, hasContainsPrivacy: hasContainsPrivacy)
+        }
 
-             // 1. 告知 SDK：隐私协议已展示且包含隐私内容
-            MAMapView.updatePrivacyShow(
-                AMapPrivacyShowStatus.didShow,
-                privacyInfo: AMapPrivacyInfoStatus.didContain
-            )
+        Function("setPrivacyAgree") { (hasAgree: Bool) in
+            GaodeMapPrivacyManager.setPrivacyAgree(hasAgree)
+        }
 
-            // 2. 告知 SDK：用户已同意隐私协议（关键）
-            MAMapView.updatePrivacyAgree(AMapPrivacyAgreeStatus.didAgree)
+        Function("setPrivacyVersion") { (version: String) in
+            GaodeMapPrivacyManager.setPrivacyVersion(version)
+        }
 
-            print("✅ ExpoGaodeMap: 原生侧已默认同意隐私协议")
+        Function("resetPrivacyConsent") {
+            GaodeMapPrivacyManager.resetPrivacyConsent()
+        }
 
-             // 3. 自动设置 API Key（Info.plist）
-            self.trySetupApiKeyFromPlist()
-
-            // 4. 自动启动预加载（可选）
-            self.tryStartPreload(delay: 2.0, poolSize: 1)
+        Function("getPrivacyStatus") { () -> [String: Any] in
+            GaodeMapPrivacyManager.status()
         }
         
         // ==================== SDK 初始化 ====================
@@ -92,6 +75,11 @@ public class ExpoGaodeMapModule: Module {
          * @param config 配置字典,包含 iosKey
          */
         Function("initSDK") { (config: [String: String]) in
+            guard GaodeMapPrivacyManager.isReady else {
+                throw Exception(name: "PRIVACY_NOT_AGREED", description: "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree")
+            }
+            GaodeMapPrivacyManager.applyPrivacyState()
+
             // 1) 优先使用传入的 iosKey；2) 否则回退读取 Info.plist 的 AMapApiKey
             let providedKey = config["iosKey"]?.trimmingCharacters(in: .whitespacesAndNewlines)
             var finalKey: String? = (providedKey?.isEmpty == false) ? providedKey : nil
@@ -113,10 +101,7 @@ public class ExpoGaodeMapModule: Module {
             }
             AMapServices.shared().enableHTTPS = true
             
-            // 初始化定位管理器（触发原生侧懒加载）
             self.getLocationManager()
-            
-            print("✅ ExpoGaodeMap: 已设置 API Key 并完成初始化（来源：\(providedKey != nil ? "入参 iosKey" : "Info.plist" )）")
         }
         
         /**
@@ -139,6 +124,9 @@ public class ExpoGaodeMapModule: Module {
          */
         Function("isNativeSDKConfigured") { () -> Bool in
             if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
+                return true
+            }
+            if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
                 return true
             }
             return false
@@ -774,7 +762,6 @@ public class ExpoGaodeMapModule: Module {
         OnDestroy {
             self.locationManager?.destroy()
             self.locationManager = nil
-            MapPreloadManager.shared.cleanup()
         }
     }
     

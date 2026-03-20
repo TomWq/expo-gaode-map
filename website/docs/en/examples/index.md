@@ -45,6 +45,14 @@ npm install expo-gaode-map
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
@@ -80,15 +88,20 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 function useMapInit() {
   useEffect(() => {
     const init = async () => {
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+        });
+      }
+
       // Initialize SDK
-      ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-key',
-        iosKey: 'your-ios-key',
-      });
+      ExpoGaodeMapModule.initSDK({});
 
       // Request permission
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
-      if (!granted) {
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
+      if (!result.granted) {
         console.log('Location permission denied');
       }
     };

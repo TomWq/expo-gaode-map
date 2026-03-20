@@ -6,6 +6,8 @@ import type { NativeModule } from 'expo';
 
 import type {
   LatLng,
+  PrivacyConfig,
+  PrivacyStatus,
   SDKConfig,
   PermissionStatus,
   LatLngPoint,
@@ -39,6 +41,43 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * @param config SDK 配置参数，包含 Android 和 iOS 的 API Key
    */
   initSDK(config: SDKConfig): void;
+
+  /**
+   * 设置是否显示隐私政策弹窗
+   * @param hasShow 是否显示弹窗
+   * @param hasContainsPrivacy 是否包含隐私条款
+   * @deprecated 请优先使用 `setPrivacyConfig`
+   */
+  setPrivacyShow(hasShow: boolean, hasContainsPrivacy?: boolean): void;
+
+  /**
+   * 设置用户是否同意隐私政策
+   * @param hasAgree 是否同意
+   * @deprecated 请优先使用 `setPrivacyConfig`
+   */
+  setPrivacyAgree(hasAgree: boolean): void;
+
+  /**
+   * 一次性设置完整的隐私状态
+   * 推荐作为业务层唯一入口调用
+   */
+  setPrivacyConfig(config: PrivacyConfig): void;
+
+  /**
+   * 设置当前隐私协议版本，用于在协议变更时使旧同意失效
+   */
+  setPrivacyVersion(version: string): void;
+
+  /**
+   * 清空已持久化的隐私同意状态
+   */
+  resetPrivacyConsent(): void;
+
+  /**
+   * 获取当前隐私政策状态
+   * @returns 隐私政策状态对象
+   */
+  getPrivacyStatus(): PrivacyStatus;
 
   /**
    * 设置是否加载世界向量地图（海外地图）

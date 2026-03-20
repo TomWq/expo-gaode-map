@@ -178,5 +178,29 @@ declare class ExpoGaodeMapOfflineModule extends NativeModule<OfflineMapEvents> {
 
 }
 
-// 获取原生模块实例
-export default requireNativeModule<ExpoGaodeMapOfflineModule>('ExpoGaodeMapOffline');
+let nativeModuleCache: ExpoGaodeMapOfflineModule | null = null;
+
+function getNativeModule(): ExpoGaodeMapOfflineModule {
+  if (!nativeModuleCache) {
+    nativeModuleCache = requireNativeModule<ExpoGaodeMapOfflineModule>('ExpoGaodeMapOffline');
+  }
+  return nativeModuleCache;
+}
+
+function getBoundNativeValue(
+  module: ExpoGaodeMapOfflineModule,
+  prop: PropertyKey
+): unknown {
+  const value = Reflect.get(module as object, prop, module as object);
+  if (typeof value === 'function') {
+    return (...args: unknown[]) =>
+      (value as (...fnArgs: unknown[]) => unknown).apply(module, args);
+  }
+  return value;
+}
+
+export default new Proxy({} as ExpoGaodeMapOfflineModule, {
+  get(_target, prop) {
+    return getBoundNativeValue(getNativeModule(), prop);
+  },
+});

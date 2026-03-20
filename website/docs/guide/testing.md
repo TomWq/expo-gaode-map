@@ -165,7 +165,7 @@ describe('Marker', () => {
   it('应该正确渲染', () => {
     const { toJSON } = render(
       <Marker
-        coordinate={{ latitude: 39.9, longitude: 116.4 }}
+        position={{ latitude: 39.9, longitude: 116.4 }}
         title="测试标记"
       />
     );
@@ -175,14 +175,14 @@ describe('Marker', () => {
   it('应该传递正确的 props', () => {
     const { getByTestId } = render(
       <Marker
-        coordinate={{ latitude: 39.9, longitude: 116.4 }}
+        position={{ latitude: 39.9, longitude: 116.4 }}
         title="测试标记"
         testID="marker"
       />
     );
     
     const marker = getByTestId('marker');
-    expect(marker.props.coordinate).toEqual({
+    expect(marker.props.position).toEqual({
       latitude: 39.9,
       longitude: 116.4
     });

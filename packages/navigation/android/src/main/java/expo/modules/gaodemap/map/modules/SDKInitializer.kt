@@ -14,22 +14,113 @@ import com.amap.api.maps.MapsInitializer
  * - 获取 SDK 版本信息
  */
 object SDKInitializer {
-    
-    /** 隐私协议是否已同意（进程内缓存） */
-    private var privacyAgreed = true
+    private const val PREFS_NAME = "expo_gaodemap_privacy"
+    private const val KEY_PRIVACY_SHOWN = "privacy_shown"
+    private const val KEY_PRIVACY_CONTAINS = "privacy_contains"
+    private const val KEY_PRIVACY_AGREED = "privacy_agreed"
+    private const val KEY_PRIVACY_VERSION = "privacy_version"
+    private const val KEY_AGREED_PRIVACY_VERSION = "agreed_privacy_version"
 
+    private var privacyAgreed = false
+    private var privacyShown = false
+    private var privacyContains = false
+    private var privacyVersion: String? = null
+    private var agreedPrivacyVersion: String? = null
+    private var restoredFromStorage = false
 
-    
-    fun restorePrivacyState(context: Context) {
-        try {
-            // 同步到 SDK
-            MapsInitializer.updatePrivacyShow(context, true, true)
-            AMapLocationClient.updatePrivacyShow(context, true, true)
-            MapsInitializer.updatePrivacyAgree(context, privacyAgreed)
-            AMapLocationClient.updatePrivacyAgree(context, privacyAgreed)
-        } catch (e: Exception) {
-            android.util.Log.w("ExpoGaodeMap", "恢复隐私状态失败: ${e.message}")
+    private fun resolveContext(context: Context): Context {
+        return context.applicationContext ?: context
+    }
+
+    private fun prefs(context: Context) =
+        resolveContext(context).getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    fun restorePersistedState(context: Context) {
+        val appContext = resolveContext(context)
+        val preferences = prefs(appContext)
+
+        privacyShown = preferences.getBoolean(KEY_PRIVACY_SHOWN, false)
+        privacyContains = preferences.getBoolean(KEY_PRIVACY_CONTAINS, false)
+        privacyAgreed = preferences.getBoolean(KEY_PRIVACY_AGREED, false)
+        privacyVersion = preferences.getString(KEY_PRIVACY_VERSION, null)
+        agreedPrivacyVersion = preferences.getString(KEY_AGREED_PRIVACY_VERSION, null)
+        restoredFromStorage = true
+
+        if (!privacyVersion.isNullOrEmpty() &&
+            !agreedPrivacyVersion.isNullOrEmpty() &&
+            privacyVersion != agreedPrivacyVersion
+        ) {
+            clearConsentPersistedState(appContext, keepCurrentVersion = true)
         }
+
+        applyPrivacyState(appContext)
+    }
+
+    fun setPrivacyShow(context: Context, hasShow: Boolean, hasContainsPrivacy: Boolean) {
+        privacyShown = hasShow
+        privacyContains = hasContainsPrivacy
+        val appContext = resolveContext(context)
+        persistState(appContext)
+        applyPrivacyState(appContext)
+    }
+
+    fun setPrivacyAgree(context: Context, hasAgree: Boolean) {
+        privacyAgreed = hasAgree
+        agreedPrivacyVersion = if (hasAgree) privacyVersion else null
+        val appContext = resolveContext(context)
+        persistState(appContext)
+        applyPrivacyState(appContext)
+    }
+
+    fun setPrivacyVersion(context: Context, version: String) {
+        val sanitizedVersion = version.trim().takeIf { it.isNotEmpty() }
+        privacyVersion = sanitizedVersion
+
+        val appContext = resolveContext(context)
+        if (!privacyVersion.isNullOrEmpty() &&
+            !agreedPrivacyVersion.isNullOrEmpty() &&
+            privacyVersion != agreedPrivacyVersion
+        ) {
+            clearConsentPersistedState(appContext, keepCurrentVersion = true)
+        } else {
+            persistState(appContext)
+        }
+
+        applyPrivacyState(appContext)
+    }
+
+    fun resetPrivacyConsent(context: Context) {
+        val appContext = resolveContext(context)
+        clearConsentPersistedState(appContext, keepCurrentVersion = false)
+        applyPrivacyState(appContext)
+    }
+
+    fun applyPrivacyState(context: Context) {
+        val appContext = resolveContext(context)
+        try {
+            MapsInitializer.updatePrivacyShow(appContext, privacyShown, privacyContains)
+            AMapLocationClient.updatePrivacyShow(appContext, privacyShown, privacyContains)
+            MapsInitializer.updatePrivacyAgree(appContext, privacyAgreed)
+            AMapLocationClient.updatePrivacyAgree(appContext, privacyAgreed)
+        } catch (e: Exception) {
+            android.util.Log.w("ExpoGaodeMap", "同步隐私状态失败: ${e.message}")
+        }
+    }
+
+    fun isPrivacyReady(): Boolean {
+        return privacyShown && privacyContains && privacyAgreed
+    }
+
+    fun getPrivacyStatus(): Map<String, Any?> {
+        return mapOf(
+            "hasShow" to privacyShown,
+            "hasContainsPrivacy" to privacyContains,
+            "hasAgree" to privacyAgreed,
+            "isReady" to isPrivacyReady(),
+            "privacyVersion" to privacyVersion,
+            "agreedPrivacyVersion" to agreedPrivacyVersion,
+            "restoredFromStorage" to restoredFromStorage,
+        )
     }
 
     /**
@@ -40,13 +131,19 @@ object SDKInitializer {
      * @throws Exception 初始化失败时抛出异常
      */
     fun initSDK(context: Context, androidKey: String) {
+        val appContext = resolveContext(context)
+        restorePersistedState(appContext)
         // 检查隐私协议状态
-        if (!privacyAgreed) {
-            // 使用 Kotlin 模块的 CodedException，让 JS 能收到标准化异常
-            throw expo.modules.kotlin.exception.CodedException("用户未同意隐私协议，无法初始化 SDK")
+        if (!isPrivacyReady()) {
+            throw expo.modules.kotlin.exception.CodedException(
+                "PRIVACY_NOT_AGREED",
+                "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree",
+                null
+            )
         }
         
         try {
+            applyPrivacyState(appContext)
             // 设置 API Key
             MapsInitializer.setApiKey(androidKey)
             AMapLocationClient.setApiKey(androidKey)
@@ -64,5 +161,37 @@ object SDKInitializer {
      */
     fun getVersion(): String {
         return MapsInitializer.getVersion()
+    }
+
+    private fun persistState(context: Context) {
+        prefs(context).edit()
+            .putBoolean(KEY_PRIVACY_SHOWN, privacyShown)
+            .putBoolean(KEY_PRIVACY_CONTAINS, privacyContains)
+            .putBoolean(KEY_PRIVACY_AGREED, privacyAgreed)
+            .putString(KEY_PRIVACY_VERSION, privacyVersion)
+            .putString(KEY_AGREED_PRIVACY_VERSION, agreedPrivacyVersion)
+            .apply()
+    }
+
+    private fun clearConsentPersistedState(context: Context, keepCurrentVersion: Boolean) {
+        privacyShown = false
+        privacyContains = false
+        privacyAgreed = false
+        agreedPrivacyVersion = null
+
+        val editor = prefs(context).edit()
+            .putBoolean(KEY_PRIVACY_SHOWN, false)
+            .putBoolean(KEY_PRIVACY_CONTAINS, false)
+            .putBoolean(KEY_PRIVACY_AGREED, false)
+            .remove(KEY_AGREED_PRIVACY_VERSION)
+
+        if (keepCurrentVersion) {
+            editor.putString(KEY_PRIVACY_VERSION, privacyVersion)
+        } else {
+            privacyVersion = null
+            editor.remove(KEY_PRIVACY_VERSION)
+        }
+
+        editor.apply()
     }
 }

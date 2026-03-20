@@ -27,7 +27,10 @@ public class ExpoGaodeMapOfflineModule: Module {
     set { stateQueue.async(flags: .barrier) { self._pausedCities = newValue } }
   }
   
-  private var offlineMapManager: MAOfflineMap {
+  private var offlineMapManager: MAOfflineMap? {
+    guard setupApiKeyIfNeeded() else {
+      return nil
+    }
     return MAOfflineMap.shared()
   }
   
@@ -56,11 +59,11 @@ public class ExpoGaodeMapOfflineModule: Module {
     )
     
     OnCreate {
-      // Module initialization
+      _ = self.setupApiKeyIfNeeded()
     }
     
     OnDestroy {
-      MAOfflineMap.shared().cancelAll()
+      self.offlineMapManager?.cancelAll()
       self.downloadingCities.removeAll()
       self.pausedCities.removeAll()
     }
@@ -70,7 +73,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     AsyncFunction("getAvailableCities") { (promise: Promise) in
       self.ensureSetup { success in
         guard success else { promise.reject("ERR_SETUP", "Setup failed"); return }
-        let cities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+        let cities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
         promise.resolve(cities.map { self.convertCityToDict($0) })
       }
     }
@@ -78,7 +81,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     AsyncFunction("getAvailableProvinces") { (promise: Promise) in
       self.ensureSetup { success in
         guard success else { promise.reject("ERR_SETUP", "Setup failed"); return }
-        let provinces = self.cachedProvinces ?? self.offlineMapManager.provinces ?? []
+        let provinces = self.cachedProvinces ?? self.offlineMapManager?.provinces ?? []
         promise.resolve(provinces.map { self.convertProvinceToDict($0) })
       }
     }
@@ -86,7 +89,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     AsyncFunction("getCitiesByProvince") { (provinceCode: String, promise: Promise) in
       self.ensureSetup { success in
         guard success else { promise.reject("ERR_SETUP", "Setup failed"); return }
-        let provinces = self.cachedProvinces ?? self.offlineMapManager.provinces ?? []
+        let provinces = self.cachedProvinces ?? self.offlineMapManager?.provinces ?? []
         if let province = provinces.first(where: { $0.adcode == provinceCode }) {
           let cities = province.cities.compactMap { ($0 as? MAOfflineCity).map { self.convertCityToDict($0) } }
           promise.resolve(cities)
@@ -99,7 +102,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     AsyncFunction("getDownloadedMaps") { (promise: Promise) in
       self.ensureSetup { success in
         guard success else { promise.reject("ERR_SETUP", "Setup failed"); return }
-        let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+        let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
         let downloaded = allCities.filter { $0.itemStatus == .installed }
         promise.resolve(downloaded.map { self.convertCityToDict($0) })
       }
@@ -120,28 +123,28 @@ public class ExpoGaodeMapOfflineModule: Module {
     }
     
     Function("pauseDownload") { (cityCode: String) in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       if let city = allCities.first(where: { $0.adcode == cityCode }) {
         self.pausedCities.insert(cityCode)
         self.downloadingCities.remove(cityCode)
-        self.offlineMapManager.pause(city)
+        self.offlineMapManager?.pause(city)
       }
     }
     
     AsyncFunction("cancelDownload") { (cityCode: String) in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       if let city = allCities.first(where: { $0.adcode == cityCode }) {
         self.downloadingCities.remove(cityCode)
         self.pausedCities.remove(cityCode)
-        self.offlineMapManager.pause(city) // iOS SDK 中 pause 停止网络
+        self.offlineMapManager?.pause(city) // iOS SDK 中 pause 停止网络
         self.sendEvent("onDownloadCancelled", ["cityCode": cityCode, "cityName": city.name ?? ""])
       }
     }
     
     AsyncFunction("deleteMap") { (cityCode: String) in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       if let city = allCities.first(where: { $0.adcode == cityCode }) {
-        self.offlineMapManager.delete(city)
+        self.offlineMapManager?.delete(city)
         self.downloadingCities.remove(cityCode)
         self.pausedCities.remove(cityCode)
       }
@@ -152,8 +155,12 @@ public class ExpoGaodeMapOfflineModule: Module {
     }
     
     AsyncFunction("checkUpdate") { (cityCode: String, promise: Promise) in
+      guard let offlineMapManager = self.offlineMapManager else {
+        promise.reject("ERR_SETUP", "离线地图管理器初始化失败，请检查 iOS AMapApiKey 是否已正确配置")
+        return
+      }
       // 检查特定城市或全局更新
-      self.offlineMapManager.checkNewestVersion { hasNewestVersion in
+      offlineMapManager.checkNewestVersion { hasNewestVersion in
         if hasNewestVersion {
           // 刷新缓存以获取最新数据
           self.stateQueue.async(flags: .barrier) {
@@ -169,13 +176,13 @@ public class ExpoGaodeMapOfflineModule: Module {
     // ==================== 3. 状态查询 ====================
     
     AsyncFunction("isMapDownloaded") { (cityCode: String) -> Bool in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       return allCities.first(where: { $0.adcode == cityCode })?.itemStatus == .installed
     }
     
     // 恢复原有方法：getMapStatus
     AsyncFunction("getMapStatus") { (cityCode: String) -> [String: Any] in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       if let city = allCities.first(where: { $0.adcode == cityCode }) {
         return self.convertCityToDict(city)
       }
@@ -194,7 +201,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     // ==================== 4. 存储管理 ====================
     
     AsyncFunction("getStorageSize") { () -> Int64 in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       let installed = allCities.filter { $0.itemStatus == .installed }
       // 修复类型转换报错：Int64(0)
       return installed.reduce(Int64(0)) { $0 + ($1.downloadedSize > 0 ? $1.downloadedSize : $1.size) }
@@ -203,7 +210,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     // 恢复原有方法：getStorageInfo
     AsyncFunction("getStorageInfo") { () -> [String: Any] in
       // 1. 计算离线地图占用
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       let installed = allCities.filter { $0.itemStatus == .installed }
       let offlineMapSize = installed.reduce(Int64(0)) { $0 + ($1.downloadedSize > 0 ? $1.downloadedSize : $1.size) }
       
@@ -231,7 +238,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     }
     
     AsyncFunction("clearAllMaps") {
-      self.offlineMapManager.clearDisk()
+      self.offlineMapManager?.clearDisk()
       self.downloadingCities.removeAll()
       self.pausedCities.removeAll()
       self.cachedCities = nil
@@ -254,14 +261,14 @@ public class ExpoGaodeMapOfflineModule: Module {
       // 确保初始化
       self.ensureSetup { success in
         guard success else { return }
-        let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+        let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
         
         cityCodes.forEach { cityCode in
           if let city = allCities.first(where: { $0.adcode == cityCode }) {
             self.downloadingCities.insert(cityCode)
             self.pausedCities.remove(cityCode)
             // 批量下载也建议开启后台
-            self.offlineMapManager.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
+            self.offlineMapManager?.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
               guard let self = self, let item = item else { return }
               self.handleDownloadCallback(item: item, status: status, info: info)
             }
@@ -272,10 +279,10 @@ public class ExpoGaodeMapOfflineModule: Module {
     
     // 恢复原有方法：batchDelete
     AsyncFunction("batchDelete") { (cityCodes: [String]) in
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       cityCodes.forEach { cityCode in
         if let city = allCities.first(where: { $0.adcode == cityCode }) {
-          self.offlineMapManager.delete(city)
+          self.offlineMapManager?.delete(city)
         }
         self.downloadingCities.remove(cityCode)
         self.pausedCities.remove(cityCode)
@@ -286,7 +293,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     AsyncFunction("batchUpdate") { (cityCodes: [String]) in
       self.ensureSetup { success in
         guard success else { return }
-        let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+        let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
         
         cityCodes.forEach { cityCode in
           if let city = allCities.first(where: { $0.adcode == cityCode }) {
@@ -296,7 +303,7 @@ public class ExpoGaodeMapOfflineModule: Module {
                 self._downloadingCities.insert(cityCode)
                 self._pausedCities.remove(cityCode)
               }
-              self.offlineMapManager.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
+              self.offlineMapManager?.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
                 guard let self = self, let item = item else { return }
                 self.handleDownloadCallback(item: item, status: status, info: info)
               }
@@ -307,7 +314,7 @@ public class ExpoGaodeMapOfflineModule: Module {
     }
     
     AsyncFunction("pauseAllDownloads") {
-      self.offlineMapManager.cancelAll()
+      self.offlineMapManager?.cancelAll()
       for cityCode in self.downloadingCities {
         self.pausedCities.insert(cityCode)
         self.sendEvent("onDownloadPaused", ["cityCode": cityCode, "cityName": ""])
@@ -320,14 +327,14 @@ public class ExpoGaodeMapOfflineModule: Module {
       // iOS SDK 没有 resumeAll，只能尝试恢复 pausedCities 列表中的城市
       self.ensureSetup { success in
         guard success else { return }
-        let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+        let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
         let pausedList = Array(self.pausedCities)
         
         pausedList.forEach { cityCode in
            if let city = allCities.first(where: { $0.adcode == cityCode }) {
              self.pausedCities.remove(cityCode)
              self.downloadingCities.insert(cityCode)
-             self.offlineMapManager.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
+             self.offlineMapManager?.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
                guard let self = self, let item = item else { return }
                self.handleDownloadCallback(item: item, status: status, info: info)
              }
@@ -346,7 +353,7 @@ public class ExpoGaodeMapOfflineModule: Module {
         return
       }
       
-      let allCities = self.cachedCities ?? self.offlineMapManager.cities ?? []
+      let allCities = self.cachedCities ?? self.offlineMapManager?.cities ?? []
       guard let city = allCities.first(where: { $0.adcode == cityCode }) else {
         promise.reject("ERR_CITY", "City not found: \(cityCode)")
         return
@@ -356,7 +363,7 @@ public class ExpoGaodeMapOfflineModule: Module {
       self.pausedCities.remove(cityCode)
       
       // 开启后台下载
-      self.offlineMapManager.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
+      self.offlineMapManager?.downloadItem(city, shouldContinueWhenAppEntersBackground: true) { [weak self] item, status, info in
         guard let self = self, let item = item else { return }
         self.handleDownloadCallback(item: item, status: status, info: info)
       }
@@ -370,7 +377,15 @@ public class ExpoGaodeMapOfflineModule: Module {
     if isSetupInProgress { return }
     
     isSetupInProgress = true
-    MAOfflineMap.shared().setup { [weak self] success in
+    guard let offlineMapManager = self.offlineMapManager else {
+      self.isSetupInProgress = false
+      let waiters = self.setupWaiters
+      self.setupWaiters.removeAll()
+      waiters.forEach { $0(false) }
+      return
+    }
+
+    offlineMapManager.setup { [weak self] success in
       guard let self = self else { return }
       self.isSetupInProgress = false
       self.isSetupComplete = success
@@ -382,7 +397,7 @@ public class ExpoGaodeMapOfflineModule: Module {
   }
   
   private func parseOfflineMapData() {
-    let map = MAOfflineMap.shared()
+    let map = offlineMapManager
     stateQueue.async(flags: .barrier) {
       self.cachedCities = map?.cities
       self.cachedProvinces = map?.provinces
@@ -462,7 +477,7 @@ public class ExpoGaodeMapOfflineModule: Module {
       "size": city.size,
       "status": status,
       "downloadedSize": city.downloadedSize,
-      "version": self.offlineMapManager.version ?? "",
+      "version": self.offlineMapManager?.version ?? "",
       "progress": city.size > 0 ? Int((Double(city.downloadedSize) / Double(city.size)) * 100) : 0
     ]
   }
@@ -475,5 +490,20 @@ public class ExpoGaodeMapOfflineModule: Module {
       "status": (province.itemStatus == .installed) ? "downloaded" : "not_downloaded",
       "downloadedSize": province.downloadedSize
     ]
+  }
+
+  @discardableResult
+  private func setupApiKeyIfNeeded() -> Bool {
+    if let apiKey = AMapServices.shared().apiKey, !apiKey.isEmpty {
+      return true
+    }
+
+    if let plistKey = Bundle.main.infoDictionary?["AMapApiKey"] as? String, !plistKey.isEmpty {
+      AMapServices.shared().apiKey = plistKey
+      AMapServices.shared().enableHTTPS = true
+      return true
+    }
+
+    return false
   }
 }

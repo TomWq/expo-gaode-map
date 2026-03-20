@@ -1,5 +1,10 @@
 import { LatLng, LatLngPoint } from '../types/common.types';
 
+type LatLngLike = {
+  latitude?: unknown;
+  longitude?: unknown;
+};
+
 /**
  * 将坐标点归一化为对象格式
  * 支持 [longitude, latitude] 数组或 { latitude, longitude } 对象
@@ -29,8 +34,12 @@ export function normalizeLatLng(point: LatLngPoint): LatLng {
       latitude,
     };
   }
-  // 对象格式直接返回
-  return point;
+  // 对象格式：强制转换为数字，防止传入 string 类型导致原生层 Crash
+  const normalizedPoint = point as LatLngLike;
+  return {
+    latitude: Number(normalizedPoint.latitude),
+    longitude: Number(normalizedPoint.longitude),
+  };
 }
 
 /**
@@ -43,7 +52,9 @@ export function normalizeLatLng(point: LatLngPoint): LatLng {
 export function normalizeLatLngList(points: LatLngPoint[]): LatLng[];
 export function normalizeLatLngList(points: LatLngPoint[][]): LatLng[][];
 export function normalizeLatLngList(points: LatLngPoint[] | LatLngPoint[][]): LatLng[] | LatLng[][];
-export function normalizeLatLngList(points: any): any {
+export function normalizeLatLngList(
+  points: LatLngPoint[] | LatLngPoint[][]
+): LatLng[] | LatLng[][] {
   if (!points || points.length === 0) return [];
 
   // 检查是否为嵌套数组 (检查第一项是否也是数组或对象，且不符合 LatLngPoint 的基本判断)

@@ -31,6 +31,9 @@ if (useManagedAndroidSdkVersions) {
   }
 }
 
+logger.warn("[expo-gaode-map] Thank you for using expo-gaode-map ❤️")
+logger.warn("[expo-gaode-map] If you enjoy using expo-gaode-map, please consider sponsoring this project: https://github.com/TomWq")
+
 android {
   namespace "expo.modules.gaodemap"
   defaultConfig {

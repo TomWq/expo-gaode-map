@@ -27,6 +27,9 @@ if (useManagedAndroidSdkVersions) {
   }
 }
 
+logger.warn("[expo-gaode-map-navigation] Thank you for using expo-gaode-map-navigation ❤️")
+logger.warn("[expo-gaode-map-navigation] If you enjoy using expo-gaode-map-navigation, please consider sponsoring this project: https://github.com/TomWq")
+
 android {
   namespace "expo.modules.gaodemap.navigation"
   defaultConfig {

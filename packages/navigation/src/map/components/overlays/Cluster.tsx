@@ -1,8 +1,8 @@
-import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
 import type { ClusterProps } from '../../types';
+import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 
-const NativeCluster = requireNativeViewManager('ClusterView');
+const getNativeCluster = createLazyNativeViewManager<ClusterProps>('ClusterView');
 
 /**
  * 高德地图点聚合组件
@@ -11,6 +11,7 @@ const NativeCluster = requireNativeViewManager('ClusterView');
  * @returns 渲染原生点聚合组件
  */
 function Cluster(props: ClusterProps) {
+  const NativeCluster = React.useMemo(() => getNativeCluster(), []);
   return <NativeCluster {...props} />;
 }
 

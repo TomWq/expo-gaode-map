@@ -2,6 +2,8 @@
 
 展示如何实现定位追踪功能。
 
+> ⚠️ 以下示例使用 `getPrivacyStatus()` 判断是否已完成首次隐私同意；真实项目里请在你自己的隐私弹窗“同意”回调中设置隐私状态。
+
 ## 基础定位
 
 获取当前位置：
@@ -9,12 +11,19 @@
 ```tsx
 import { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
-import { ExpoGaodeMapModule, type Location } from 'expo-gaode-map';
+import { ExpoGaodeMapModule, type ReGeocode } from 'expo-gaode-map';
 
 export default function BasicLocation() {
-  const [location, setLocation] = useState<Location | null>(null);
+  const [location, setLocation] = useState<ReGeocode | null>(null);
 
   useEffect(() => {
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
@@ -50,13 +59,20 @@ export default function BasicLocation() {
 ```tsx
 import { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
-import { ExpoGaodeMapModule, type Location } from 'expo-gaode-map';
+import { ExpoGaodeMapModule, type ReGeocode } from 'expo-gaode-map';
 
 export default function ContinuousLocation() {
-  const [location, setLocation] = useState<Location | null>(null);
+  const [location, setLocation] = useState<ReGeocode | null>(null);
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
@@ -67,12 +83,9 @@ export default function ContinuousLocation() {
     ExpoGaodeMapModule.setInterval(2000);
 
     // 监听位置更新
-    const subscription = ExpoGaodeMapModule.addLocationListener(
-      'onLocationUpdate',
-      (loc) => {
-        setLocation(loc);
-      }
-    );
+    const subscription = ExpoGaodeMapModule.addLocationListener((loc) => {
+      setLocation(loc as ReGeocode);
+    });
 
     return () => subscription.remove();
   }, []);
@@ -116,14 +129,21 @@ import { View, Button, StyleSheet } from 'react-native';
 import {
   MapView,
   ExpoGaodeMapModule,
-  type Location,
+  type ReGeocode,
 } from 'expo-gaode-map';
 
 export default function MapLocationTracking() {
-  const [location, setLocation] = useState<Location | null>(null);
+  const [location, setLocation] = useState<ReGeocode | null>(null);
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
+    if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
+    }
     // 使用 Config Plugin 时可传空对象
     ExpoGaodeMapModule.initSDK({
       webKey: 'your-web-api-key', // 可选
@@ -132,10 +152,9 @@ export default function MapLocationTracking() {
     ExpoGaodeMapModule.setLocatingWithReGeocode(true);
     ExpoGaodeMapModule.setInterval(2000);
 
-    const subscription = ExpoGaodeMapModule.addLocationListener(
-      'onLocationUpdate',
-      setLocation
-    );
+    const subscription = ExpoGaodeMapModule.addLocationListener((result) => {
+      setLocation(result as ReGeocode);
+    });
 
     return () => {
       subscription.remove();

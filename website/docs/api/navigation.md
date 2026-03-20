@@ -27,10 +27,18 @@ npm install expo-gaode-map-navigation
 
 ## 初始化
 
-在应用启动时初始化 SDK：
+在应用启动时初始化 SDK。首次安装时，同样必须先完成隐私同意；同意后原生会自动持久化并在后续冷启动恢复：
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
+
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
 
 // 使用 Config Plugin 时，原生 Key 已自动配置，可传空对象
 ExpoGaodeMapModule.initSDK({
@@ -46,7 +54,7 @@ ExpoGaodeMapModule.initSDK({
 ```
 
 ::: tip Config Plugin 自动配置
-推荐使用 Config Plugin，它会自动将 API Key 配置到原生项目中，更安全且无需在代码中硬编码。
+推荐使用 Config Plugin，它会自动将 API Key 配置到原生项目中，更安全且无需在代码中硬编码；但首次运行时的隐私同意仍需要你在业务层处理。
 :::
 
 ## 路径规划 API

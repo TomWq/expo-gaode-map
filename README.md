@@ -36,7 +36,7 @@ Includes complete API documentation, usage guides, and example code:
 - ✅ High test coverage (75.7%, 207 unit tests)
 - ✅ User-friendly error notification system
 - ✅ Custom Marker overlay support
-- ✅ Optimized map loading by default to reduce memory usage
+- ✅ Lean native implementation with simpler lifecycle management and lower maintenance cost
 
 ### Optional Modules
 - 🔍 **Search Functionality** (expo-gaode-map-search) - POI search, nearby search, keyword search, geocoding, etc.
@@ -101,6 +101,34 @@ npx expo prebuild --clean
 npx expo run:android
 npx expo run:ios
 ```
+
+## 🔒 Privacy Compliance
+
+On a **fresh install** (or after your privacy policy version changes), you must complete privacy consent **before** calling `initSDK()` or rendering `MapView`.
+
+After consent is granted once, native iOS / Android now **persist and auto-restore** the privacy state on later cold starts, so you do **not** need to call `setPrivacyConfig()` again on every app launch.
+
+```ts
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+
+if (!privacyStatus.isReady) {
+  // Call these in your own privacy dialog "Agree" callback
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
+
+ExpoGaodeMapModule.initSDK({
+  webKey: 'your-web-api-key',
+});
+```
+
+If privacy consent is missing on a fresh install, the library now throws a clear `PRIVACY_NOT_AGREED` error instead of leaving the native SDK to fail unpredictably.
 
 ## 🚀 Quick Start
 

@@ -13,6 +13,7 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import expo.modules.gaodemap.map.managers.CameraManager
 import expo.modules.gaodemap.map.managers.UIManager
+import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.gaodemap.map.overlays.*
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
@@ -93,22 +94,11 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     init {
         try {
-            // 确保隐私合规已设置
-            MapsInitializer.updatePrivacyShow(context, true, true)
-            MapsInitializer.updatePrivacyAgree(context, true)
+            SDKInitializer.applyPrivacyState(context)
 
-            // 尝试从预加载池获取 MapView
-            val preloadedMapView = MapPreloadManager.getPreloadedMapView()
-            
-            if (preloadedMapView != null) {
-                mapView = preloadedMapView
-                android.util.Log.i("ExpoGaodeMapView", "🚀 使用预加载的 MapView 实例")
-            } else {
-                // 创建地图视图
-                mapView = MapView(context)
-                mapView.onCreate(null)
-                android.util.Log.i("ExpoGaodeMapView", "⚠️ 创建新的 MapView 实例 (未命中预加载池)")
-            }
+            // 直接创建地图视图
+            mapView = MapView(context)
+            mapView.onCreate(null)
             
             aMap = mapView.map
 

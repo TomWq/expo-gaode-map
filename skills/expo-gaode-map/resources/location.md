@@ -4,6 +4,16 @@
 
 ## 快速参考
 
+### 先完成隐私确认
+```ts
+import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+ExpoGaodeMapModule.setPrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyAgree(true);
+```
+
+> 未完成隐私确认前，`getCurrentLocation`、`start`、`setInterval`、`setDistanceFilter` 等定位 API 会先抛出 `PRIVACY_NOT_AGREED`。
+
 ### 开启定位
 ```tsx
 <MapView 
@@ -28,6 +38,9 @@
 ```ts
 import { PermissionUtils, LocationPermissionType, ExpoGaodeMapModule } from 'expo-gaode-map';
 
+ExpoGaodeMapModule.setPrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyAgree(true);
+
 // 1. 获取适配 Android 14+ / iOS 17+ 的权限文案
 const rationale = PermissionUtils.getPermissionRationale(LocationPermissionType.FOREGROUND);
 
@@ -37,6 +50,9 @@ const result = await ExpoGaodeMapModule.requestLocationPermission();
 
 ### 单次定位
 ```ts
+ExpoGaodeMapModule.setPrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyAgree(true);
+
 const location = await ExpoGaodeMapModule.getCurrentLocation();
 console.log(location.latitude, location.longitude);
 ```
@@ -69,3 +85,4 @@ console.log(location.latitude, location.longitude);
 ### 常见陷阱
 1. **频率控制**: `onLocation` 事件触发频率受系统和高德 SDK 内部策略控制，通常为 1-2 秒一次。
 2. **坐标偏转**: `onLocation` 返回的是 GCJ-02 坐标，直接用于高德地图显示是准确的。如果发送给后端或其他地图，请注意坐标系转换。
+3. **升级到新版本后直接调用定位 API**: 若还没先设置 `setPrivacyShow` / `setPrivacyAgree`，现在会先抛 `PRIVACY_NOT_AGREED`，这是预期保护行为。

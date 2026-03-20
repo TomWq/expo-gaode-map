@@ -1,4 +1,3 @@
-import { requireNativeViewManager } from 'expo-modules-core';
 import * as React from 'react';
 
 import type {
@@ -9,15 +8,17 @@ import type {
   Point,
   LatLngPoint,
 } from './types';
+import ExpoGaodeMapModule from './ExpoGaodeMapModule';
 import { normalizeLatLng } from './utils/GeoUtils';
 import { ErrorHandler } from './utils/ErrorHandler';
 import { MapContext } from './components/MapContext';
 import { MapUI } from './components/MapUI';
+import { createLazyNativeViewManager } from './utils/lazyNativeViewManager';
 import { View, StyleSheet } from 'react-native';
 
 export type { MapViewRef } from './types';
 
-const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<MapViewRef> }> = requireNativeViewManager('ExpoGaodeMapView');
+const getNativeView = createLazyNativeViewManager<MapViewProps & { ref?: React.Ref<MapViewRef> }>('ExpoGaodeMapView');
 
 
 /**
@@ -39,8 +40,14 @@ const NativeView: React.ComponentType<MapViewProps & { ref?: React.Ref<MapViewRe
  * 所有API方法都会检查地图是否已初始化，未初始化时抛出错误
  */
 const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref) => {
+  const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+  if (!privacyStatus.isReady) {
+    throw ErrorHandler.privacyNotAgreed('map');
+  }
+
   const nativeRef = React.useRef<MapViewRef>(null);
   const internalRef = React.useRef<MapViewRef | null>(null);
+  const NativeView = React.useMemo(() => getNativeView(), []);
   
   /**
    * 🔑 性能优化：通用 API 方法包装器

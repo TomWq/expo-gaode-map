@@ -5,7 +5,7 @@
 ## 核心概念
 
 - **GaodeWebAPI**: 统一的服务入口类。
-- **Web API Key**: 必须通过 `ExpoGaodeMapModule.initSDK({ webKey })` 初始化，模块会自动从核心包获取该 Key。
+- **Web API Key**: 可通过 `ExpoGaodeMapModule.initSDK({ webKey })` 全局下发，也可在构造函数中直接传入 `key`。
 - **GCJ-02 坐标系**: 所有输入输出坐标均遵循高德 GCJ-02 标准。
 - **服务分类**: 地理编码 (Geocode)、路径规划 (Route)、POI 搜索 (POI)、输入提示 (InputTips)。
 
@@ -17,6 +17,8 @@
 
 #### 方式 1：全局初始化 (推荐)
 在基础模块（`expo-gaode-map` 或 `expo-gaode-map-navigation`）初始化时统一配置。
+
+> 注意：如果这里走的是基础包 `initSDK()` 链路，那么新版本中应先完成隐私确认，再执行初始化。
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
@@ -40,6 +42,8 @@ const api = new GaodeWebAPI({
   maxRetries: 3      // 失败重试次数
 });
 ```
+
+> 方式 2 是纯 JS 路径，不依赖地图渲染，也不依赖基础包的隐私初始化链路。
 
 ## 高级特性 (Advanced)
 

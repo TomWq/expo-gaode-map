@@ -4,12 +4,32 @@ This guide explains how to initialize the AMap SDK and configure permissions.
 
 ## SDK Initialization
 
+::: warning Privacy Compliance
+Before calling any AMap capability, you must first complete runtime privacy consent:
+On a fresh install, you must do this yourself from your app's privacy UI.
+After consent is granted once, native iOS / Android now persist and automatically restore the privacy state on later cold starts.
+
+Config Plugin only writes native keys and permission declarations. It does **not** replace the first runtime privacy step.
+:::
+
 ### Basic Initialization
 
-Initialize the SDK before using any map features:
+Initialize the SDK only after privacy consent is completed:
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+const privacyStatus = ExpoGaodeMapModule.getPrivacyStatus();
+
+if (!privacyStatus.isReady) {
+  // Call this from your own privacy dialog "Agree" callback
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+    privacyVersion: '2026-03-13',
+  });
+}
 
 // Enable World Vector Map (Overseas Map) support
 // Must be called before initSDK
@@ -20,7 +40,7 @@ ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',
 });
-``````
+```
 
 ### Get API Keys
 
@@ -104,8 +124,8 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 async function requestLocationPermission() {
   try {
-    const granted = await ExpoGaodeMapModule.requestLocationPermission();
-    if (granted) {
+    const result = await ExpoGaodeMapModule.requestLocationPermission();
+    if (result.granted) {
       console.log('Location permission granted');
     } else {
       console.log('Location permission denied');
@@ -119,28 +139,30 @@ async function requestLocationPermission() {
 ### Check Permission Status
 
 ```typescript
-const hasPermission = await ExpoGaodeMapModule.hasLocationPermission();
-console.log('Has location permission:', hasPermission);
+const status = await ExpoGaodeMapModule.checkLocationPermission();
+console.log('Has location permission:', status.granted);
 ```
 
 ## Privacy Compliance
 
-⚠️ **Important**: Before collecting location data, you must:
+⚠️ **Important**: Before collecting location data on a fresh install, you must:
 
 1. Display privacy policy to users
 2. Obtain user consent
-3. Configure AMap SDK privacy compliance interface
+3. Call `setPrivacyConfig(...)`
+4. After that, privacy state is persisted natively and restored automatically on later cold starts
 
 ### Configure Privacy Compliance
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// Update privacy consent status
-ExpoGaodeMapModule.updatePrivacyAgree(true);
-
-// Update privacy info status
-ExpoGaodeMapModule.updatePrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyConfig({
+  hasShow: true,
+  hasContainsPrivacy: true,
+  hasAgree: true,
+  privacyVersion: '2026-03-13',
+});
 ```
 
 ### Privacy Compliance Process
@@ -150,14 +172,16 @@ ExpoGaodeMapModule.updatePrivacyShow(true, true);
 function showPrivacyPolicy() {
   // Display your privacy policy UI
   // After user agrees:
-  ExpoGaodeMapModule.updatePrivacyAgree(true);
-  ExpoGaodeMapModule.updatePrivacyShow(true, true);
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
 }
 
 // 2. Then initialize SDK
 ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
+  webKey: 'your-web-api-key', // only needed for Web API features
 });
 
 // 3. Request location permission
@@ -214,13 +238,13 @@ See [Config Plugin Guide](./config-plugin) for details.
 
 ```typescript
 // Check current permission status
-const status = await ExpoGaodeMapModule.hasLocationPermission();
+const status = await ExpoGaodeMapModule.checkLocationPermission();
 
-if (!status) {
+if (!status.granted) {
   // Request permission
-  const granted = await ExpoGaodeMapModule.requestLocationPermission();
+  const result = await ExpoGaodeMapModule.requestLocationPermission();
   
-  if (!granted) {
+  if (!result.granted) {
     // Guide user to settings
     Alert.alert(
       'Permission Required',
@@ -251,19 +275,21 @@ function App() {
   async function initializeMap() {
     try {
       // 1. Configure privacy compliance
-      ExpoGaodeMapModule.updatePrivacyAgree(true);
-      ExpoGaodeMapModule.updatePrivacyShow(true, true);
+      if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+        ExpoGaodeMapModule.setPrivacyConfig({
+          hasShow: true,
+          hasContainsPrivacy: true,
+          hasAgree: true,
+        });
+      }
 
       // 2. Initialize SDK
-      ExpoGaodeMapModule.initSDK({
-        androidKey: 'your-android-api-key',
-        iosKey: 'your-ios-api-key',
-      });
+      ExpoGaodeMapModule.initSDK({});
 
       // 3. Request location permission
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
       
-      if (granted) {
+      if (result.granted) {
         setIsReady(true);
       } else {
         Alert.alert('Location permission is required');

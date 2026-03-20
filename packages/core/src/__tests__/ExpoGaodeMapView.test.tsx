@@ -6,6 +6,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import ExpoGaodeMapView from '../ExpoGaodeMapView';
+import ExpoGaodeMapModule from '../ExpoGaodeMapModule';
 import { MapType } from '../types/common.types';
 
 describe('ExpoGaodeMapView', () => {
@@ -13,6 +14,19 @@ describe('ExpoGaodeMapView', () => {
   it('应该能够渲染', () => {
     const result = render(<ExpoGaodeMapView />);
     expect(result).toBeTruthy();
+  });
+
+  it('未完成隐私确认时应给出明确错误', () => {
+    const privacySpy = jest.spyOn(ExpoGaodeMapModule, 'getPrivacyStatus').mockReturnValue({
+      hasShow: false,
+      hasContainsPrivacy: false,
+      hasAgree: false,
+      isReady: false,
+    });
+
+    expect(() => render(<ExpoGaodeMapView />)).toThrow('PRIVACY_NOT_AGREED');
+
+    privacySpy.mockRestore();
   });
 
   it('应该支持地图类型设置', () => {

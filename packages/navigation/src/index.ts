@@ -32,6 +32,18 @@ import type {
   IndependentMotorcycleRouteOptions,
 } from './types';
 
+function hasStrategyOption(
+  options: RouteOptions
+): options is WalkRouteOptions | RideRouteOptions {
+  return 'strategy' in options;
+}
+
+function isMotorcycleRouteOptions(
+  options: RouteOptions | MotorcycleRouteOptions
+): options is MotorcycleRouteOptions {
+  return 'motorcycleCC' in options;
+}
+
 // 导出官方导航界面组件
 export { 
   ExpoGaodeMapNaviView, 
@@ -69,7 +81,7 @@ export async function calculateRoute(
     if ('usePoi' in options) return calculateEBikeRoute(options as EBikeRouteOptions);
     
     // 策略判断：0 或 1 通常为骑行策略，其余默认步行
-    const strategy = (options as any).strategy;
+    const strategy = hasStrategyOption(options) ? options.strategy : undefined;
     if (strategy === 0 || strategy === 1) {
       return calculateRideRoute(options as RideRouteOptions);
     }
@@ -77,7 +89,7 @@ export async function calculateRoute(
   }
 
   // 3. 摩托车 (通过 carType 或 motorcycleCC 判断)
-  if ('motorcycleCC' in options || (options as any).carType === 11) {
+  if (isMotorcycleRouteOptions(options)) {
     return calculateMotorcycleRoute(options as MotorcycleRouteOptions);
   }
 

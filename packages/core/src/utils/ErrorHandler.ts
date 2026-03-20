@@ -9,6 +9,8 @@
 export enum ErrorType {
   /** SDK 未初始化 */
   SDK_NOT_INITIALIZED = 'SDK_NOT_INITIALIZED',
+  /** 隐私协议未确认 */
+  PRIVACY_NOT_AGREED = 'PRIVACY_NOT_AGREED',
   /** API Key 配置错误 */
   INVALID_API_KEY = 'INVALID_API_KEY',
   /** 权限未授予 */
@@ -102,6 +104,39 @@ useEffect(() => {
 1. 忘记调用 initSDK() 就使用了定位或地图功能
 2. initSDK() 调用时机过晚（应在 useEffect 中尽早调用）
 3. 使用 Config Plugin 但未重新构建原生代码`,
+      docUrl: `${this.docBaseUrl}/guide/initialization.html`,
+    });
+  }
+
+  /**
+   * 隐私协议未确认错误
+   */
+  static privacyNotAgreed(scene: 'map' | 'sdk'): GaodeMapError {
+    const sceneText = scene === 'map' ? '渲染 MapView' : '初始化 SDK';
+    return new GaodeMapError({
+      type: ErrorType.PRIVACY_NOT_AGREED,
+      message: `调用高德地图前未完成隐私合规确认：${sceneText}`,
+      solution: `请在调用任何高德地图 SDK 接口前，先明确完成隐私告知与同意：
+
+import ExpoGaodeMapModule from 'expo-gaode-map';
+
+// 应用启动后，先展示你自己的隐私弹窗
+ExpoGaodeMapModule.setPrivacyConfig({
+  hasShow: true,
+  hasContainsPrivacy: true,
+  hasAgree: true,
+});
+
+// 然后再初始化 SDK / 渲染地图
+ExpoGaodeMapModule.initSDK({
+  androidKey: 'your-android-key',
+  iosKey: 'your-ios-key',
+});
+
+⚠️  升级注意：
+1. 不能只 import 包后直接渲染 MapView
+2. Android 若未先设置隐私，原生 SDK 可能直接报 555570
+3. 推荐在应用首次启动时先弹出隐私协议，同意后再进入地图页面`,
       docUrl: `${this.docBaseUrl}/guide/initialization.html`,
     });
   }
@@ -378,6 +413,17 @@ const App = () => {
    */
   static wrapNativeError(error: unknown, context: string): GaodeMapError {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const scene = context.includes('MapView') || context.includes('渲染') ? 'map' : 'sdk';
+
+    if (
+      errorMessage.includes('PRIVACY_NOT_AGREED') ||
+      errorMessage.includes('隐私协议未完成确认') ||
+      errorMessage.includes('隐私合规校验失败') ||
+      errorMessage.includes('555570') ||
+      errorMessage.includes('确保调用SDK任何接口前先调用更新隐私合规')
+    ) {
+      return this.privacyNotAgreed(scene);
+    }
     
     // SDK 未初始化相关错误
     if (

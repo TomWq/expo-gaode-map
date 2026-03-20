@@ -30,42 +30,12 @@ class ExpoGaodeMapModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMap")
 
-    // 在模块加载时尝试从本地缓存恢复隐私同意状态，避免每次启动都必须 JS 调用
-    try {
-      val context = appContext.reactContext!!
-      SDKInitializer.restorePrivacyState(context)
-
-      // 初始化预加载管理器（注册内存监听）
-      MapPreloadManager.initialize(context)
-
-      // 尝试从 AndroidManifest.xml 读取并设置 API Key
-      val apiKey = context.packageManager
-          .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
-          .metaData?.getString("com.amap.api.v2.apikey")
-
-      if (!apiKey.isNullOrEmpty()) {
-          try {
-            MapsInitializer.setApiKey(apiKey)
-            com.amap.api.location.AMapLocationClient.setApiKey(apiKey)
-
-
-            // 只有在 API Key 已设置的情况下才启动预加载
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-              android.util.Log.i("ExpoGaodeMap", "🚀 自动启动地图预加载")
-              MapPreloadManager.startPreload(context, poolSize = 1)
-            }, 2000)
-          } catch (e: Exception) {
-            android.util.Log.w("ExpoGaodeMap", "设置 API Key 失败: ${e.message}")
-          }
-        } else {
-          android.util.Log.w("ExpoGaodeMap", "⚠️ AndroidManifest.xml 未找到 API Key，跳过自动预加载")
-        }
-
-    } catch (e: Exception) {
-      android.util.Log.w("ExpoGaodeMap", "恢复隐私状态时出现问题: ${e.message}")
+    OnCreate {
+      appContext.reactContext?.let { context ->
+        SDKInitializer.restorePersistedState(context)
+      }
     }
- 
-  
+
     // ==================== SDK 初始化 ====================
     
     /**
@@ -74,24 +44,49 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("initSDK") { config: Map<String, String> ->
       val androidKey = config["androidKey"]
-      if (androidKey != null) {
-        try {
-          SDKInitializer.initSDK(appContext.reactContext!!, androidKey)
-          getLocationManager() // 初始化定位管理器
-          
-          // 打印当前 SDK 版本信息，便于验证依赖来源
-          android.util.Log.i("ExpoGaodeMap", "✅ SDK 初始化完成 - Version: ${MapsInitializer.getVersion()}")
-
-          // 初始化成功后自动触发一次预加载
-          MapPreloadManager.startPreload(appContext.reactContext!!, poolSize = 1)
-        } catch (e: SecurityException) {
-          android.util.Log.e("ExpoGaodeMap", "隐私协议未同意: ${e.message}")
-          throw expo.modules.kotlin.exception.CodedException("PRIVACY_NOT_AGREED", e.message ?: "用户未同意隐私协议", e)
-        } catch (e: Exception) {
-          android.util.Log.e("ExpoGaodeMap", "SDK 初始化失败: ${e.message}")
-          throw expo.modules.kotlin.exception.CodedException("INIT_FAILED", e.message ?: "SDK 初始化失败", e)
+      try {
+        val context = appContext.reactContext!!
+        if (androidKey != null) {
+          SDKInitializer.initSDK(context, androidKey)
+        } else if (!SDKInitializer.isPrivacyReady()) {
+          throw expo.modules.kotlin.exception.CodedException(
+            "PRIVACY_NOT_AGREED",
+            "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree",
+            null
+          )
+        } else {
+          SDKInitializer.applyPrivacyState(context)
         }
+
+        getLocationManager()
+        android.util.Log.i("ExpoGaodeMap", "✅ SDK 初始化完成 - Version: ${MapsInitializer.getVersion()}")
+      } catch (e: SecurityException) {
+        android.util.Log.e("ExpoGaodeMap", "隐私协议未同意: ${e.message}")
+        throw expo.modules.kotlin.exception.CodedException("PRIVACY_NOT_AGREED", e.message ?: "用户未同意隐私协议", e)
+      } catch (e: Exception) {
+        android.util.Log.e("ExpoGaodeMap", "SDK 初始化失败: ${e.message}")
+        throw expo.modules.kotlin.exception.CodedException("INIT_FAILED", e.message ?: "SDK 初始化失败", e)
       }
+    }
+
+    Function("setPrivacyShow") { hasShow: Boolean, hasContainsPrivacy: Boolean ->
+      SDKInitializer.setPrivacyShow(appContext.reactContext!!, hasShow, hasContainsPrivacy)
+    }
+
+    Function("setPrivacyAgree") { hasAgree: Boolean ->
+      SDKInitializer.setPrivacyAgree(appContext.reactContext!!, hasAgree)
+    }
+
+    Function("setPrivacyVersion") { version: String ->
+      SDKInitializer.setPrivacyVersion(appContext.reactContext!!, version)
+    }
+
+    Function("resetPrivacyConsent") {
+      SDKInitializer.resetPrivacyConsent(appContext.reactContext!!)
+    }
+
+    Function("getPrivacyStatus") {
+      SDKInitializer.getPrivacyStatus()
     }
 
     /**
@@ -893,7 +888,6 @@ class ExpoGaodeMapModule : Module() {
     OnDestroy {
       locationManager?.destroy()
       locationManager = null
-      MapPreloadManager.cleanup()
     }
   }
 

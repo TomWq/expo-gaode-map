@@ -29,6 +29,11 @@ if (useManagedAndroidSdkVersions) {
   }
 }
 
+logger.warn("[expo-gaode-map-search] Thank you for using expo-gaode-map-search ❤️")
+logger.warn("[expo-gaode-map-search] If you enjoy using expo-gaode-map-search, please consider sponsoring this project: https://github.com/TomWq")
+
+
+
 android {
   namespace "expo.modules.gaodemap.search"
   defaultConfig {

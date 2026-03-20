@@ -1366,20 +1366,20 @@ function createIterableMethod(method, isReadonly2, isShallow2) {
       "iterate",
       isKeyOnly ? MAP_KEY_ITERATE_KEY : ITERATE_KEY
     );
-    return {
-      // iterator protocol
-      next() {
-        const { value, done } = innerIterator.next();
-        return done ? { value, done } : {
-          value: isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value),
-          done
-        };
-      },
-      // iterable protocol
-      [Symbol.iterator]() {
-        return this;
+    return extend(
+      // inheriting all iterator properties
+      Object.create(innerIterator),
+      {
+        // iterator protocol
+        next() {
+          const { value, done } = innerIterator.next();
+          return done ? { value, done } : {
+            value: isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value),
+            done
+          };
+        }
       }
-    };
+    );
   };
 }
 function createReadonlyMethod(type) {
@@ -4298,7 +4298,7 @@ Server rendered element contains more child nodes than client vdom.`
               logMismatchError();
             }
             if (forcePatch && (key.endsWith("value") || key === "indeterminate") || isOn(key) && !isReservedProp(key) || // force hydrate v-bind with .prop modifiers
-            key[0] === "." || isCustomElement) {
+            key[0] === "." || isCustomElement && !isReservedProp(key)) {
               patchProp2(el, key, null, props[key], void 0, parentComponent);
             }
           }
@@ -10687,7 +10687,7 @@ function isMemoSame(cached, memo) {
   }
   return true;
 }
-var version = "3.5.26";
+var version = "3.5.27";
 var warn2 = true ? warn$1 : NOOP;
 var ErrorTypeStrings = ErrorTypeStrings$1;
 var devtools = true ? devtools$1 : void 0;
@@ -12784,4 +12784,4 @@ export {
   initDirectivesForSSR,
   compile2 as compile
 };
-//# sourceMappingURL=chunk-ADVWCYKY.js.map
+//# sourceMappingURL=chunk-ELXMO34Z.js.map

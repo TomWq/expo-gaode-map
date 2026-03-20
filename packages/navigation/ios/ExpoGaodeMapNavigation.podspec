@@ -2,6 +2,11 @@ require 'json'
 
 package = JSON.parse(File.read(File.join(__dir__, '..', 'package.json')))
 
+Pod::UI.puts "[expo-gaode-map-navigation] Thank you for using expo-gaode-map-navigation ❤️"
+Pod::UI.puts "[expo-gaode-map-navigation] If you enjoy using expo-gaode-map-navigation, please consider sponsoring this project: https://github.com/TomWq"
+
+
+
 Pod::Spec.new do |s|
   s.name           = 'ExpoGaodeMapNavigation'
   s.version        = package['version']

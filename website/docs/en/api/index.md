@@ -8,7 +8,8 @@ Complete API reference documentation.
 > 1. ✅ Required permissions are configured in native project
 > 2. ✅ Request user authorization at runtime
 > 3. ✅ Comply with privacy laws and regulations
-> 4. ✅ Configure AMap SDK privacy compliance interface
+> 4. ✅ On a fresh install, complete privacy consent before `initSDK`
+> 5. ✅ After consent is granted once, privacy state is persisted and auto-restored natively
 
 ## Table of Contents
 
@@ -50,10 +51,18 @@ import { MapView } from 'expo-gaode-map';
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
+// Complete privacy compliance first
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
 // Initialize SDK
 ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
+  webKey: 'your-web-api-key', // only needed for Web API features
 });
 
 // Get current location

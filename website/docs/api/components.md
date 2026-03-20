@@ -16,7 +16,7 @@
 2. 调用 `useMap()` 获取 `map` 实例。
 
 ```tsx
-import { MapView, useMap } from 'expo-gaode-map';
+import { MapUI, MapView, useMap } from 'expo-gaode-map';
 import { Button, View } from 'react-native';
 
 // 定义一个子组件
@@ -74,14 +74,14 @@ function useMap(): MapViewRef
 ### 使用方法
 
 ```tsx
-import { MapView, MapUI } from 'expo-gaode-map';
+import { MapUI, MapView, Marker } from 'expo-gaode-map';
 import { View, Text } from 'react-native';
 
 export default function App() {
   return (
     <MapView style={{ flex: 1 }}>
       {/* 地图覆盖物：直接放在 MapView 下 */}
-      <Marker coordinate={{ latitude: 39.9, longitude: 116.4 }} />
+      <Marker position={{ latitude: 39.9, longitude: 116.4 }} />
 
       {/* UI 元素：包裹在 MapUI 中 */}
       <MapUI>

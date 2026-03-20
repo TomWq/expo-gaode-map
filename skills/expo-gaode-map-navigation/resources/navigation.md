@@ -4,6 +4,16 @@
 
 ## 快速参考
 
+### 使用地图/定位能力前先完成隐私确认
+如果当前页面除了导航外，还会使用本包导出的 `MapView`、`ExpoGaodeMapModule` 或定位能力，请先执行：
+
+```ts
+import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
+
+ExpoGaodeMapModule.setPrivacyShow(true, true);
+ExpoGaodeMapModule.setPrivacyAgree(true);
+```
+
 ### 路径规划 (calculateRoute)
 ```ts
 import { calculateDriveRoute, calculateTruckRoute, RouteType, DriveStrategy, TruckSize } from 'expo-gaode-map-navigation';
@@ -111,3 +121,4 @@ await clearIndependentRoute({ token: result.token });
 1. **并发计算**: 高德 SDK 不支持同时进行多个路径计算。务必使用 `destroyAllCalculators` 清理。
 2. **语音播报**: `NaviView` 默认开启语音播报，可设置 `enableVoice={false}` 关闭。
 3. **Android 状态栏**: 可通过 `androidStatusBarPaddingTop` 调整导航栏顶部间距，适配沉浸式状态栏。
+4. **包冲突**: 已安装 `expo-gaode-map-navigation` 时，不要再额外安装 `expo-gaode-map`。

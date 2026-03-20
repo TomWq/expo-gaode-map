@@ -1,9 +1,14 @@
 import * as React from 'react';
-import { requireNativeViewManager } from 'expo-modules-core';
 import type { MarkerProps } from '../../types';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
+import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 
-const NativeMarkerView = requireNativeViewManager('MarkerView');
+type NativeMarkerViewProps = Omit<MarkerProps, 'position'> & {
+  latitude: number;
+  longitude: number;
+};
+
+const getNativeMarkerView = createLazyNativeViewManager<NativeMarkerViewProps>('MarkerView');
 
 /**
  * Marker 组件 - 完全声明式 API
@@ -16,6 +21,7 @@ const NativeMarkerView = requireNativeViewManager('MarkerView');
  * - 所有事件回调
  */
 function Marker(props: MarkerProps) {
+  const NativeMarkerView = React.useMemo(() => getNativeMarkerView(), []);
   // 从 props 中排除 position 属性，避免传递到原生层
   const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, smoothMovePath, ...restProps } = props;
   
