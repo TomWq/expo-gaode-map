@@ -103,15 +103,19 @@ export interface MarkerProps {
 
   /**
    * 自定义视图宽度（像素）
-   * 仅在使用 children 属性时有效 
-   * @default 80
+   * 仅在使用 children 属性时有效
+   * 已经可以省略，组件会优先尝试自动测量 children 的布局尺寸
+   * 需要强制指定渲染尺寸时再传入
+   * @deprecated
    */
   customViewWidth?: number;
 
   /**
    * 自定义视图高度（像素）
    * 仅在使用 children 属性时有效
-   * @default 30
+   * 已经可以省略，组件会优先尝试自动测量 children 的布局尺寸
+   * 需要强制指定渲染尺寸时再传入
+   * @deprecated
    */
   customViewHeight?: number;
 

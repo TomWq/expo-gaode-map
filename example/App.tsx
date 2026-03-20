@@ -127,8 +127,6 @@ export default function MamScreen() {
   const chipBg = colorScheme === 'dark' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
   const hairline = colorScheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
 
-  const [mSize, setMSize] = useState({ width: 0, height: 0 });
-
   // 用于测试 Marker 动态添加/删除和位置变化
   const [dynamicMarkers, setDynamicMarkers] = useState<Array<{
     id: string;
@@ -136,8 +134,6 @@ export default function MamScreen() {
     longitude: number;
     content: string;
     color: 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'purple';
-    width?: number;
-    height?: number;
     useArrayPosition?: boolean;
   }>>([]);
   const markerIdCounter = useRef(0);
@@ -296,18 +292,23 @@ export default function MamScreen() {
 
   const handleGetLocation = async () => {
     try {
-      const loc = await ExpoGaodeMapModule.getCurrentLocation();
+      const loc = location ?? await ExpoGaodeMapModule.getCurrentLocation();
 
-      setLocation(loc);
+      setLocation((prev) => (
+        prev
+          ? { ...prev, ...loc }
+          : loc
+      ));
       if (mapRef.current) {
         await mapRef.current.moveCamera({
           target: { latitude: loc.latitude, longitude: loc.longitude },
           zoom: 16.6,
-        }, 0);
+        }, 300);
       }
-      // 重新启用跟随模式
+      // 重新启用真正的原生跟随模式
       setIsFollowing(true);
     } catch (error) {
+      console.error('handleGetLocation error:', error);
       Alert.alert('错误', '获取位置失败');
     }
   };
@@ -327,20 +328,48 @@ export default function MamScreen() {
   };
 
   const handleZoomIn = async () => {
-    if (mapRef.current) {
+    try {
+      if (!mapRef.current) {
+        return;
+      }
+
+      setIsFollowing(false);
       const pos = await mapRef.current.getCameraPosition();
       if (pos.zoom !== undefined) {
-        await mapRef.current.setZoom(pos.zoom + 1, true);
+        await mapRef.current.moveCamera(
+          {
+            ...pos,
+            zoom: pos.zoom + 1,
+          },
+          250
+        );
       }
+    } catch (error) {
+      console.error('handleZoomIn error:', error);
+      Alert.alert('错误', '放大失败');
     }
   };
 
   const handleZoomOut = async () => {
-    if (mapRef.current) {
+    try {
+      if (!mapRef.current) {
+        return;
+      }
+
+      setIsFollowing(false);
       const pos = await mapRef.current.getCameraPosition();
       if (pos.zoom !== undefined) {
-        await mapRef.current.setZoom(pos.zoom - 1, true);
+        await mapRef.current.moveCamera(
+          {
+            ...pos,
+            zoom: pos.zoom - 1,
+          },
+          250
+        );
       }
+    } catch (error) {
+      console.error('handleZoomOut error:', error);
+      Alert.alert('错误', '缩小失败');
     }
   };
 
@@ -489,7 +518,7 @@ export default function MamScreen() {
         if (location) {
           // 生成模拟聚合数据
           const points: ClusterPoint[] = [];
-          for (let i = 0; i < 200; i++) {
+          for (let i = 0; i < 10000; i++) {
             points.push({
               latitude: location.latitude + (Math.random() - 0.5) * 0.05,
               longitude: location.longitude + (Math.random() - 0.5) * 0.05,
@@ -701,6 +730,7 @@ export default function MamScreen() {
         ref={mapRef}
         style={styles.map}
         myLocationEnabled={true}
+        followUserLocation={false}
         indoorViewEnabled={true}
         trafficEnabled={true}
         labelsEnabled={true}
@@ -876,33 +906,22 @@ export default function MamScreen() {
                 title={marker.content}
                 pinColor={marker.color}
                 zIndex={99}
-                customViewWidth={marker.width}
-                customViewHeight={marker.height}
                 cacheKey={marker.id}
                 growAnimation={true}  
                 onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
               >
-                <View
-                  style={{ alignSelf: 'flex-start' }}
-                  onLayout={(e) => {
-                    const { width, height } = e.nativeEvent.layout;
-                    if (marker.width !== width || marker.height !== height) {
-                      setDynamicMarkers(prev =>
-                        prev.map(m =>
-                          m.id === marker.id
-                            ? { ...m, width: Math.ceil(width), height: Math.ceil(height) }
-                            : m
-                        )
-                      );
-                    }
-                  }}
-                >
+                {/* <View  style={{paddingHorizontal: 6, paddingVertical: 4,}}>
                   <Text
-                    style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 10 }]}
-                    numberOfLines={2}>
+                    style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 20,  textAlign: 'center', }]}
+                    numberOfLines={1}>
                     {marker.content}
                   </Text>
-                </View>
+                </View> */}
+                 <Text
+                    style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 20,  maxWidth: 200,  textAlign: 'center',}]}
+                    numberOfLines={1}>
+                    {marker.content}
+                  </Text>
               </Marker>
             ))}
 
@@ -915,43 +934,29 @@ export default function MamScreen() {
                   latitude: location.latitude,
                   longitude: location.longitude,
                 }}
-                zIndex={99}
+                zIndex={9999}
                 title={location.address}
                 cacheKey="fixed_current_location_marker"
-                customViewWidth={mSize.width}
-                customViewHeight={mSize.height}
-                anchor={{ x: 0.5, y: 0.5 }}
+                // anchor={{ x: 0.5, y: 0.5 }}
                 onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
                 growAnimation={true}  
               >
-                <View
-                  style={{
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    paddingHorizontal: 6,
-                    paddingVertical: 4,
-                  }}
-                  onLayout={(e) => {
-                    const { width, height } = e.nativeEvent.layout;
-                    if (mSize.width !== width || mSize.height !== height) {
-                      setMSize({ width: Math.ceil(width), height: Math.ceil(height) });
-                    }
-                  }}
-                >
-                  <Text
+               {/* <View style={{width:100,height:150,backgroundColor:'red',borderRadius:10}}/> */}
+                 {/* <Text
                     style={[
                       styles.dynamicMarkerText,
                       {
                         backgroundColor: '#007AFF',
                         borderRadius: 10,
                         textAlign: 'center',
+                        maxWidth: 200,
+                       
                       },
                     ]}
                     numberOfLines={2}
                   >
                     {location.address}
-                  </Text>
-                </View>
+                  </Text> */}
               </Marker>
             )}
 
@@ -1350,8 +1355,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingVertical: 5,
     paddingHorizontal: 12,
-    borderRadius: 14,
-    textAlign: 'center',
-    overflow: 'hidden',
+  
+    // borderRadius: 14,
+    // textAlign: 'center',
+    // overflow: 'hidden',
   },
 });

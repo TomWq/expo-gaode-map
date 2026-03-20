@@ -32,6 +32,10 @@ import androidx.core.graphics.withTranslation
 @SuppressLint("ViewConstructor")
 class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
+    init {
+        orientation = VERTICAL
+    }
+
     /**
      * 拦截 React Native 的 ViewManager 操作
      * 重写 requestLayout 防止在移除视图时触发布局异常
@@ -41,6 +45,63 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             super.requestLayout()
         } catch (_: Exception) {
             // 忽略异常
+        }
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val measuredWidth = View.MeasureSpec.getSize(widthMeasureSpec)
+        val measuredHeight = View.MeasureSpec.getSize(heightMeasureSpec)
+
+        setMeasuredDimension(measuredWidth, measuredHeight)
+
+        for (i in 0 until childCount) {
+            val child = getChildAt(i) ?: continue
+            if (child.visibility == View.GONE) {
+                continue
+            }
+
+            if (child === mapView) {
+                val childWidthSpec = View.MeasureSpec.makeMeasureSpec(measuredWidth, View.MeasureSpec.EXACTLY)
+                val childHeightSpec = View.MeasureSpec.makeMeasureSpec(measuredHeight, View.MeasureSpec.EXACTLY)
+                child.measure(childWidthSpec, childHeightSpec)
+                continue
+            }
+
+            val lp = child.layoutParams
+            val childWidthSpec = when {
+                lp?.width != null && lp.width > 0 ->
+                    View.MeasureSpec.makeMeasureSpec(lp.width, View.MeasureSpec.EXACTLY)
+                else ->
+                    View.MeasureSpec.makeMeasureSpec(measuredWidth, View.MeasureSpec.AT_MOST)
+            }
+            val childHeightSpec = when {
+                lp?.height != null && lp.height > 0 ->
+                    View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY)
+                else ->
+                    View.MeasureSpec.makeMeasureSpec(measuredHeight, View.MeasureSpec.AT_MOST)
+            }
+            child.measure(childWidthSpec, childHeightSpec)
+        }
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        val width = right - left
+        val height = bottom - top
+
+        for (i in 0 until childCount) {
+            val child = getChildAt(i) ?: continue
+            if (child.visibility == View.GONE) {
+                continue
+            }
+
+            if (child === mapView) {
+                child.layout(0, 0, width, height)
+                continue
+            }
+
+            val childWidth = child.measuredWidth
+            val childHeight = child.measuredHeight
+            child.layout(0, 0, childWidth, childHeight)
         }
     }
 
@@ -634,9 +695,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     override fun addView(child: View?, index: Int) {
         if (child is MarkerView) {
             child.setMap(aMap)
-            // MarkerView 也加入实际视图层级，但设置为 0x0 大小并移到屏幕外
-            // 不使用 View.GONE，避免在新架构下出现渲染问题
-            val params = LayoutParams(0, 0)
+            // MarkerView 需要保留可测量尺寸，否则 Android 无法正确处理
+            // Text / View 的 maxWidth 等布局约束，最终会被测成整行宽度。
+            // 这里保留 WRAP_CONTENT，并继续移到屏幕外，避免影响可见布局。
+            val params = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
             child.layoutParams = params
             child.translationX = -10000f  // 移到屏幕外
             child.translationY = -10000f
@@ -746,7 +808,4 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         return false
     }
 
-    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        super.onLayout(changed, left, top, right, bottom)
-    }
 }

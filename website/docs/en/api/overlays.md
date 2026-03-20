@@ -34,8 +34,8 @@ All overlay coordinates support:
 | `animatesDrop` | `boolean` | `false` | Drop animation, iOS only |
 | `pinColor` | `'red' \| 'orange' \| 'yellow' \| 'green' \| 'cyan' \| 'blue' \| 'violet' \| 'magenta' \| 'rose' \| 'purple'` | - | Default pin color |
 | `children` | `React.ReactNode` | - | Custom marker content |
-| `customViewWidth` | `number` | `0` | Custom view width, recommended when using `children` |
-| `customViewHeight` | `number` | `0` | Custom view height, recommended when using `children` |
+| `customViewWidth` | `number` | `0` | Custom view width. Optional if `children` already has a normal layout size |
+| `customViewHeight` | `number` | `0` | Custom view height. Optional if `children` already has a normal layout size |
 | `cacheKey` | `string` | - | Cache key for custom marker rendering |
 | `growAnimation` | `boolean` | `false` | Grow animation on Android / iOS |
 | `smoothMovePath` | `LatLng[]` | - | Path for smooth movement |
@@ -70,8 +70,6 @@ All overlay coordinates support:
 ```tsx
 <Marker
   position={{ latitude: 39.9, longitude: 116.4 }}
-  customViewWidth={96}
-  customViewHeight={40}
   cacheKey="custom-marker-1"
 >
   <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 8 }}>

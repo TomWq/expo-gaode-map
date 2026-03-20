@@ -15,6 +15,7 @@ import { MapContext } from './components/MapContext';
 import { MapUI } from './components/MapUI';
 import { createLazyNativeViewManager } from './utils/lazyNativeViewManager';
 import { View, StyleSheet } from 'react-native';
+import { normalizeLatLng } from './utils/GeoUtils';
 
 export type { MapViewRef } from './types';
 
@@ -48,6 +49,30 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const nativeRef = React.useRef<MapViewRef>(null);
   const internalRef = React.useRef<MapViewRef | null>(null);
   const NativeView = React.useMemo(() => getNativeView(), []);
+
+  const callNativeMethod = React.useCallback(<T extends (...args: never[]) => unknown>(
+    methodName: keyof MapViewRef,
+    ...args: Parameters<T>
+  ) => {
+    if (!nativeRef.current) {
+      throw ErrorHandler.mapViewNotInitialized(methodName as string);
+    }
+
+    const nativeMethod = Reflect.get(
+      nativeRef.current as object,
+      methodName,
+      nativeRef.current as object
+    );
+
+    if (typeof nativeMethod !== 'function') {
+      throw new Error(`Method '${methodName}' is not available on native view. Make sure the native module is linked and rebuilt.`);
+    }
+
+    return (nativeMethod as (...methodArgs: Parameters<T>) => ReturnType<T>).apply(
+      nativeRef.current,
+      args
+    );
+  }, []);
   
   /**
    * 🔑 性能优化：通用 API 方法包装器
@@ -57,34 +82,60 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     methodName: keyof MapViewRef
   ) => {
     return ((...args: Parameters<T>) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized(methodName as string);
-      }
       try {
-        const nativeMethod = nativeRef.current[methodName];
-        if (typeof nativeMethod !== 'function') {
-           // 如果原生方法未定义，直接抛出更明确的错误，而不是让 ErrorHandler 捕获 undefined is not a function
-           throw new Error(`Method '${methodName}' is not available on native view. Make sure the native module is linked and rebuilt.`);
-        }
-        return (nativeMethod as T)(...args);
+        return callNativeMethod<T>(methodName, ...args);
       } catch (error) {
         throw ErrorHandler.wrapNativeError(error, methodName as string);
       }
     }) as T;
-  }, []);
+  }, [callNativeMethod]);
 
   /**
    * 使用通用包装器创建所有 API 方法
    * 所有方法共享相同的错误处理逻辑
    */
   const apiRef: MapViewRef = React.useMemo(() => ({
-    moveCamera: createApiMethod<(position: CameraPosition, duration?: number) => Promise<void>>('moveCamera'),
+    moveCamera: (position: CameraPosition, duration?: number) => {
+      try {
+        const normalizedPosition = {
+          ...position,
+          target: position.target ? normalizeLatLng(position.target) : undefined,
+        };
+        return callNativeMethod<(cameraPosition: CameraPosition, animationDuration: number) => Promise<void>>(
+          'moveCamera',
+          normalizedPosition,
+          duration ?? 0
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'moveCamera');
+      }
+    },
     getLatLng: createApiMethod<(point: Point) => Promise<LatLng>>('getLatLng'),
-    setCenter: createApiMethod<(center: LatLngPoint, animated?: boolean) => Promise<void>>('setCenter'),
-    setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
+    setCenter: (center: LatLngPoint, animated?: boolean) => {
+      try {
+        return callNativeMethod<(normalizedCenter: LatLng, animatedFlag: boolean) => Promise<void>>(
+          'setCenter',
+          normalizeLatLng(center),
+          animated ?? false
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'setCenter');
+      }
+    },
+    setZoom: (zoom: number, animated?: boolean) => {
+      try {
+        return callNativeMethod<(zoomLevel: number, animatedFlag: boolean) => Promise<void>>(
+          'setZoom',
+          zoom,
+          animated ?? false
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'setZoom');
+      }
+    },
     getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
     takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
-  }), [createApiMethod]);
+  }), [callNativeMethod, createApiMethod]);
 
   /**
    * 将传入的apiRef赋值给internalRef.current

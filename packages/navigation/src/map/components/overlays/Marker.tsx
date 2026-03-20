@@ -1,4 +1,6 @@
 import * as React from 'react';
+import type { LayoutChangeEvent } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import type { MarkerProps } from '../../types';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
@@ -9,6 +11,8 @@ type NativeMarkerViewProps = Omit<MarkerProps, 'position'> & {
 };
 
 const getNativeMarkerView = createLazyNativeViewManager<NativeMarkerViewProps>('MarkerView');
+
+const AUTO_SIZE_FALLBACK = { width: 0, height: 0 };
 
 /**
  * Marker 组件 - 完全声明式 API
@@ -22,6 +26,7 @@ const getNativeMarkerView = createLazyNativeViewManager<NativeMarkerViewProps>('
  */
 function Marker(props: MarkerProps) {
   const NativeMarkerView = React.useMemo(() => getNativeMarkerView(), []);
+  const [measuredSize, setMeasuredSize] = React.useState(AUTO_SIZE_FALLBACK);
   // 从 props 中排除 position 属性，避免传递到原生层
   const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, smoothMovePath, ...restProps } = props;
   
@@ -31,14 +36,40 @@ function Marker(props: MarkerProps) {
 
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
+  const shouldWrapChildrenForMeasurement = hasChildren;
+  const shouldUseAutoMeasuredSize = Platform.OS === 'ios';
+  const resolvedCustomViewWidth = customViewWidth && customViewWidth > 0
+    ? customViewWidth
+    : (shouldUseAutoMeasuredSize ? measuredSize.width : 0);
+  const resolvedCustomViewHeight = customViewHeight && customViewHeight > 0
+    ? customViewHeight
+    : (shouldUseAutoMeasuredSize ? measuredSize.height : 0);
+
+  const handleAutoMeasure = (event: LayoutChangeEvent) => {
+    const nextWidth = customViewWidth && customViewWidth > 0
+      ? customViewWidth
+      : Math.ceil(event.nativeEvent.layout.width);
+    const nextHeight = customViewHeight && customViewHeight > 0
+      ? customViewHeight
+      : Math.ceil(event.nativeEvent.layout.height);
+
+    if (nextWidth === measuredSize.width && nextHeight === measuredSize.height) {
+      return;
+    }
+
+    setMeasuredSize({
+      width: nextWidth,
+      height: nextHeight,
+    });
+  };
   
   // 智能尺寸计算
   const finalIconWidth = hasChildren
-    ? (customViewWidth && customViewWidth > 0 ? customViewWidth : 0)
+    ? resolvedCustomViewWidth
     : (iconWidth && iconWidth > 0 ? iconWidth : 40);
     
   const finalIconHeight = hasChildren
-    ? (customViewHeight && customViewHeight > 0 ? customViewHeight : 0)
+    ? resolvedCustomViewHeight
     : (iconHeight && iconHeight > 0 ? iconHeight : 40);
   
   return (
@@ -52,7 +83,15 @@ function Marker(props: MarkerProps) {
       smoothMovePath={normalizedSmoothMovePath}
       {...restProps}
     >
-      {children}
+      {hasChildren && shouldWrapChildrenForMeasurement ? (
+        <View
+          collapsable={false}
+          onLayout={Platform.OS === 'ios' ? handleAutoMeasure : undefined}
+          style={styles.measureContainer}
+        >
+          {children}
+        </View>
+      ) : children}
     </NativeMarkerView>
   );
 }
@@ -82,6 +121,17 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
   if (prevProps.children !== nextProps.children) {
     return false;
   }
+
+  // 比较自定义内容尺寸和图标尺寸
+  if (
+    prevProps.customViewWidth !== nextProps.customViewWidth ||
+    prevProps.customViewHeight !== nextProps.customViewHeight ||
+    prevProps.icon !== nextProps.icon ||
+    prevProps.iconWidth !== nextProps.iconWidth ||
+    prevProps.iconHeight !== nextProps.iconHeight
+  ) {
+    return false;
+  }
   
   // 比较 smoothMovePath (平滑移动路径)
   if (JSON.stringify(prevProps.smoothMovePath) !== JSON.stringify(nextProps.smoothMovePath)) {
@@ -99,3 +149,11 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
 
 // 导出优化后的组件
 export default React.memo(Marker, arePropsEqual);
+
+const styles = StyleSheet.create({
+  measureContainer: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+    flexShrink: 0,
+  },
+});

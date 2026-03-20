@@ -48,6 +48,30 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const nativeRef = React.useRef<MapViewRef>(null);
   const internalRef = React.useRef<MapViewRef | null>(null);
   const NativeView = React.useMemo(() => getNativeView(), []);
+
+  const callNativeMethod = React.useCallback(<T extends (...args: never[]) => unknown>(
+    methodName: keyof MapViewRef,
+    ...args: Parameters<T>
+  ) => {
+    if (!nativeRef.current) {
+      throw ErrorHandler.mapViewNotInitialized(methodName as string);
+    }
+
+    const nativeMethod = Reflect.get(
+      nativeRef.current as object,
+      methodName,
+      nativeRef.current as object
+    );
+
+    if (typeof nativeMethod !== 'function') {
+      throw new Error(`Method '${methodName}' is not available on native view. Make sure the native module is linked and rebuilt.`);
+    }
+
+    return (nativeMethod as (...methodArgs: Parameters<T>) => ReturnType<T>).apply(
+      nativeRef.current,
+      args
+    );
+  }, []);
   
   /**
    * 🔑 性能优化：通用 API 方法包装器
@@ -57,16 +81,13 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     methodName: keyof MapViewRef
   ) => {
     return ((...args: Parameters<T>) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized(methodName as string);
-      }
       try {
-        return (nativeRef.current[methodName] as T)(...args);
+        return callNativeMethod<T>(methodName, ...args);
       } catch (error) {
         throw ErrorHandler.wrapNativeError(error, methodName as string);
       }
     }) as T;
-  }, []);
+  }, [callNativeMethod]);
 
   /**
    * 使用通用包装器创建所有 API 方法
@@ -74,26 +95,46 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    */
   const apiRef: MapViewRef = React.useMemo(() => ({
     moveCamera: (position: CameraPosition, duration?: number) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('moveCamera');
+      try {
+        const normalizedPosition = {
+          ...position,
+          target: position.target ? normalizeLatLng(position.target) : undefined,
+        };
+        return callNativeMethod<(cameraPosition: CameraPosition, animationDuration: number) => Promise<void>>(
+          'moveCamera',
+          normalizedPosition,
+          duration ?? 0
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'moveCamera');
       }
-      const normalizedPosition = {
-        ...position,
-        target: position.target ? normalizeLatLng(position.target) : undefined,
-      };
-      return nativeRef.current.moveCamera(normalizedPosition, duration);
     },
     getLatLng: createApiMethod<(point: Point) => Promise<LatLng>>('getLatLng'),
     setCenter: (center: LatLngPoint, animated?: boolean) => {
-      if (!nativeRef.current) {
-        throw ErrorHandler.mapViewNotInitialized('setCenter');
+      try {
+        return callNativeMethod<(normalizedCenter: LatLng, animatedFlag: boolean) => Promise<void>>(
+          'setCenter',
+          normalizeLatLng(center),
+          animated ?? false
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'setCenter');
       }
-      return nativeRef.current.setCenter(normalizeLatLng(center), animated);
     },
-    setZoom: createApiMethod<(zoom: number, animated?: boolean) => Promise<void>>('setZoom'),
+    setZoom: (zoom: number, animated?: boolean) => {
+      try {
+        return callNativeMethod<(zoomLevel: number, animatedFlag: boolean) => Promise<void>>(
+          'setZoom',
+          zoom,
+          animated ?? false
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'setZoom');
+      }
+    },
     getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
     takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
-  }), [createApiMethod]);
+  }), [callNativeMethod, createApiMethod]);
 
   /**
    * 将传入的apiRef赋值给internalRef.current
