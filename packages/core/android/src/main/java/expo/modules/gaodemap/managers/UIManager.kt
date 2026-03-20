@@ -46,6 +46,13 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   fun setShowsScale(show: Boolean) {
     aMap.uiSettings.isScaleControlsEnabled = show
   }
+
+  /**
+   * 设置是否显示定位按钮
+   */
+  fun setMyLocationButtonEnabled(enabled: Boolean) {
+    aMap.uiSettings.isMyLocationButtonEnabled = enabled
+  }
   
   // ==================== 手势控制 ====================
   
@@ -322,7 +329,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   fun setShowsTraffic(show: Boolean) {
     aMap.isTrafficEnabled = show
   }
-  
+
   /**
    * 设置是否显示建筑物
    */
@@ -335,6 +342,13 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    */
   fun setShowsIndoorMap(show: Boolean) {
     aMap.showIndoorMap(show)
+  }
+
+  /**
+   * 设置是否显示底图文字标注
+   */
+  fun setLabelsEnabled(enabled: Boolean) {
+    aMap.showMapText(enabled)
   }
   
   /**

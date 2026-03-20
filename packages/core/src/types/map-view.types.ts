@@ -4,8 +4,8 @@
  */
 
 import type { StyleProp, ViewStyle, NativeSyntheticEvent } from 'react-native';
-import type { CameraPosition, LatLng, LatLngBounds, MapPoi, MapType, Point, LatLngPoint } from './common.types';
-import { Coordinates, ReGeocode } from './location.types';
+import type { CameraPosition, CameraUpdate, LatLng, LatLngBounds, MapPoi, MapType, Point, LatLngPoint } from './common.types';
+import type { Coordinates, ReGeocode, HeadingUpdate } from './location.types';
 
 /**
  * 定位事件数据
@@ -141,6 +141,8 @@ export interface MapViewProps {
 
   /**
    * 是否显示标注
+   * @platform android
+   * @note iOS 暂不支持
    */
   labelsEnabled?: boolean;
 
@@ -271,8 +273,16 @@ export interface MapViewProps {
 
   /**
    * 地图状态改变事件（实时触发）
+   * 可配合 `cameraEventThrottleMs` 控制事件频率
    */
   onCameraMove?: (event: NativeSyntheticEvent<CameraEvent>) => void;
+
+  /**
+   * 地图移动事件节流间隔（毫秒）
+   * `0` 表示不节流
+   * @default 32
+   */
+  cameraEventThrottleMs?: number;
 
   /**
    * 地图状态改变完成事件
@@ -305,7 +315,7 @@ export interface MapViewMethods {
    * @param cameraPosition 目标相机位置
    * @param duration 动画时长（毫秒）
    */
-  moveCamera(cameraPosition: CameraPosition, duration?: number): void;
+  moveCamera(cameraPosition: CameraUpdate, duration?: number): Promise<void>;
 
   /**
    * 将屏幕坐标转换为地理坐标
@@ -319,14 +329,14 @@ export interface MapViewMethods {
    * @param center 中心点
    * @param animated 是否启用动画
    */
-  setCenter(center: LatLngPoint, animated?: boolean): void;
+  setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
 
   /**
    * 设置地图缩放级别
    * @param zoom 缩放级别
    * @param animated 是否启用动画
    */
-  setZoom(zoom: number, animated?: boolean): void;
+  setZoom(zoom: number, animated?: boolean): Promise<void>;
 
   /**
    * 获取相机位置
@@ -345,7 +355,7 @@ export interface MapViewMethods {
  * MapView Ref 公开接口（用户使用）
  */
 export interface MapViewRef {
-  moveCamera(position: CameraPosition, duration?: number): Promise<void>;
+  moveCamera(position: CameraUpdate, duration?: number): Promise<void>;
   getLatLng(point: Point): Promise<LatLng>;
   setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
@@ -370,20 +380,5 @@ export type ExpoGaodeMapModuleEvents = {
    * 当设备方向发生变化时触发
    * @param heading 方向信息
    */
-  onHeadingUpdate: (heading: {
-    /** 磁北方向角度 (0-359.9) */
-    magneticHeading: number;
-    /** 真北方向角度 (0-359.9) */
-    trueHeading: number;
-    /** 方向精度 */
-    headingAccuracy: number;
-    /** X 轴原始数据 */
-    x: number;
-    /** Y 轴原始数据 */
-    y: number;
-    /** Z 轴原始数据 */
-    z: number;
-    /** 时间戳 */
-    timestamp: number;
-  }) => void;
+  onHeadingUpdate: (heading: HeadingUpdate) => void;
 };

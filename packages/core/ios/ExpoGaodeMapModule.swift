@@ -116,7 +116,7 @@ public class ExpoGaodeMapModule: Module {
          * 获取 SDK 版本号
          */
         Function("getVersion") {
-            "iOS SDK Version"
+            MAMapKitVersion
         }
         
         /**
@@ -195,6 +195,7 @@ public class ExpoGaodeMapModule: Module {
                         "longitude": location.coordinate.longitude,
                         "accuracy": location.horizontalAccuracy,
                         "altitude": location.altitude,
+                        "heading": location.course,
                         "bearing": location.course,
                         "speed": location.speed,
                         "timestamp": location.timestamp.timeIntervalSince1970 * 1000
@@ -578,7 +579,7 @@ public class ExpoGaodeMapModule: Module {
         }
         
         Function("setInterval") { (interval: Int) in
-            self.getLocationManager().setDistanceFilter(Double(interval))
+            self.getLocationManager().setInterval(interval)
         }
         
         Function("setDistanceFilter") { (distance: Double) in
@@ -621,7 +622,7 @@ public class ExpoGaodeMapModule: Module {
         /**
          * 设置逆地理语言 (iOS 实现)
          */
-        Function("setGeoLanguage") { (language: Int) in
+        Function("setGeoLanguage") { (language: String) in
             self.getLocationManager().setGeoLanguage(language)
         }
         
@@ -688,12 +689,7 @@ public class ExpoGaodeMapModule: Module {
          */
         AsyncFunction("checkLocationPermission") { (promise: Promise) in
             let status = self.currentAuthorizationStatus()
-            let granted = status == .authorizedAlways || status == .authorizedWhenInUse
-            
-            promise.resolve([
-                "granted": granted,
-                "status": self.getAuthorizationStatusString(status)
-            ])
+            promise.resolve(self.buildPermissionStatus(status))
         }
         
         /**
@@ -708,13 +704,7 @@ public class ExpoGaodeMapModule: Module {
                 // 无论结果如何,都延迟后再次检查最终状态
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     let finalStatus = self.currentAuthorizationStatus()
-                    let finalGranted = finalStatus == .authorizedAlways || finalStatus == .authorizedWhenInUse
-                    let finalStatusString = self.getAuthorizationStatusString(finalStatus)
-                    
-                    promise.resolve([
-                        "granted": finalGranted,
-                        "status": finalStatusString
-                    ])
+                    promise.resolve(self.buildPermissionStatus(finalStatus))
                 }
             }
         }
@@ -736,12 +726,14 @@ public class ExpoGaodeMapModule: Module {
             // 这里返回当前状态
             let hasBackground = status == .authorizedAlways
             
-            promise.resolve([
-                "granted": hasBackground,
-                "backgroundLocation": hasBackground,
-                "status": self.getAuthorizationStatusString(status),
-                "message": hasBackground ? "已授予后台权限" : "需要在系统设置中手动授予'始终'权限"
-            ])
+            promise.resolve(
+                self.buildPermissionStatus(
+                    status,
+                    grantedOverride: hasBackground,
+                    backgroundLocationOverride: hasBackground,
+                    message: hasBackground ? "已授予后台权限" : "需要在系统设置中手动授予'始终'权限"
+                )
+            )
         }
         
   
@@ -808,5 +800,32 @@ public class ExpoGaodeMapModule: Module {
         case .authorizedWhenInUse: return "authorizedWhenInUse"
         @unknown default: return "unknown"
         }
+    }
+
+    private func buildPermissionStatus(
+        _ status: CLAuthorizationStatus,
+        grantedOverride: Bool? = nil,
+        backgroundLocationOverride: Bool? = nil,
+        message: String? = nil
+    ) -> [String: Any] {
+        let granted = grantedOverride ?? (status == .authorizedAlways || status == .authorizedWhenInUse)
+        let canAskAgain = status == .notDetermined
+        let isPermanentlyDenied = status == .denied || status == .restricted
+        let backgroundLocation = backgroundLocationOverride ?? (status == .authorizedAlways)
+
+        var result: [String: Any] = [
+            "granted": granted,
+            "status": self.getAuthorizationStatusString(status),
+            "canAskAgain": canAskAgain,
+            "backgroundLocation": backgroundLocation,
+            "isPermanentlyDenied": isPermanentlyDenied,
+            "shouldShowRationale": false
+        ]
+
+        if let message {
+            result["message"] = message
+        }
+
+        return result
     }
 }

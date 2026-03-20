@@ -183,10 +183,15 @@ export enum LocationMode {
 
 /**
  * 坐标系类型
+ *
+ * 注意：
+ * - 这里的枚举值是 JS 公共 API 的稳定值，不直接等同于原生 SDK 的入参值
+ * - 具体传给原生前会在 JS 层做一次归一化映射
  */
 export enum CoordinateType {
   /**
    * 高德坐标系
+   * GCJ-02，本身无需转换
    */
   AMap = -1,
 
@@ -367,6 +372,34 @@ export interface LocationOptions {
  */
 export type LocationListener = (location: Coordinates | ReGeocode) => void;
 
+/**
+ * 方向更新事件数据
+ */
+export interface HeadingUpdate {
+  /** 磁北方向角度 (0-359.9) */
+  magneticHeading: number;
 
+  /** 真北方向角度 (0-359.9) */
+  trueHeading: number;
 
+  /** 方向精度 */
+  headingAccuracy: number;
+
+  /** X 轴原始数据 */
+  x: number;
+
+  /** Y 轴原始数据 */
+  y: number;
+
+  /** Z 轴原始数据 */
+  z: number;
+
+  /** 时间戳 */
+  timestamp: number;
+}
+
+/**
+ * 方向事件监听器
+ */
+export type HeadingListener = (heading: HeadingUpdate) => void;
 

@@ -41,6 +41,17 @@ interface CameraPosition {
 }
 ```
 
+### `CameraUpdate`
+
+```ts
+interface CameraUpdate {
+  target?: LatLng;
+  zoom?: number;
+  bearing?: number;
+  tilt?: number;
+}
+```
+
 ### `LatLngBounds`
 
 ```ts
@@ -127,7 +138,7 @@ interface CameraEvent {
 
 ```ts
 interface MapViewRef {
-  moveCamera(position: CameraPosition, duration?: number): Promise<void>;
+  moveCamera(position: CameraUpdate, duration?: number): Promise<void>;
   getLatLng(point: Point): Promise<LatLng>;
   setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;
@@ -168,6 +179,7 @@ interface MapViewProps {
     styleDataPath?: string;
     extraStyleDataPath?: string;
   };
+  cameraEventThrottleMs?: number;
   onMapPress?: (event: NativeSyntheticEvent<LatLng>) => void;
   onPressPoi?: (event: NativeSyntheticEvent<MapPoi>) => void;
   onMapLongPress?: (event: NativeSyntheticEvent<LatLng>) => void;
@@ -424,6 +436,7 @@ interface ClusterParams {
 }
 
 interface ClusterProps {
+  icon?: string;
   radius?: number;
   minClusterSize?: number;
   clusterStyle?: ViewStyle;

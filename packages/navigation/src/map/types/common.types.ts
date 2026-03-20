@@ -162,6 +162,34 @@ export interface CameraPosition {
 }
 
 /**
+ * 地图相机更新参数
+ *
+ * 与 `CameraPosition` 不同，这个类型用于描述“局部更新”：
+ * 你可以只传 `zoom`、只传 `target`，或组合传入需要变更的字段。
+ */
+export interface CameraUpdate {
+  /**
+   * 中心坐标
+   */
+  target?: LatLng;
+
+  /**
+   * 缩放级别（3-20）
+   */
+  zoom?: number;
+
+  /**
+   * 朝向、旋转角度（0-360度）
+   */
+  bearing?: number;
+
+  /**
+   * 倾斜角度（0-60度）
+   */
+  tilt?: number;
+}
+
+/**
  * 地图类型
  */
 export enum MapType {

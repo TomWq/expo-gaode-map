@@ -46,6 +46,16 @@ describe('Cluster 点聚合组件', () => {
     expect(result).toBeTruthy();
   });
 
+  it('应该支持基础图标配置', () => {
+    const result = render(
+      <Cluster
+        points={points}
+        icon="cluster_pin"
+      />
+    );
+    expect(result).toBeTruthy();
+  });
+
   it('应该支持自定义聚合点渲染', () => {
     const renderCluster = (params: any) => (
       <Text>Cluster: {params.count}</Text>

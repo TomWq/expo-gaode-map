@@ -57,6 +57,45 @@ ExpoGaodeMapModule.initSDK({
 推荐使用 Config Plugin，它会自动将 API Key 配置到原生项目中，更安全且无需在代码中硬编码；但首次运行时的隐私同意仍需要你在业务层处理。
 :::
 
+## 内置地图能力
+
+导航包内置了一套独立的 `MapView` 和覆盖物实现，API 设计与核心包保持一致，但底层使用导航 SDK 对应的地图能力，因此不会依赖 `expo-gaode-map`。
+
+### 地图组件导入
+
+```typescript
+import { useRef } from 'react';
+import {
+  MapView,
+  Marker,
+  Cluster,
+  type MapViewRef,
+} from 'expo-gaode-map-navigation';
+```
+
+### 相机控制与事件节流
+
+- `moveCamera(position, duration?)` 现在使用 `CameraUpdate`
+- `cameraEventThrottleMs?: number` 可控制原生 `onCameraMove` 事件频率
+- 默认值为 `32`，传入 `0` 表示不节流
+
+```typescript
+const mapRef = useRef<MapViewRef | null>(null);
+
+await mapRef.current?.moveCamera(
+  {
+    target: { latitude: 39.9, longitude: 116.4 },
+    zoom: 14,
+  },
+  300
+);
+```
+
+### 自定义 Marker / Cluster
+
+- `Marker` 自定义 `children` 时，一般不需要再手动传 `customViewWidth` / `customViewHeight`
+- `Cluster` 现已支持 `icon?: string`，可传网络 URL、本地文件路径或资源名称
+
 ## 路径规划 API
 
 ### calculateDriveRoute - 驾车路径规划

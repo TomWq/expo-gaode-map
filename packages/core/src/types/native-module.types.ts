@@ -15,6 +15,7 @@ import type {
 import type {
   CoordinateType,
   Coordinates,
+  GeoLanguage,
   ReGeocode,
   LocationMode,
   LocationAccuracy,
@@ -177,7 +178,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    * 设置逆地理编码语言
    * @param language 语言代码，如 "zh-CN", "en"
    */
-  setGeoLanguage(language: string): void;
+  setGeoLanguage(language: GeoLanguage | string): void;
 
   /**
    * 设置是否使用缓存策略（Android）

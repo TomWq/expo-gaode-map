@@ -22,6 +22,10 @@ public class ClusterViewModule: Module {
             Prop("clusterStyle") { (view: ClusterView, style: [String: Any]) in
                 view.setClusterStyle(style)
             }
+
+            Prop("icon") { (view: ClusterView, icon: String?) in
+                view.setIcon(icon)
+            }
             
             Prop("clusterTextStyle") { (view: ClusterView, style: [String: Any]) in
                 view.setClusterTextStyle(style)

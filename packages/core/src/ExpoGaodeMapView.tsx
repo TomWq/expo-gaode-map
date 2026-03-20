@@ -4,6 +4,7 @@ import type {
   MapViewProps,
   MapViewRef,
   CameraPosition,
+  CameraUpdate,
   LatLng,
   Point,
   LatLngPoint,
@@ -95,13 +96,13 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
    * 所有方法共享相同的错误处理逻辑
    */
   const apiRef: MapViewRef = React.useMemo(() => ({
-    moveCamera: (position: CameraPosition, duration?: number) => {
+    moveCamera: (position: CameraUpdate, duration?: number) => {
       try {
         const normalizedPosition = {
           ...position,
           target: position.target ? normalizeLatLng(position.target) : undefined,
         };
-        return callNativeMethod<(cameraPosition: CameraPosition, animationDuration: number) => Promise<void>>(
+        return callNativeMethod<(cameraPosition: CameraUpdate, animationDuration: number) => Promise<void>>(
           'moveCamera',
           normalizedPosition,
           duration ?? 0

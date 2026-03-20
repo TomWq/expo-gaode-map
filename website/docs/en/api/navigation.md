@@ -66,12 +66,51 @@ ExpoGaodeMapModule.initSDK({
 });
 ```
 
+## Built-in Map Features
+
+The navigation package includes its own `MapView` and overlay implementation. The API shape stays aligned with the core package, but the underlying map stack comes from the navigation SDK, so it does not depend on `expo-gaode-map`.
+
+### Import map components
+
+```typescript
+import { useRef } from 'react';
+import {
+  MapView,
+  Marker,
+  Cluster,
+  type MapViewRef,
+} from 'expo-gaode-map-navigation';
+```
+
+### Camera control and event throttling
+
+- `moveCamera(position, duration?)` now uses `CameraUpdate`
+- `cameraEventThrottleMs?: number` controls native `onCameraMove` frequency
+- Default is `32`; pass `0` to disable throttling
+
+```typescript
+const mapRef = useRef<MapViewRef | null>(null);
+
+await mapRef.current?.moveCamera(
+  {
+    target: { latitude: 39.9, longitude: 116.4 },
+    zoom: 14,
+  },
+  300
+);
+```
+
+### Custom Marker / Cluster
+
+- In most cases, `Marker` custom `children` no longer need explicit `customViewWidth` / `customViewHeight`
+- `Cluster` now supports `icon?: string` with HTTP URL, local file path, or bundle resource name
+
 ### 3. Use Map Component
 
 ```typescript
-import { ExpoGaodeMapView } from 'expo-gaode-map-navigation';
+import { MapView } from 'expo-gaode-map-navigation';
 
-<ExpoGaodeMapView
+<MapView
   style={{ flex: 1 }}
   initialCameraPosition={{
     target: { latitude: 39.9042, longitude: 116.4074 },

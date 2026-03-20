@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import MAMapKit
+import CoreLocation
 
 enum MapType: Int, Enumerable {
     case standard = 0
@@ -65,6 +66,18 @@ public class ExpoGaodeMapViewModule: Module {
             
             Prop("myLocationEnabled") { (view: ExpoGaodeMapView, show: Bool) in
                 view.setShowsUserLocation(show)
+            }
+
+            Prop("distanceFilter") { (view: ExpoGaodeMapView, distance: Double?) in
+                view.distanceFilter = distance ?? kCLDistanceFilterNone
+            }
+
+            Prop("headingFilter") { (view: ExpoGaodeMapView, heading: Double?) in
+                view.headingFilter = heading ?? kCLHeadingFilterNone
+            }
+
+            Prop("cameraEventThrottleMs") { (view: ExpoGaodeMapView, throttleMs: Int?) in
+                view.cameraEventThrottleMs = max(throttleMs ?? 32, 0)
             }
             
             Prop("followUserLocation") { (view: ExpoGaodeMapView, follow: Bool) in

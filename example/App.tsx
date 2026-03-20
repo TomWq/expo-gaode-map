@@ -16,7 +16,6 @@ import {
   type LatLng,
   ClusterPoint,
   MapUI,
-  throttle,
   type LatLngPoint,
   type MultiPointItem,
 } from 'expo-gaode-map';
@@ -24,7 +23,7 @@ import { reGeocode } from 'expo-gaode-map-search'
 import * as MediaLibrary from 'expo-media-library';
 
 import React from 'react';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
 import TestNewPermissionMethods from './TestNewPermissionMethods';
@@ -112,11 +111,15 @@ export default function MamScreen() {
 
   const [showCluster, setShowCluster] = useState(false);
   const [clusterData, setClusterData] = useState<ClusterPoint[]>([]);
+  const [useClusterIcon, setUseClusterIcon] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [privacyStatusText, setPrivacyStatusText] = useState('未确认');
   const [showPrivacyModal, setShowPrivacyModal] = useState(true);
   const [currentPage, setCurrentPage] = useState<'welcome' | 'map'>('welcome');
+  const [nativeCameraThrottleMs, setNativeCameraThrottleMs] = useState(32);
+  const [cameraMoveEventCount, setCameraMoveEventCount] = useState(0);
+  const [cameraIdleEventCount, setCameraIdleEventCount] = useState(0);
 
   // 主题与动态色
   const colorScheme = 'dark';
@@ -252,6 +255,11 @@ export default function MamScreen() {
       setSdkReady(true);
       setShowPrivacyModal(false);
       setCurrentPage('map');
+
+      ExpoGaodeMapModule.addLocationListener((location) => {
+        console.log('位置变化:', location);
+      });
+
     } catch (error: any) {
       console.error('初始化失败:', error);
       if (error?.type) {
@@ -518,7 +526,7 @@ export default function MamScreen() {
         if (location) {
           // 生成模拟聚合数据
           const points: ClusterPoint[] = [];
-          for (let i = 0; i < 10000; i++) {
+          for (let i = 0; i < 1000; i++) {
             points.push({
               latitude: location.latitude + (Math.random() - 0.5) * 0.05,
               longitude: location.longitude + (Math.random() - 0.5) * 0.05,
@@ -572,19 +580,32 @@ export default function MamScreen() {
     }
   };
 
+  const cycleNativeCameraThrottle = () => {
+    setNativeCameraThrottleMs((prev) => {
+      if (prev === 0) return 32;
+      if (prev === 32) return 120;
+      return 0;
+    });
+  };
 
-  // 使用 useMemo 创建节流后的回调，避免每次渲染都重新创建
-  const onCameraMoveThrottled = useMemo(
-    () =>
-      throttle(({ nativeEvent }: any) => {
-        const { cameraPosition } = nativeEvent;
-        const zoom = cameraPosition.zoom ?? 0;
-        const bearing = cameraPosition.bearing ?? 0;
-        const info = `移动中 · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`;
-        setCameraInfo(info);
-      }, 100), // 100ms 节流，足够流畅且不卡顿
-    []
-  );
+  const resetCameraEventStats = () => {
+    setCameraMoveEventCount(0);
+    setCameraIdleEventCount(0);
+    setCameraInfo('');
+  };
+
+  const handleCameraMove = useCallback(({ nativeEvent }: any) => {
+    const { cameraPosition } = nativeEvent;
+    const zoom = cameraPosition.zoom ?? 0;
+    const bearing = cameraPosition.bearing ?? 0;
+    const lat = cameraPosition.target?.latitude ?? 0;
+    const lng = cameraPosition.target?.longitude ?? 0;
+
+    setCameraMoveEventCount((prev) => prev + 1);
+    setCameraInfo(
+      `移动中 · 中心 ${lat.toFixed(4)}, ${lng.toFixed(4)} · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`
+    );
+  }, []);
 
   if (false) {
     return <TestNewPermissionMethods />;
@@ -739,6 +760,7 @@ export default function MamScreen() {
         zoomGesturesEnabled
         scrollGesturesEnabled
         worldMapSwitchEnabled
+        cameraEventThrottleMs={nativeCameraThrottleMs}
         initialCameraPosition={initialPosition as CameraPosition}
         minZoom={3}
         maxZoom={20}
@@ -769,12 +791,13 @@ export default function MamScreen() {
               : prev
           ));
         }}
-        onCameraMove={onCameraMoveThrottled}
+        onCameraMove={handleCameraMove}
         onCameraIdle={({ nativeEvent }) => {
           const { cameraPosition } = nativeEvent;
           const lat = cameraPosition.target?.latitude ?? 0;
           const lng = cameraPosition.target?.longitude ?? 0;
           const zoom = cameraPosition.zoom ?? 0;
+          setCameraIdleEventCount((prev) => prev + 1);
           const info = `已停止 · 中心 ${lat.toFixed(4)}, ${lng.toFixed(4)} · 缩放 ${zoom.toFixed(2)}`;
           setCameraInfo(info);
         }}
@@ -806,6 +829,7 @@ export default function MamScreen() {
         {showCluster && (
           <Cluster
             points={clusterData}
+            icon={useClusterIcon ? iconUri : undefined}
             radius={30}
             minClusterSize={1}
             // 分级样式配置
@@ -941,7 +965,7 @@ export default function MamScreen() {
                 onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
                 growAnimation={true}  
               >
-               {/* <View style={{width:100,height:150,backgroundColor:'red',borderRadius:10}}/> */}
+               <View style={{width:100,height:150,backgroundColor:'red',borderRadius:10}}/>
                  {/* <Text
                     style={[
                       styles.dynamicMarkerText,
@@ -949,7 +973,7 @@ export default function MamScreen() {
                         backgroundColor: '#007AFF',
                         borderRadius: 10,
                         textAlign: 'center',
-                        maxWidth: 200,
+                        // maxWidth: 200,
                        
                       },
                     ]}
@@ -1111,6 +1135,33 @@ export default function MamScreen() {
                   </Pressable>
                 </View>
 
+                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>调试验证</Text>
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: nativeCameraThrottleMs === 0 ? '#795548' : '#00897B' }]}
+                    onPress={cycleNativeCameraThrottle}
+                  >
+                    <Text style={styles.actionBtnText}>原生节流 {nativeCameraThrottleMs}ms</Text>
+                  </Pressable>
+                  <View style={[styles.actionBtn, { backgroundColor: '#546E7A' }]}>
+                    <Text style={styles.actionBtnText}>只保留原生节流</Text>
+                  </View>
+                </View>
+                <View style={[styles.actionRow, { marginTop: 10 }]}>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: useClusterIcon ? '#3949AB' : '#455A64' }]}
+                    onPress={() => setUseClusterIcon((prev) => !prev)}
+                  >
+                    <Text style={styles.actionBtnText}>聚合图标 {useClusterIcon ? '开' : '关'}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: '#6D4C41' }]}
+                    onPress={resetCameraEventStats}
+                  >
+                    <Text style={styles.actionBtnText}>清空计数</Text>
+                  </Pressable>
+                </View>
+
                 <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>更多示例</Text>
                 <View style={styles.actionRow}>
                   <Pressable
@@ -1151,6 +1202,28 @@ export default function MamScreen() {
                 </Text>
               </View>
             )}
+            <View style={[styles.chipWrap, { borderColor: hairline }]}>
+              <BlurView
+                intensity={100}
+                experimentalBlurMethod={'dimezisBlurView'}
+                tint={colorScheme === 'dark' ? 'dark' : 'light'}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+                事件统计 · move {cameraMoveEventCount} / idle {cameraIdleEventCount} · 原生 {nativeCameraThrottleMs}ms
+              </Text>
+            </View>
+            <View style={[styles.chipWrap, { borderColor: hairline }]}>
+              <BlurView
+                intensity={100}
+                experimentalBlurMethod={'dimezisBlurView'}
+                tint={colorScheme === 'dark' ? 'dark' : 'light'}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+                聚合图标 · {useClusterIcon ? 'icon on' : 'icon off'} {showCluster ? '· 聚合显示中' : '· 聚合未开启'}
+              </Text>
+            </View>
           </View>
     </View>
   );

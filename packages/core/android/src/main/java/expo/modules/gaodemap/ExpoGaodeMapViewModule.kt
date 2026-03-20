@@ -64,6 +64,9 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Boolean>("trafficEnabled") { view, show -> view.setShowsTraffic(show) }
       Prop<Boolean>("buildingsEnabled") { view, show -> view.setShowsBuildings(show) }
       Prop<Boolean>("indoorViewEnabled") { view, show -> view.setShowsIndoorMap(show) }
+      Prop<Boolean>("labelsEnabled") { view, enabled -> view.setLabelsEnabled(enabled) }
+      Prop<Boolean>("myLocationButtonEnabled") { view, enabled -> view.setMyLocationButtonEnabled(enabled) }
+      Prop<Int>("cameraEventThrottleMs") { view, throttleMs -> view.setCameraEventThrottleMs(throttleMs) }
       
       Prop<Map<String, Any>?>("customMapStyle") { view, styleData ->
         styleData?.let { view.setCustomMapStyle(it) }

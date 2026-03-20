@@ -220,6 +220,13 @@ describe('ExpoGaodeMapView', () => {
     expect(result).toBeTruthy();
   });
 
+  it('应该支持相机移动事件节流配置', () => {
+    const result = render(
+      <ExpoGaodeMapView cameraEventThrottleMs={48} />
+    );
+    expect(result).toBeTruthy();
+  });
+
   it('应该支持在线自定义样式', () => {
     const customMapStyle = {
       styleId: 'amap://styles/dark',

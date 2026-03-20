@@ -2,6 +2,7 @@ package expo.modules.gaodemap.map
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import com.amap.api.maps.AMap
@@ -112,6 +113,12 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     internal var initialCameraPosition: Map<String, Any?>? = null
     /** 是否跟随用户位置 */
     internal var followUserLocation: Boolean = false
+    /** 是否显示底图文字标注 */
+    private var labelsEnabled: Boolean = true
+    /** 是否显示定位按钮 */
+    private var myLocationButtonEnabled: Boolean = false
+    /** 相机移动事件节流间隔 */
+    private var cameraEventThrottleMs: Long = 32L
     /** 自定义地图样式配置（缓存） */
     private var customMapStyleData: Map<String, Any>? = null
 
@@ -126,20 +133,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     private val onCameraMove by EventDispatcher()
     private val onCameraIdle by EventDispatcher()
 
-    // 事件节流控制
-    /** 相机移动事件节流间隔(毫秒) */
-    private val CAMERA_MOVE_THROTTLE_MS = 100L
-    /** 上次触发相机移动事件的时间戳 */
-    private var lastCameraMoveTime = 0L
     /** 缓存的相机移动事件数据 */
     private var pendingCameraMoveData: Map<String, Any>? = null
-    /** 节流定时器 Runnable */
-    private val throttleRunnable = Runnable {
-        pendingCameraMoveData?.let { data ->
-            onCameraMove(data)
-            pendingCameraMoveData = null
-        }
-    }
+    private var pendingCameraMoveDispatch: Runnable? = null
+    private var lastCameraMoveDispatchAt: Long = 0L
 
     // 高德地图视图
     private lateinit var mapView: MapView
@@ -203,6 +200,9 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                     uiManager.setCustomMapStyle(styleData)
                 }
 
+                uiManager.setLabelsEnabled(labelsEnabled)
+                uiManager.setMyLocationButtonEnabled(myLocationButtonEnabled)
+
                 onLoad(mapOf("loaded" to true))
             }
         } catch (_: Exception) {
@@ -233,49 +233,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 // 通知辅助监听器
                 cameraChangeListeners.forEach { it.onCameraChange(cameraPosition) }
 
-                // 相机移动中 - 应用节流优化
                 cameraPosition?.let {
-                    val currentTime = System.currentTimeMillis()
-                    val visibleRegion = aMap.projection.visibleRegion
-                    val eventData = mapOf(
-                        "cameraPosition" to mapOf(
-                            "target" to mapOf(
-                                "latitude" to it.target.latitude,
-                                "longitude" to it.target.longitude
-                            ),
-                            "zoom" to it.zoom,
-                            "tilt" to it.tilt,
-                            "bearing" to it.bearing
-                        ),
-                        "latLngBounds" to mapOf(
-                            "northeast" to mapOf(
-                                "latitude" to visibleRegion.farRight.latitude,
-                                "longitude" to visibleRegion.farRight.longitude
-                            ),
-                            "southwest" to mapOf(
-                                "latitude" to visibleRegion.nearLeft.latitude,
-                                "longitude" to visibleRegion.nearLeft.longitude
-                            )
-                        )
-                    )
-                    
-                    // 节流逻辑：100ms 内只触发一次
-                    if (currentTime - lastCameraMoveTime >= CAMERA_MOVE_THROTTLE_MS) {
-                        // 超过节流时间，立即触发事件
-                        lastCameraMoveTime = currentTime
-                        onCameraMove(eventData)
-                        // 清除待处理的事件和定时器
-                        mainHandler.removeCallbacks(throttleRunnable)
-                        pendingCameraMoveData = null
-                    } else {
-                        // 在节流时间内，缓存事件数据，使用定时器延迟触发
-                        pendingCameraMoveData = eventData
-                        mainHandler.removeCallbacks(throttleRunnable)
-                        mainHandler.postDelayed(
-                            throttleRunnable,
-                            CAMERA_MOVE_THROTTLE_MS - (currentTime - lastCameraMoveTime)
-                        )
-                    }
+                    dispatchCameraMoveEvent(buildCameraEventData(it))
                 }
             }
 
@@ -283,30 +242,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 // 通知辅助监听器
                 cameraChangeListeners.forEach { it.onCameraChangeFinish(cameraPosition) }
 
-                // 相机移动完成
+                flushPendingCameraMoveEvent()
+
                 cameraPosition?.let {
-                    val visibleRegion = aMap.projection.visibleRegion
-                    onCameraIdle(mapOf(
-                        "cameraPosition" to mapOf(
-                            "target" to mapOf(
-                                "latitude" to it.target.latitude,
-                                "longitude" to it.target.longitude
-                            ),
-                            "zoom" to it.zoom,
-                            "tilt" to it.tilt,
-                            "bearing" to it.bearing
-                        ),
-                        "latLngBounds" to mapOf(
-                            "northeast" to mapOf(
-                                "latitude" to visibleRegion.farRight.latitude,
-                                "longitude" to visibleRegion.farRight.longitude
-                            ),
-                            "southwest" to mapOf(
-                                "latitude" to visibleRegion.nearLeft.latitude,
-                                "longitude" to visibleRegion.nearLeft.longitude
-                            )
-                        )
-                    ))
+                    onCameraIdle(buildCameraEventData(it))
                 }
             }
         })
@@ -476,6 +415,24 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     fun setShowsBuildings(show: Boolean) = uiManager.setShowsBuildings(show)
     /** 设置是否显示室内地图 */
     fun setShowsIndoorMap(show: Boolean) = uiManager.setShowsIndoorMap(show)
+    /** 设置是否显示底图文字标注 */
+    fun setLabelsEnabled(enabled: Boolean) {
+        labelsEnabled = enabled
+        uiManager.setLabelsEnabled(enabled)
+    }
+    /** 设置是否显示定位按钮 */
+    fun setMyLocationButtonEnabled(enabled: Boolean) {
+        myLocationButtonEnabled = enabled
+        uiManager.setMyLocationButtonEnabled(enabled)
+    }
+    /** 设置相机移动事件节流间隔 */
+    fun setCameraEventThrottleMs(throttleMs: Int) {
+        cameraEventThrottleMs = throttleMs.toLong().coerceAtLeast(0L)
+        if (cameraEventThrottleMs == 0L) {
+            pendingCameraMoveDispatch?.let(mainHandler::removeCallbacks)
+            pendingCameraMoveDispatch = null
+        }
+    }
     
     /**
      * 设置自定义地图样式
@@ -652,8 +609,8 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     @Suppress("unused")
     fun onDestroy() {
                try {
-                   // 清理节流定时器
-                   mainHandler.removeCallbacks(throttleRunnable)
+                   pendingCameraMoveDispatch?.let(mainHandler::removeCallbacks)
+                   pendingCameraMoveDispatch = null
                    pendingCameraMoveData = null
                    
                    // 清理 Handler 回调,防止内存泄露
@@ -806,6 +763,73 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             }
         }
         return false
+    }
+
+    private fun buildCameraEventData(cameraPosition: com.amap.api.maps.model.CameraPosition): Map<String, Any> {
+        val visibleRegion = aMap.projection.visibleRegion
+        return mapOf(
+            "cameraPosition" to mapOf(
+                "target" to mapOf(
+                    "latitude" to cameraPosition.target.latitude,
+                    "longitude" to cameraPosition.target.longitude
+                ),
+                "zoom" to cameraPosition.zoom,
+                "tilt" to cameraPosition.tilt,
+                "bearing" to cameraPosition.bearing
+            ),
+            "latLngBounds" to mapOf(
+                "northeast" to mapOf(
+                    "latitude" to visibleRegion.farRight.latitude,
+                    "longitude" to visibleRegion.farRight.longitude
+                ),
+                "southwest" to mapOf(
+                    "latitude" to visibleRegion.nearLeft.latitude,
+                    "longitude" to visibleRegion.nearLeft.longitude
+                )
+            )
+        )
+    }
+
+    private fun dispatchCameraMoveEvent(eventData: Map<String, Any>) {
+        val throttleMs = cameraEventThrottleMs.coerceAtLeast(0L)
+        if (throttleMs == 0L) {
+            pendingCameraMoveData = null
+            pendingCameraMoveDispatch?.let(mainHandler::removeCallbacks)
+            pendingCameraMoveDispatch = null
+            lastCameraMoveDispatchAt = SystemClock.uptimeMillis()
+            onCameraMove(eventData)
+            return
+        }
+
+        pendingCameraMoveData = eventData
+
+        val now = SystemClock.uptimeMillis()
+        val elapsed = now - lastCameraMoveDispatchAt
+        if (elapsed >= throttleMs) {
+            pendingCameraMoveDispatch?.let(mainHandler::removeCallbacks)
+            pendingCameraMoveDispatch = null
+            flushPendingCameraMoveEvent(now)
+            return
+        }
+
+        if (pendingCameraMoveDispatch != null) {
+            return
+        }
+
+        val delay = (throttleMs - elapsed).coerceAtLeast(0L)
+        val runnable = Runnable {
+            pendingCameraMoveDispatch = null
+            flushPendingCameraMoveEvent()
+        }
+        pendingCameraMoveDispatch = runnable
+        mainHandler.postDelayed(runnable, delay)
+    }
+
+    private fun flushPendingCameraMoveEvent(timestamp: Long = SystemClock.uptimeMillis()) {
+        val eventData = pendingCameraMoveData ?: return
+        pendingCameraMoveData = null
+        lastCameraMoveDispatchAt = timestamp
+        onCameraMove(eventData)
     }
 
 }

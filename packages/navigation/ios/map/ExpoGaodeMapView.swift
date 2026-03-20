@@ -2,6 +2,7 @@ import ExpoModulesCore
 import AMapNaviKit
 import MapKit
 import CoreLocation
+import QuartzCore
 
 /**
  * 高德地图视图组件
@@ -51,6 +52,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     var showsBuildings: Bool = false
     /// 是否显示室内地图
     var showsIndoorMap: Bool = false
+    /// 相机移动事件节流间隔（毫秒）
+    var cameraEventThrottleMs: Int = 32 {
+        didSet {
+            if cameraEventThrottleMs == 0 {
+                cameraMoveDispatchWorkItem?.cancel()
+                cameraMoveDispatchWorkItem = nil
+            }
+        }
+    }
     /// 自定义地图样式配置
     var customMapStyleData: [String: Any]?
     /// 是否启用国内外地图自动切换
@@ -92,14 +102,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     
     // MARK: - 事件节流控制
     
-    /// 相机移动事件节流间隔(秒)
-    private let cameraMoveThrottleInterval: TimeInterval = 0.1
-    /// 上次触发相机移动事件的时间戳
-    private var lastCameraMoveTime: TimeInterval = 0
     /// 缓存的相机移动事件数据
     private var pendingCameraMoveData: [String: Any]?
-    /// 节流定时器
-    private var throttleTimer: Timer?
+    private var cameraMoveDispatchWorkItem: DispatchWorkItem?
+    private var lastCameraMoveDispatchTime: CFTimeInterval = 0
     
     /// 缩放手势识别器（用于模拟惯性）
     private var pinchGesture: UIPinchGestureRecognizer!
@@ -895,10 +901,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 当视图从层级中移除并释放时自动调用
      */
     deinit {
-        // 清理节流定时器
-        throttleTimer?.invalidate()
-        throttleTimer = nil
         pendingCameraMoveData = nil
+        cameraMoveDispatchWorkItem?.cancel()
+        cameraMoveDispatchWorkItem = nil
         if let privacyObserver {
             NotificationCenter.default.removeObserver(privacyObserver)
         }
@@ -1021,71 +1026,20 @@ extension ExpoGaodeMapView {
      * 地图区域即将改变时触发 - 应用节流优化
      */
     public func mapView(_ mapView: MAMapView, regionWillChangeAnimated animated: Bool) {
-        // 相机开始移动 - 应用节流优化
-        let currentTime = Date().timeIntervalSince1970
-        let cameraPosition = cameraManager.getCameraPosition()
-        let visibleRegion = mapView.region
-        
-        let eventData: [String: Any] = [
-            "cameraPosition": cameraPosition,
-            "latLngBounds": [
-                "northeast": [
-                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
-                ],
-                "southwest": [
-                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
-                ]
-            ]
-        ]
-        
-        // 节流逻辑：0.1秒 内只触发一次
-        if currentTime - lastCameraMoveTime >= cameraMoveThrottleInterval {
-            // 超过节流时间，立即触发事件
-            lastCameraMoveTime = currentTime
-            onCameraMove(eventData)
-            // 清除待处理的事件和定时器
-            throttleTimer?.invalidate()
-            throttleTimer = nil
-            pendingCameraMoveData = nil
-        } else {
-            // 在节流时间内，缓存事件数据，使用定时器延迟触发
-            pendingCameraMoveData = eventData
-            throttleTimer?.invalidate()
-            
-            let delay = cameraMoveThrottleInterval - (currentTime - lastCameraMoveTime)
-            throttleTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-                guard let self = self, let data = self.pendingCameraMoveData else { return }
-                self.lastCameraMoveTime = Date().timeIntervalSince1970
-                self.onCameraMove(data)
-                self.pendingCameraMoveData = nil
-                self.throttleTimer = nil
-            }
-        }
+        // 保留代理实现，但不在这里分发 onCameraMove。
+        // 持续移动过程应使用 mapViewRegionChanged。
+    }
+
+    public func mapViewRegionChanged(_ mapView: MAMapView) {
+        dispatchCameraMoveEvent(buildCameraEventData(for: mapView))
     }
     
     /**
      * 地图区域改变完成后触发
      */
     public func mapView(_ mapView: MAMapView, regionDidChangeAnimated animated: Bool) {
-        // 相机移动完成
-        let cameraPosition = cameraManager.getCameraPosition()
-        let visibleRegion = mapView.region
-        
-        onCameraIdle([
-            "cameraPosition": cameraPosition,
-            "latLngBounds": [
-                "northeast": [
-                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
-                ],
-                "southwest": [
-                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
-                ]
-            ]
-        ])
+        flushPendingCameraMoveEvent()
+        onCameraIdle(buildCameraEventData(for: mapView))
 
         // 这里的 overlayViews 是 [UIView] 类型，可能包含 ClusterView
         for view in overlayViews {
@@ -1098,6 +1052,72 @@ extension ExpoGaodeMapView {
         }
         
         handleMapviewRegionChange(mapView: mapView)
+    }
+
+    private func buildCameraEventData(for mapView: MAMapView) -> [String: Any] {
+        let cameraPosition = cameraManager?.getCameraPosition() ?? [String: Any]()
+        let visibleRegion = mapView.region
+
+        return [
+            "cameraPosition": cameraPosition,
+            "latLngBounds": [
+                "northeast": [
+                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
+                ],
+                "southwest": [
+                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
+                ]
+            ]
+        ]
+    }
+
+    private func dispatchCameraMoveEvent(_ eventData: [String: Any]) {
+        let throttleMs = max(cameraEventThrottleMs, 0)
+        if throttleMs == 0 {
+            pendingCameraMoveData = nil
+            cameraMoveDispatchWorkItem?.cancel()
+            cameraMoveDispatchWorkItem = nil
+            lastCameraMoveDispatchTime = CACurrentMediaTime()
+            onCameraMove(eventData)
+            return
+        }
+
+        pendingCameraMoveData = eventData
+
+        let now = CACurrentMediaTime()
+        let throttleSeconds = Double(throttleMs) / 1000
+        let elapsed = now - lastCameraMoveDispatchTime
+
+        if elapsed >= throttleSeconds {
+            cameraMoveDispatchWorkItem?.cancel()
+            cameraMoveDispatchWorkItem = nil
+            flushPendingCameraMoveEvent(at: now)
+            return
+        }
+
+        guard cameraMoveDispatchWorkItem == nil else {
+            return
+        }
+
+        let delay = max(0, throttleSeconds - elapsed)
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.cameraMoveDispatchWorkItem = nil
+            self?.flushPendingCameraMoveEvent()
+        }
+        cameraMoveDispatchWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func flushPendingCameraMoveEvent(at timestamp: CFTimeInterval = CACurrentMediaTime()) {
+        guard let eventData = pendingCameraMoveData else {
+            return
+        }
+
+        pendingCameraMoveData = nil
+        lastCameraMoveDispatchTime = timestamp
+        onCameraMove(eventData)
     }
     
     /**

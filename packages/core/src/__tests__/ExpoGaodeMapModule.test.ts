@@ -5,6 +5,7 @@
 
 import ExpoGaodeMapModule, { getSDKConfig, getWebKey } from '../ExpoGaodeMapModule';
 import { CoordinateType } from '../types';
+import { requireNativeModule } from 'expo';
 
 describe('ExpoGaodeMapModule', () => {
   
@@ -12,6 +13,16 @@ describe('ExpoGaodeMapModule', () => {
     // 清除所有 mock
     jest.clearAllMocks();
   });
+
+  const getNativeMock = () => requireNativeModule('ExpoGaodeMap') as {
+    coordinateConvert: jest.Mock;
+    setGeoLanguage: jest.Mock;
+    getVersion: jest.Mock;
+    addListener: jest.Mock;
+    checkLocationPermission: jest.Mock;
+    requestLocationPermission: jest.Mock;
+    requestBackgroundLocationPermission: jest.Mock;
+  };
 
   describe('SDK 初始化', () => {
     it('应该能够初始化 SDK', () => {
@@ -39,12 +50,50 @@ describe('ExpoGaodeMapModule', () => {
       const permission = await ExpoGaodeMapModule.checkLocationPermission();
       expect(permission).toBeDefined();
       expect(permission.granted).toBe(true);
+      expect(permission.status).toBe('granted');
     });
 
     it('应该能够请求定位权限', async () => {
       const permission = await ExpoGaodeMapModule.requestLocationPermission();
       expect(permission).toBeDefined();
       expect(permission.granted).toBe(true);
+      expect(permission.status).toBe('granted');
+    });
+
+    it('应该归一化 iOS 风格的权限状态', async () => {
+      const nativeModule = getNativeMock();
+      nativeModule.checkLocationPermission.mockResolvedValue({
+        granted: true,
+        status: 'authorizedWhenInUse',
+        backgroundLocation: false,
+      });
+
+      const permission = await ExpoGaodeMapModule.checkLocationPermission();
+
+      expect(permission).toMatchObject({
+        granted: true,
+        status: 'granted',
+        canAskAgain: true,
+        backgroundLocation: false,
+      });
+    });
+
+    it('应该归一化被拒绝且不可再次请求的权限状态', async () => {
+      const nativeModule = getNativeMock();
+      nativeModule.requestLocationPermission.mockResolvedValue({
+        granted: false,
+        status: 'denied',
+        isPermanentlyDenied: true,
+      });
+
+      const permission = await ExpoGaodeMapModule.requestLocationPermission();
+
+      expect(permission).toMatchObject({
+        granted: false,
+        status: 'denied',
+        canAskAgain: false,
+        isPermanentlyDenied: true,
+      });
     });
 
     it('应该能够获取当前位置', async () => {
@@ -53,6 +102,7 @@ describe('ExpoGaodeMapModule', () => {
       expect(location).toBeDefined();
       expect(location.latitude).toBeDefined();
       expect(location.longitude).toBeDefined();
+      expect(location.heading).toBeDefined();
       expect(typeof location.latitude).toBe('number');
       expect(typeof location.longitude).toBe('number');
     });
@@ -87,6 +137,39 @@ describe('ExpoGaodeMapModule', () => {
         subscription.remove();
       }).not.toThrow();
     });
+
+    it('应该能够添加方向监听器并归一化事件数据', () => {
+      const nativeModule = getNativeMock();
+      const remove = jest.fn();
+      nativeModule.addListener.mockImplementation(
+        (_eventName: string, listener: (payload: Record<string, unknown>) => void) => {
+          listener({
+            heading: 123,
+            accuracy: 5,
+            timestamp: 1000,
+          });
+          return { remove };
+        }
+      );
+
+      const listener = jest.fn();
+      const subscription = ExpoGaodeMapModule.addHeadingListener(listener);
+
+      expect(nativeModule.addListener).toHaveBeenCalledWith(
+        'onHeadingUpdate',
+        expect.any(Function)
+      );
+      expect(listener).toHaveBeenCalledWith({
+        magneticHeading: 123,
+        trueHeading: 123,
+        headingAccuracy: 5,
+        x: 0,
+        y: 0,
+        z: 0,
+        timestamp: 1000,
+      });
+      expect(subscription.remove).toBe(remove);
+    });
   });
 
   describe('定位配置', () => {
@@ -117,6 +200,25 @@ describe('ExpoGaodeMapModule', () => {
       expect(converted).toBeDefined();
       expect(converted.latitude).toBe(39.9);
       expect(converted.longitude).toBe(116.4);
+    });
+
+    it('AMap 坐标系应直接返回，不调用原生转换', async () => {
+      const nativeModule = getNativeMock();
+      const coordinate = { latitude: 31.2304, longitude: 121.4737 };
+
+      const converted = await ExpoGaodeMapModule.coordinateConvert(coordinate, CoordinateType.AMap);
+
+      expect(converted).toEqual(coordinate);
+      expect(nativeModule.coordinateConvert).not.toHaveBeenCalled();
+    });
+
+    it('百度坐标应映射到原生 Baidu 类型值', async () => {
+      const nativeModule = getNativeMock();
+      const coordinate = { latitude: 39.9, longitude: 116.4 };
+
+      await ExpoGaodeMapModule.coordinateConvert(coordinate, CoordinateType.Baidu);
+
+      expect(nativeModule.coordinateConvert).toHaveBeenCalledWith(coordinate, 2);
     });
   });
 
@@ -224,6 +326,18 @@ describe('ExpoGaodeMapModule', () => {
       expect(() => {
         ExpoGaodeMapModule.setGeoLanguage?.('zh-CN');
       }).not.toThrow();
+    });
+
+    it('应该将常见语言别名归一化后再传给原生层', () => {
+      const nativeModule = getNativeMock();
+
+      ExpoGaodeMapModule.setGeoLanguage?.('zh-CN');
+      ExpoGaodeMapModule.setGeoLanguage?.('en');
+      ExpoGaodeMapModule.setGeoLanguage?.('DEFAULT');
+
+      expect(nativeModule.setGeoLanguage).toHaveBeenNthCalledWith(1, 'ZH');
+      expect(nativeModule.setGeoLanguage).toHaveBeenNthCalledWith(2, 'EN');
+      expect(nativeModule.setGeoLanguage).toHaveBeenNthCalledWith(3, 'DEFAULT');
     });
 
     it('应该能够设置缓存策略', () => {

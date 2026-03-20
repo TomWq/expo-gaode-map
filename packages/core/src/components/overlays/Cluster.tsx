@@ -29,9 +29,24 @@ function arePropsEqual(prevProps: ClusterProps, nextProps: ClusterProps): boolea
   if (prevProps.radius !== nextProps.radius) {
     return false;
   }
+
+  // 比较基础图标
+  if (prevProps.icon !== nextProps.icon) {
+    return false;
+  }
   
   // 比较 minClusterSize
   if (prevProps.minClusterSize !== nextProps.minClusterSize) {
+    return false;
+  }
+
+  // 比较聚合样式
+  if (prevProps.clusterStyle !== nextProps.clusterStyle) {
+    return false;
+  }
+
+  // 比较聚合文本样式
+  if (prevProps.clusterTextStyle !== nextProps.clusterTextStyle) {
     return false;
   }
   

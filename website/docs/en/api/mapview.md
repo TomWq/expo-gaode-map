@@ -110,13 +110,18 @@
 | `onLoad` | `NativeSyntheticEvent<{}>` | Map finished loading |
 | `onLocation` | `NativeSyntheticEvent<LocationEvent>` | Blue-dot location update |
 
+### Camera event throttling
+
+- Use `cameraEventThrottleMs?: number` to control the native `onCameraMove` event frequency in milliseconds
+- Default is `32`; pass `0` to disable throttling and receive all move events in JS
+
 ## `MapViewRef`
 
 Use a ref to call:
 
 ```tsx
 interface MapViewRef {
-  moveCamera(position: CameraPosition, duration?: number): Promise<void>;
+  moveCamera(position: CameraUpdate, duration?: number): Promise<void>;
   getLatLng(point: Point): Promise<LatLng>;
   setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;

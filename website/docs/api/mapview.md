@@ -110,13 +110,18 @@
 | `onLoad` | `NativeSyntheticEvent<{}>` | 地图加载完成 |
 | `onLocation` | `NativeSyntheticEvent<LocationEvent>` | 地图蓝点位置更新 |
 
+### 相机事件节流
+
+- 通过 `cameraEventThrottleMs?: number` 控制原生 `onCameraMove` 事件的节流间隔（毫秒）
+- 默认值为 `32`，传入 `0` 表示不开启节流，所有相机移动事件都会派发到 JS
+
 ## MapViewRef 方法
 
 通过 `ref` 调用：
 
 ```tsx
 interface MapViewRef {
-  moveCamera(position: CameraPosition, duration?: number): Promise<void>;
+  moveCamera(position: CameraUpdate, duration?: number): Promise<void>;
   getLatLng(point: Point): Promise<LatLng>;
   setCenter(center: LatLngPoint, animated?: boolean): Promise<void>;
   setZoom(zoom: number, animated?: boolean): Promise<void>;

@@ -11,44 +11,20 @@
 
 为了解决这个问题，我们建议对高频事件进行**节流 (Throttling)** 处理。
 
-## 如何使用内置节流函数
+## 如何使用原生节流
 
-`expo-gaode-map` 提供了一个轻量级的内置 `throttle` 工具函数，无需安装 lodash 等第三方库。
+推荐直接使用 `MapView` 的 `cameraEventThrottleMs`，在事件进入 JS 之前就完成降频。
 
-### 1. 引入工具
-
-```typescript
-import { throttle } from 'expo-gaode-map';
-import { useMemo } from 'react';
-```
-
-### 2. 在组件中使用
-
-使用 `useMemo` 创建一个节流后的回调函数，确保在组件重渲染时保持节流状态。
-
-```typescript
+```tsx
 export default function MapScreen() {
-  // 创建节流回调，每 100ms 最多触发一次
-  const onCameraMoveThrottled = useMemo(
-    () =>
-      throttle(({ nativeEvent }) => {
-        // 在这里处理高频更新逻辑
-        const { cameraPosition } = nativeEvent;
-        console.log('当前缩放级别:', cameraPosition.zoom);
-        
-        // 比如更新状态用于 UI 显示
-        // setCameraInfo(cameraPosition); 
-      }, 100), // 100ms 是一个推荐的平衡值
-    []
-  );
-
   return (
     <MapView
-      // ...其他属性
-      onCameraMove={onCameraMoveThrottled} // 使用节流后的回调
+      cameraEventThrottleMs={32}
+      onCameraMove={({ nativeEvent }) => {
+        const { cameraPosition } = nativeEvent;
+        console.log('当前缩放级别:', cameraPosition.zoom);
+      }}
       onCameraIdle={({ nativeEvent }) => {
-        // 相机停止时触发一次，不需要节流
-        // 适合做最后的数据同步或重度计算
         console.log('移动结束:', nativeEvent);
       }}
     />
@@ -69,7 +45,7 @@ export default function MapScreen() {
 
 1. **优先使用 `onCameraIdle`**：如果你的业务逻辑不需要在移动过程中实时更新（例如“移动结束后加载周边数据”），请直接使用 `onCameraIdle`，它只在停止时触发一次，完全不需要节流。
 2. **避免在回调中做重计算**：即使使用了节流，也尽量不要在 `onCameraMove` 中进行复杂的逻辑运算或大量的 DOM 操作。
-3. **合理设置时间间隔**：
+3. **合理设置 `cameraEventThrottleMs`**：
    - **16ms** (约 60fps)：极度流畅，适合动画联动。
    - **100ms - 200ms**：适合更新文本显示，肉眼几乎无延迟感，性能开销小。
    - **500ms+**：适合网络请求（但更建议用 `debounce` 或 `onCameraIdle`）。

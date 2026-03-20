@@ -488,6 +488,12 @@ export interface ClusterPoint {
  */
 export interface ClusterProps {
   /**
+   * 聚合点基础图标
+   * 当前支持远程 URL、本地文件路径或原生资源名称
+   */
+  icon?: string;
+
+  /**
    * 聚合半径
    */
   radius?: number;

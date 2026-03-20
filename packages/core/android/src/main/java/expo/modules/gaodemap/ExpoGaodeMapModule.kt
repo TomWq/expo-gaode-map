@@ -772,7 +772,7 @@ class ExpoGaodeMapModule : Module() {
       // 使用 WeakReference 避免内存泄露
       val contextRef = java.lang.ref.WeakReference(appContext.reactContext)
       val handler = android.os.Handler(android.os.Looper.getMainLooper())
-      val attempts = 0
+      var attempts = 0
       val maxAttempts = 50 // 增加到 5 秒 / 100ms，给用户足够时间操作
 
       val checkPermission = object : Runnable {
@@ -784,6 +784,7 @@ class ExpoGaodeMapModule : Module() {
           }
 
           val status = PermissionHelper.checkForegroundLocationPermission(context)
+          attempts += 1
 
           // 如果权限已授予或达到最大尝试次数,返回结果并清理 Handler
           if (status.granted || attempts >= maxAttempts) {
@@ -843,7 +844,7 @@ class ExpoGaodeMapModule : Module() {
       // 轮询检查权限状态
       val contextRef = java.lang.ref.WeakReference(appContext.reactContext)
       val handler = android.os.Handler(android.os.Looper.getMainLooper())
-      val attempts = 0
+      var attempts = 0
       val maxAttempts = 30
 
       val checkPermission = object : Runnable {
@@ -855,6 +856,7 @@ class ExpoGaodeMapModule : Module() {
           }
 
           val status = PermissionHelper.checkBackgroundLocationPermission(context)
+          attempts += 1
 
           if (status.granted || attempts >= maxAttempts) {
             handler.removeCallbacks(this)

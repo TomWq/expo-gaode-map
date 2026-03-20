@@ -161,6 +161,7 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
         expect(() => {
           ExpoGaodeMapModule.setGeoLanguage?.('zh-CN');
           ExpoGaodeMapModule.setGeoLanguage?.('en');
+          ExpoGaodeMapModule.setGeoLanguage?.('DEFAULT');
         }).not.toThrow();
       });
 

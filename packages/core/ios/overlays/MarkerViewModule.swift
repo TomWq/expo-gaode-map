@@ -34,19 +34,19 @@ public class MarkerViewModule: Module {
             }
             
             Prop("iconWidth") { (view: MarkerView, width: Double) in
-                view.iconWidth = width
+                view.setIconWidth(width)
             }
             
             Prop("iconHeight") { (view: MarkerView, height: Double) in
-                view.iconHeight = height
+                view.setIconHeight(height)
             }
             
             Prop("customViewWidth") { (view: MarkerView, width: Double) in
-                view.customViewWidth = width
+                view.setCustomViewWidth(width)
             }
             
             Prop("customViewHeight") { (view: MarkerView, height: Double) in
-                view.customViewHeight = height
+                view.setCustomViewHeight(height)
             }
             
             Prop("centerOffset") { (view: MarkerView, offset: [String: Double]) in
@@ -62,11 +62,11 @@ public class MarkerViewModule: Module {
             }
             
             Prop("canShowCallout") { (view: MarkerView, canShow: Bool) in
-                view.canShowCallout = canShow
+                view.setCanShowCallout(canShow)
             }
 
             Prop("growAnimation") { (view: MarkerView, enabled: Bool) in
-                view.growAnimation = enabled
+                view.setGrowAnimation(enabled)
             }
              Prop("cacheKey") { (view: MarkerView, key: String) in
                 view.setCacheKey(key)

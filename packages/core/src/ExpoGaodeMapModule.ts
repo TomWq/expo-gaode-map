@@ -6,8 +6,11 @@ import {
   Coordinates,
   ReGeocode,
   LocationListener,
+  HeadingListener,
+  HeadingUpdate,
   LatLngPoint,
   CoordinateType,
+  GeoLanguage,
 } from './types';
 import type { ExpoGaodeMapModule as NativeExpoGaodeMapModule } from './types/native-module.types';
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
@@ -15,6 +18,137 @@ import { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './typ
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
+
+function normalizeCoordinateType(type: CoordinateType): number | null {
+  switch (type) {
+    case CoordinateType.AMap:
+      return null;
+    case CoordinateType.MapBar:
+      return 1;
+    case CoordinateType.Baidu:
+      return 2;
+    case CoordinateType.MapABC:
+    case CoordinateType.SoSoMap:
+      return 3;
+    case CoordinateType.Google:
+    case CoordinateType.GPS:
+      return 0;
+    default:
+      throw ErrorHandler.invalidParameter(
+        'type',
+        'CoordinateType.AMap | MapBar | Baidu | MapABC | SoSoMap | Google | GPS',
+        type
+      );
+  }
+}
+
+function normalizeGeoLanguage(language: GeoLanguage | string): GeoLanguage {
+  const normalized = String(language).trim().toUpperCase();
+
+  switch (normalized) {
+    case 'DEFAULT':
+      return 'DEFAULT';
+    case 'EN':
+    case 'EN-US':
+    case 'EN_US':
+    case 'EN-GB':
+    case 'EN_GB':
+      return 'EN';
+    case 'ZH':
+    case 'ZH-CN':
+    case 'ZH_CN':
+    case 'ZH-HANS':
+    case 'ZH_HANS':
+      return 'ZH';
+    default:
+      throw ErrorHandler.invalidParameter(
+        'language',
+        "'DEFAULT' | 'EN' | 'ZH' | 常见别名（如 'en', 'zh-CN'）",
+        language
+      );
+  }
+}
+
+function normalizeLocationResult<T extends Coordinates | ReGeocode>(location: T): T {
+  const rawLocation = location as T & { bearing?: number; heading?: number };
+  const heading = rawLocation.heading ?? rawLocation.bearing ?? 0;
+
+  return {
+    ...rawLocation,
+    heading,
+  };
+}
+
+function normalizeHeadingEvent(payload: HeadingUpdate | Record<string, unknown>): HeadingUpdate {
+  const raw = payload as Record<string, unknown>;
+  const fallbackHeading = Number(raw.heading ?? raw.trueHeading ?? raw.magneticHeading ?? 0);
+  const fallbackAccuracy = Number(raw.accuracy ?? raw.headingAccuracy ?? 0);
+
+  return {
+    magneticHeading: Number(raw.magneticHeading ?? fallbackHeading),
+    trueHeading: Number(raw.trueHeading ?? fallbackHeading),
+    headingAccuracy: fallbackAccuracy,
+    x: Number(raw.x ?? 0),
+    y: Number(raw.y ?? 0),
+    z: Number(raw.z ?? 0),
+    timestamp: Number(raw.timestamp ?? Date.now()),
+  };
+}
+
+function normalizePermissionStatus(permission: PermissionStatus | Record<string, unknown>): PermissionStatus {
+  const raw = permission as Partial<PermissionStatus> & Record<string, unknown>;
+  const rawStatus = String(raw.status ?? '');
+
+  let status: 'granted' | 'denied' | 'undetermined';
+  switch (rawStatus) {
+    case 'granted':
+    case 'authorizedAlways':
+    case 'authorizedWhenInUse':
+      status = 'granted';
+      break;
+    case 'denied':
+    case 'restricted':
+      status = 'denied';
+      break;
+    case 'notDetermined':
+    case 'undetermined':
+    case 'unknown':
+    case '':
+    default:
+      status = 'undetermined';
+      break;
+  }
+
+  const granted = Boolean(raw.granted ?? (status === 'granted'));
+  const shouldShowRationale =
+    typeof raw.shouldShowRationale === 'boolean' ? raw.shouldShowRationale : undefined;
+  const explicitPermanent =
+    typeof raw.isPermanentlyDenied === 'boolean' ? raw.isPermanentlyDenied : undefined;
+
+  const canAskAgain =
+    typeof raw.canAskAgain === 'boolean'
+      ? raw.canAskAgain
+      : granted
+        ? true
+        : typeof shouldShowRationale === 'boolean'
+          ? shouldShowRationale
+          : explicitPermanent === true
+            ? false
+            : status === 'undetermined';
+
+  const isPermanentlyDenied =
+    explicitPermanent ??
+    (!granted && status === 'denied' && canAskAgain === false);
+
+  return {
+    ...raw,
+    expires: raw.expires ?? 'never',
+    granted,
+    status: status as unknown as PermissionStatus['status'],
+    canAskAgain,
+    isPermanentlyDenied,
+  };
+}
 
 function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
   if (nativeModuleCache) {
@@ -303,7 +437,8 @@ const helperMethods = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.getCurrentLocation();
+      const location = await nativeModule.getCurrentLocation();
+      return normalizeLocationResult(location);
     } catch (error) {
       throw ErrorHandler.wrapNativeError(error, '获取当前位置');
     }
@@ -316,9 +451,27 @@ const helperMethods = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.coordinateConvert(normalizeLatLng(coordinate), type);
+      const normalizedCoordinate = normalizeLatLng(coordinate);
+      const normalizedType = normalizeCoordinateType(type);
+
+      if (normalizedType === null) {
+        return normalizedCoordinate;
+      }
+
+      return await nativeModule.coordinateConvert(normalizedCoordinate, normalizedType);
     } catch (error) {
       throw ErrorHandler.wrapNativeError(error, '坐标转换');
+    }
+  },
+
+  setGeoLanguage(language: GeoLanguage | string): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) return;
+    try {
+      nativeModule.setGeoLanguage(normalizeGeoLanguage(language));
+    } catch (error) {
+      ErrorLogger.warn('setGeoLanguage 失败', { language, error });
     }
   },
 
@@ -349,7 +502,7 @@ const helperMethods = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      return await nativeModule.checkLocationPermission();
+      return normalizePermissionStatus(await nativeModule.checkLocationPermission());
     } catch (error) {
       throw ErrorHandler.wrapNativeError(error, '检查权限');
     }
@@ -365,7 +518,7 @@ const helperMethods = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      const result = await nativeModule.requestLocationPermission();
+      const result = normalizePermissionStatus(await nativeModule.requestLocationPermission());
       if (!result.granted) {
         ErrorLogger.warn('前台位置权限未授予', result);
       }
@@ -386,7 +539,7 @@ const helperMethods = {
       throw ErrorHandler.nativeModuleUnavailable();
     }
     try {
-      const result = await nativeModule.requestBackgroundLocationPermission();
+      const result = normalizePermissionStatus(await nativeModule.requestBackgroundLocationPermission());
       if (!result.granted) {
         ErrorLogger.warn('后台位置权限未授予', result);
       }
@@ -473,7 +626,33 @@ const helperMethods = {
       };
     }
 
-    return module.addListener('onLocationUpdate', listener) || {
+    return module.addListener('onLocationUpdate', (location) => {
+      listener(normalizeLocationResult(location));
+    }) || {
+      remove: () => { },
+    };
+  },
+
+  /**
+   * 添加方向监听器（iOS）
+   * 自动归一化 heading 事件字段，兼容旧版原生返回结构
+   */
+  addHeadingListener(listener: HeadingListener): { remove: () => void } {
+    assertPrivacyReady('sdk');
+    const module = getNativeModule();
+    if (!module) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+    if (!module.addListener) {
+      ErrorLogger.warn('Native module does not support events');
+      return {
+        remove: () => { },
+      };
+    }
+
+    return module.addListener('onHeadingUpdate', (heading) => {
+      listener(normalizeHeadingEvent(heading));
+    }) || {
       remove: () => { },
     };
   },

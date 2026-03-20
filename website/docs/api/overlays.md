@@ -314,6 +314,7 @@ interface ClusterPoint {
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `points` | `ClusterPoint[]` | - | 聚合点数组，必填 |
+| `icon` | `string` | - | 聚合基础图标，支持网络 URL、本地文件路径或原生资源名称 |
 | `radius` | `number` | - | 聚合半径 |
 | `minClusterSize` | `number` | - | 最小成簇数量 |
 | `clusterStyle` | `ViewStyle` | - | 聚合点基础样式 |

@@ -1,3 +1,4 @@
+import Foundation
 import ExpoModulesCore
 import MAMapKit
 
@@ -28,6 +29,9 @@ class ClusterView: ExpoView {
     private var currentAnnotations: [MAAnnotation] = []
     private let quadTreeQueue = DispatchQueue(label: "com.expo.gaode.quadtree")
     private var isInvalidated = false
+    private let imageCache = NSCache<NSString, UIImage>()
+    private var baseIconImage: UIImage?
+    private var iconIdentifier: String?
     
     // 缓存坐标数据以加速 C++ 调用
     private var latitudes: [Double] = []
@@ -104,8 +108,22 @@ class ClusterView: ExpoView {
                 self.clusterSize.width = CGFloat(height)
             }
         }
-        
+
+        clearImageCache()
         updateClusters()
+    }
+
+    func setIcon(_ icon: String?) {
+        iconIdentifier = icon
+        baseIconImage = nil
+        clearImageCache()
+
+        guard let icon, !icon.isEmpty else {
+            updateClusters()
+            return
+        }
+
+        loadIcon(from: icon)
     }
     
     func setClusterTextStyle(_ style: [String: Any]) {
@@ -115,11 +133,13 @@ class ClusterView: ExpoView {
         if let fontSize = style["fontSize"] as? Double {
             self.clusterTextSize = CGFloat(fontSize)
         }
+        clearImageCache()
         updateClusters()
     }
 
     func setClusterBuckets(_ buckets: [[String: Any]]) {
         self.clusterBuckets = buckets
+        clearImageCache()
         updateClusters()
     }
 
@@ -278,10 +298,15 @@ class ClusterView: ExpoView {
     }
     
     private func image(for count: Int) -> UIImage? {
+        let cacheKey = clusterImageCacheKey(for: count)
+        if let cachedImage = imageCache.object(forKey: cacheKey as NSString) {
+            return cachedImage
+        }
+
         let size = self.clusterSize
         let renderer = UIGraphicsImageRenderer(size: size)
-        
-        return renderer.image { context in
+
+        let renderedImage = renderer.image { context in
             let rect = CGRect(origin: .zero, size: size)
             
             // 基础样式
@@ -316,15 +341,25 @@ class ClusterView: ExpoView {
                 }
             }
             
-            bgColor.setFill()
-            UIBezierPath(ovalIn: rect).fill()
-            
-            // 绘制边框
-            if borderWidth > 0 {
-                borderColor.setStroke()
-                let path = UIBezierPath(ovalIn: rect.insetBy(dx: borderWidth / 2, dy: borderWidth / 2))
-                path.lineWidth = borderWidth
-                path.stroke()
+            if let baseIconImage {
+                baseIconImage.draw(in: rect)
+                if borderWidth > 0 {
+                    borderColor.setStroke()
+                    let path = UIBezierPath(ovalIn: rect.insetBy(dx: borderWidth / 2, dy: borderWidth / 2))
+                    path.lineWidth = borderWidth
+                    path.stroke()
+                }
+            } else {
+                bgColor.setFill()
+                UIBezierPath(ovalIn: rect).fill()
+                
+                // 绘制边框
+                if borderWidth > 0 {
+                    borderColor.setStroke()
+                    let path = UIBezierPath(ovalIn: rect.insetBy(dx: borderWidth / 2, dy: borderWidth / 2))
+                    path.lineWidth = borderWidth
+                    path.stroke()
+                }
             }
             
             // 绘制文字
@@ -339,6 +374,72 @@ class ClusterView: ExpoView {
                                   width: textSize.width,
                                   height: textSize.height)
             text.draw(in: textRect, withAttributes: attributes)
+        }
+
+        imageCache.setObject(renderedImage, forKey: cacheKey as NSString)
+        return renderedImage
+    }
+
+    private func clusterImageCacheKey(for count: Int) -> String {
+        let bucketKey: String
+        if let buckets = clusterBuckets {
+            let minPoints = buckets
+                .compactMap { $0["minPoints"] as? Int }
+                .filter { $0 <= count }
+                .max() ?? 0
+            bucketKey = "bucket:\(minPoints)"
+        } else {
+            bucketKey = "bucket:none"
+        }
+
+        return [
+            "count:\(count)",
+            bucketKey,
+            "size:\(Int(clusterSize.width.rounded()))x\(Int(clusterSize.height.rounded()))",
+            "bg:\(clusterBackgroundColor.description)",
+            "border:\(clusterBorderColor.description)",
+            "borderWidth:\(clusterBorderWidth)",
+            "textColor:\(clusterTextColor.description)",
+            "textSize:\(clusterTextSize)",
+            "icon:\(iconIdentifier ?? "none")"
+        ].joined(separator: "|")
+    }
+
+    private func clearImageCache() {
+        imageCache.removeAllObjects()
+    }
+
+    private func loadIcon(from icon: String) {
+        let requestedIcon = icon
+
+        DispatchQueue.global().async { [weak self] in
+            guard let self else { return }
+
+            let image: UIImage? = {
+                if requestedIcon.hasPrefix("http://") || requestedIcon.hasPrefix("https://") {
+                    guard let url = URL(string: requestedIcon),
+                          let data = try? Data(contentsOf: url) else {
+                        return nil
+                    }
+                    return UIImage(data: data)
+                }
+
+                if requestedIcon.hasPrefix("file://") {
+                    let path = String(requestedIcon.dropFirst(7))
+                    return UIImage(contentsOfFile: path)
+                }
+
+                return UIImage(named: requestedIcon) ?? UIImage(contentsOfFile: requestedIcon)
+            }()
+
+            guard let image else { return }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.iconIdentifier == requestedIcon else { return }
+                self.baseIconImage = image
+                self.clearImageCache()
+                self.updateClusters()
+            }
         }
     }
     
@@ -365,6 +466,7 @@ class ClusterView: ExpoView {
     override func removeFromSuperview() {
         isInvalidated = true
         updateTimer?.invalidate() // 清理定时器
+        clearImageCache()
         super.removeFromSuperview()
         mapView?.removeAnnotations(currentAnnotations)
     }

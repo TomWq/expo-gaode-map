@@ -38,7 +38,7 @@ npm install expo-gaode-map-navigation
   "expo": {
     "plugins": [
       [
-        "expo-gaode-map",
+        "expo-gaode-map-navigation",
         {
           "iosKey": "your-ios-api-key",
           "androidKey": "your-android-api-key",
@@ -66,6 +66,14 @@ npx expo run:android
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
 // 使用 Config Plugin 时，原生 Key 已自动配置
 ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
@@ -78,6 +86,14 @@ ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 可选
 });
 ```
+
+### 内置地图说明
+
+- `expo-gaode-map-navigation` 内置的 `MapView` / `Marker` / `Cluster` 等组件，API 设计与核心包保持一致
+- 但它底层使用导航 SDK 对应的地图能力，不能与 `expo-gaode-map` 同装
+- 地图相机事件支持 `cameraEventThrottleMs`
+- `moveCamera` 使用 `CameraUpdate`
+- `Cluster` 支持 `icon`
 
 ## 基础用法
 

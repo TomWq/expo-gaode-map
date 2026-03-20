@@ -11,6 +11,7 @@ export type {
   MapPoi,
   LatLngBounds,
   CameraPosition,
+  CameraUpdate,
   ColorValue,
   SDKConfig,
   PermissionStatus,
@@ -32,8 +33,10 @@ export type {
 export type {
   Coordinates,
   ReGeocode,
+  HeadingUpdate,
   LocationOptions,
   LocationListener,
+  HeadingListener,
   GeoLanguage,
   LocationProtocol,
 } from './location.types';
@@ -60,4 +63,3 @@ export type {
 
 // 原生模块类型
 export type { ExpoGaodeMapModule } from './native-module.types';
-

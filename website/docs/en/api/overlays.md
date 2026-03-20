@@ -314,6 +314,7 @@ interface ClusterPoint {
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `points` | `ClusterPoint[]` | - | Cluster points, required |
+| `icon` | `string` | - | Base cluster icon. Supports HTTP/HTTPS URL, `file://` path, or bundle image name |
 | `radius` | `number` | - | Cluster radius |
 | `minClusterSize` | `number` | - | Minimum number of points to form a cluster |
 | `clusterStyle` | `ViewStyle` | - | Base cluster style |

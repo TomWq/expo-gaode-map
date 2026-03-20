@@ -2,7 +2,6 @@ package expo.modules.gaodemap.overlays
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -64,7 +63,6 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
 
   }
   
-  private var rawPoints: List<Map<String, Any>> = emptyList()
   private var clusterItems: List<ClusterItem> = emptyList()
   private var clusters: List<Cluster> = emptyList()
   
@@ -91,6 +89,7 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
   private var currentIconDescriptor: BitmapDescriptor? = null
   private var customIconBitmap: Bitmap? = null
   private var pendingIconUri: String? = null
+  private var pendingRetryUpdate: Runnable? = null
   
   // 标记样式是否发生变化，用于强制更新图标
   private var styleChanged = false
@@ -117,7 +116,6 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置聚合点
    */
   fun setPoints(points: List<Map<String, Any>>) {
-    rawPoints = points
     clusterItems = points.mapNotNull { pointData ->
       LatLngParser.parseLatLng(pointData)?.let { latLng ->
         ClusterItem(latLng, pointData)
@@ -141,7 +139,6 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置最小聚合数量
    */
   fun setMinClusterSize(size: Int) {
-    Log.d("ClusterView", "setMinClusterSize: $size")
     minClusterSize = size
     updateClusters()
   }
@@ -227,8 +224,8 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
                     updateClusters()
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
+            // 忽略异常，保留当前默认图标
         }
     }
   }
@@ -265,6 +262,8 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
     }
     currentMarkers.clear()
     bitmapCache.clear()
+    pendingRetryUpdate?.let { mainHandler.removeCallbacks(it) }
+    pendingRetryUpdate = null
   }
   
   /**
@@ -283,7 +282,12 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
     }
 
     calculationJob = scope.launch(Dispatchers.Default) {
-      if (clusterItems.isEmpty()) return@launch
+      if (clusterItems.isEmpty()) {
+        withContext(Dispatchers.Main) {
+          renderClusters(emptyList())
+        }
+        return@launch
+      }
       
       // 获取当前比例尺 (米/像素)
       val scalePerPixel = withContext(Dispatchers.Main) {
@@ -296,11 +300,7 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
       }
 
       if (scalePerPixel <= 0) {
-          // 比例尺无效，稍后重试
-          withContext(Dispatchers.Main) {
-              Log.w("ClusterView", "Invalid scalePerPixel: $scalePerPixel, retrying...")
-              mainHandler.postDelayed({ updateClusters() }, 500)
-          }
+          scheduleRetryUpdate()
           return@launch
       }
       
@@ -317,6 +317,18 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
         renderClusters(newClusters)
       }
     }
+  }
+
+  private fun scheduleRetryUpdate(delayMs: Long = 500L) {
+    pendingRetryUpdate?.let { mainHandler.removeCallbacks(it) }
+    val retryTask = Runnable {
+      pendingRetryUpdate = null
+      if (aMap != null) {
+        updateClusters()
+      }
+    }
+    pendingRetryUpdate = retryTask
+    mainHandler.postDelayed(retryTask, delayMs)
   }
 
   private fun buildClustersFromNative(radiusMeters: Double): List<Cluster>? {
@@ -396,7 +408,6 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 使用 Diff 算法优化渲染，避免全量刷新导致的闪烁
    */
   private fun renderClusters(newClusters: List<Cluster>) {
-    Log.d("ClusterView", "renderClusters: count=${newClusters.size}, minClusterSize=$minClusterSize")
     val map = aMap ?: return
     clusters = newClusters
 

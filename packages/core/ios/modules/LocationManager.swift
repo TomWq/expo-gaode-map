@@ -25,6 +25,8 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     // 连续定位 event 回调（给 JS map listener 用）
     var onLocationUpdate: (([String: Any]) -> Void)?
     var onHeadingUpdate: (([String: Any]) -> Void)?
+    private var locationIntervalMillis: Int = 2000
+    private var lastLocationEventTimestampMillis: Double?
 
     override init() {
         super.init()
@@ -33,6 +35,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     // MARK: - 连续定位控制
 
     func start() {
+        lastLocationEventTimestampMillis = nil
         ensureLocationManager()?.startUpdatingLocation()
         isLocationStarted = true
     }
@@ -40,6 +43,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     func stop() {
         ensureLocationManager()?.stopUpdatingLocation()
         isLocationStarted = false
+        lastLocationEventTimestampMillis = nil
     }
 
     func isStarted() -> Bool {
@@ -54,6 +58,10 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
 
     func setDistanceFilter(_ distance: Double) {
         ensureLocationManager()?.distanceFilter = distance
+    }
+
+    func setInterval(_ interval: Int) {
+        locationIntervalMillis = max(interval, 0)
     }
 
     func setLocationTimeout(_ timeout: Int) {
@@ -93,12 +101,14 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         ensureLocationManager()?.allowsBackgroundLocationUpdates = allows
     }
 
-    func setGeoLanguage(_ language: Int) {
-        switch language {
-        case 0: ensureLocationManager()?.reGeocodeLanguage = .default
-        case 1: ensureLocationManager()?.reGeocodeLanguage = .chinse
-        case 2: ensureLocationManager()?.reGeocodeLanguage = .english
-        default: break
+    func setGeoLanguage(_ language: String) {
+        switch language.uppercased() {
+        case "ZH":
+            ensureLocationManager()?.reGeocodeLanguage = .chinse
+        case "EN":
+            ensureLocationManager()?.reGeocodeLanguage = .english
+        default:
+            ensureLocationManager()?.reGeocodeLanguage = .default
         }
     }
 
@@ -155,6 +165,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
             "longitude": location.coordinate.longitude,
             "accuracy": location.horizontalAccuracy,
             "altitude": location.altitude,
+            "heading": location.course,
             "bearing": location.course,
             "speed": location.speed,
             "timestamp": location.timestamp.timeIntervalSince1970 * 1000
@@ -172,14 +183,25 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
             data["adCode"] = geo.adcode
         }
 
-        // 触发连续定位回调
+        let timestamp = location.timestamp.timeIntervalSince1970 * 1000
+        if let lastTimestamp = lastLocationEventTimestampMillis,
+           locationIntervalMillis > 0,
+           timestamp - lastTimestamp < Double(locationIntervalMillis) {
+            return
+        }
+
+        lastLocationEventTimestampMillis = timestamp
         onLocationUpdate?(data)
     }
 
     func amapLocationManager(_ manager: AMapLocationManager!, didUpdate heading: CLHeading!) {
         let headingData: [String: Any] = [
-            "heading": heading.trueHeading,
-            "accuracy": heading.headingAccuracy,
+            "magneticHeading": heading.magneticHeading,
+            "trueHeading": heading.trueHeading,
+            "headingAccuracy": heading.headingAccuracy,
+            "x": heading.x,
+            "y": heading.y,
+            "z": heading.z,
             "timestamp": heading.timestamp.timeIntervalSince1970 * 1000
         ]
         onHeadingUpdate?(headingData)
@@ -237,5 +259,6 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         locationManager = nil
         onLocationUpdate = nil
         onHeadingUpdate = nil
+        lastLocationEventTimestampMillis = nil
     }
 }

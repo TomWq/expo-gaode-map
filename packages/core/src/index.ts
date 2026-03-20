@@ -52,9 +52,6 @@ export {
   LocationPermissionType,
 } from './utils/PermissionUtils';
 
-// 导出节流工具函数
-export { throttle } from './utils/throttle';
-
 // 导出折叠屏适配组件
 export {
   FoldableMapView,

@@ -4,7 +4,9 @@
  */
 
 // 创建原生模块 Mock
-const createNativeModuleMock = () => ({
+const mockNativeModuleMocks = new Map();
+
+const mockCreateNativeModule = () => ({
   initSDK: jest.fn(),
   getPrivacyStatus: jest.fn(() => ({
     hasShow: true,
@@ -34,21 +36,21 @@ const createNativeModuleMock = () => ({
   setLocationTimeout: jest.fn(),
   setOnceLocation: jest.fn(),
   setAllowsBackgroundLocationUpdates: jest.fn(),
- 
+  setGeoLanguage: jest.fn(),
   addListener: jest.fn(() => ({ remove: jest.fn() })),
   removeAllListeners: jest.fn(),
   // 几何计算相关
   distanceBetweenCoordinates: jest.fn((coord1, coord2) => {
     // 如果坐标相同,返回0;否则返回一个模拟距离
     if (coord1.latitude === coord2.latitude && coord1.longitude === coord2.longitude) {
-      return Promise.resolve(0);
+      return 0;
     }
-    return Promise.resolve(1000); // 模拟1000米距离
+    return 1000; // 模拟1000米距离
   }),
-  isPointInCircle: jest.fn(() => Promise.resolve(true)),
-  isPointInPolygon: jest.fn(() => Promise.resolve(true)),
-  calculatePolygonArea: jest.fn(() => Promise.resolve(1000000)), // 模拟面积
-  calculateRectangleArea: jest.fn(() => Promise.resolve(500000)), // 模拟面积
+  isPointInCircle: jest.fn(() => true),
+  isPointInPolygon: jest.fn(() => true),
+  calculatePolygonArea: jest.fn(() => 1000000), // 模拟面积
+  calculateRectangleArea: jest.fn(() => 500000), // 模拟面积
   calculateDistance: jest.fn(() => 1000), // 模拟1000米距离
   // 权限相关
   checkLocationPermission: jest.fn(() => Promise.resolve({
@@ -69,9 +71,17 @@ const createNativeModuleMock = () => ({
   openAppSettings: jest.fn(),
 });
 
+const mockGetNativeModule = (moduleName) => {
+  if (!mockNativeModuleMocks.has(moduleName)) {
+    mockNativeModuleMocks.set(moduleName, mockCreateNativeModule());
+  }
+
+  return mockNativeModuleMocks.get(moduleName);
+};
+
 // Mock expo-modules-core
 jest.mock('expo-modules-core', () => ({
-  requireNativeModule: jest.fn((moduleName) => createNativeModuleMock()),
+  requireNativeModule: jest.fn((moduleName) => mockGetNativeModule(moduleName)),
   requireOptionalNativeModule: jest.fn(() => null),
   NativeModule: class NativeModule {},
   EventEmitter: jest.fn(() => ({
@@ -89,7 +99,7 @@ jest.mock('expo-modules-core', () => ({
 
 // Mock expo package
 jest.mock('expo', () => ({
-  requireNativeModule: jest.fn((moduleName) => createNativeModuleMock()),
+  requireNativeModule: jest.fn((moduleName) => mockGetNativeModule(moduleName)),
   NativeModule: class NativeModule {},
 }));
 

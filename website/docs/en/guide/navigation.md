@@ -27,7 +27,7 @@ Configure native keys via Config Plugin (recommended):
   "expo": {
     "plugins": [
       [
-        "expo-gaode-map",
+        "expo-gaode-map-navigation",
         {
           "iosKey": "your-ios-api-key",
           "androidKey": "your-android-api-key",
@@ -53,10 +53,26 @@ Initialize at app startup:
 ```ts
 import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
+if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+  ExpoGaodeMapModule.setPrivacyConfig({
+    hasShow: true,
+    hasContainsPrivacy: true,
+    hasAgree: true,
+  });
+}
+
 ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key',
 });
 ```
+
+## Built-in Map Notes
+
+- The built-in `MapView` / `Marker` / `Cluster` APIs stay aligned with the core package
+- The underlying implementation comes from the navigation SDK, so it still cannot coexist with `expo-gaode-map`
+- Camera movement events support `cameraEventThrottleMs`
+- `moveCamera` uses `CameraUpdate`
+- `Cluster` supports `icon`
 
 ## Route Planning
 

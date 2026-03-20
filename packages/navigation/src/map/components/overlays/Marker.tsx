@@ -14,6 +14,37 @@ const getNativeMarkerView = createLazyNativeViewManager<NativeMarkerViewProps>('
 
 const AUTO_SIZE_FALLBACK = { width: 0, height: 0 };
 
+function areSmoothMovePathsEqual(
+  prevPath: MarkerProps['smoothMovePath'],
+  nextPath: MarkerProps['smoothMovePath']
+): boolean {
+  if (prevPath === nextPath) {
+    return true;
+  }
+
+  if (!prevPath || !nextPath) {
+    return prevPath === nextPath;
+  }
+
+  if (prevPath.length !== nextPath.length) {
+    return false;
+  }
+
+  for (let index = 0; index < prevPath.length; index += 1) {
+    const prevPoint = normalizeLatLng(prevPath[index]);
+    const nextPoint = normalizeLatLng(nextPath[index]);
+
+    if (
+      prevPoint.latitude !== nextPoint.latitude ||
+      prevPoint.longitude !== nextPoint.longitude
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * Marker 组件 - 完全声明式 API
  *
@@ -134,7 +165,7 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
   }
   
   // 比较 smoothMovePath (平滑移动路径)
-  if (JSON.stringify(prevProps.smoothMovePath) !== JSON.stringify(nextProps.smoothMovePath)) {
+  if (!areSmoothMovePathsEqual(prevProps.smoothMovePath, nextProps.smoothMovePath)) {
     return false;
   }
   

@@ -2,6 +2,7 @@ import ExpoModulesCore
 import MAMapKit
 import MapKit
 import CoreLocation
+import QuartzCore
 
 /**
  * 高德地图视图组件
@@ -51,6 +52,19 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     var showsBuildings: Bool = false
     /// 是否显示室内地图
     var showsIndoorMap: Bool = false
+    /// 定位最小更新距离
+    var distanceFilter: CLLocationDistance = kCLDistanceFilterNone
+    /// 朝向最小更新角度
+    var headingFilter: CLLocationDegrees = kCLHeadingFilterNone
+    /// 相机移动事件节流间隔（毫秒）
+    var cameraEventThrottleMs: Int = 32 {
+        didSet {
+            if cameraEventThrottleMs == 0 {
+                cameraMoveDispatchWorkItem?.cancel()
+                cameraMoveDispatchWorkItem = nil
+            }
+        }
+    }
     /// 自定义地图样式配置
     var customMapStyleData: [String: Any]?
     /// 是否启用国内外地图自动切换
@@ -94,6 +108,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     
     /// 缓存的相机移动事件数据
     private var pendingCameraMoveData: [String: Any]?
+    private var cameraMoveDispatchWorkItem: DispatchWorkItem?
+    private var lastCameraMoveDispatchTime: CFTimeInterval = 0
     
     /// 缩放手势识别器（用于模拟惯性）
     private var pinchGesture: UIPinchGestureRecognizer!
@@ -101,8 +117,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // 惯性动画相关属性
     private var displayLink: CADisplayLink?
     private var zoomVelocity: Double = 0
-    private let friction: Double = 0.92 // 摩擦系数，越接近 1 滑得越远
-    private let velocityThreshold: Double = 0.001 // 停止阈值
+    private var lastInertiaFrameTimestamp: CFTimeInterval?
+    private let friction: Double = 0.88 // 摩擦系数，越接近 1 滑得越远
+    private let velocityThreshold: Double = 0.003 // 停止阈值
     private var privacyObserver: NSObjectProtocol?
     
     // MARK: - 初始化
@@ -185,22 +202,76 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
 
         // 统一从 overlayViews 数组设置所有覆盖物（包括 MarkerView）
         for view in overlayViews {
-            if let markerView = view as? MarkerView {
-                markerView.setMap(mapView)
-            } else if let circleView = view as? CircleView {
-                circleView.setMap(mapView)
-            } else if let polylineView = view as? PolylineView {
-                polylineView.setMap(mapView)
-            } else if let polygonView = view as? PolygonView {
-                polygonView.setMap(mapView)
-            } else if let heatMapView = view as? HeatMapView {
-                heatMapView.setMap(mapView)
-            } else if let multiPointView = view as? MultiPointView {
-                multiPointView.setMap(mapView)
-            } else if let clusterView = view as? ClusterView {
-                clusterView.setMap(mapView)
-            }
+            connectOverlayViewToMap(view, mapView: mapView)
         }
+    }
+
+    private func connectOverlayViewToMap(_ view: UIView, mapView: MAMapView) {
+        if let markerView = view as? MarkerView {
+            markerView.setMap(mapView)
+        } else if let circleView = view as? CircleView {
+            circleView.setMap(mapView)
+        } else if let polylineView = view as? PolylineView {
+            polylineView.setMap(mapView)
+        } else if let polygonView = view as? PolygonView {
+            polygonView.setMap(mapView)
+        } else if let heatMapView = view as? HeatMapView {
+            heatMapView.setMap(mapView)
+        } else if let multiPointView = view as? MultiPointView {
+            multiPointView.setMap(mapView)
+        } else if let clusterView = view as? ClusterView {
+            clusterView.setMap(mapView)
+        }
+    }
+
+    private func isOverlayView(_ view: UIView) -> Bool {
+        view is MarkerView ||
+        view is CircleView ||
+        view is PolylineView ||
+        view is PolygonView ||
+        view is HeatMapView ||
+        view is MultiPointView ||
+        view is ClusterView
+    }
+
+    private func registerOverlayView(_ view: UIView) {
+        guard !overlayViews.contains(where: { $0 === view }) else {
+            return
+        }
+        overlayViews.append(view)
+    }
+
+    private func unregisterOverlayView(_ view: UIView) {
+        overlayViews.removeAll { $0 === view }
+    }
+
+    private func prepareOverlayViewForHosting(_ view: UIView) {
+        guard !(view is MarkerView) else {
+            return
+        }
+
+        view.alpha = 0
+        view.isHidden = true
+    }
+
+    @discardableResult
+    private func hostOverlayView(_ view: UIView, moveToOverlayContainer: Bool) -> Bool {
+        guard isOverlayView(view) else {
+            return false
+        }
+
+        if moveToOverlayContainer {
+            overlayContainer.addSubview(view)
+        }
+
+        prepareOverlayViewForHosting(view)
+        registerOverlayView(view)
+
+        if let mapView {
+            connectOverlayViewToMap(view, mapView: mapView)
+        }
+
+        return true
     }
     
     /**
@@ -210,77 +281,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     override func addSubview(_ view: UIView) {
         // 🔑 关键修复：旧架构下统一不移动任何覆盖物视图，避免破坏 React Native 布局
         // 所有覆盖物都隐藏并添加到 overlayViews 数组追踪
-        if let markerView = view as? MarkerView {
-            overlayContainer.addSubview(markerView)
-            // 🔑 关键：MarkerView 不能隐藏，否则 children 无法渲染成图片
-            // 通过 hitTest 返回 nil 已经确保不阻挡地图交互
-            overlayViews.append(markerView)
-            if let mapView {
-                markerView.setMap(mapView)
-            }
-          
-            return
-        }
-        
-        if let circleView = view as? CircleView {
-            overlayContainer.addSubview(circleView)
-            circleView.alpha = 0
-            circleView.isHidden = true
-            overlayViews.append(circleView)
-            if let mapView {
-                circleView.setMap(mapView)
-            }
-         
-            return
-        } else if let polylineView = view as? PolylineView {
-            overlayContainer.addSubview(polylineView)
-            polylineView.alpha = 0
-            polylineView.isHidden = true
-            overlayViews.append(polylineView)
-            if let mapView {
-                polylineView.setMap(mapView)
-            }
-           
-            return
-        } else if let polygonView = view as? PolygonView {
-            overlayContainer.addSubview(polygonView)
-            polygonView.alpha = 0
-            polygonView.isHidden = true
-            overlayViews.append(polygonView)
-            if let mapView {
-                polygonView.setMap(mapView)
-            }
-          
-            return
-        } else if let heatMapView = view as? HeatMapView {
-            overlayContainer.addSubview(heatMapView)
-            heatMapView.alpha = 0
-            heatMapView.isHidden = true
-            overlayViews.append(heatMapView)
-            if let mapView {
-                heatMapView.setMap(mapView)
-            }
-           
-            return
-        } else if let multiPointView = view as? MultiPointView {
-            overlayContainer.addSubview(multiPointView)
-            multiPointView.alpha = 0
-            multiPointView.isHidden = true
-            overlayViews.append(multiPointView)
-            if let mapView {
-                multiPointView.setMap(mapView)
-            }
-           
-            return
-        } else if let clusterView = view as? ClusterView {
-            overlayContainer.addSubview(clusterView)
-            clusterView.alpha = 0
-            clusterView.isHidden = true
-            overlayViews.append(clusterView)
-            if let mapView {
-                clusterView.setMap(mapView)
-            }
-            
+        if hostOverlayView(view, moveToOverlayContainer: true) {
             return
         }
         
@@ -304,106 +305,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         }
         
         // 🔑 处理 MarkerView - 新架构下直接连接，旧架构下已在 addSubview 处理
-        if let markerView = subview as? MarkerView {
-            // 检查是否已经在容器中（旧架构下 addSubview 已经处理过）
-            if markerView.superview === overlayContainer {
-             
-                return
-            }
-          
-            // 🔑 新架构下也不能隐藏 MarkerView，否则 children 无法渲染
-            overlayViews.append(markerView)
-            if let mapView {
-                markerView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()，避免所有覆盖物重新设置
-            return
-        }
-        
-        // 🔑 其他覆盖物不移动视图，只设置连接和隐藏
-        if let circleView = subview as? CircleView {
-            if circleView.superview === overlayContainer {
-               
-                return
-            }
-           
-            circleView.alpha = 0
-            circleView.isHidden = true
-            overlayViews.append(circleView)
-            if let mapView {
-                circleView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let polylineView = subview as? PolylineView {
-            if polylineView.superview === overlayContainer {
-               
-                return
-            }
-            
-            polylineView.alpha = 0
-            polylineView.isHidden = true
-            overlayViews.append(polylineView)
-            if let mapView {
-                polylineView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let polygonView = subview as? PolygonView {
-            if polygonView.superview === overlayContainer {
-               
-                return
-            }
-          
-            polygonView.alpha = 0
-            polygonView.isHidden = true
-            overlayViews.append(polygonView)
-            if let mapView {
-                polygonView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let heatMapView = subview as? HeatMapView {
-            if heatMapView.superview === overlayContainer {
-               
-                return
-            }
-          
-            heatMapView.alpha = 0
-            heatMapView.isHidden = true
-            overlayViews.append(heatMapView)
-            if let mapView {
-                heatMapView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let multiPointView = subview as? MultiPointView {
-            if multiPointView.superview === overlayContainer {
-               
-                return
-            }
-          
-            multiPointView.alpha = 0
-            multiPointView.isHidden = true
-            overlayViews.append(multiPointView)
-            if let mapView {
-                multiPointView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let clusterView = subview as? ClusterView {
-            if clusterView.superview === overlayContainer {
-               
-                return
-            }
-          
-            clusterView.alpha = 0
-            clusterView.isHidden = true
-            overlayViews.append(clusterView)
-            if let mapView {
-                clusterView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
+        if subview.superview !== overlayContainer && hostOverlayView(subview, moveToOverlayContainer: false) {
             return
         }
         
@@ -418,29 +320,29 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 🔑 处理所有覆盖物 - 从跟踪数组中移除并确保 native 对象也从地图移除
         // 🔑 关键修复：先从数组移除，再调用 super，防止 super 触发的事件回调中引用已卸载的视图
         if let markerView = subview as? MarkerView {
-            overlayViews.removeAll { $0 === markerView }
+            unregisterOverlayView(markerView)
             // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
         } else if let circleView = subview as? CircleView {
-            overlayViews.removeAll { $0 === circleView }
+            unregisterOverlayView(circleView)
             if let mapView, let circle = circleView.circle {
                 mapView.remove(circle)
             }
         } else if let polylineView = subview as? PolylineView {
-            overlayViews.removeAll { $0 === polylineView }
+            unregisterOverlayView(polylineView)
             if let mapView, let polyline = polylineView.polyline {
                 mapView.remove(polyline)
             }
         } else if let polygonView = subview as? PolygonView {
-            overlayViews.removeAll { $0 === polygonView }
+            unregisterOverlayView(polygonView)
             if let mapView, let polygon = polygonView.polygon {
                 mapView.remove(polygon)
             }
         } else if let heatMapView = subview as? HeatMapView {
-            overlayViews.removeAll { $0 === heatMapView }
+            unregisterOverlayView(heatMapView)
         } else if let multiPointView = subview as? MultiPointView {
-            overlayViews.removeAll { $0 === multiPointView }
+            unregisterOverlayView(multiPointView)
         } else if let clusterView = subview as? ClusterView {
-            overlayViews.removeAll { $0 === clusterView }
+            unregisterOverlayView(clusterView)
         }
 
         super.willRemoveSubview(subview)
@@ -462,6 +364,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setRotateEnabled(isRotateEnabled)
         uiManager.setTiltEnabled(isTiltEnabled)
         uiManager.setShowsUserLocation(showsUserLocation, followUser: followUserLocation)
+        updatePinchGestureState()
     }
     
     /**
@@ -492,6 +395,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setShowsTraffic(showsTraffic)
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
+        updatePinchGestureState()
+        mapView.distanceFilter = distanceFilter
+        mapView.headingFilter = headingFilter
         if let customMapStyleData {
             uiManager.setCustomMapStyle(customMapStyleData)
         }
@@ -527,6 +433,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // MARK: - 手势处理
     
     @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        guard isZoomEnabled, mapView != nil else {
+            stopInertiaAnimation()
+            return
+        }
+
         if gesture.state == .began {
             // 手势开始，立即停止之前的惯性动画，避免冲突
             stopInertiaAnimation()
@@ -535,17 +446,23 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             
             // 只有速度足够大才触发惯性
             // 阈值过滤，避免轻微操作触发滑动
-            if abs(velocity) > 0.1 {
-                // 转换速度：scale/s -> zoomLevel/frame
-                // 0.02 是经验系数，用于将手势速度映射到每帧的 zoomLevel 增量
-                zoomVelocity = Double(velocity) * 0.02
+            if abs(velocity) > 0.15 {
+                // 转换速度：scale/s -> zoomLevel/s
+                // 0.85 是经验系数，用于将手势速度映射到每秒的 zoomLevel 增量
+                zoomVelocity = Double(velocity) * 0.85
                 startInertiaAnimation()
             }
         }
     }
     
     private func startInertiaAnimation() {
+        guard isZoomEnabled, mapView != nil else {
+            stopInertiaAnimation()
+            return
+        }
+
         stopInertiaAnimation()
+        lastInertiaFrameTimestamp = nil
         displayLink = CADisplayLink(target: self, selector: #selector(updateInertia))
         displayLink?.add(to: .main, forMode: .common)
     }
@@ -553,11 +470,23 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private func stopInertiaAnimation() {
         displayLink?.invalidate()
         displayLink = nil
+        lastInertiaFrameTimestamp = nil
+        zoomVelocity = 0
     }
     
     @objc private func updateInertia() {
+        guard isZoomEnabled, let mapView, let displayLink else {
+            stopInertiaAnimation()
+            return
+        }
+
+        let currentTimestamp = displayLink.targetTimestamp > 0 ? displayLink.targetTimestamp : displayLink.timestamp
+        let previousTimestamp = lastInertiaFrameTimestamp ?? currentTimestamp
+        let deltaTime = max(1.0 / 120.0, min(1.0 / 30.0, currentTimestamp - previousTimestamp))
+        lastInertiaFrameTimestamp = currentTimestamp
+
         // 应用速度
-        var newZoom = mapView.zoomLevel + zoomVelocity
+        var newZoom = mapView.zoomLevel + CGFloat(zoomVelocity * deltaTime)
         
         // 边界检查
         if newZoom < mapView.minZoomLevel || newZoom > mapView.maxZoomLevel {
@@ -571,8 +500,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 更新地图缩放级别（animated: false 以保证逐帧控制的流畅性）
         mapView.setZoomLevel(newZoom, animated: false)
         
-        // 减速（应用摩擦力）
-        zoomVelocity *= friction
+        // 减速（按时间衰减，保证 60Hz/120Hz 设备手感更一致）
+        let frameScale = deltaTime * 60.0
+        zoomVelocity *= pow(friction, frameScale)
         
         // 停止条件
         if abs(zoomVelocity) < velocityThreshold {
@@ -890,7 +820,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      */
     deinit {
         // 清理资源
+        stopInertiaAnimation()
         pendingCameraMoveData = nil
+        cameraMoveDispatchWorkItem?.cancel()
+        cameraMoveDispatchWorkItem = nil
         if let privacyObserver {
             NotificationCenter.default.removeObserver(privacyObserver)
         }
@@ -961,6 +894,14 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         pinchGesture.delegate = self
         resolvedMapView.addGestureRecognizer(pinchGesture)
         self.pinchGesture = pinchGesture
+        updatePinchGestureState()
+    }
+
+    private func updatePinchGestureState() {
+        pinchGesture?.isEnabled = isZoomEnabled
+        if !isZoomEnabled {
+            stopInertiaAnimation()
+        }
     }
 }
 
@@ -1013,54 +954,20 @@ extension ExpoGaodeMapView {
      * 地图区域即将改变时触发
      */
     public func mapView(_ mapView: MAMapView, regionWillChangeAnimated animated: Bool) {
-        guard let cameraManager else { return }
+        // 保留代理实现，但不在这里分发 onCameraMove。
+        // 持续移动过程应使用 mapViewRegionChanged。
+    }
 
-        // 相机开始移动
-        let cameraPosition = cameraManager.getCameraPosition()
-        let visibleRegion = mapView.region
-        
-        let eventData: [String: Any] = [
-            "cameraPosition": cameraPosition,
-            "latLngBounds": [
-                "northeast": [
-                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
-                ],
-                "southwest": [
-                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
-                ]
-            ]
-        ]
-        
-        // 直接触发事件，移除手动节流
-        // 建议在 JS 端进行 debounce/throttle 处理
-        onCameraMove(eventData)
+    public func mapViewRegionChanged(_ mapView: MAMapView) {
+        dispatchCameraMoveEvent(buildCameraEventData(for: mapView))
     }
     
     /**
      * 地图区域改变完成后触发
      */
     public func mapView(_ mapView: MAMapView, regionDidChangeAnimated animated: Bool) {
-        guard let cameraManager else { return }
-
-        // 相机移动完成
-        let cameraPosition = cameraManager.getCameraPosition()
-        let visibleRegion = mapView.region
-        
-        onCameraIdle([
-            "cameraPosition": cameraPosition,
-            "latLngBounds": [
-                "northeast": [
-                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
-                ],
-                "southwest": [
-                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
-                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
-                ]
-            ]
-        ])
+        flushPendingCameraMoveEvent()
+        onCameraIdle(buildCameraEventData(for: mapView))
 
         // 这里的 overlayViews 是 [UIView] 类型，可能包含 ClusterView
         for view in overlayViews {
@@ -1073,6 +980,72 @@ extension ExpoGaodeMapView {
         }
         
         handleMapviewRegionChange(mapView: mapView)
+    }
+
+    private func buildCameraEventData(for mapView: MAMapView) -> [String: Any] {
+        let cameraPosition = cameraManager?.getCameraPosition() ?? [String: Any]()
+        let visibleRegion = mapView.region
+
+        return [
+            "cameraPosition": cameraPosition,
+            "latLngBounds": [
+                "northeast": [
+                    "latitude": visibleRegion.center.latitude + visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude + visibleRegion.span.longitudeDelta / 2
+                ],
+                "southwest": [
+                    "latitude": visibleRegion.center.latitude - visibleRegion.span.latitudeDelta / 2,
+                    "longitude": visibleRegion.center.longitude - visibleRegion.span.longitudeDelta / 2
+                ]
+            ]
+        ]
+    }
+
+    private func dispatchCameraMoveEvent(_ eventData: [String: Any]) {
+        let throttleMs = max(cameraEventThrottleMs, 0)
+        if throttleMs == 0 {
+            pendingCameraMoveData = nil
+            cameraMoveDispatchWorkItem?.cancel()
+            cameraMoveDispatchWorkItem = nil
+            lastCameraMoveDispatchTime = CACurrentMediaTime()
+            onCameraMove(eventData)
+            return
+        }
+
+        pendingCameraMoveData = eventData
+
+        let now = CACurrentMediaTime()
+        let throttleSeconds = Double(throttleMs) / 1000
+        let elapsed = now - lastCameraMoveDispatchTime
+
+        if elapsed >= throttleSeconds {
+            cameraMoveDispatchWorkItem?.cancel()
+            cameraMoveDispatchWorkItem = nil
+            flushPendingCameraMoveEvent(at: now)
+            return
+        }
+
+        guard cameraMoveDispatchWorkItem == nil else {
+            return
+        }
+
+        let delay = max(0, throttleSeconds - elapsed)
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.cameraMoveDispatchWorkItem = nil
+            self?.flushPendingCameraMoveEvent()
+        }
+        cameraMoveDispatchWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func flushPendingCameraMoveEvent(at timestamp: CFTimeInterval = CACurrentMediaTime()) {
+        guard let eventData = pendingCameraMoveData else {
+            return
+        }
+
+        pendingCameraMoveData = nil
+        lastCameraMoveDispatchTime = timestamp
+        onCameraMove(eventData)
     }
     
     /**

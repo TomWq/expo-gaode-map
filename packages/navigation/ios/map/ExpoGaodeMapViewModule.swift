@@ -88,6 +88,10 @@ public class ExpoGaodeMapViewModule: Module {
             Prop("worldMapSwitchEnabled") { (view: ExpoGaodeMapView, enabled: Bool) in
                 view.enableWorldMapSwitch = enabled
             }
+
+            Prop("cameraEventThrottleMs") { (view: ExpoGaodeMapView, throttleMs: Int?) in
+                view.cameraEventThrottleMs = max(throttleMs ?? 32, 0)
+            }
             
             OnViewDidUpdateProps { (view: ExpoGaodeMapView) in
                 view.applyProps()
