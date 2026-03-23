@@ -118,9 +118,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // 惯性动画相关属性
     private var displayLink: CADisplayLink?
     private var zoomVelocity: Double = 0
-    private var lastInertiaFrameTimestamp: CFTimeInterval?
-    private let friction: Double = 0.88 // 摩擦系数，越接近 1 滑得越远
-    private let velocityThreshold: Double = 0.003 // 停止阈值
+    private let friction: Double = 0.92 // 摩擦系数，越接近 1 滑得越远
+    private let velocityThreshold: Double = 0.001 // 停止阈值
     private var privacyObserver: NSObjectProtocol?
     
     // MARK: - 初始化
@@ -434,11 +433,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // MARK: - 手势处理
     
     @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
-        guard isZoomEnabled, mapView != nil else {
-            stopInertiaAnimation()
-            return
-        }
-
         if gesture.state == .began {
             // 手势开始，立即停止之前的惯性动画，避免冲突
             stopInertiaAnimation()
@@ -447,23 +441,17 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             
             // 只有速度足够大才触发惯性
             // 阈值过滤，避免轻微操作触发滑动
-            if abs(velocity) > 0.15 {
-                // 转换速度：scale/s -> zoomLevel/s
-                // 0.85 是经验系数，用于将手势速度映射到每秒的 zoomLevel 增量
-                zoomVelocity = Double(velocity) * 0.85
+            if abs(velocity) > 0.1 {
+                // 转换速度：scale/s -> zoomLevel/frame
+                // 0.02 是经验系数，用于将手势速度映射到每帧的 zoomLevel 增量
+                zoomVelocity = Double(velocity) * 0.02
                 startInertiaAnimation()
             }
         }
     }
     
     private func startInertiaAnimation() {
-        guard isZoomEnabled, mapView != nil else {
-            stopInertiaAnimation()
-            return
-        }
-
         stopInertiaAnimation()
-        lastInertiaFrameTimestamp = nil
         displayLink = CADisplayLink(target: self, selector: #selector(updateInertia))
         displayLink?.add(to: .main, forMode: .common)
     }
@@ -471,23 +459,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private func stopInertiaAnimation() {
         displayLink?.invalidate()
         displayLink = nil
-        lastInertiaFrameTimestamp = nil
-        zoomVelocity = 0
     }
     
     @objc private func updateInertia() {
-        guard isZoomEnabled, let mapView, let displayLink else {
-            stopInertiaAnimation()
-            return
-        }
-
-        let currentTimestamp = displayLink.targetTimestamp > 0 ? displayLink.targetTimestamp : displayLink.timestamp
-        let previousTimestamp = lastInertiaFrameTimestamp ?? currentTimestamp
-        let deltaTime = max(1.0 / 120.0, min(1.0 / 30.0, currentTimestamp - previousTimestamp))
-        lastInertiaFrameTimestamp = currentTimestamp
-
         // 应用速度
-        var newZoom = mapView.zoomLevel + CGFloat(zoomVelocity * deltaTime)
+        var newZoom = mapView.zoomLevel + zoomVelocity
         
         // 边界检查
         if newZoom < mapView.minZoomLevel || newZoom > mapView.maxZoomLevel {
@@ -501,9 +477,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 更新地图缩放级别（animated: false 以保证逐帧控制的流畅性）
         mapView.setZoomLevel(newZoom, animated: false)
         
-        // 减速（按时间衰减，保证 60Hz/120Hz 设备手感更一致）
-        let frameScale = deltaTime * 60.0
-        zoomVelocity *= pow(friction, frameScale)
+        // 减速（应用摩擦力）
+        zoomVelocity *= friction
         
         // 停止条件
         if abs(zoomVelocity) < velocityThreshold {

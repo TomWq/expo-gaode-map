@@ -999,7 +999,7 @@ export default function MamScreen() {
           console.log('地图点击:', e.nativeEvent);
           setIsFollowing(false);
         }}
-        // onPressPoi={handlePressPoi}
+        onPressPoi={handlePressPoi}
         onMapLongPress={(e) => {
           console.log('地图长按:', e.nativeEvent);
           setIsFollowing(false);
