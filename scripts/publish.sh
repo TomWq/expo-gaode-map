@@ -117,13 +117,43 @@ fi
 NPM_USER=$(npm whoami)
 echo -e "${GREEN}✓ 已登录为: ${NPM_USER}${NC}"
 
-# 构建所有包
+build_package() {
+  local package_name="$1"
+  case "$package_name" in
+    core)
+      (cd packages/core && CI=1 expo-module build && cd plugin && tsc)
+      ;;
+    search)
+      (cd packages/search && CI=1 expo-module build)
+      ;;
+    navigation)
+      (cd packages/navigation && CI=1 expo-module build)
+      ;;
+    web-api)
+      (cd packages/web-api && yarn build)
+      ;;
+    *)
+      echo "未知包: $package_name"
+      exit 1
+      ;;
+  esac
+}
+
 echo ""
 echo "🔨 构建包..."
-(cd packages/core && CI=1 expo-module build && cd plugin && tsc)
-(cd packages/search && CI=1 expo-module build)
-(cd packages/navigation && CI=1 expo-module build)
-(cd packages/web-api && yarn build)
+case $choice in
+  1) build_package core ;;
+  2) build_package search ;;
+  3) build_package navigation ;;
+  4) build_package web-api ;;
+  5)
+    build_package core
+    build_package search
+    build_package navigation
+    build_package web-api
+    ;;
+  *) echo "无效选择"; exit 1 ;;
+esac
 
 bump_version() {
   # $1: 当前版本, $2: 标志

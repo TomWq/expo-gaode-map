@@ -3,7 +3,8 @@
   "compilerOptions": {
     "noEmit": true,
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "types": ["jest", "jest-require"]
   },
   "include": [
     "./**/*.ts",
