@@ -9,21 +9,21 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "^54.0.31",
-    "expo-blur": "^15.0.8",
+    "expo": "^55.0.8",
+    "expo-blur": "~55.0.10",
     "expo-gaode-map": "workspace:*",
     "expo-gaode-map-search": "workspace:*",
     "expo-gaode-map-web-api": "workspace:*",
-    "expo-media-library": "~18.2.1",
-    "expo-router": "^6.0.17",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-safe-area-context": "^5.7.0",
-    "react-native-screens": "^4.22.0"
+    "expo-media-library": "~55.0.10",
+    "expo-router": "~55.0.7",
+    "react": "19.2.0",
+    "react-native": "0.83.2",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
-    "babel-preset-expo": "^54.0.8",
+    "@types/react": "~19.2.10",
+    "babel-preset-expo": "~55.0.8",
     "typescript": "~5.9.2"
   },
   "expo": {

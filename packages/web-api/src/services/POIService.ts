@@ -4,6 +4,8 @@
 
 import { GaodeWebAPIClient } from '../utils/client';
 import type {
+  AOIBoundaryParams,
+  AOIBoundaryResponse,
   POISearchParams,
   POIAroundParams,
   POIPolygonParams,
@@ -218,5 +220,39 @@ export class POIService {
 
     const path = `/${version}/place/detail`;
     return this.client.request<POISearchResponse>(path, { params, signal: options?.signal });
+  }
+
+  /**
+   * AOI 边界查询
+   * 根据 AOI ID 获取其边界 polyline。
+   *
+   * 注意：该接口属于高阶服务，通常需要先在高德开放平台开通权限。
+   *
+   * @param id AOI ID
+   * @param options 可选参数
+   * @returns AOI 边界查询结果
+   *
+   * @example
+   * ```typescript
+   * const result = await api.poi.getAOIBoundary('aoi-id');
+   *
+   * const aoi = Array.isArray(result.aois) ? result.aois[0] : result.aois;
+   * console.log(aoi?.polyline);
+   * ```
+   */
+  async getAOIBoundary(
+    id: string,
+    options?: Omit<AOIBoundaryParams, 'id'>
+  ): Promise<AOIBoundaryResponse> {
+    const { signal, ...rest } = options || {};
+    const params: Record<string, any> = {
+      id,
+      ...rest,
+    };
+
+    return this.client.request<AOIBoundaryResponse>('/v5/aoi/polyline', {
+      params,
+      signal,
+    });
   }
 }

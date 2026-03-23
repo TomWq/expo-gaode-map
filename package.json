@@ -53,8 +53,9 @@
   "devDependencies": {
     "@types/node": "^22.18.0",
     "@types/react": "~19.1.0",
-    "expo": "^54.0.31",
-    "expo-module-scripts": "^5.0.8",
+    "eslint": "^9.25.1",
+    "expo": "^55.0.8",
+    "expo-module-scripts": "^55.0.2",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {

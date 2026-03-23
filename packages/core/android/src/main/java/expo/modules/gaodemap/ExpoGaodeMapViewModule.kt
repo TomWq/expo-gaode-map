@@ -21,7 +21,7 @@ class ExpoGaodeMapViewModule : Module() {
     Name("ExpoGaodeMapView")
 
     View(ExpoGaodeMapView::class) {
-      Events("onMapPress", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
+      Events("onMapPress", "onPressPoi", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
       
 
       

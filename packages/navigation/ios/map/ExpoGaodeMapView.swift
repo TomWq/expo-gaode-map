@@ -69,6 +69,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // MARK: - 事件派发器
     
     let onMapPress = EventDispatcher()
+    let onPressPoi = EventDispatcher()
     let onMapLongPress = EventDispatcher()
     let onLoad = EventDispatcher()
     let onLocation = EventDispatcher()
@@ -953,6 +954,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         resolvedMapView.frame = bounds
         resolvedMapView.delegate = self
         resolvedMapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        resolvedMapView.touchPOIEnabled = true
 
         mapView = resolvedMapView
         super.addSubview(resolvedMapView)
@@ -1123,7 +1125,7 @@ extension ExpoGaodeMapView {
     /**
      * 地图单击事件
      */
-    public func mapView(_ mapView: MAMapView, didSingleTappedAt coordinate: CLLocationCoordinate2D) {
+    private func handleGaodeMapTap(at coordinate: CLLocationCoordinate2D) {
         // 如果正在处理 annotation 选择，跳过地图点击事件
         if isHandlingAnnotationSelect {
             isHandlingAnnotationSelect = false
@@ -1136,6 +1138,15 @@ extension ExpoGaodeMapView {
         if checkPolylinePress(at: coordinate) { return }
         
         onMapPress(["latitude": coordinate.latitude, "longitude": coordinate.longitude])
+    }
+
+    public func mapView(_ mapView: MAMapView, didSingleTappedAtCoordinate coordinate: CLLocationCoordinate2D) {
+        handleGaodeMapTap(at: coordinate)
+    }
+
+    // 兼容部分旧版 SDK/历史实现
+    public func mapView(_ mapView: MAMapView, didSingleTappedAt coordinate: CLLocationCoordinate2D) {
+        handleGaodeMapTap(at: coordinate)
     }
     
     /**
@@ -1302,8 +1313,36 @@ extension ExpoGaodeMapView {
     /**
      * 地图长按事件
      */
-    public func mapView(_ mapView: MAMapView, didLongPressedAt coordinate: CLLocationCoordinate2D) {
+    private func handleGaodeMapLongPress(at coordinate: CLLocationCoordinate2D) {
         onMapLongPress(["latitude": coordinate.latitude, "longitude": coordinate.longitude])
+    }
+
+    public func mapView(_ mapView: MAMapView, didLongPressedAtCoordinate coordinate: CLLocationCoordinate2D) {
+        handleGaodeMapLongPress(at: coordinate)
+    }
+
+    // 兼容部分旧版 SDK/历史实现
+    public func mapView(_ mapView: MAMapView, didLongPressedAt coordinate: CLLocationCoordinate2D) {
+        handleGaodeMapLongPress(at: coordinate)
+    }
+
+    private func handleGaodePoiTouch(_ pois: [Any]?) {
+        guard let touchedPoi = pois?.first as? MATouchPoi else {
+            return
+        }
+
+        onPressPoi([
+            "id": touchedPoi.uid ?? "",
+            "name": touchedPoi.name ?? "",
+            "position": [
+                "latitude": touchedPoi.coordinate.latitude,
+                "longitude": touchedPoi.coordinate.longitude
+            ]
+        ])
+    }
+
+    public func mapView(_ mapView: MAMapView!, didTouchPois pois: [Any]!) {
+        handleGaodePoiTouch(pois)
     }
     
     /**
@@ -1380,7 +1419,12 @@ extension ExpoGaodeMapView {
      * 标注点击事件
      */
     public func mapView(_ mapView: MAMapView, didSelect view: MAAnnotationView) {
-        guard let annotation = view.annotation, !annotation.isKind(of: MAUserLocation.self) else {
+        guard let annotation = view.annotation else {
+            return
+        }
+
+        if annotation.isKind(of: MAUserLocation.self) {
+            mapView.deselectAnnotation(annotation, animated: false)
             return
         }
         

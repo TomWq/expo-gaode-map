@@ -5,12 +5,54 @@
 
 import ExpoGaodeMapModule from '../ExpoGaodeMapModule';
 import { CoordinateType } from '../types';
-import { ErrorType } from '../utils/ErrorHandler';
+import { requireNativeModule } from 'expo';
+import { Platform } from 'react-native';
 
 describe('ExpoGaodeMapModule - 深度测试', () => {
-  
+  const getNativeMock = () => requireNativeModule('ExpoGaodeMap') as {
+    [key: string]: any;
+  };
+
+  const resetNativeMock = () => {
+    const nativeModule = getNativeMock();
+
+    nativeModule.getPrivacyStatus = jest.fn(() => ({
+      hasShow: true,
+      hasContainsPrivacy: true,
+      hasAgree: true,
+      isReady: true,
+    }));
+    nativeModule.addListener = jest.fn(() => ({ remove: jest.fn() }));
+    nativeModule.checkLocationPermission = jest.fn(() =>
+      Promise.resolve({
+        granted: true,
+        canAskAgain: true,
+        status: 'granted',
+      })
+    );
+    nativeModule.requestLocationPermission = jest.fn(() =>
+      Promise.resolve({
+        granted: true,
+        canAskAgain: true,
+        status: 'granted',
+      })
+    );
+    nativeModule.requestBackgroundLocationPermission = jest.fn(() =>
+      Promise.resolve({
+        granted: true,
+        canAskAgain: true,
+        status: 'granted',
+      })
+    );
+    nativeModule.openAppSettings = jest.fn();
+    nativeModule.setAllowsBackgroundLocationUpdates = jest.fn();
+    nativeModule.isBackgroundLocationEnabled = false;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (Platform as any).OS = 'ios';
+    resetNativeMock();
   });
 
   describe('错误场景测试', () => {
@@ -82,6 +124,18 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
         if (!permission.granted) {
           expect(permission.status).toBeDefined();
         }
+      });
+
+      it('隐私未就绪时应抛出明确错误', () => {
+        const nativeModule = getNativeMock();
+        nativeModule.getPrivacyStatus.mockReturnValue({
+          hasShow: false,
+          hasContainsPrivacy: false,
+          hasAgree: false,
+          isReady: false,
+        });
+
+        expect(() => ExpoGaodeMapModule.start()).toThrow('PRIVACY_NOT_AGREED');
       });
     });
   });
@@ -281,6 +335,17 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
       // 停止定位
       ExpoGaodeMapModule.stop?.();
     });
+
+    it('原生模块不支持事件时应返回安全订阅对象', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.addListener = undefined;
+
+      const locationSubscription = ExpoGaodeMapModule.addLocationListener(jest.fn());
+      const headingSubscription = ExpoGaodeMapModule.addHeadingListener(jest.fn());
+
+      expect(locationSubscription.remove).toBeDefined();
+      expect(headingSubscription.remove).toBeDefined();
+    });
   });
 
   describe('异步操作测试', () => {
@@ -391,6 +456,120 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
         subscription?.remove(); // 重复调用
         subscription?.remove(); // 再次调用
       }).not.toThrow();
+    });
+  });
+
+  describe('高级辅助方法测试', () => {
+    beforeEach(() => {
+      ExpoGaodeMapModule.initSDK({
+        androidKey: 'test-key',
+        iosKey: 'test-key',
+      });
+    });
+
+    it('应该支持计算质心和轨迹抽稀', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.calculateCentroid = jest.fn(() => ({
+        latitude: 39.905,
+        longitude: 116.405,
+      }));
+      nativeModule.simplifyPolyline = jest.fn(() => [
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.92, longitude: 116.42 },
+      ]);
+
+      expect(
+        ExpoGaodeMapModule.calculateCentroid([
+          [116.4, 39.9],
+          [116.41, 39.9],
+          [116.41, 39.91],
+        ])
+      ).toEqual({
+        latitude: 39.905,
+        longitude: 116.405,
+      });
+
+      expect(
+        ExpoGaodeMapModule.simplifyPolyline(
+          [
+            [116.4, 39.9],
+            [116.41, 39.91],
+            [116.42, 39.92],
+          ],
+          5
+        )
+      ).toEqual([
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.92, longitude: 116.42 },
+      ]);
+    });
+
+    it('应该支持 pixel/tile fallback 和开放设置调用', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.tileToLatLng = jest.fn(() => ({ latitude: 39.9, longitude: 116.4 }));
+      nativeModule.pixelToLatLng = jest.fn(() => ({ latitude: 39.91, longitude: 116.41 }));
+      nativeModule.openAppSettings = jest.fn();
+
+      expect(ExpoGaodeMapModule.tileToLatLng({ x: 1, y: 2, z: 3 })).toEqual({
+        latitude: 39.9,
+        longitude: 116.4,
+      });
+      expect(ExpoGaodeMapModule.pixelToLatLng({ x: 100, y: 200 }, 12)).toEqual({
+        latitude: 39.91,
+        longitude: 116.41,
+      });
+
+      ExpoGaodeMapModule.openAppSettings();
+      expect(nativeModule.openAppSettings).toHaveBeenCalled();
+
+      nativeModule.tileToLatLng.mockImplementation(() => {
+        throw new Error('fail');
+      });
+      nativeModule.pixelToLatLng.mockImplementation(() => {
+        throw new Error('fail');
+      });
+
+      expect(ExpoGaodeMapModule.tileToLatLng({ x: 1, y: 2, z: 3 })).toBeNull();
+      expect(ExpoGaodeMapModule.pixelToLatLng({ x: 100, y: 200 }, 12)).toBeNull();
+    });
+
+    it('iOS 与 Android 后台定位提示分支应可执行', async () => {
+      const nativeModule = getNativeMock();
+      nativeModule.isBackgroundLocationEnabled = false;
+      nativeModule.checkLocationPermission.mockResolvedValue({
+        granted: true,
+        status: 'granted',
+        backgroundLocation: false,
+      });
+      nativeModule.setAllowsBackgroundLocationUpdates = jest.fn();
+
+      (Platform as any).OS = 'ios';
+      ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+      expect(nativeModule.setAllowsBackgroundLocationUpdates).toHaveBeenCalledWith(true);
+
+      (Platform as any).OS = 'android';
+      ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
+      await Promise.resolve();
+      expect(nativeModule.checkLocationPermission).toHaveBeenCalled();
+      expect(nativeModule.setAllowsBackgroundLocationUpdates).toHaveBeenCalledWith(true);
+    });
+
+    it('请求后台权限被拒绝时应返回归一化结果', async () => {
+      const nativeModule = getNativeMock();
+      nativeModule.requestBackgroundLocationPermission.mockResolvedValue({
+        granted: false,
+        status: 'denied',
+        canAskAgain: false,
+      });
+
+      const permission = await ExpoGaodeMapModule.requestBackgroundLocationPermission();
+
+      expect(permission).toMatchObject({
+        granted: false,
+        status: 'denied',
+        canAskAgain: false,
+        isPermanentlyDenied: true,
+      });
     });
   });
 

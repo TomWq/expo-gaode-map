@@ -704,10 +704,10 @@ const helperMethods = {
   /**
    * 判断点是否在多边形内
    * @param point 要判断的点
-   * @param polygon 多边形的顶点坐标数组
+   * @param polygon 多边形的顶点坐标数组，支持嵌套数组（多边形空洞）
    * @returns 是否在多边形内
    */
-  isPointInPolygon(point: LatLngPoint, polygon: LatLngPoint[]): boolean {
+  isPointInPolygon(point: LatLngPoint, polygon: LatLngPoint[] | LatLngPoint[][]): boolean {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
@@ -723,10 +723,10 @@ const helperMethods = {
 
   /**
    * 计算多边形面积
-   * @param polygon 多边形的顶点坐标数组
+   * @param polygon 多边形的顶点坐标数组，支持嵌套数组（多边形空洞）
    * @returns 面积（单位：平方米）
    */
-  calculatePolygonArea(polygon: LatLngPoint[]): number {
+  calculatePolygonArea(polygon: LatLngPoint[] | LatLngPoint[][]): number {
     if (!nativeModule) {
       throw ErrorHandler.nativeModuleUnavailable();
     }

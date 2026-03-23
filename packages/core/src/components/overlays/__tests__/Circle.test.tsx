@@ -7,14 +7,17 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import Circle from '../Circle';
 
-// Mock expo-modules-core
-jest.mock('expo-modules-core', () => ({
-  requireNativeViewManager: jest.fn(() => {
-    return (props: any) => null;
-  }),
+const mockNativeCircle = jest.fn(() => null);
+
+jest.mock('../../../utils/lazyNativeViewManager', () => ({
+  createLazyNativeViewManager: jest.fn(() => () => mockNativeCircle),
 }));
 
 describe('Circle 覆盖物组件', () => {
+  beforeEach(() => {
+    mockNativeCircle.mockClear();
+  });
+
   it('应该能够渲染', () => {
     const result = render(
       <Circle
@@ -25,6 +28,23 @@ describe('Circle 覆盖物组件', () => {
       />
     );
     expect(result).toBeTruthy();
+  });
+
+  it('应该归一化中心点并透传给原生组件', () => {
+    render(
+      <Circle
+        center={[116.4, 39.9]}
+        radius={1000}
+      />
+    );
+
+    expect(mockNativeCircle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        center: { latitude: 39.9, longitude: 116.4 },
+        radius: 1000,
+      }),
+      undefined
+    );
   });
 
   it('应该接受中心点坐标属性', () => {
@@ -67,5 +87,56 @@ describe('Circle 覆盖物组件', () => {
       />
     );
     expect(result).toBeTruthy();
+  });
+
+  it('相同关键属性重渲染时不应重复渲染原生组件', () => {
+    const onCirclePress = jest.fn();
+    const { rerender } = render(
+      <Circle
+        center={{ latitude: 39.9, longitude: 116.4 }}
+        radius={1000}
+        strokeColor="#FF0000"
+        fillColor="#00FF00"
+        strokeWidth={2}
+        zIndex={1}
+        onCirclePress={onCirclePress}
+      />
+    );
+
+    expect(mockNativeCircle).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <Circle
+        center={{ latitude: 39.9, longitude: 116.4 }}
+        radius={1000}
+        strokeColor="#FF0000"
+        fillColor="#00FF00"
+        strokeWidth={2}
+        zIndex={1}
+        onCirclePress={onCirclePress}
+      />
+    );
+
+    expect(mockNativeCircle).toHaveBeenCalledTimes(1);
+  });
+
+  it('关键属性变化时应该重新渲染原生组件', () => {
+    const { rerender } = render(
+      <Circle
+        center={{ latitude: 39.9, longitude: 116.4 }}
+        radius={1000}
+      />
+    );
+
+    expect(mockNativeCircle).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <Circle
+        center={{ latitude: 39.9, longitude: 116.401 }}
+        radius={1200}
+      />
+    );
+
+    expect(mockNativeCircle).toHaveBeenCalledTimes(2);
   });
 });

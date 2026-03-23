@@ -1,131 +1,240 @@
-/**
- * Marker 组件测试
- * 测试 Marker 覆盖物的功能
- */
-
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { Platform, Text } from 'react-native';
+import { render, fireEvent } from '@testing-library/react-native';
+
+const mockNativeMarker = jest.fn((props: any) => <>{props.children}</>);
+
+jest.mock('../../../utils/lazyNativeViewManager', () => ({
+  createLazyNativeViewManager: jest.fn(() => () => mockNativeMarker),
+}));
+
 import Marker from '../Marker';
 
 describe('Marker 组件', () => {
-  
   const defaultProps = {
     position: { latitude: 39.9, longitude: 116.4 },
   };
-  
-  it('应该正确渲染', () => {
-    const result = render(<Marker {...defaultProps} />);
-    expect(result).toBeTruthy();
+
+  beforeEach(() => {
+    mockNativeMarker.mockClear();
+    (Platform as any).OS = 'ios';
   });
-  
-  it('应该接收坐标属性', () => {
-    const position = { latitude: 40.0, longitude: 116.5 };
-    const result = render(<Marker position={position} />);
-    expect(result).toBeTruthy();
-  });
-  
-  it('应该支持自定义标题', () => {
-    const result = render(
-      <Marker
-        {...defaultProps}
-        title="测试标记"
-      />
+
+  it('应该正确渲染默认图标尺寸', () => {
+    render(<Marker {...defaultProps} />);
+
+    expect(mockNativeMarker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        latitude: 39.9,
+        longitude: 116.4,
+        iconWidth: 40,
+        iconHeight: 40,
+        customViewWidth: 40,
+        customViewHeight: 40,
+      }),
+      undefined
     );
-    expect(result).toBeTruthy();
   });
-  
-  it('应该支持拖拽功能', () => {
-    const result = render(
+
+  it('应该归一化数组坐标并支持图标尺寸', () => {
+    render(
       <Marker
-        {...defaultProps}
-        draggable={true}
-      />
-    );
-    expect(result).toBeTruthy();
-  });
-  
-  it('应该支持自定义图标', () => {
-    const result = render(
-      <Marker
-        {...defaultProps}
+        position={[116.5, 40.0]}
         icon="custom-icon"
         iconWidth={50}
-        iconHeight={50}
+        iconHeight={60}
       />
     );
-    expect(result).toBeTruthy();
+
+    expect(mockNativeMarker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        latitude: 40.0,
+        longitude: 116.5,
+        icon: 'custom-icon',
+        iconWidth: 50,
+        iconHeight: 60,
+        customViewWidth: 50,
+        customViewHeight: 60,
+      }),
+      undefined
+    );
   });
-  
-  it('应该支持自定义内容', () => {
+
+  it('iOS 下 children 应包裹测量容器并在 onLayout 后更新尺寸', () => {
     const result = render(
       <Marker {...defaultProps}>
-        <div>自定义内容</div>
+        <Text>自定义内容</Text>
       </Marker>
     );
-    expect(result).toBeTruthy();
+
+    expect(mockNativeMarker).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        iconWidth: 0,
+        iconHeight: 0,
+        customViewWidth: 0,
+        customViewHeight: 0,
+      }),
+      undefined
+    );
+
+    const measureView = result.UNSAFE_getByType(require('react-native').View);
+    fireEvent(measureView, 'layout', {
+      nativeEvent: {
+        layout: {
+          width: 88.2,
+          height: 42.4,
+        },
+      },
+    });
+
+    expect(mockNativeMarker).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        iconWidth: 89,
+        iconHeight: 43,
+        customViewWidth: 89,
+        customViewHeight: 43,
+      }),
+      undefined
+    );
   });
-  
-  it('应该正确处理尺寸属性', () => {
+
+  it('显式 customViewWidth/customViewHeight 应覆盖自动测量尺寸', () => {
     const result = render(
       <Marker
         {...defaultProps}
         customViewWidth={100}
         customViewHeight={80}
-      />
+      >
+        <Text>固定尺寸</Text>
+      </Marker>
     );
-    expect(result).toBeTruthy();
+
+    const measureView = result.UNSAFE_getByType(require('react-native').View);
+    fireEvent(measureView, 'layout', {
+      nativeEvent: {
+        layout: {
+          width: 20,
+          height: 10,
+        },
+      },
+    });
+
+    expect(mockNativeMarker).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        iconWidth: 100,
+        iconHeight: 80,
+        customViewWidth: 100,
+        customViewHeight: 80,
+      }),
+      undefined
+    );
   });
-  
-  it('应该支持大头针样式', () => {
-    const result = render(
+
+  it('Android 下 children 不应使用自动测量尺寸', () => {
+    (Platform as any).OS = 'android';
+
+    render(
+      <Marker {...defaultProps}>
+        <Text>Android 内容</Text>
+      </Marker>
+    );
+
+    expect(mockNativeMarker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iconWidth: 0,
+        iconHeight: 0,
+        customViewWidth: 0,
+        customViewHeight: 0,
+      }),
+      undefined
+    );
+  });
+
+  it('应该归一化 smoothMovePath 并透传', () => {
+    render(
       <Marker
         {...defaultProps}
-        pinColor="red"
+        smoothMovePath={[
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.91, longitude: 116.41 },
+        ]}
+        smoothMoveDuration={12}
       />
     );
-    expect(result).toBeTruthy();
+
+    expect(mockNativeMarker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        smoothMovePath: [
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.91, longitude: 116.41 },
+        ],
+        smoothMoveDuration: 12,
+      }),
+      undefined
+    );
   });
-  
-  describe('React.memo 优化', () => {
-    it('相同 props 不应该重新渲染', () => {
-      const { rerender } = render(<Marker {...defaultProps} />);
-      
-      // 验证重新渲染不会出错
-      expect(() => {
-        rerender(<Marker {...defaultProps} />);
-      }).not.toThrow();
-    });
-    
-    it('位置改变应该重新渲染', () => {
-      const { rerender, toJSON } = render(<Marker {...defaultProps} />);
-      const firstRender = toJSON();
-      
-      rerender(<Marker position={{ latitude: 40.0, longitude: 116.5 }} />);
-      const secondRender = toJSON();
-      
-      // 位置改变应该导致重新渲染（输出可能不同）
-      expect(firstRender).toBeDefined();
-      expect(secondRender).toBeDefined();
-    });
+
+  it('相同关键属性重渲染时不应重复渲染', () => {
+    const child = <Text>内容</Text>;
+    const { rerender } = render(
+      <Marker
+        {...defaultProps}
+        cacheKey="k1"
+        children={child}
+        icon="marker"
+        iconWidth={20}
+        iconHeight={20}
+        smoothMovePath={[
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.91, longitude: 116.41 },
+        ]}
+        smoothMoveDuration={10}
+      />
+    );
+
+    rerender(
+      <Marker
+        {...defaultProps}
+        cacheKey="k1"
+        children={child}
+        icon="marker"
+        iconWidth={20}
+        iconHeight={20}
+        smoothMovePath={[
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.91, longitude: 116.41 },
+        ]}
+        smoothMoveDuration={10}
+      />
+    );
+
+    expect(mockNativeMarker).toHaveBeenCalledTimes(1);
   });
-  
-  describe('缓存键', () => {
-    it('应该支持 cacheKey 属性', () => {
-      const result = render(
-        <Marker {...defaultProps} cacheKey="test-key" />
-      );
-      expect(result).toBeTruthy();
-    });
-    
-    it('cacheKey 改变应该触发重新渲染', () => {
-      const { rerender } = render(
-        <Marker {...defaultProps} cacheKey="key1" />
-      );
-      
-      rerender(<Marker {...defaultProps} cacheKey="key2" />);
-      
-      // 验证组件已重新渲染
-      expect(true).toBe(true);
-    });
+
+  it('位置、cacheKey 或 smoothMovePath 变化时应重新渲染', () => {
+    const { rerender } = render(
+      <Marker
+        {...defaultProps}
+        cacheKey="k1"
+        smoothMovePath={[
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.91, longitude: 116.41 },
+        ]}
+      />
+    );
+
+    rerender(
+      <Marker
+        position={{ latitude: 40.0, longitude: 116.5 }}
+        cacheKey="k2"
+        smoothMovePath={[
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.92, longitude: 116.42 },
+        ]}
+      />
+    );
+
+    expect(mockNativeMarker).toHaveBeenCalledTimes(2);
   });
 });

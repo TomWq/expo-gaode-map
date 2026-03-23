@@ -15,6 +15,7 @@ describe('ExpoGaodeMapModule', () => {
   });
 
   const getNativeMock = () => requireNativeModule('ExpoGaodeMap') as {
+    [key: string]: any;
     coordinateConvert: jest.Mock;
     setGeoLanguage: jest.Mock;
     getVersion: jest.Mock;
@@ -258,6 +259,42 @@ describe('ExpoGaodeMapModule', () => {
       
       expect(ExpoGaodeMapModule.isSDKInitialized()).toBe(true);
     });
+
+    it('应该同步完整隐私配置', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.setPrivacyVersion = jest.fn();
+      nativeModule.setPrivacyShow = jest.fn();
+      nativeModule.setPrivacyAgree = jest.fn();
+
+      ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+        privacyVersion: 'v2',
+      });
+
+      expect(nativeModule.setPrivacyVersion).toHaveBeenCalledWith('v2');
+      expect(nativeModule.setPrivacyShow).toHaveBeenCalledWith(true, true);
+      expect(nativeModule.setPrivacyAgree).toHaveBeenCalledWith(true);
+    });
+
+    it('应该兼容旧版隐私设置接口', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.setPrivacyShow = jest.fn();
+      nativeModule.setPrivacyAgree = jest.fn();
+      nativeModule.setPrivacyVersion = jest.fn();
+      nativeModule.resetPrivacyConsent = jest.fn();
+
+      ExpoGaodeMapModule.setPrivacyShow(true);
+      ExpoGaodeMapModule.setPrivacyAgree(false);
+      ExpoGaodeMapModule.setPrivacyVersion('v3');
+      ExpoGaodeMapModule.resetPrivacyConsent();
+
+      expect(nativeModule.setPrivacyShow).toHaveBeenCalledWith(true, true);
+      expect(nativeModule.setPrivacyAgree).toHaveBeenCalledWith(false);
+      expect(nativeModule.setPrivacyVersion).toHaveBeenCalledWith('v3');
+      expect(nativeModule.resetPrivacyConsent).toHaveBeenCalled();
+    });
   });
 
   describe('定位控制', () => {
@@ -282,6 +319,19 @@ describe('ExpoGaodeMapModule', () => {
     it('应该能够检查是否正在定位', async () => {
       const isStarted = await ExpoGaodeMapModule.isStarted?.();
       expect(typeof isStarted).toBe('boolean');
+    });
+
+    it('原生版本方法失败时应该回退为默认值', async () => {
+      const nativeModule = getNativeMock();
+      nativeModule.getVersion.mockImplementation(() => {
+        throw new Error('boom');
+      });
+      nativeModule.isStarted.mockImplementation(() => {
+        throw new Error('boom');
+      });
+
+      expect(ExpoGaodeMapModule.getVersion()).toBe('0.0.0');
+      await expect(ExpoGaodeMapModule.isStarted()).resolves.toBe(false);
     });
   });
 
@@ -406,6 +456,16 @@ describe('ExpoGaodeMapModule', () => {
   });
 
   describe('几何计算', () => {
+    it('应该支持 calculateDistanceBetweenPoints 别名方法', () => {
+      const distance = ExpoGaodeMapModule.calculateDistanceBetweenPoints(
+        [116.4, 39.9],
+        [116.41, 39.91]
+      );
+
+      expect(typeof distance).toBe('number');
+      expect(distance).toBeGreaterThan(0);
+    });
+
     it("应该能够计算点到点的距离", async () => {
       // 检查方法是否存在
       expect(ExpoGaodeMapModule.distanceBetweenCoordinates).toBeDefined();
@@ -495,6 +555,33 @@ describe('ExpoGaodeMapModule', () => {
       // 多边形面积应该大于0
       expect(area).toBeGreaterThan(0);
     });
+    it("应该支持嵌套多边形参数类型", async () => {
+      const nestedPolygon = [
+        [
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.9, longitude: 116.41 },
+          { latitude: 39.91, longitude: 116.41 },
+          { latitude: 39.91, longitude: 116.4 },
+        ],
+        [
+          { latitude: 39.902, longitude: 116.402 },
+          { latitude: 39.902, longitude: 116.408 },
+          { latitude: 39.908, longitude: 116.408 },
+          { latitude: 39.908, longitude: 116.402 },
+        ],
+      ] as const;
+
+      const isInside = ExpoGaodeMapModule.isPointInPolygon(
+        { latitude: 39.901, longitude: 116.401 },
+        nestedPolygon as unknown as Parameters<typeof ExpoGaodeMapModule.isPointInPolygon>[1]
+      );
+      const area = ExpoGaodeMapModule.calculatePolygonArea(
+        nestedPolygon as unknown as Parameters<typeof ExpoGaodeMapModule.calculatePolygonArea>[0]
+      );
+
+      expect(typeof isInside).toBe('boolean');
+      expect(typeof area).toBe('number');
+    });
     it("应该计算矩形面积", async () => {
       const area =  ExpoGaodeMapModule.calculateRectangleArea(
         { latitude: 39.9, longitude: 116.4 },
@@ -505,6 +592,184 @@ describe('ExpoGaodeMapModule', () => {
       expect(typeof area).toBe('number');
       // 矩形面积应该大于0
       expect(area).toBeGreaterThan(0);
+    });
+
+    it('应该计算路径边界并处理空输入', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.calculatePathBounds = jest.fn(() => ({
+        north: 40,
+        south: 39,
+        east: 117,
+        west: 116,
+        center: { latitude: 39.5, longitude: 116.5 },
+      }));
+
+      expect(ExpoGaodeMapModule.calculatePathBounds([])).toBeNull();
+      expect(
+        ExpoGaodeMapModule.calculatePathBounds([
+          [116.4, 39.9],
+          [116.41, 39.91],
+        ])
+      ).toEqual({
+        north: 40,
+        south: 39,
+        east: 117,
+        west: 116,
+        center: { latitude: 39.5, longitude: 116.5 },
+      });
+    });
+
+    it('应该支持 GeoHash、路径长度、路径点查询与 polyline 解析', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.encodeGeoHash = jest.fn(() => 'wx4g0ec1');
+      nativeModule.calculatePathLength = jest.fn(() => 1234);
+      nativeModule.getPointAtDistance = jest.fn(() => ({
+        latitude: 39.905,
+        longitude: 116.405,
+        angle: 45,
+      }));
+      nativeModule.parsePolyline = jest.fn((value: string) =>
+        value.split(';').map((item) => {
+          const [longitude, latitude] = item.split(',').map(Number);
+          return { latitude, longitude };
+        })
+      );
+
+      expect(ExpoGaodeMapModule.encodeGeoHash([116.4, 39.9], 8)).toBe('wx4g0ec1');
+      expect(
+        ExpoGaodeMapModule.calculatePathLength([
+          [116.4, 39.9],
+          [116.41, 39.91],
+        ])
+      ).toBe(1234);
+      expect(
+        ExpoGaodeMapModule.getPointAtDistance(
+          [
+            [116.4, 39.9],
+            [116.41, 39.91],
+          ],
+          100
+        )
+      ).toEqual({
+        latitude: 39.905,
+        longitude: 116.405,
+        angle: 45,
+      });
+      expect(
+        ExpoGaodeMapModule.parsePolyline({ polyline: '116.4,39.9;116.41,39.91' })
+      ).toEqual([
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.91, longitude: 116.41 },
+      ]);
+      expect(ExpoGaodeMapModule.parsePolyline('')).toEqual([]);
+    });
+
+    it('应该支持 tile/pixel 转换与多边形索引映射', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.latLngToTile = jest.fn(() => ({ x: 1, y: 2, z: 10 }));
+      nativeModule.tileToLatLng = jest.fn(() => ({ latitude: 39.9, longitude: 116.4 }));
+      nativeModule.latLngToPixel = jest.fn(() => ({ x: 256, y: 512 }));
+      nativeModule.pixelToLatLng = jest.fn(() => ({ latitude: 39.91, longitude: 116.41 }));
+      nativeModule.findPointInPolygons = jest.fn(() => 1);
+
+      expect(ExpoGaodeMapModule.latLngToTile([116.4, 39.9], 10)).toEqual({ x: 1, y: 2, z: 10 });
+      expect(ExpoGaodeMapModule.tileToLatLng({ x: 1, y: 2, z: 10 })).toEqual({
+        latitude: 39.9,
+        longitude: 116.4,
+      });
+      expect(ExpoGaodeMapModule.latLngToPixel([116.4, 39.9], 10)).toEqual({ x: 256, y: 512 });
+      expect(ExpoGaodeMapModule.pixelToLatLng({ x: 256, y: 512 }, 10)).toEqual({
+        latitude: 39.91,
+        longitude: 116.41,
+      });
+      expect(
+        ExpoGaodeMapModule.findPointInPolygons(
+          [116.401, 39.901],
+          [
+            [
+              [
+                [116.4, 39.9],
+                [116.42, 39.9],
+                [116.42, 39.92],
+                [116.4, 39.92],
+              ],
+              [
+                [116.405, 39.905],
+                [116.406, 39.905],
+                [116.406, 39.906],
+                [116.405, 39.906],
+              ],
+            ],
+            [
+              [
+                [117.0, 40.0],
+                [117.1, 40.0],
+                [117.1, 40.1],
+                [117.0, 40.1],
+              ],
+            ],
+          ]
+        )
+      ).toBe(0);
+    });
+
+    it('应该支持热力网格生成与几个降级分支', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.generateHeatmapGrid = jest.fn(() => [
+        { latitude: 39.9, longitude: 116.4, intensity: 2 },
+      ]);
+      nativeModule.setLoadWorldVectorMap = jest.fn(() => {
+        throw new Error('fail');
+      });
+      nativeModule.parsePolyline = jest.fn(() => {
+        throw new Error('fail');
+      });
+      nativeModule.calculatePathBounds = jest.fn(() => {
+        throw new Error('fail');
+      });
+      nativeModule.calculatePathLength = jest.fn(() => {
+        throw new Error('fail');
+      });
+      nativeModule.latLngToTile = jest.fn(() => {
+        throw new Error('fail');
+      });
+      nativeModule.findPointInPolygons = jest.fn(() => {
+        throw new Error('fail');
+      });
+
+      expect(
+        ExpoGaodeMapModule.generateHeatmapGrid(
+          [{ latitude: 39.9, longitude: 116.4, weight: 2 }],
+          100
+        )
+      ).toEqual([{ latitude: 39.9, longitude: 116.4, intensity: 2 }]);
+      expect(ExpoGaodeMapModule.generateHeatmapGrid([], 100)).toEqual([]);
+
+      expect(() => ExpoGaodeMapModule.setLoadWorldVectorMap(true)).not.toThrow();
+      expect(ExpoGaodeMapModule.parsePolyline('116.4,39.9')).toEqual([]);
+      expect(
+        ExpoGaodeMapModule.calculatePathBounds([
+          [116.4, 39.9],
+          [116.41, 39.91],
+        ])
+      ).toBeNull();
+      expect(
+        ExpoGaodeMapModule.calculatePathLength([
+          [116.4, 39.9],
+          [116.41, 39.91],
+        ])
+      ).toBe(0);
+      expect(ExpoGaodeMapModule.latLngToTile([116.4, 39.9], 10)).toBeNull();
+      expect(
+        ExpoGaodeMapModule.findPointInPolygons([116.4, 39.9], [
+          [
+            [116.4, 39.9],
+            [116.41, 39.9],
+            [116.41, 39.91],
+            [116.4, 39.91],
+          ],
+        ])
+      ).toBe(-1);
     });
   });
 });

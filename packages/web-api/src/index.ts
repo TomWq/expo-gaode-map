@@ -115,6 +115,9 @@ export * from './types/inputtips.types';
 
 // POI 类型导出 - 使用具名导出避免与 geocode.types 中的 POI 冲突
 export type {
+  AOIBoundaryInfo,
+  AOIBoundaryParams,
+  AOIBoundaryResponse,
   POISearchParams,
   POIAroundParams,
   POIPolygonParams,

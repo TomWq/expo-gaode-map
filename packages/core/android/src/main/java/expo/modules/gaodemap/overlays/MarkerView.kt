@@ -791,7 +791,6 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 // 只有在没有自定义内容（children）且有 title 或 snippet 时才显示信息窗口
                 // 如果有自定义内容，说明用户已经自定义了显示内容，不需要默认信息窗口
                 return !(view.isEmpty() && (!marker.title.isNullOrEmpty() || !marker.snippet.isNullOrEmpty()))
-                // marker.showInfoWindow()
             }
             return false
         }

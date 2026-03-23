@@ -1,4 +1,4 @@
-import { BlurView } from 'expo-blur';
+import { BlurView,BlurTargetView, BlurTargetViewProps } from 'expo-blur';
 import {
   Circle,
   ExpoGaodeMapModule,
@@ -14,6 +14,7 @@ import {
   type Coordinates,
   type ReGeocode,
   type LatLng,
+  type MapPoi,
   ClusterPoint,
   MapUI,
   type LatLngPoint,
@@ -22,9 +23,9 @@ import {
 import { reGeocode } from 'expo-gaode-map-search'
 import * as MediaLibrary from 'expo-media-library';
 
-import React from 'react';
+import React, { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
 import TestNewPermissionMethods from './TestNewPermissionMethods';
 import UseMapExample from './UseMapExample';
@@ -90,7 +91,41 @@ const generateClusterData = (center: Coordinates, count: number) => {
   return data;
 };
 
+const generateIrregularOutline = (center: Coordinates): GeoJsonCoordinate[] => {
+  const lng = center.longitude;
+  const lat = center.latitude;
+
+  return [
+    [lng - 0.020, lat + 0.010],
+    [lng - 0.012, lat + 0.020],
+    [lng + 0.002, lat + 0.023],
+    [lng + 0.018, lat + 0.015],
+    [lng + 0.024, lat + 0.004],
+    [lng + 0.017, lat - 0.011],
+    [lng + 0.006, lat - 0.020],
+    [lng - 0.010, lat - 0.018],
+    [lng - 0.022, lat - 0.007],
+    [lng - 0.020, lat + 0.010],
+  ];
+};
+
+const generateMaskOuterRing = (center: Coordinates): GeoJsonCoordinate[] => {
+  const lng = center.longitude;
+  const lat = center.latitude;
+  const offsetLng = 0.18;
+  const offsetLat = 0.14;
+
+  return [
+    [lng - offsetLng, lat + offsetLat],
+    [lng + offsetLng, lat + offsetLat],
+    [lng + offsetLng, lat - offsetLat],
+    [lng - offsetLng, lat - offsetLat],
+    [lng - offsetLng, lat + offsetLat],
+  ];
+};
+
 export default function MamScreen() {
+  type PanelSection = 'overlays' | 'advanced' | 'debug' | 'examples';
 
   const mapRef = useRef<MapViewRef | null>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
@@ -112,6 +147,8 @@ export default function MamScreen() {
   const [showCluster, setShowCluster] = useState(false);
   const [clusterData, setClusterData] = useState<ClusterPoint[]>([]);
   const [useClusterIcon, setUseClusterIcon] = useState(false);
+  const [showAreaOutline, setShowAreaOutline] = useState(false);
+  const [areaOutlinePoints, setAreaOutlinePoints] = useState<GeoJsonCoordinate[]>([]);
   const [sdkReady, setSdkReady] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [privacyStatusText, setPrivacyStatusText] = useState('未确认');
@@ -120,6 +157,10 @@ export default function MamScreen() {
   const [nativeCameraThrottleMs, setNativeCameraThrottleMs] = useState(32);
   const [cameraMoveEventCount, setCameraMoveEventCount] = useState(0);
   const [cameraIdleEventCount, setCameraIdleEventCount] = useState(0);
+  const [lastPressedPoi, setLastPressedPoi] = useState<MapPoi | null>(null);
+  const [panelExpanded, setPanelExpanded] = useState(false);
+  const [activePanelSection, setActivePanelSection] = useState<PanelSection>('overlays');
+  const blurRef = React.useRef<React.ElementRef<typeof View> | null>(null);
 
   // 主题与动态色
   const colorScheme = 'dark';
@@ -129,6 +170,36 @@ export default function MamScreen() {
   const cardBg = colorScheme === 'dark' ? 'rgba(16,16,16,0.7)' : 'rgba(255,255,255,0.85)';
   const chipBg = colorScheme === 'dark' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
   const hairline = colorScheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const areaMaskPoints = React.useMemo<GeoJsonCoordinate[][]>(() => {
+    if (!location || areaOutlinePoints.length === 0) {
+      return [];
+    }
+    return [generateMaskOuterRing(location), areaOutlinePoints];
+  }, [location, areaOutlinePoints]);
+  const areaLabelPosition = React.useMemo(() => {
+    if (areaOutlinePoints.length === 0) {
+      return null;
+    }
+
+    const uniquePoints = areaOutlinePoints.slice(0, -1);
+    if (uniquePoints.length === 0) {
+      return null;
+    }
+
+    const total = uniquePoints.reduce(
+      (acc, [lng, lat]) => {
+        acc.longitude += lng;
+        acc.latitude += lat;
+        return acc;
+      },
+      { latitude: 0, longitude: 0 }
+    );
+
+    return {
+      latitude: total.latitude / uniquePoints.length,
+      longitude: total.longitude / uniquePoints.length,
+    };
+  }, [areaOutlinePoints]);
 
   // 用于测试 Marker 动态添加/删除和位置变化
   const [dynamicMarkers, setDynamicMarkers] = useState<Array<{
@@ -294,8 +365,11 @@ export default function MamScreen() {
       if (showCluster && clusterData.length === 0) {
         setClusterData(generateClusterData(location, 50));
       }
+      if (showAreaOutline && areaOutlinePoints.length === 0) {
+        setAreaOutlinePoints(generateIrregularOutline(location));
+      }
     }
-  }, [location, isMapReady, showHeatMap, showMultiPoint, showCluster]);
+  }, [location, isMapReady, showHeatMap, showMultiPoint, showCluster, showAreaOutline, areaOutlinePoints.length]);
 
 
   const handleGetLocation = async () => {
@@ -475,9 +549,11 @@ export default function MamScreen() {
     setShowHeatMap(false);
     setShowMultiPoint(false);
     setShowCluster(false);
+    setShowAreaOutline(false);
+    setAreaOutlinePoints([]);
 
     const total = dynamicCircles.length + dynamicMarkers.length + dynamicPolylines.length + dynamicPolygons.length;
-    if (total === 0 && !showHeatMap && !showMultiPoint && !showCluster) {
+    if (total === 0 && !showHeatMap && !showMultiPoint && !showCluster && !showAreaOutline) {
       Alert.alert('提示', '没有可移除的覆盖物');
       return;
     }
@@ -535,6 +611,19 @@ export default function MamScreen() {
           }
           setClusterData(points);
         }
+      }
+      return next;
+    });
+  };
+
+  const toggleAreaOutline = () => {
+    setShowAreaOutline((prev) => {
+      const next = !prev;
+      if (next && location) {
+        setAreaOutlinePoints(generateIrregularOutline(location));
+      }
+      if (!next) {
+        setAreaOutlinePoints([]);
       }
       return next;
     });
@@ -606,6 +695,136 @@ export default function MamScreen() {
       `移动中 · 中心 ${lat.toFixed(4)}, ${lng.toFixed(4)} · 缩放 ${zoom.toFixed(2)} · 旋转 ${bearing.toFixed(2)}°`
     );
   }, []);
+
+  const handlePressPoi = useCallback(({ nativeEvent }: { nativeEvent: MapPoi }) => {
+   
+    setLastPressedPoi(nativeEvent);
+    Alert.alert(
+      'POI 点击已触发',
+      `${nativeEvent.name || '未命名 POI'}\n${nativeEvent.position.latitude.toFixed(6)}, ${nativeEvent.position.longitude.toFixed(6)}`
+    );
+  }, []);
+
+  const renderExpandedPanelContent = () => {
+    switch (activePanelSection) {
+      case 'overlays':
+        return (
+          <>
+            <Text style={[styles.sectionHint, { color: muted }]}>动态添加声明式覆盖物，验证渲染和交互。</Text>
+            <View style={styles.actionRow}>
+              <Pressable style={[styles.actionBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddCircle}>
+                <Text style={styles.actionBtnText}>圆形</Text>
+              </Pressable>
+              <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleAddMarker}>
+                <Text style={styles.actionBtnText}>标记</Text>
+              </Pressable>
+              <Pressable style={[styles.actionBtn, { backgroundColor: '#9C27B0' }]} onPress={handleAddPolyline}>
+                <Text style={styles.actionBtnText}>折线</Text>
+              </Pressable>
+              <Pressable style={[styles.actionBtn, { backgroundColor: '#FF5722' }]} onPress={handleAddPolygon}>
+                <Text style={styles.actionBtnText}>多边形</Text>
+              </Pressable>
+            </View>
+            <View style={[styles.actionRow, { marginTop: 10 }]}>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: showAreaOutline ? '#0EA5E9' : '#455A64' }]}
+                onPress={toggleAreaOutline}
+              >
+                <Text style={styles.actionBtnText}>{showAreaOutline ? '关闭区域高亮' : '区域高亮'}</Text>
+              </Pressable>
+              <View style={[styles.actionBtn, { backgroundColor: '#546E7A' }]}>
+                <Text style={styles.actionBtnText}>园区/行政区风格</Text>
+              </View>
+            </View>
+            <Pressable style={[styles.removeBtn]} onPress={handleRemoveAllOverlays}>
+              <Text style={styles.removeBtnText}>重置所有覆盖物</Text>
+            </Pressable>
+          </>
+        );
+      case 'advanced':
+        return (
+          <>
+            <Text style={[styles.sectionHint, { color: muted }]}>切换高阶图层和截图能力。</Text>
+            <View style={styles.actionRow}>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: showHeatMap ? '#F44336' : '#607D8B' }]}
+                onPress={toggleHeatMap}
+              >
+                <Text style={styles.actionBtnText}>热力图</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: showMultiPoint ? '#FF9800' : '#607D8B' }]}
+                onPress={toggleMultiPoint}
+              >
+                <Text style={styles.actionBtnText}>海量点</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: showCluster ? '#3F51B5' : '#607D8B' }]}
+                onPress={toggleCluster}
+              >
+                <Text style={styles.actionBtnText}>聚合</Text>
+              </Pressable>
+              <Pressable style={[styles.actionBtn, { backgroundColor: '#607D8B' }]} onPress={handleTakeSnapshot}>
+                <Text style={styles.actionBtnText}>截图</Text>
+              </Pressable>
+            </View>
+          </>
+        );
+      case 'debug':
+        return (
+          <>
+            <Text style={[styles.sectionHint, { color: muted }]}>验证原生节流、聚合图标和事件计数。</Text>
+            <View style={styles.actionRow}>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: nativeCameraThrottleMs === 0 ? '#795548' : '#00897B' }]}
+                onPress={cycleNativeCameraThrottle}
+              >
+                <Text style={styles.actionBtnText}>原生节流 {nativeCameraThrottleMs}ms</Text>
+              </Pressable>
+              <View style={[styles.actionBtn, { backgroundColor: '#546E7A' }]}>
+                <Text style={styles.actionBtnText}>只保留原生节流</Text>
+              </View>
+            </View>
+            <View style={[styles.actionRow, { marginTop: 10 }]}>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: useClusterIcon ? '#3949AB' : '#455A64' }]}
+                onPress={() => setUseClusterIcon((prev) => !prev)}
+              >
+                <Text style={styles.actionBtnText}>聚合图标 {useClusterIcon ? '开' : '关'}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: '#6D4C41' }]}
+                onPress={resetCameraEventStats}
+              >
+                <Text style={styles.actionBtnText}>清空计数</Text>
+              </Pressable>
+            </View>
+          </>
+        );
+      case 'examples':
+        return (
+          <>
+            <Text style={[styles.sectionHint, { color: muted }]}>跳到独立示例页面继续验证功能。</Text>
+            <View style={styles.actionRow}>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: '#795548' }]}
+                onPress={() => setShowPolylineExample(true)}
+              >
+                <Text style={styles.actionBtnText}>Polyline抽稀</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: '#673AB7' }]}
+                onPress={() => setShowWebAPITest(true)}
+              >
+                <Text style={styles.actionBtnText}>WebAPI测试</Text>
+              </Pressable>
+            </View>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   if (false) {
     return <TestNewPermissionMethods />;
@@ -780,6 +999,7 @@ export default function MamScreen() {
           console.log('地图点击:', e.nativeEvent);
           setIsFollowing(false);
         }}
+        // onPressPoi={handlePressPoi}
         onMapLongPress={(e) => {
           console.log('地图长按:', e.nativeEvent);
           setIsFollowing(false);
@@ -923,6 +1143,52 @@ export default function MamScreen() {
               />
             ))}
 
+            {showAreaOutline && areaMaskPoints.length > 0 && (
+              <Polygon
+                key="irregular_area_mask_demo"
+                points={areaMaskPoints}
+                strokeWidth={0}
+                strokeColor="transparent"
+                fillColor="#7A06121E"
+                zIndex={176}
+              />
+            )}
+
+            {showAreaOutline && areaOutlinePoints.length > 0 && (
+              <>
+                <Polygon
+                  key="irregular_area_fill_demo"
+                  points={areaOutlinePoints}
+                  strokeWidth={3}
+                  strokeColor="#7DD3FC"
+                  fillColor="#2A38BDF8"
+                  zIndex={180}
+                  onPolygonPress={() => Alert.alert('区域高亮', '点击了行政区/园区高亮示例')}
+                />
+                <Polyline
+                  key="irregular_area_outline_line_demo"
+                  points={areaOutlinePoints}
+                  strokeWidth={6}
+                  strokeColor="#E0F2FE"
+                  zIndex={181}
+                />
+                {areaLabelPosition && (
+                  <Marker
+                    key="irregular_area_label_marker"
+                    position={areaLabelPosition}
+                    zIndex={182}
+                    cacheKey="irregular_area_label_marker"
+                  >
+                    <View style={styles.areaLabelBubble}>
+                      <Text style={styles.areaLabelEyebrow}>区域高亮示例</Text>
+                      <Text style={styles.areaLabelTitle}>星湖园区</Text>
+                      <Text style={styles.areaLabelMeta}>描边 + 半透明蒙层</Text>
+                    </View>
+                  </Marker>
+                )}
+              </>
+            )}
+
             {dynamicMarkers.map((marker) => (
               <Marker
                 key={marker.id}
@@ -934,13 +1200,7 @@ export default function MamScreen() {
                 growAnimation={true}  
                 onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
               >
-                {/* <View  style={{paddingHorizontal: 6, paddingVertical: 4,}}>
-                  <Text
-                    style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 20,  textAlign: 'center', }]}
-                    numberOfLines={1}>
-                    {marker.content}
-                  </Text>
-                </View> */}
+              
                  <Text
                     style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 20,  maxWidth: 200,  textAlign: 'center',}]}
                     numberOfLines={1}>
@@ -965,22 +1225,23 @@ export default function MamScreen() {
                 onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
                 growAnimation={true}  
               >
-               <View style={{width:100,height:150,backgroundColor:'red',borderRadius:10}}/>
-                 {/* <Text
+               
+                 <Text
                     style={[
                       styles.dynamicMarkerText,
                       {
                         backgroundColor: '#007AFF',
                         borderRadius: 10,
                         textAlign: 'center',
-                        // maxWidth: 200,
+                        maxWidth: 200,
+                        lineHeight: 22, 
                        
                       },
                     ]}
                     numberOfLines={2}
                   >
                     {location.address}
-                  </Text> */}
+                  </Text>
               </Marker>
             )}
 
@@ -1034,7 +1295,7 @@ export default function MamScreen() {
               />
             )}
 
-            {isMapReady && Platform.OS === 'ios' && (
+            {/* {isMapReady && Platform.OS === 'ios' && (
               <Marker
                 key="ios_animated_marker"
                 position={{ latitude: 39.94, longitude: 116.44 }}
@@ -1044,143 +1305,143 @@ export default function MamScreen() {
                 cacheKey={"ios_animated_marker"}
                 onMarkerPress={() => Alert.alert('标记', '点击了 iOS 动画标记')}
               />
-            )}
+            )} */}
           </>
         }
         <MapUI>
      
           {/* 底部悬浮操作面板 */}
-          <View style={[styles.overlayBottom]}>
+          <View pointerEvents="box-none" style={[styles.overlayBottom]}>
             <View style={[styles.panelWrap, { borderColor: hairline }]}>
+              <BlurTargetView
+                style={{flex:1}}
+                ref={blurRef}
+              />
               <BlurView
-                intensity={100}
+                intensity={50}
+                blurMethod={'dimezisBlurViewSdk31Plus'}
+                blurTarget={blurRef}
                 tint={colorScheme === 'dark' ? 'dark' : 'light'}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
               />
               <View style={styles.panelInner}>
-                <Text style={[styles.panelTitle, { color: textColor }]}>常用操作</Text>
-                <Text style={[styles.chipText, { color: muted, marginBottom: 8 }]}>
-                  隐私状态：{privacyStatusText}
+                <View style={styles.panelHeaderRow}>
+                  <View style={styles.panelHeaderTextWrap}>
+                    <Text style={[styles.panelTitle, { color: textColor }]}>地图测试面板</Text>
+                    <Text style={[styles.chipText, { color: muted }]}>收起时保留核心操作，展开后再看详细测试项。</Text>
+                  </View>
+                  <Pressable
+                    style={[styles.panelExpandBtn, { backgroundColor: panelExpanded ? '#374151' : '#2563EB' }]}
+                    onPress={() => setPanelExpanded((prev) => !prev)}
+                  >
+                    <Text style={styles.panelExpandBtnText}>{panelExpanded ? '收起' : '展开'}</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.chipText, { color: lastPressedPoi ? '#34C759' : muted, marginBottom: 10 }]}>
+                  {lastPressedPoi
+                    ? `最近 POI：${lastPressedPoi.name} (${lastPressedPoi.position.latitude.toFixed(4)}, ${lastPressedPoi.position.longitude.toFixed(4)})`
+                    : '最近 POI：暂无，点一下地图上的 POI 试试'}
                 </Text>
 
-                <View style={styles.actionRow}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.quickActionRow}
+                  style={styles.quickActionScroller}
+                >
                   <Pressable
                     style={[
-                      styles.actionBtn,
+                      styles.quickActionBtn,
                       { backgroundColor: isFollowing ? '#4CAF50' : primary }
                     ]}
                     onPress={handleGetLocation}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
                   >
-                    <Text style={styles.actionBtnText}>
-                      {isFollowing ? '📍跟随' : '🎯定位'}
-                    </Text>
+                    <Text style={styles.actionBtnText}>{isFollowing ? '📍跟随' : '🎯定位'}</Text>
                   </Pressable>
                   <Pressable
-                    style={[styles.actionBtn, { backgroundColor: isLocating ? '#FF6347' : '#4CAF50' }]}
+                    style={[styles.quickActionBtn, { backgroundColor: isLocating ? '#FF6347' : '#4CAF50' }]}
                     onPress={isLocating ? handleStopLocation : handleStartLocation}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
                   >
-                    <Text style={styles.actionBtnText}>{isLocating ? '停止' : '开始'}</Text>
+                    <Text style={styles.actionBtnText}>{isLocating ? '停止定位' : '开始定位'}</Text>
                   </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleZoomIn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
+                  <Pressable
+                    style={[styles.quickActionBtn, { backgroundColor: '#2196F3' }]}
+                    onPress={handleZoomIn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                  >
                     <Text style={styles.actionBtnText}>放大</Text>
                   </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#FF9800' }]} onPress={handleZoomOut} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} android_ripple={{ color: 'rgba(255,255,255,0.2)' }}>
+                  <Pressable
+                    style={[styles.quickActionBtn, { backgroundColor: '#FF9800' }]}
+                    onPress={handleZoomOut}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                  >
                     <Text style={styles.actionBtnText}>缩小</Text>
                   </Pressable>
-                </View>
-
-                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>覆盖物操作</Text>
-
-                <View style={styles.actionRow}>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#4CAF50' }]} onPress={handleAddCircle}>
-                    <Text style={styles.actionBtnText}>圆形</Text>
-                  </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#2196F3' }]} onPress={handleAddMarker}>
-                    <Text style={styles.actionBtnText}>标记</Text>
-                  </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#9C27B0' }]} onPress={handleAddPolyline}>
-                    <Text style={styles.actionBtnText}>折线</Text>
-                  </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#FF5722' }]} onPress={handleAddPolygon}>
-                    <Text style={styles.actionBtnText}>多边形</Text>
-                  </Pressable>
-                </View>
-
-                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>高级功能</Text>
-                <View style={styles.actionRow}>
                   <Pressable
-                    style={[styles.actionBtn, { backgroundColor: showHeatMap ? '#F44336' : '#607D8B' }]}
-                    onPress={toggleHeatMap}
+                    style={[styles.quickActionBtn, { backgroundColor: '#607D8B' }]}
+                    onPress={handleTakeSnapshot}
                   >
-                    <Text style={styles.actionBtnText}>热力图</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: showMultiPoint ? '#FF9800' : '#607D8B' }]}
-                    onPress={toggleMultiPoint}
-                  >
-                    <Text style={styles.actionBtnText}>海量点</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: showCluster ? '#3F51B5' : '#607D8B' }]}
-                    onPress={toggleCluster}
-                  >
-                    <Text style={styles.actionBtnText}>聚合</Text>
-                  </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: '#607D8B' }]} onPress={handleTakeSnapshot}>
                     <Text style={styles.actionBtnText}>截图</Text>
                   </Pressable>
-                </View>
+                </ScrollView>
 
-                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>调试验证</Text>
-                <View style={styles.actionRow}>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: nativeCameraThrottleMs === 0 ? '#795548' : '#00897B' }]}
-                    onPress={cycleNativeCameraThrottle}
-                  >
-                    <Text style={styles.actionBtnText}>原生节流 {nativeCameraThrottleMs}ms</Text>
-                  </Pressable>
-                  <View style={[styles.actionBtn, { backgroundColor: '#546E7A' }]}>
-                    <Text style={styles.actionBtnText}>只保留原生节流</Text>
+                {panelExpanded && (
+                  <View style={styles.sectionBody}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.sectionTabRow}
+                      style={styles.sectionTabScroller}
+                    >
+                      <Pressable
+                        style={[
+                          styles.sectionTab,
+                          activePanelSection === 'overlays' && styles.sectionTabActive,
+                        ]}
+                        onPress={() => setActivePanelSection('overlays')}
+                      >
+                        <Text style={styles.sectionTabText}>覆盖物</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.sectionTab,
+                          activePanelSection === 'advanced' && styles.sectionTabActive,
+                        ]}
+                        onPress={() => setActivePanelSection('advanced')}
+                      >
+                        <Text style={styles.sectionTabText}>高级功能</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.sectionTab,
+                          activePanelSection === 'debug' && styles.sectionTabActive,
+                        ]}
+                        onPress={() => setActivePanelSection('debug')}
+                      >
+                        <Text style={styles.sectionTabText}>调试验证</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.sectionTab,
+                          activePanelSection === 'examples' && styles.sectionTabActive,
+                        ]}
+                        onPress={() => setActivePanelSection('examples')}
+                      >
+                        <Text style={styles.sectionTabText}>更多示例</Text>
+                      </Pressable>
+                    </ScrollView>
+
+                    {renderExpandedPanelContent()}
                   </View>
-                </View>
-                <View style={[styles.actionRow, { marginTop: 10 }]}>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: useClusterIcon ? '#3949AB' : '#455A64' }]}
-                    onPress={() => setUseClusterIcon((prev) => !prev)}
-                  >
-                    <Text style={styles.actionBtnText}>聚合图标 {useClusterIcon ? '开' : '关'}</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: '#6D4C41' }]}
-                    onPress={resetCameraEventStats}
-                  >
-                    <Text style={styles.actionBtnText}>清空计数</Text>
-                  </Pressable>
-                </View>
-
-                <Text style={[styles.panelTitle, { color: textColor, marginTop: 12 }]}>更多示例</Text>
-                <View style={styles.actionRow}>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: '#795548' }]}
-                    onPress={() => setShowPolylineExample(true)}
-                  >
-                    <Text style={styles.actionBtnText}>Polyline抽稀</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: '#673AB7' }]}
-                    onPress={() => setShowWebAPITest(true)}
-                  >
-                    <Text style={styles.actionBtnText}>WebAPI测试</Text>
-                  </Pressable>
-                </View>
-
-                <Pressable style={[styles.removeBtn]} onPress={handleRemoveAllOverlays}>
-                  <Text style={styles.removeBtnText}>重置所有</Text>
-                </Pressable>
+                )}
               </View>
             </View>
           </View>
@@ -1193,9 +1454,9 @@ export default function MamScreen() {
               <View style={[styles.chipWrap, { borderColor: hairline }]}>
                 <BlurView
                   intensity={100}
-                  experimentalBlurMethod={'dimezisBlurView'}
+                  blurMethod={'dimezisBlurViewSdk31Plus'}
                   tint={colorScheme === 'dark' ? 'dark' : 'light'}
-                  style={StyleSheet.absoluteFillObject}
+                  style={StyleSheet.absoluteFill}
                 />
                 <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
                   📷 {cameraInfo}
@@ -1205,9 +1466,9 @@ export default function MamScreen() {
             <View style={[styles.chipWrap, { borderColor: hairline }]}>
               <BlurView
                 intensity={100}
-                experimentalBlurMethod={'dimezisBlurView'}
+               blurMethod={'dimezisBlurViewSdk31Plus'}
                 tint={colorScheme === 'dark' ? 'dark' : 'light'}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
               />
               <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
                 事件统计 · move {cameraMoveEventCount} / idle {cameraIdleEventCount} · 原生 {nativeCameraThrottleMs}ms
@@ -1216,9 +1477,9 @@ export default function MamScreen() {
             <View style={[styles.chipWrap, { borderColor: hairline }]}>
               <BlurView
                 intensity={100}
-                experimentalBlurMethod={'dimezisBlurView'}
+                 blurMethod={'dimezisBlurViewSdk31Plus'}
                 tint={colorScheme === 'dark' ? 'dark' : 'light'}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
               />
               <Text style={[styles.chipText, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
                 聚合图标 · {useClusterIcon ? 'icon on' : 'icon off'} {showCluster ? '· 聚合显示中' : '· 聚合未开启'}
@@ -1383,12 +1644,80 @@ const styles = StyleSheet.create({
     backgroundColor: Platform.OS == 'android' ? 'rgba(255,255,255,0.5)' : 'transparent',
   },
   panelInner: {
-    padding: 12,
+    padding: 10,
     backgroundColor: Platform.OS == 'android' ? 'rgba(255,255,255,0.5)' : 'transparent',
+  },
+  panelHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+  panelHeaderTextWrap: {
+    flex: 1,
   },
   panelTitle: {
     fontSize: 14,
     fontWeight: '700',
+    marginBottom: 2,
+  },
+  panelExpandBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  panelExpandBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  quickActionScroller: {
+    marginBottom: 2,
+  },
+  quickActionRow: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  quickActionBtn: {
+    minWidth: 82,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionBody: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.16)',
+  },
+  sectionTabScroller: {
+    marginBottom: 10,
+  },
+  sectionTabRow: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  sectionTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  sectionTabActive: {
+    backgroundColor: '#2563EB',
+  },
+  sectionTabText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sectionHint: {
+    fontSize: 12,
     marginBottom: 8,
   },
   actionRow: {
@@ -1421,6 +1750,38 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: '700',
+  },
+  areaLabelBubble: {
+    minWidth: 128,
+    maxWidth: 168,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(10, 25, 41, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(125, 211, 252, 0.55)',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  areaLabelEyebrow: {
+    color: '#7DD3FC',
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  areaLabelTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  areaLabelMeta: {
+    color: 'rgba(226, 232, 240, 0.82)',
+    fontSize: 11,
+    fontWeight: '600',
   },
   dynamicMarkerText: {
     color: '#fff',

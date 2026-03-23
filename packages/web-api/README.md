@@ -23,6 +23,7 @@
   - ✅ 公交（含多策略、跨城、地铁图模式、出入口等）
 - 搜索服务
   - ✅ POI 搜索（关键字、周边、类型、详情）
+  - ✅ AOI 边界查询（需开通高阶服务权限）
   - ✅ 输入提示（POI/公交站点/公交线路）
 
 ## 安装
@@ -98,9 +99,28 @@ const route = await api.route.driving('116.481028,39.989643', '116.434446,39.908
   show_fields: 'cost,navi,polyline',
 });
 console.log(route.route.paths[0].distance);
+
+// AOI 边界查询（需开通权限）
+const aoi = await api.poi.getAOIBoundary('your-aoi-id');
+console.log(Array.isArray(aoi.aois) ? aoi.aois[0]?.polyline : aoi.aois?.polyline);
 ```
 
 ## 详细用法
+
+### AOI 边界查询
+
+```typescript
+const result = await api.poi.getAOIBoundary('your-aoi-id');
+
+const aoi = Array.isArray(result.aois) ? result.aois[0] : result.aois;
+console.log(aoi?.name);
+console.log(aoi?.polyline);
+```
+
+注意：
+
+- `AOI 边界查询` 是高德 Web 服务里的高阶能力，正式使用前通常需要额外开通权限。
+- 返回的 `polyline` 通常是 `lng,lat;lng,lat;...`，多环场景下可能为 `ring1|ring2`。
 
 ### 逆地理编码
 
@@ -539,6 +559,7 @@ interface ClientConfig {
   - `search()` - 关键字搜索
   - `searchAround()` - 周边搜索
   - `getDetail()` - 详情
+  - `getAOIBoundary()` - AOI 边界查询
 - inputTips - 输入提示
   - `getTips()` - 基础提示
   - `getPOITips()` - POI 类型提示
@@ -688,4 +709,3 @@ try {
 ## License
 
 MIT License
-

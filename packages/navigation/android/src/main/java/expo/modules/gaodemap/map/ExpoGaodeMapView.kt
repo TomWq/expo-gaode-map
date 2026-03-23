@@ -127,6 +127,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     // 事件派发器
     private val onMapPress by EventDispatcher()
+    private val onPressPoi by EventDispatcher()
     private val onMapLongPress by EventDispatcher()
     private val onLoad by EventDispatcher()
     private val onLocation by EventDispatcher()
@@ -309,6 +310,17 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             onMapPress(mapOf(
                 "latitude" to latLng.latitude,
                 "longitude" to latLng.longitude
+            ))
+        }
+
+        aMap.setOnPOIClickListener { poi ->
+            onPressPoi(mapOf(
+                "id" to poi.poiId,
+                "name" to poi.name,
+                "position" to mapOf(
+                    "latitude" to poi.coordinate.latitude,
+                    "longitude" to poi.coordinate.longitude
+                )
             ))
         }
 
@@ -618,6 +630,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
             // 清理所有地图监听器
             aMap.setOnMapClickListener(null)
+            aMap.setOnPOIClickListener(null)
             aMap.setOnMapLongClickListener(null)
             aMap.setOnMapLoadedListener(null)
             aMap.setOnCameraChangeListener(null)

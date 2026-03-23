@@ -33,7 +33,7 @@ Includes complete API documentation, usage guides, and example code:
 - ✅ Complete TypeScript type definitions
 - ✅ Cross-platform support (Android, iOS)
 - ✅ Supports both new and old React Native architectures (Paper & Fabric)
-- ✅ High test coverage (75.7%, 207 unit tests)
+- ✅ High test coverage 
 - ✅ User-friendly error notification system
 - ✅ Custom Marker overlay support
 - ✅ Lean native implementation with simpler lifecycle management and lower maintenance cost

@@ -407,3 +407,104 @@ export interface POIDetailParams {
    */
   signal?: AbortSignal;
 }
+
+/**
+ * AOI 边界查询参数
+ *
+ * 注意：该接口属于高阶服务，通常需要单独开通权限后才能正常使用。
+ */
+export interface AOIBoundaryParams {
+  /**
+   * AOI 唯一标识
+   */
+  id: string;
+
+  /**
+   * 数字签名
+   */
+  sig?: string;
+
+  /**
+   * JSONP 回调函数名
+   */
+  callback?: string;
+
+  /**
+   * 透传扩展参数
+   */
+  parameters?: string;
+
+  /**
+   * AbortSignal 用于取消请求
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * AOI 边界信息
+ */
+export interface AOIBoundaryInfo {
+  /** AOI 名称 */
+  name?: string;
+
+  /** AOI 唯一标识 */
+  id?: string;
+
+  /** AOI 中心点坐标，格式：经度,纬度 */
+  location?: string;
+
+  /**
+   * AOI 边界串
+   * 通常格式为：
+   * - 单环：lng,lat;lng,lat;...
+   * - 多环：ring1|ring2
+   */
+  polyline?: string;
+
+  /** AOI 所属分类 */
+  type?: string;
+
+  /** AOI 分类编码 */
+  typecode?: string;
+
+  /** AOI 所属省份 */
+  pname?: string;
+
+  /** AOI 所属城市 */
+  cityname?: string;
+
+  /** AOI 所属区域 */
+  adname?: string;
+
+  /** AOI 详细地址 */
+  address?: string;
+
+  /** AOI 所属省份编码 */
+  pcode?: string;
+
+  /** AOI 所属城市编码 */
+  citycode?: string;
+
+  /** AOI 所属区域编码 */
+  adcode?: string;
+}
+
+/**
+ * AOI 边界查询响应
+ *
+ * 官方文档字段名为 `aois`，但多数场景只返回单个 AOI 对象；
+ * 这里兼容单对象和数组两种结构，避免调用方被接口细节卡住。
+ */
+export interface AOIBoundaryResponse {
+  /** 返回状态 */
+  status: string;
+
+  /** 返回的状态信息 */
+  info: string;
+
+  /** 状态码 */
+  infocode: string;
+
+  /** AOI 边界结果 */
+  aois?: AOIBoundaryInfo | AOIBoundaryInfo[];
+}
