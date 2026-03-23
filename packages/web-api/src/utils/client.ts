@@ -127,7 +127,7 @@ export interface ClientConfig {
  */
 export interface RequestOptions {
   /** 请求参数 */
-  params?: Record<string, any>;
+  params?: object;
   /** AbortSignal 用于取消请求 */
   signal?: AbortSignal;
   /** 是否使用缓存（仅当全局启用缓存时有效），默认：true */
@@ -144,7 +144,7 @@ export class GaodeWebAPIClient {
   private timeout: number;
   private maxRetries: number;
   private retryDelay: number;
-  private cache?: LRUCache<string, any>;
+  private cache?: LRUCache<string, unknown>;
 
   constructor(config: ClientConfig) {
     this.key = config.key || resolveWebKey() || '';
@@ -154,7 +154,7 @@ export class GaodeWebAPIClient {
     this.retryDelay = config.retryDelay ?? 1000;
 
     if (config.enableCache) {
-      this.cache = new LRUCache<string, any>(config.cacheCapacity ?? 100);
+      this.cache = new LRUCache<string, unknown>(config.cacheCapacity ?? 100);
     }
   }
 
@@ -171,7 +171,7 @@ export class GaodeWebAPIClient {
     url.searchParams.append('key', this.key);
     
     // 添加其他参数
-    Object.entries(params).forEach(([key, value]) => {
+    Object.entries(params as Record<string, unknown>).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, String(value));
       }

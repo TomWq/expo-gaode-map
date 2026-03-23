@@ -14,6 +14,12 @@ import type {
 } from '../types/poi.types';
 import { validateCoordinate, validateCoordinates } from '../utils/validators';
 
+type SearchRequestParams = Omit<POISearchParams, 'version' | 'signal'>;
+type AroundRequestParams = Omit<POIAroundParams, 'version' | 'signal'>;
+type PolygonRequestParams = Omit<POIPolygonParams, 'version' | 'signal'>;
+type DetailRequestParams = Omit<POIDetailParams, 'version' | 'signal'>;
+type AOIBoundaryRequestParams = Pick<AOIBoundaryParams, 'id'> & Omit<AOIBoundaryParams, 'id' | 'signal'>;
+
 /**
  * POI 搜索服务
  */
@@ -54,7 +60,7 @@ export class POIService {
     options?: Omit<POISearchParams, 'keywords'>
   ): Promise<POISearchResponse> {
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: any = {
+    const params: SearchRequestParams = {
       keywords,
       ...rest,
     };
@@ -111,7 +117,7 @@ export class POIService {
     validateCoordinate(locationStr);
 
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: any = {
+    const params: AroundRequestParams = {
       location: locationStr,
       ...rest,
     };
@@ -146,7 +152,7 @@ export class POIService {
     validateCoordinates(polygon, '|');
 
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: any = {
+    const params: PolygonRequestParams = {
       polygon,
       ...rest,
     };
@@ -213,7 +219,7 @@ export class POIService {
       throw new Error('批量查询最多支持10个POI ID');
     }
 
-    const params: any = {
+    const params: DetailRequestParams = {
       id: ids.join('|'),
       show_fields,
     };
@@ -245,7 +251,7 @@ export class POIService {
     options?: Omit<AOIBoundaryParams, 'id'>
   ): Promise<AOIBoundaryResponse> {
     const { signal, ...rest } = options || {};
-    const params: Record<string, any> = {
+    const params: AOIBoundaryRequestParams = {
       id,
       ...rest,
     };

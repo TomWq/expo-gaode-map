@@ -367,6 +367,36 @@ export interface LocationOptions {
  */
 export type LocationListener = (location: Coordinates | ReGeocode) => void;
 
+/**
+ * 方向更新事件数据
+ */
+export interface HeadingUpdate {
+  /** 磁北方向角度 (0-359.9) */
+  magneticHeading: number;
+
+  /** 真北方向角度 (0-359.9) */
+  trueHeading: number;
+
+  /** 方向精度 */
+  headingAccuracy: number;
+
+  /** X 轴原始数据 */
+  x: number;
+
+  /** Y 轴原始数据 */
+  y: number;
+
+  /** Z 轴原始数据 */
+  z: number;
+
+  /** 时间戳 */
+  timestamp: number;
+}
+
+/**
+ * 方向事件监听器
+ */
+export type HeadingListener = (heading: HeadingUpdate) => void;
 
 
 

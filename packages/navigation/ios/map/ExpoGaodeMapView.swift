@@ -52,6 +52,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     var showsBuildings: Bool = false
     /// 是否显示室内地图
     var showsIndoorMap: Bool = false
+    /// 定位最小更新距离
+    var distanceFilter: CLLocationDistance = kCLDistanceFilterNone
+    /// 朝向最小更新角度
+    var headingFilter: CLLocationDegrees = kCLHeadingFilterNone
     /// 相机移动事件节流间隔（毫秒）
     var cameraEventThrottleMs: Int = 32 {
         didSet {
@@ -475,6 +479,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setRotateEnabled(isRotateEnabled)
         uiManager.setTiltEnabled(isTiltEnabled)
         uiManager.setShowsUserLocation(showsUserLocation, followUser: followUserLocation)
+        mapView.distanceFilter = distanceFilter
+        mapView.headingFilter = headingFilter
     }
     
     /**
@@ -505,6 +511,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setShowsTraffic(showsTraffic)
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
+        mapView.distanceFilter = distanceFilter
+        mapView.headingFilter = headingFilter
         if let customMapStyleData {
             uiManager.setCustomMapStyle(customMapStyleData)
         }

@@ -1,6 +1,7 @@
 import { GaodeWebAPIClient } from '../utils/client';
 import type {
   Coordinate,
+  BaseRouteParams,
   DrivingRouteParams,
   DrivingRouteResponse,
   WalkingRouteParams,
@@ -13,6 +14,13 @@ import type {
   TransitRouteResponse,
 } from '../types/route.types';
 import { validateCoordinate } from '../utils/validators';
+
+type RouteRequestParams<T extends BaseRouteParams> = Omit<T, 'version' | 'signal'>;
+type DrivingRequestParams = RouteRequestParams<DrivingRouteParams>;
+type WalkingRequestParams = RouteRequestParams<WalkingRouteParams>;
+type BicyclingRequestParams = RouteRequestParams<BicyclingRouteParams>;
+type ElectricBikeRequestParams = RouteRequestParams<ElectricBikeRouteParams>;
+type TransitRequestParams = RouteRequestParams<TransitRouteParams>;
 
 /**
  * 路径规划服务
@@ -70,7 +78,7 @@ export class RouteService {
     options?: Omit<DrivingRouteParams, 'origin' | 'destination'>
   ): Promise<DrivingRouteResponse> {
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: Record<string, any> = {
+    const params: DrivingRequestParams = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
       ...rest,
@@ -113,7 +121,7 @@ export class RouteService {
     options?: Omit<WalkingRouteParams, 'origin' | 'destination'>
   ): Promise<WalkingRouteResponse> {
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: Record<string, any> = {
+    const params: WalkingRequestParams = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
       ...rest,
@@ -148,7 +156,7 @@ export class RouteService {
     options?: Omit<BicyclingRouteParams, 'origin' | 'destination'>
   ): Promise<BicyclingRouteResponse> {
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: Record<string, any> = {
+    const params: BicyclingRequestParams = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
       ...rest,
@@ -179,7 +187,7 @@ export class RouteService {
     options?: Omit<ElectricBikeRouteParams, 'origin' | 'destination'>
   ): Promise<ElectricBikeRouteResponse> {
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: Record<string, any> = {
+    const params: ElectricBikeRequestParams = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
       ...rest,
@@ -246,7 +254,7 @@ export class RouteService {
     options?: Omit<TransitRouteParams, 'origin' | 'destination' | 'city1' | 'city2'>
   ): Promise<TransitRouteResponse> {
     const { version = 'v5', signal, ...rest } = options || {};
-    const params: Record<string, any> = {
+    const params: TransitRequestParams = {
       origin: this.formatCoordinate(origin),
       destination: this.formatCoordinate(destination),
       city1,

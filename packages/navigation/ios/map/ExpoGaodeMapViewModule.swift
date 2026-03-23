@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import AMapNaviKit
+import CoreLocation
 
 /**
  * 高德地图视图 Module
@@ -57,6 +58,14 @@ public class ExpoGaodeMapViewModule: Module {
             
             Prop("myLocationEnabled") { (view: ExpoGaodeMapView, show: Bool) in
                 view.setShowsUserLocation(show)
+            }
+
+            Prop("distanceFilter") { (view: ExpoGaodeMapView, distance: Double?) in
+                view.distanceFilter = distance ?? kCLDistanceFilterNone
+            }
+
+            Prop("headingFilter") { (view: ExpoGaodeMapView, heading: Double?) in
+                view.headingFilter = heading ?? kCLHeadingFilterNone
             }
             
             Prop("followUserLocation") { (view: ExpoGaodeMapView, follow: Bool) in

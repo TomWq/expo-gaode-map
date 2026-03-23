@@ -5,7 +5,7 @@
 
 import type { StyleProp, ViewStyle, NativeSyntheticEvent } from 'react-native';
 import type { CameraPosition, CameraUpdate, LatLng, LatLngBounds, MapPoi, MapType, Point, LatLngPoint } from './common.types';
-import { Coordinates, ReGeocode } from './location.types';
+import type { Coordinates, ReGeocode, HeadingUpdate } from './location.types';
 
 /**
  * 定位事件数据
@@ -378,20 +378,5 @@ export type ExpoGaodeMapModuleEvents = {
    * 当设备方向发生变化时触发
    * @param heading 方向信息
    */
-  onHeadingUpdate: (heading: {
-    /** 磁北方向角度 (0-359.9) */
-    magneticHeading: number;
-    /** 真北方向角度 (0-359.9) */
-    trueHeading: number;
-    /** 方向精度 */
-    headingAccuracy: number;
-    /** X 轴原始数据 */
-    x: number;
-    /** Y 轴原始数据 */
-    y: number;
-    /** Z 轴原始数据 */
-    z: number;
-    /** 时间戳 */
-    timestamp: number;
-  }) => void;
+  onHeadingUpdate: (heading: HeadingUpdate) => void;
 };
