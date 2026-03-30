@@ -68,7 +68,7 @@ public class MarkerViewModule: Module {
             Prop("growAnimation") { (view: MarkerView, enabled: Bool) in
                 view.setGrowAnimation(enabled)
             }
-             Prop("cacheKey") { (view: MarkerView, key: String) in
+             Prop("cacheKey") { (view: MarkerView, key: String?) in
                 view.setCacheKey(key)
             }
             

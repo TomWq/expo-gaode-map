@@ -622,7 +622,9 @@ class MarkerView: ExpoView {
     }
 
     private func childrenCacheKey(for size: CGSize) -> String {
-        let baseKey = cacheKey ?? "children_\(ObjectIdentifier(self).hashValue)"
+        let signature = childrenRenderSignature()
+        let baseKey = cacheKey.map { "\($0)|\(signature)" }
+            ?? "children_\(ObjectIdentifier(self).hashValue)|\(signature)"
         let roundedWidth = Int(ceil(size.width))
         let roundedHeight = Int(ceil(size.height))
         return "\(baseKey)|\(roundedWidth)x\(roundedHeight)"

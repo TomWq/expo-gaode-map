@@ -19,6 +19,7 @@ import LBSDemo from './LBSDemo';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 import MarkerImageCacheExample from './MarkerImageCacheExample';
+import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
 import OverlayPlaygroundExample from './OverlayPlaygroundExample';
@@ -129,6 +130,13 @@ const EXAMPLES: ExampleDefinition[] = [
     description: '对比唯一 cacheKey、不传 cacheKey、共享 cacheKey 三种 children + Image 场景。',
     category: 'overlay',
     component: MarkerImageCacheExample,
+  },
+  {
+    id: 'marker-travel-card',
+    title: '景点卡片 Marker 复现',
+    description: '更贴近群友截图的横向卡片 Marker，继续使用远程图片与 cacheKey 切换。',
+    category: 'overlay',
+    component: MarkerTravelCardExample,
   },
   {
     id: 'random-markers',

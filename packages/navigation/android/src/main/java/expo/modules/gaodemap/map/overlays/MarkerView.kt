@@ -887,8 +887,10 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             return null
         }
 
-        // 优先使用 JS 传入的 cacheKey，如果没有则 fallback 为 fingerprint
-        val keyPart = cacheKey ?: computeViewFingerprint(this)
+        // cacheKey 作为命名空间，真正的 children 缓存还要叠加当前内容指纹，
+        // 避免首次空白截图被稳定 cacheKey 永久复用。
+        val fingerprint = computeViewFingerprint(this)
+        val keyPart = cacheKey?.let { "$it|$fingerprint" } ?: fingerprint
 
         val measuredChild = if (isNotEmpty()) getChildAt(0) else null
         val contentView = resolveRenderableContentView(measuredChild)
@@ -1072,8 +1074,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             return
         }
 
-        // 构建缓存 key（优先 JS 端 cacheKey）
-        val keyPart = cacheKey ?: computeViewFingerprint(this)
+        // cacheKey 作为命名空间，真正的 children 缓存还要叠加当前内容指纹。
+        val fingerprint = computeViewFingerprint(this)
+        val keyPart = cacheKey?.let { "$it|$fingerprint" } ?: fingerprint
         val child = getChildAt(0)
         val contentView = resolveRenderableContentView(child)
         val contentBounds = computeContentBounds(child)

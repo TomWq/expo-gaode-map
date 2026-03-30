@@ -83,8 +83,10 @@ internal object MarkerBitmapRenderer {
             return null
         }
 
+        val fingerprint = computeViewFingerprint(container)
+
         return MarkerBitmapSnapshot(
-            keyPart = cacheKey ?: computeViewFingerprint(container),
+            keyPart = cacheKey?.let { "$it|$fingerprint" } ?: fingerprint,
             width = finalWidth,
             height = finalHeight,
         )

@@ -77,9 +77,9 @@ class MarkerViewModule : Module() {
       Prop<Int>("customViewHeight") { view, height ->
         view.setCustomViewHeight(height)
       }
-        // 缓存key
-      Prop<String>("cacheKey") { view, key ->
-            view.setCacheKey(key)
+      // 缓存key
+      Prop<String?>("cacheKey") { view, key ->
+        view.setCacheKey(key)
       }
 
       // 平滑移动路径

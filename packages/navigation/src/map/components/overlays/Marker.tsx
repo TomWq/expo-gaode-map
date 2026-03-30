@@ -59,7 +59,17 @@ function Marker(props: MarkerProps) {
   const NativeMarkerView = React.useMemo(() => getNativeMarkerView(), []);
   const [measuredSize, setMeasuredSize] = React.useState(AUTO_SIZE_FALLBACK);
   // 从 props 中排除 position 属性，避免传递到原生层
-  const { position, customViewWidth, customViewHeight, iconWidth, iconHeight, children, smoothMovePath, ...restProps } = props;
+  const {
+    position,
+    customViewWidth,
+    customViewHeight,
+    iconWidth,
+    iconHeight,
+    children,
+    smoothMovePath,
+    cacheKey,
+    ...restProps
+  } = props;
   
   // 归一化坐标处理
   const normalizedPosition = normalizeLatLng(position);
@@ -102,6 +112,8 @@ function Marker(props: MarkerProps) {
   const finalIconHeight = hasChildren
     ? resolvedCustomViewHeight
     : (iconHeight && iconHeight > 0 ? iconHeight : 40);
+
+  const optionalNativeProps = cacheKey != null ? { cacheKey } : undefined;
   
   return (
     <NativeMarkerView
@@ -112,6 +124,7 @@ function Marker(props: MarkerProps) {
       customViewWidth={finalIconWidth}
       customViewHeight={finalIconHeight}
       smoothMovePath={normalizedSmoothMovePath}
+      {...optionalNativeProps}
       {...restProps}
     >
       {hasChildren && shouldWrapChildrenForMeasurement ? (
