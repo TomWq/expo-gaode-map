@@ -261,8 +261,8 @@ const helperMethods = {
         }
          // 如果原生已配置,或者只提供了 webKey,继续初始化
           ErrorLogger.warn(
-            isNativeConfigured 
-              ? 'SDK 使用原生端配置的 API Key' 
+            isNativeConfigured
+              ? 'SDK 使用原生端配置的 API Key'
               : 'SDK 初始化仅使用 webKey',
             { config }
           );

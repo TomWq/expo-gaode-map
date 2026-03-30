@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Platform, StyleSheet, View } from 'react-native';
 import type { MarkerProps } from '../../types';
+import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 
@@ -75,6 +76,76 @@ function Marker(props: MarkerProps) {
   const resolvedCustomViewHeight = customViewHeight && customViewHeight > 0
     ? customViewHeight
     : (shouldUseAutoMeasuredSize ? measuredSize.height : 0);
+
+  React.useEffect(() => {
+    if (
+      !normalizedSmoothMovePath ||
+      normalizedSmoothMovePath.length < 2 ||
+      !props.smoothMoveDuration ||
+      props.smoothMoveDuration <= 0
+    ) {
+      return undefined;
+    }
+
+    const totalDistance = ExpoGaodeMapModule.calculatePathLength(normalizedSmoothMovePath);
+    if (totalDistance <= 0) {
+      props.onSmoothMoveEnd?.({
+        nativeEvent: {
+          position: normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1],
+          angle: 0,
+          totalDistance,
+        },
+      } as never);
+      return undefined;
+    }
+
+    const durationMs = props.smoothMoveDuration * 1000;
+    const startedAt = Date.now();
+    const tick = () => {
+      const progress = Math.min(1, (Date.now() - startedAt) / durationMs);
+      const distance = totalDistance * progress;
+      const pointInfo = ExpoGaodeMapModule.getPointAtDistance(normalizedSmoothMovePath, distance);
+      const point = pointInfo
+        ? { latitude: pointInfo.latitude, longitude: pointInfo.longitude }
+        : normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1];
+      const angle = pointInfo?.angle ?? 0;
+
+      props.onSmoothMoveProgress?.({
+        nativeEvent: {
+          position: point,
+          angle,
+          progress,
+          distance,
+          totalDistance,
+        },
+      } as never);
+
+      if (progress >= 1) {
+        props.onSmoothMoveEnd?.({
+          nativeEvent: {
+            position: point,
+            angle,
+            totalDistance,
+          },
+        } as never);
+      }
+    };
+
+    tick();
+    const intervalId = setInterval(() => {
+      tick();
+      if (Date.now() - startedAt >= durationMs) {
+        clearInterval(intervalId);
+      }
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, [
+    normalizedSmoothMovePath,
+    props.onSmoothMoveEnd,
+    props.onSmoothMoveProgress,
+    props.smoothMoveDuration,
+  ]);
 
   const handleAutoMeasure = (event: LayoutChangeEvent) => {
     const nextWidth = customViewWidth && customViewWidth > 0

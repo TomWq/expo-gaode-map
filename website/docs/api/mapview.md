@@ -127,6 +127,7 @@ interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   takeSnapshot(): Promise<string>;
+  fitToCoordinates(points: LatLngPoint[], options?: FitToCoordinatesOptions): Promise<void>;
 }
 ```
 
@@ -138,6 +139,43 @@ interface MapViewRef {
 | `setZoom` | `(zoom, animated?)` | `Promise<void>` | 设置缩放级别 |
 | `getCameraPosition` | - | `Promise<CameraPosition>` | 获取当前相机状态 |
 | `takeSnapshot` | - | `Promise<string>` | 截取地图快照，返回图片文件路径 |
+| `fitToCoordinates` | `(points, options?)` | `Promise<void>` | 根据点集自动调整视口 |
+
+### fitToCoordinates
+
+`fitToCoordinates(points, options?)` 用于把一组坐标完整放进当前视口，适合路线预览、批量覆盖物框选、AOI 展示等场景。
+
+```tsx
+await mapRef.current?.fitToCoordinates(routePoints, {
+  duration: 500,
+  paddingFactor: 0.2,
+  minZoom: 5,
+  maxZoom: 18,
+  singlePointZoom: 16,
+  preserveBearing: true,
+});
+```
+
+#### FitToCoordinatesOptions
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `duration` | `number` | `300` | 相机动画时长，单位毫秒 |
+| `paddingFactor` | `number` | `0.18` | 在计算边界后额外留白的比例 |
+| `minZoom` | `number` | - | 允许缩到的最小级别 |
+| `maxZoom` | `number` | - | 允许放大的最大级别 |
+| `singlePointZoom` | `number` | `16` | 只有一个点时使用的缩放级别 |
+| `bearing` | `number` | - | 强制使用指定朝向 |
+| `tilt` | `number` | - | 强制使用指定俯仰角 |
+| `preserveBearing` | `boolean` | `false` | 保留当前相机朝向 |
+| `preserveTilt` | `boolean` | `false` | 保留当前相机俯仰角 |
+
+#### 行为说明
+
+- 空数组不会抛错，但不会触发相机更新
+- 单点场景会回退到 `singlePointZoom`
+- 输入支持对象坐标和 `[longitude, latitude]` 数组坐标混用
+- 底层实现位于各自包内部；`expo-gaode-map` 与 `expo-gaode-map-navigation` 都暴露了同名方法，但地图实现相互独立
 
 ## 使用示例
 
@@ -206,6 +244,19 @@ export default function CameraExample() {
 }
 ```
 
+### 路线视口控制
+
+`fitToCoordinates` 常和 `RouteOverlay`、`useRoutePlayback` 配合使用，在算路完成后先框选整条路径，再进入回放或跟车模式。
+
+```tsx
+const points = extractRoutePoints(routeResult);
+
+await mapRef.current?.fitToCoordinates(points, {
+  duration: 500,
+  paddingFactor: 0.24,
+});
+```
+
 ### 监听 POI / 相机 / 位置
 
 ```tsx
@@ -259,3 +310,20 @@ interface CameraEvent {
   latLngBounds: LatLngBounds;
 }
 ```
+
+## 相关路线增强能力
+
+以下能力虽然不直接属于 `MapView` Props，但通常会和 `MapViewRef` 一起使用：
+
+- `useRoutePlayback(points, options)`
+  轨迹回放控制器，提供 `start / pause / resume / stop / seek / setSpeedMultiplier`
+- `RouteOverlay`
+  标准路线展示组件，负责渲染折线、起点、终点
+- `AreaMaskOverlay`
+  区域遮罩组件，适合 AOI / 园区 / 行政区高亮
+
+这三项 API 的详细说明见：
+
+- [覆盖物 API / RouteOverlay](./overlays#routeoverlay-路线展示)
+- [覆盖物 API / AreaMaskOverlay](./overlays#areamaskoverlay-区域遮罩)
+- [覆盖物 API / Marker 平滑移动事件](./overlays#marker-平滑移动事件)

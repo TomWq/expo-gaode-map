@@ -883,6 +883,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      */
     private fun createBitmapFromView(): Bitmap? {
         if (isEmpty()) return null
+        if (hasPendingAsyncImageContent(this)) {
+            return null
+        }
 
         // 优先使用 JS 传入的 cacheKey，如果没有则 fallback 为 fingerprint
         val keyPart = cacheKey ?: computeViewFingerprint(this)
@@ -1579,5 +1582,28 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         appendFor(view)
         // 最终返回一个截断的 sha-like 形式（避免 key 过长）
         return sb.toString().take(1024)
+    }
+
+    private fun hasPendingAsyncImageContent(view: View?): Boolean {
+        view ?: return false
+        if (view.visibility != View.VISIBLE) return false
+
+        if (view is ImageView) {
+            val resolvedWidth = view.measuredWidth.takeIf { it > 0 } ?: view.width
+            val resolvedHeight = view.measuredHeight.takeIf { it > 0 } ?: view.height
+            if (resolvedWidth > 0 && resolvedHeight > 0 && view.drawable == null) {
+                return true
+            }
+        }
+
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                if (hasPendingAsyncImageContent(view.getChildAt(i))) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 }

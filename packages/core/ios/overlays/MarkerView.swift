@@ -358,7 +358,8 @@ class MarkerView: ExpoView {
                 if let generated = self.createImageFromSubviews() {
                     annotationView.image = generated
                     self.applyCenterOffset(to: annotationView, defaultOffset: .zero)
-                } else {
+                } else if self.hasPendingImageContent() {
+                    self.scheduleSubviewRefresh(allowFallbackToDefault: false)
                 }
             }
 
@@ -518,6 +519,10 @@ class MarkerView: ExpoView {
             forceLayoutRecursively(view: firstSubview)
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
         }
+
+        if containsPendingImageContent(in: firstSubview) {
+            return nil
+        }
         
         UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
         defer { UIGraphicsEndImageContext() }
@@ -652,6 +657,34 @@ class MarkerView: ExpoView {
 
         appendSignature(for: firstSubview)
         return parts.joined(separator: "|")
+    }
+
+    private func hasPendingImageContent() -> Bool {
+        guard let firstSubview = subviews.first else {
+            return false
+        }
+
+        return containsPendingImageContent(in: firstSubview)
+    }
+
+    private func containsPendingImageContent(in view: UIView) -> Bool {
+        if view.isHidden || view.alpha <= 0 {
+            return false
+        }
+
+        if let imageView = view as? UIImageView {
+            let bounds = imageView.bounds
+            let hasSize = bounds.width > 0 || bounds.height > 0
+            if hasSize && imageView.image == nil {
+                return true
+            }
+        }
+
+        for subview in view.subviews where containsPendingImageContent(in: subview) {
+            return true
+        }
+
+        return false
     }
 
     
@@ -798,7 +831,7 @@ class MarkerView: ExpoView {
 
         if let image = createImageFromSubviews() {
             annotationView.image = image
-            annotationView.centerOffset = CGPoint(x: 0, y: 0)
+            applyCenterOffset(to: annotationView, defaultOffset: .zero)
             annotationView.canShowCallout = false
             annotationView.isDraggable = draggable
             lastRenderedChildrenSignature = signature

@@ -63,6 +63,13 @@ describe('ExpoGaodeMapView 行为测试', () => {
     await ref.current.getLatLng({ x: 1, y: 2 });
     await ref.current.getCameraPosition();
     await ref.current.takeSnapshot();
+    await ref.current.fitToCoordinates(
+      [
+        { latitude: 39.9, longitude: 116.4 },
+        { latitude: 39.91, longitude: 116.42 },
+      ],
+      { duration: 500 }
+    );
 
     expect(mockNativeMethods.moveCamera).toHaveBeenCalledWith(
       { target: { latitude: 39.9, longitude: 116.4 }, zoom: 12 },
@@ -76,6 +83,15 @@ describe('ExpoGaodeMapView 行为测试', () => {
     expect(mockNativeMethods.getLatLng).toHaveBeenCalledWith({ x: 1, y: 2 });
     expect(mockNativeMethods.getCameraPosition).toHaveBeenCalled();
     expect(mockNativeMethods.takeSnapshot).toHaveBeenCalled();
+    expect(mockNativeMethods.moveCamera).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({
+          latitude: 39.905,
+          longitude: 116.41,
+        }),
+      }),
+      500
+    );
   });
 
   it('原生方法缺失时应包装为友好错误', () => {

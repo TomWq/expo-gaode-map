@@ -61,3 +61,4 @@ export type {
 
 // 原生模块类型
 export type { ExpoGaodeMapModule } from './native-module.types';
+export type { FitToCoordinatesOptions } from './route-playback.types';

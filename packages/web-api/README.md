@@ -84,6 +84,18 @@ import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 const api = new GaodeWebAPI({ key: 'your-web-api-key' });
 ```
 
+### Web API Key 解析顺序
+
+`GaodeWebAPI` 会按以下顺序解析 Web API Key：
+
+1. `new GaodeWebAPI({ key })` 中显式传入的 `key`
+2. `expo-gaode-map` 的 `ExpoGaodeMapModule.initSDK({ webKey })`
+3. `expo-gaode-map-navigation` 的 `ExpoGaodeMapModule.initSDK({ webKey })`
+
+如果都没有提供，会直接抛出明确错误。
+
+如果你的业务需要稳定使用 Web API，推荐显式传入 `key`，尤其是在示例工程、测试环境或多入口初始化场景里。
+
 ### 4. 调用服务接口
 ```ts
 // 逆地理编码：坐标 → 地址
@@ -121,6 +133,73 @@ console.log(aoi?.polyline);
 
 - `AOI 边界查询` 是高德 Web 服务里的高阶能力，正式使用前通常需要额外开通权限。
 - 返回的 `polyline` 通常是 `lng,lat;lng,lat;...`，多环场景下可能为 `ring1|ring2`。
+
+## 路线 / AOI 数据适配工具
+
+为了让 Web API 的返回值能直接喂给 `expo-gaode-map` / `expo-gaode-map-navigation` 的用户层地图 API，本包额外提供了几个纯数据适配工具。
+
+### extractRoutePoints(routeResult)
+
+将驾车 / 步行 / 骑行 / 电动车结果中的 `steps.polyline` 摊平成一条连续点集：
+
+```ts
+import { extractRoutePoints } from 'expo-gaode-map-web-api';
+
+const result = await api.route.driving(origin, destination, {
+  show_fields: 'polyline,cost',
+});
+
+const points = extractRoutePoints(result);
+```
+
+### normalizeDrivingRoute(routeResult)
+
+将驾车结果归一化为：
+
+```ts
+interface NormalizedDrivingRoute {
+  distance: number;
+  duration: number;
+  taxiCost?: number;
+  points: RoutePoint[];
+}
+```
+
+### extractAOIBoundary(aoiResult)
+
+将 AOI 查询结果统一转成：
+
+```ts
+interface ExtractedAOIBoundary {
+  id?: string;
+  name?: string;
+  rings: RoutePoint[][];
+}
+```
+
+### extractTransitRoutePoints(transitResult)
+
+将公交换乘结果提取为“每条换乘方案对应一条完整点集”：
+
+```ts
+const lines = extractTransitRoutePoints(transitResult);
+```
+
+### 配合地图组件使用
+
+```tsx
+const routeResult = await api.route.driving(origin, destination, {
+  show_fields: 'polyline,cost',
+});
+
+const points = extractRoutePoints(routeResult);
+
+await mapRef.current?.fitToCoordinates(points, { duration: 500 });
+
+<RouteOverlay points={points} />
+```
+
+这些适配结果可以同时用于 `core` 和 `navigation` 两套地图实现；共享的是数据结构，不是底层地图实现。
 
 ### 逆地理编码
 

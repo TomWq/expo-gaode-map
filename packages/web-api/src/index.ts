@@ -133,6 +133,17 @@ export { GaodeAPIError } from './utils/client';
 // 错误码相关导出
 export { getErrorInfo, isSuccess, ERROR_CODE_MAP } from './utils/errorCodes';
 export type { InfoCode, ErrorInfo } from './utils/errorCodes';
+export {
+  extractAOIBoundary,
+  extractRoutePoints,
+  extractTransitRoutePoints,
+  normalizeDrivingRoute,
+} from './utils/normalizers';
+export type {
+  ExtractedAOIBoundary,
+  NormalizedDrivingRoute,
+  RoutePoint,
+} from './utils/normalizers';
 
 /**
  * 高德地图 Web API 主类

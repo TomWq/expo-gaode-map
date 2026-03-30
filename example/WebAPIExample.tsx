@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
-import { ExpoGaodeMapModule } from 'expo-gaode-map';
+
+import { EXAMPLE_WEB_API_KEY } from './exampleConfig';
 
 /**
  * 高德地图 Web API 逆地理编码示例
  */
 export default function WebAPIExample() {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(EXAMPLE_WEB_API_KEY);
   const [api, setApi] = useState<GaodeWebAPI | null>(null);
   
   // 逆地理编码
@@ -19,18 +20,20 @@ export default function WebAPIExample() {
   const [address, setAddress] = useState('北京市朝阳区阜通东大街6号');
   const [geocodeResult, setGeocodeResult] = useState('');
 
-
-  useEffect(()=>{
-    ExpoGaodeMapModule.initSDK({
-      webKey: apiKey,
-    });
-  },[])
-
   // 初始化 API
   const handleInitialize = () => {
-    const newApi = new GaodeWebAPI();
+    const effectiveKey = apiKey.trim() || EXAMPLE_WEB_API_KEY;
+    if (!effectiveKey) {
+      Alert.alert('缺少 Web API Key', '请先在 exampleConfig.ts 或环境变量里提供 key。');
+      return;
+    }
+
+    const newApi = new GaodeWebAPI({ key: effectiveKey });
     setApi(newApi);
-    Alert.alert('成功', 'Web API 初始化成功');
+    Alert.alert(
+      '成功',
+      'Web API 实例已按当前 Key 初始化'
+    );
   };
 
   // 测试逆地理编码
@@ -163,7 +166,7 @@ ${result.geocodes.map((geocode, i) => `
         />
         <Button title="初始化" onPress={handleInitialize} />
         <Text style={styles.hint}>
-          💡 提示：需要在高德开放平台申请 Web 服务 Key
+          💡 提示：如果你已经在示例入口配置了 `EXPO_PUBLIC_AMAP_WEB_KEY`，这里可以直接点初始化。
         </Text>
       </View>
 

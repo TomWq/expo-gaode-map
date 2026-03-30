@@ -63,3 +63,15 @@ export type {
 
 // 原生模块类型
 export type { ExpoGaodeMapModule } from './native-module.types';
+
+export type {
+  AreaMaskOverlayProps,
+  FitToCoordinatesOptions,
+  RouteBounds,
+  RouteOverlayProps,
+  RoutePlaybackController,
+  RoutePlaybackOptions,
+  RoutePlaybackState,
+  SmoothMoveEndEvent,
+  SmoothMoveProgressEvent,
+} from './route-playback.types';

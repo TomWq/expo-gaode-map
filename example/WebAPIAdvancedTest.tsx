@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { GaodeWebAPI, } from 'expo-gaode-map-web-api';
 
+import { EXAMPLE_WEB_API_KEY } from './exampleConfig';
+
 export default function WebAPIAdvancedTest() {
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -12,6 +14,7 @@ export default function WebAPIAdvancedTest() {
   // 初始化 API 实例，启用缓存
   // 使用 useMemo 确保只初始化一次，且在组件渲染时（即 SDK init 后）进行
   const api = React.useMemo(() => new GaodeWebAPI({
+    key: EXAMPLE_WEB_API_KEY,
     enableCache: true,
     maxRetries: 3,
     retryDelay: 1000,

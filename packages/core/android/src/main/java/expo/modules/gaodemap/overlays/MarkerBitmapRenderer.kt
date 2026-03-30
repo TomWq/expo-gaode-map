@@ -26,6 +26,29 @@ internal data class MarkerBitmapSnapshot(
 }
 
 internal object MarkerBitmapRenderer {
+    fun hasPendingAsyncImageContent(view: View?): Boolean {
+        view ?: return false
+        if (view.visibility != View.VISIBLE) return false
+
+        if (view is ImageView) {
+            val resolvedWidth = view.measuredWidth.takeIf { it > 0 } ?: view.width
+            val resolvedHeight = view.measuredHeight.takeIf { it > 0 } ?: view.height
+            if (resolvedWidth > 0 && resolvedHeight > 0 && view.drawable == null) {
+                return true
+            }
+        }
+
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                if (hasPendingAsyncImageContent(view.getChildAt(index))) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     fun resolveSnapshot(
         container: ViewGroup,
         customViewWidth: Int,
@@ -37,6 +60,9 @@ internal object MarkerBitmapRenderer {
         }
 
         val child = container.getChildAt(0) ?: return null
+        if (hasPendingAsyncImageContent(child)) {
+            return null
+        }
         val contentView = resolveRenderableContentView(child)
         val contentBounds = computeContentBounds(child)
         val measuredWidth =

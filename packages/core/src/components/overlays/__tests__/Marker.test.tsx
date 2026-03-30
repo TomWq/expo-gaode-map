@@ -1,11 +1,24 @@
 import React from 'react';
 import { Platform, Text } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
+import { jest } from '@jest/globals';
 
 const mockNativeMarker = jest.fn((props: any) => <>{props.children}</>);
 
 jest.mock('../../../utils/lazyNativeViewManager', () => ({
   createLazyNativeViewManager: jest.fn(() => () => mockNativeMarker),
+}));
+
+jest.mock('../../../ExpoGaodeMapModule', () => ({
+  __esModule: true,
+  default: {
+    calculatePathLength: jest.fn(() => 100),
+    getPointAtDistance: jest.fn((_points: unknown, distance: number) => ({
+      latitude: 39.9 + distance / 10000,
+      longitude: 116.4 + distance / 10000,
+      angle: distance / 10,
+    })),
+  },
 }));
 
 import Marker from '../Marker';
@@ -16,8 +29,13 @@ describe('Marker 组件', () => {
   };
 
   beforeEach(() => {
+    jest.useFakeTimers();
     mockNativeMarker.mockClear();
     (Platform as any).OS = 'ios';
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('应该正确渲染默认图标尺寸', () => {
@@ -236,5 +254,34 @@ describe('Marker 组件', () => {
     );
 
     expect(mockNativeMarker).toHaveBeenCalledTimes(2);
+  });
+
+  it('应触发平滑移动进度和结束事件', () => {
+    const onSmoothMoveProgress = jest.fn();
+    const onSmoothMoveEnd = jest.fn();
+
+    render(
+      <Marker
+        {...defaultProps}
+        smoothMovePath={[
+          { latitude: 39.9, longitude: 116.4 },
+          { latitude: 39.91, longitude: 116.41 },
+        ]}
+        smoothMoveDuration={1}
+        onSmoothMoveProgress={onSmoothMoveProgress}
+        onSmoothMoveEnd={onSmoothMoveEnd}
+      />
+    );
+
+    jest.advanceTimersByTime(1100);
+
+    expect(onSmoothMoveProgress).toHaveBeenCalled();
+    expect(onSmoothMoveEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nativeEvent: expect.objectContaining({
+          totalDistance: 100,
+        }),
+      })
+    );
   });
 });

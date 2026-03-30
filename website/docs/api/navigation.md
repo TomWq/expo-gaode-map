@@ -96,6 +96,22 @@ await mapRef.current?.moveCamera(
 - `Marker` 自定义 `children` 时，一般不需要再手动传 `customViewWidth` / `customViewHeight`
 - `Cluster` 现已支持 `icon?: string`，可传网络 URL、本地文件路径或资源名称
 
+### fitToCoordinates
+
+导航包的 `MapViewRef` 同样暴露了 `fitToCoordinates(points, options?)`，用于根据点集自动调整视口。
+
+```typescript
+await mapRef.current?.fitToCoordinates(routePoints, {
+  duration: 500,
+  paddingFactor: 0.2,
+  maxZoom: 18,
+});
+```
+
+::: tip
+`expo-gaode-map-navigation` 与 `expo-gaode-map` 都提供了 `fitToCoordinates`，但只对齐用户层 API 形状，不共享底层 MapView 实现。
+:::
+
 ## 路径规划 API
 
 ### calculateDriveRoute - 驾车路径规划
@@ -231,6 +247,37 @@ const result = await calculateMotorcycleRoute({
   strategy: DriveStrategy.FASTEST,
 });
 ```
+
+### calculateTransitRoute - 公交换乘路径规划
+
+导航 SDK 本身不直接承担公交算路实现；`calculateTransitRoute` 会在运行时回退到 `expo-gaode-map-web-api`。
+
+```typescript
+import { calculateTransitRoute } from 'expo-gaode-map-navigation';
+
+const result = await calculateTransitRoute({
+  type: RouteType.TRANSIT,
+  from: { latitude: 39.9, longitude: 116.4 },
+  to: { latitude: 39.91, longitude: 116.41 },
+  city1: '010',
+  city2: '010',
+});
+```
+
+#### 公交算路 fallback（回退）
+
+- 需要额外安装 `expo-gaode-map-web-api`
+- 需要在 `ExpoGaodeMapModule.initSDK({ webKey })` 中提供 `webKey`
+- 返回结果会被映射成导航包现有的用户层结果形状，方便沿用现有路线展示逻辑
+
+如果未安装 `expo-gaode-map-web-api`，运行时会抛出明确错误，而不是静默失败。
+
+## API 边界
+
+- 导航包内置地图能力，但地图实现与 `expo-gaode-map` 独立维护
+- 用户层输入输出会尽量与核心包保持一致，例如 `LatLngPoint`、`fitToCoordinates`
+- 可共享的范围仅限纯 TS 的 route / AOI 数据适配工具、文档和测试思路
+- 原生地图桥接、overlay 宿主逻辑、MapView facade 不会和核心包合并
 
 ### calculateEBikeRoute - 电动车路径规划
 

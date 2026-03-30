@@ -6,6 +6,7 @@
 import type { StyleProp, ViewStyle, NativeSyntheticEvent } from 'react-native';
 import type { CameraPosition, CameraUpdate, LatLng, LatLngBounds, MapPoi, MapType, Point, LatLngPoint } from './common.types';
 import type { Coordinates, ReGeocode, HeadingUpdate } from './location.types';
+import type { FitToCoordinatesOptions } from './route-playback.types';
 
 /**
  * 定位事件数据
@@ -347,6 +348,11 @@ export interface MapViewMethods {
    * @returns 快照图片文件路径
    */
   takeSnapshot(): Promise<string>;
+
+  /**
+   * 根据坐标集合自动移动相机
+   */
+  fitToCoordinates(points: LatLngPoint[], options?: FitToCoordinatesOptions): Promise<void>;
 }
 
 /**
@@ -359,6 +365,7 @@ export interface MapViewRef {
   setZoom(zoom: number, animated?: boolean): Promise<void>;
   getCameraPosition(): Promise<CameraPosition>;
   takeSnapshot(): Promise<string>;
+  fitToCoordinates(points: LatLngPoint[], options?: FitToCoordinatesOptions): Promise<void>;
 }
 
 /**

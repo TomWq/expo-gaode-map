@@ -92,12 +92,144 @@ const api2 = new GaodeWebAPI({ key: 'your-web-api-key' });
 
 // 逆地理编码：坐标 → 地址
 const result = await api.geocode.regeocode('116.481028,39.989643');
-```console.log(result.regeocode.formatted_address);
+console.log(result.regeocode.formatted_address);
 
 // 地理编码：地址 → 坐标
 const geo = await api.geocode.geocode('北京市朝阳区阜通东大街6号');
 console.log(geo.geocodes[0].location);
 ```
+
+### Web API Key 解析顺序
+
+`GaodeWebAPI` 在创建实例时会按以下顺序解析 Web API Key：
+
+1. 显式传入的 `new GaodeWebAPI({ key })`
+2. `expo-gaode-map` 的 `ExpoGaodeMapModule.initSDK({ webKey })`
+3. `expo-gaode-map-navigation` 的 `ExpoGaodeMapModule.initSDK({ webKey })`
+
+如果三者都没有提供，会抛出明确错误，而不是在请求阶段静默失败。
+
+```typescript
+const api = new GaodeWebAPI({ key: 'your-web-api-key' }); // 优先级最高
+```
+
+::: warning
+如果你的业务需要稳定使用 Web API，推荐显式传入 `key`，尤其是在示例工程、测试环境或多入口初始化场景里。
+:::
+
+## 路线 / AOI 数据适配工具
+
+为了避免业务层反复遍历 `steps.polyline` 或自己解析多环边界，`expo-gaode-map-web-api` 提供了几个纯数据适配工具，可直接把 Web API 返回结果转成 `expo-gaode-map` / `expo-gaode-map-navigation` 用户层地图 API 能消费的结构。
+
+### extractRoutePoints(routeResult)
+
+将驾车 / 步行 / 骑行 / 电动车路径的 `steps.polyline` 摊平成一条连续点集。
+
+```typescript
+import { extractRoutePoints } from 'expo-gaode-map-web-api';
+
+const result = await api.route.driving(origin, destination, {
+  show_fields: 'polyline,cost',
+});
+
+const points = extractRoutePoints(result);
+```
+
+返回值：
+
+```ts
+type RoutePoint = {
+  latitude: number;
+  longitude: number;
+};
+```
+
+### normalizeDrivingRoute(routeResult)
+
+把驾车路径归一化为扁平结构，适合“距离/时长/地图绘制”这类常见业务场景。
+
+```typescript
+import { normalizeDrivingRoute } from 'expo-gaode-map-web-api';
+
+const route = normalizeDrivingRoute(drivingResult);
+console.log(route.distance, route.duration, route.points.length);
+```
+
+返回值：
+
+```ts
+interface NormalizedDrivingRoute {
+  distance: number;
+  duration: number;
+  taxiCost?: number;
+  points: RoutePoint[];
+}
+```
+
+### extractAOIBoundary(aoiResult)
+
+将 AOI 查询结果统一转成 `{ id, name, rings }`，其中 `rings` 可直接交给 `AreaMaskOverlay` 或 `Polygon`。
+
+```typescript
+import { extractAOIBoundary } from 'expo-gaode-map-web-api';
+
+const result = await api.poi.getAOIBoundary(aoiId);
+const boundary = extractAOIBoundary(result);
+
+console.log(boundary.rings);
+```
+
+返回值：
+
+```ts
+interface ExtractedAOIBoundary {
+  id?: string;
+  name?: string;
+  rings: RoutePoint[][];
+}
+```
+
+### extractTransitRoutePoints(transitResult)
+
+将公交结果中的步行段、公交段、铁路段合并为“每条换乘方案对应一条完整点集”。
+
+```typescript
+import { extractTransitRoutePoints } from 'expo-gaode-map-web-api';
+
+const result = await api.route.transit(origin, destination, '010', '010');
+const transitLines = extractTransitRoutePoints(result);
+```
+
+返回值：
+
+```ts
+RoutePoint[][]
+```
+
+### 与地图组件配合
+
+```tsx
+const routeResult = await api.route.driving(origin, destination, {
+  show_fields: 'polyline,cost',
+});
+
+const points = extractRoutePoints(routeResult);
+
+await mapRef.current?.fitToCoordinates(points, { duration: 500 });
+
+<RouteOverlay points={points} />
+```
+
+AOI 场景：
+
+```tsx
+const aoiResult = await api.poi.getAOIBoundary(aoiId);
+const boundary = extractAOIBoundary(aoiResult);
+
+<AreaMaskOverlay rings={boundary.rings} />
+```
+
+这些适配结果可以同时用于 `core` 和 `navigation` 两套地图实现；共享的是数据结构，不是底层地图实现。
 
 ## 地理编码
 

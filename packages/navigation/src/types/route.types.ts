@@ -10,6 +10,8 @@ export enum RouteType {
   WALK = 'walk',
   /** 骑行路径规划 */
   RIDE = 'ride',
+  /** 公交换乘 */
+  TRANSIT = 'transit',
   /** 货车路径规划 */
   TRUCK = 'truck',
 }
@@ -145,6 +147,14 @@ export interface EBikeRouteOptions extends BaseRouteOptions {
   multiple?: boolean;
   /** 强制使用 POI 算路（若提供 name 或 poiId 时会自动使用） */
   usePoi?: boolean;
+}
+
+export interface TransitRouteOptions extends BaseRouteOptions {
+  type: RouteType.TRANSIT;
+  city1: string;
+  city2: string;
+  strategy?: number;
+  alternativeRoute?: 1 | 2 | 3;
 }
 
 /**
@@ -302,4 +312,5 @@ export type RouteOptions =
   | WalkRouteOptions
   | RideRouteOptions
   | EBikeRouteOptions
+  | TransitRouteOptions
   | TruckRouteOptions;

@@ -11,6 +11,9 @@ export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
 export { default as MapView } from './ExpoGaodeMapView';
 export { useMap } from './components/MapContext';
 export { MapUI } from './components/MapUI';
+export { RouteOverlay } from './components/RouteOverlay';
+export { AreaMaskOverlay } from './components/AreaMaskOverlay';
+export { useRoutePlayback } from './hooks/useRoutePlayback';
 
 // 导出覆盖物组件
 export {
@@ -98,6 +101,12 @@ export const useLocationPermissions = createPermissionHook({
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';
+export {
+  buildLatLngBounds,
+  fitCameraToCoordinates,
+  getRouteBounds,
+  parseMultiRingPolyline,
+} from './utils/RouteUtils';
 
 // 默认导出原生模块
 export { default } from './ExpoGaodeMapModule';

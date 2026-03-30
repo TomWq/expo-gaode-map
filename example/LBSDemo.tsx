@@ -10,7 +10,7 @@ import {
 } from 'expo-gaode-map';
 import { GaodeWebAPI, DrivingStrategy } from 'expo-gaode-map-web-api';
 
-
+import { EXAMPLE_WEB_API_KEY } from './exampleConfig';
 
 export default function LBSDemo() {
   const mapRef = useRef<MapViewRef>(null);
@@ -23,13 +23,10 @@ export default function LBSDemo() {
   const [routePath, setRoutePath] = useState<any[]>([]); // 路径规划结果（坐标点串）
   const [routeInfo, setRouteInfo] = useState<{distance: number, duration: number} | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-   const [api, setApi] = useState<GaodeWebAPI | null>(null);
+  const [api, setApi] = useState<GaodeWebAPI | null>(null);
   useEffect(() => {
-         ExpoGaodeMapModule.initSDK({
-          webKey: "",
-        })
-         const newApi = new GaodeWebAPI();
-         setApi(newApi);
+    const newApi = new GaodeWebAPI({ key: EXAMPLE_WEB_API_KEY });
+    setApi(newApi);
   }, []);
 
   

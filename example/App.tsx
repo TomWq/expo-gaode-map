@@ -1,4 +1,4 @@
-import { BlurView,BlurTargetView, BlurTargetViewProps } from 'expo-blur';
+import { BlurView,BlurTargetView } from 'expo-blur';
 import {
   Circle,
   ExpoGaodeMapModule,
@@ -10,122 +10,35 @@ import {
   MultiPoint,
   HeatMap,
   Cluster,
+  type ClusterPoint,
   type CameraPosition,
   type Coordinates,
   type ReGeocode,
-  type LatLng,
   type MapPoi,
-  ClusterPoint,
   MapUI,
   type LatLngPoint,
-  type MultiPointItem,
 } from 'expo-gaode-map';
 import { reGeocode } from 'expo-gaode-map-search'
 import * as MediaLibrary from 'expo-media-library';
 
-import React, { RefObject } from 'react';
+import React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View ,Image} from 'react-native';
 
-import TestNewPermissionMethods from './TestNewPermissionMethods';
-import UseMapExample from './UseMapExample';
-import PolylineExample from './PolylineExample';
-import WebAPIAdvancedTest from './WebAPIAdvancedTest';
-
-
-const iconUri = Image.resolveAssetSource(require('./assets/positio_icon.png')).uri;
-// 从环境变量读取 Key（示例）。生产请用 EXPO_PUBLIC_ 前缀或远端下发
-const WEB_API_KEY = process.env.EXPO_PUBLIC_AMAP_WEB_KEY;
-const ANDROID_KEY = process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY;
-const IOS_KEY = process.env.EXPO_PUBLIC_AMAP_IOS_KEY;
-
-// 模拟热力图数据 (在当前位置周围生成)
-type HeatMapPoint = LatLng & { count: number };
-type GeoJsonCoordinate = [number, number];
-type ExampleMultiPoint = MultiPointItem & {
-  title: string;
-  subtitle: string;
-  customerId: string;
-};
-
-const generateHeatMapData = (center: Coordinates, count: number) => {
-  const data: HeatMapPoint[] = [];
-  for (let i = 0; i < count; i++) {
-    data.push({
-      latitude: center.latitude + (Math.random() - 0.5) * 0.05,
-      longitude: center.longitude + (Math.random() - 0.5) * 0.05,
-      count: Math.floor(Math.random() * 100), // 权重
-    });
-  }
-  return data;
-};
-
-// 模拟海量点数据
-const generateMultiPointData = (center: Coordinates, count: number) => {
-  const data: ExampleMultiPoint[] = [];
-  for (let i = 0; i < count; i++) {
-    data.push({
-      latitude: center.latitude + (Math.random() - 0.5) * 0.1,
-      longitude: center.longitude + (Math.random() - 0.5) * 0.1,
-      title: `Point ${i}`,
-      subtitle: `Subtitle ${i}`,
-      customerId: `id_${i}`
-    });
-  }
-  return data;
-};
-
-// 模拟原生聚合数据
-const generateClusterData = (center: Coordinates, count: number) => {
-  const data: ClusterPoint[] = [];
-  for (let i = 0; i < count; i++) {
-    data.push({
-      latitude: center.latitude + (Math.random() - 0.5) * 0.1,
-      longitude: center.longitude + (Math.random() - 0.5) * 0.1,
-      properties: {
-        title: `Cluster Item ${i}`,
-        snippet: `Detail info ${i}`,
-      },
-    });
-  }
-  return data;
-};
-
-const generateIrregularOutline = (center: Coordinates): GeoJsonCoordinate[] => {
-  const lng = center.longitude;
-  const lat = center.latitude;
-
-  return [
-    [lng - 0.020, lat + 0.010],
-    [lng - 0.012, lat + 0.020],
-    [lng + 0.002, lat + 0.023],
-    [lng + 0.018, lat + 0.015],
-    [lng + 0.024, lat + 0.004],
-    [lng + 0.017, lat - 0.011],
-    [lng + 0.006, lat - 0.020],
-    [lng - 0.010, lat - 0.018],
-    [lng - 0.022, lat - 0.007],
-    [lng - 0.020, lat + 0.010],
-  ];
-};
-
-const generateMaskOuterRing = (center: Coordinates): GeoJsonCoordinate[] => {
-  const lng = center.longitude;
-  const lat = center.latitude;
-  const offsetLng = 0.18;
-  const offsetLat = 0.14;
-
-  return [
-    [lng - offsetLng, lat + offsetLat],
-    [lng + offsetLng, lat + offsetLat],
-    [lng + offsetLng, lat - offsetLat],
-    [lng - offsetLng, lat - offsetLat],
-    [lng - offsetLng, lat + offsetLat],
-  ];
-};
+import {
+  type ExampleMultiPoint,
+  type GeoJsonCoordinate,
+  type HeatMapPoint,
+  generateClusterData,
+  generateHeatMapData,
+  generateIrregularOutline,
+  generateMaskOuterRing,
+  generateMultiPointData,
+  positionIconUri,
+} from './playgroundUtils';
 
 export default function MamScreen() {
-  type PanelSection = 'overlays' | 'advanced' | 'debug' | 'examples';
+  type PanelSection = 'overlays' | 'advanced' | 'debug';
 
   const mapRef = useRef<MapViewRef | null>(null);
   const [location, setLocation] = useState<Coordinates | ReGeocode | null>(null);
@@ -134,9 +47,6 @@ export default function MamScreen() {
   const [cameraInfo, setCameraInfo] = useState<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
-  const [showPolylineExample, setShowPolylineExample] = useState(false);
-  const [showWebAPITest, setShowWebAPITest] = useState(false);
-
   // 高级覆盖物状态
   const [showHeatMap, setShowHeatMap] = useState(false);
   const [heatMapData, setHeatMapData] = useState<HeatMapPoint[]>([]);
@@ -167,8 +77,6 @@ export default function MamScreen() {
   const primary = '#007aff';
   const textColor = colorScheme === 'dark' ? '#fff' : '#1c1c1c';
   const muted = colorScheme === 'dark' ? 'rgba(255,255,255,0.7)' : '#444';
-  const cardBg = colorScheme === 'dark' ? 'rgba(16,16,16,0.7)' : 'rgba(255,255,255,0.85)';
-  const chipBg = colorScheme === 'dark' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
   const hairline = colorScheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
   const areaMaskPoints = React.useMemo<GeoJsonCoordinate[][]>(() => {
     if (!location || areaOutlinePoints.length === 0) {
@@ -291,9 +199,7 @@ export default function MamScreen() {
       );
 
       ExpoGaodeMapModule.initSDK({
-        // ...(ANDROID_KEY ? { androidKey: ANDROID_KEY } : {}),
-        // ...(IOS_KEY ? { iosKey: IOS_KEY } : {}),
-        // ...(WEB_API_KEY ? { webKey: WEB_API_KEY } : {}),
+        webKey:'9f59c9453ccc5e9798983d4922afbd09'
       });
 
       const permission = await ExpoGaodeMapModule.requestLocationPermission();
@@ -600,16 +506,8 @@ export default function MamScreen() {
         setShowHeatMap(false);
         setShowMultiPoint(false);
         if (location) {
-          // 生成模拟聚合数据
-          const points: ClusterPoint[] = [];
-          for (let i = 0; i < 1000; i++) {
-            points.push({
-              latitude: location.latitude + (Math.random() - 0.5) * 0.05,
-              longitude: location.longitude + (Math.random() - 0.5) * 0.05,
-              properties: { id: i, title: `Point ${i}` }
-            });
-          }
-          setClusterData(points);
+          // legacy 页继续保留“大数据量压力验证”，但数据构造和新示例共用同一套 helper。
+          setClusterData(generateClusterData(location, 1000));
         }
       }
       return next;
@@ -697,7 +595,7 @@ export default function MamScreen() {
   }, []);
 
   const handlePressPoi = useCallback(({ nativeEvent }: { nativeEvent: MapPoi }) => {
-   
+
     setLastPressedPoi(nativeEvent);
     Alert.alert(
       'POI 点击已触发',
@@ -801,93 +699,10 @@ export default function MamScreen() {
             </View>
           </>
         );
-      case 'examples':
-        return (
-          <>
-            <Text style={[styles.sectionHint, { color: muted }]}>跳到独立示例页面继续验证功能。</Text>
-            <View style={styles.actionRow}>
-              <Pressable
-                style={[styles.actionBtn, { backgroundColor: '#795548' }]}
-                onPress={() => setShowPolylineExample(true)}
-              >
-                <Text style={styles.actionBtnText}>Polyline抽稀</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.actionBtn, { backgroundColor: '#673AB7' }]}
-                onPress={() => setShowWebAPITest(true)}
-              >
-                <Text style={styles.actionBtnText}>WebAPI测试</Text>
-              </Pressable>
-            </View>
-          </>
-        );
       default:
         return null;
     }
   };
-
-  if (false) {
-    return <TestNewPermissionMethods />;
-  }
-  if (false) {
-    return <UseMapExample />;
-  }
-
-  if (showPolylineExample) {
-    return (
-      <View style={{ flex: 1 }}>
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 50,
-            left: 20,
-            zIndex: 100,
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-          onPress={() => setShowPolylineExample(false)}
-        >
-          <Text style={{ fontWeight: '600' }}>← 返回主页</Text>
-        </TouchableOpacity>
-        <PolylineExample />
-      </View>
-    );
-  }
-
-  if (showWebAPITest) {
-    return (
-      <View style={{ flex: 1 }}>
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 50,
-            left: 20,
-            zIndex: 100,
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-          onPress={() => setShowWebAPITest(false)}
-        >
-          <Text style={{ fontWeight: '600' }}>← 返回主页</Text>
-        </TouchableOpacity>
-        <WebAPIAdvancedTest />
-      </View>
-    );
-  }
 
   if (currentPage === 'welcome') {
     return (
@@ -923,7 +738,7 @@ export default function MamScreen() {
               <Text style={styles.privacyTitle}>隐私保护提示</Text>
               <Text style={styles.privacyDesc}>
                 为了使用地图展示、定位与搜索服务，我们会在你同意后再调用
-                
+
               </Text>
               <Text style={styles.privacyMeta}>同意前不会进入地图页，也不会初始化地图 SDK。</Text>
 
@@ -1038,7 +853,7 @@ export default function MamScreen() {
         {showMultiPoint && (
           <MultiPoint
             points={multiPointData}
-            icon={iconUri} // 复用图标
+            icon={positionIconUri} // 复用共享示例图标
             iconWidth={30}
             iconHeight={30}
             onMultiPointPress={(e) => Alert.alert('海量点点击', `index: ${e.nativeEvent.index}`)}
@@ -1049,7 +864,7 @@ export default function MamScreen() {
         {showCluster && (
           <Cluster
             points={clusterData}
-            icon={useClusterIcon ? iconUri : undefined}
+            icon={useClusterIcon ? positionIconUri : undefined}
             radius={30}
             minClusterSize={1}
             // 分级样式配置
@@ -1176,10 +991,15 @@ export default function MamScreen() {
                   <Marker
                     key="irregular_area_label_marker"
                     position={areaLabelPosition}
-                    zIndex={182}
+                   
                     cacheKey="irregular_area_label_marker"
                   >
                     <View style={styles.areaLabelBubble}>
+                      <Image 
+                        style={{width:80,height:40}} 
+                        resizeMode={'contain'}
+                        source={{uri:'https://img.phb123.com/uploads/allimg/230413/816-2304131356350-L.png'}}
+                      />
                       <Text style={styles.areaLabelEyebrow}>区域高亮示例</Text>
                       <Text style={styles.areaLabelTitle}>星湖园区</Text>
                       <Text style={styles.areaLabelMeta}>描边 + 半透明蒙层</Text>
@@ -1197,10 +1017,8 @@ export default function MamScreen() {
                 pinColor={marker.color}
                 zIndex={99}
                 cacheKey={marker.id}
-                growAnimation={true}  
-                onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}
-              >
-              
+                growAnimation={true}
+                onMarkerPress={() => Alert.alert('动态标记', `点击了 ${marker.content}\nID: ${marker.id}`)}>
                  <Text
                     style={[styles.dynamicMarkerText, { backgroundColor: marker.color, borderRadius: 20,  maxWidth: 200,  textAlign: 'center',}]}
                     numberOfLines={1}>
@@ -1209,7 +1027,7 @@ export default function MamScreen() {
               </Marker>
             ))}
 
-            {isMapReady && location && (
+            {/* {isMapReady && location && (
               <Marker
                 key="fixed_current_location_marker"
                 // 数组格式建议使用 [经度, 纬度] (GeoJSON 标准)
@@ -1223,9 +1041,9 @@ export default function MamScreen() {
                 cacheKey="fixed_current_location_marker"
                 // anchor={{ x: 0.5, y: 0.5 }}
                 onMarkerPress={() => Alert.alert('标记', '点击了当前位置标记')}
-                growAnimation={true}  
+                growAnimation={true}
               >
-               
+
                  <Text
                     style={[
                       styles.dynamicMarkerText,
@@ -1234,8 +1052,8 @@ export default function MamScreen() {
                         borderRadius: 10,
                         textAlign: 'center',
                         maxWidth: 200,
-                        lineHeight: 22, 
-                       
+                        lineHeight: 22,
+
                       },
                     ]}
                     numberOfLines={2}
@@ -1243,7 +1061,7 @@ export default function MamScreen() {
                     {location.address}
                   </Text>
               </Marker>
-            )}
+            )} */}
 
             {
               isMapReady && (
@@ -1278,7 +1096,7 @@ export default function MamScreen() {
               position={{ latitude: 39.93, longitude: 116.43 }}
               title="自定义图标"
               snippet="自定义图标描述"
-              icon={iconUri}
+              icon={positionIconUri}
               iconWidth={40}
               iconHeight={40}
             />}
@@ -1309,7 +1127,7 @@ export default function MamScreen() {
           </>
         }
         <MapUI>
-     
+
           {/* 底部悬浮操作面板 */}
           <View pointerEvents="box-none" style={[styles.overlayBottom]}>
             <View style={[styles.panelWrap, { borderColor: hairline }]}>
@@ -1328,7 +1146,7 @@ export default function MamScreen() {
                 <View style={styles.panelHeaderRow}>
                   <View style={styles.panelHeaderTextWrap}>
                     <Text style={[styles.panelTitle, { color: textColor }]}>地图测试面板</Text>
-                    <Text style={[styles.chipText, { color: muted }]}>收起时保留核心操作，展开后再看详细测试项。</Text>
+                    <Text style={[styles.chipText, { color: muted }]}>Legacy 回归页，聚焦集中验证；更细的 API 示例请回到示例中心查看。</Text>
                   </View>
                   <Pressable
                     style={[styles.panelExpandBtn, { backgroundColor: panelExpanded ? '#374151' : '#2563EB' }]}
@@ -1427,15 +1245,6 @@ export default function MamScreen() {
                         onPress={() => setActivePanelSection('debug')}
                       >
                         <Text style={styles.sectionTabText}>调试验证</Text>
-                      </Pressable>
-                      <Pressable
-                        style={[
-                          styles.sectionTab,
-                          activePanelSection === 'examples' && styles.sectionTabActive,
-                        ]}
-                        onPress={() => setActivePanelSection('examples')}
-                      >
-                        <Text style={styles.sectionTabText}>更多示例</Text>
                       </Pressable>
                     </ScrollView>
 
@@ -1752,8 +1561,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   areaLabelBubble: {
-    minWidth: 128,
-    maxWidth: 168,
+    // minWidth: 128,
+    // maxWidth: 168,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 16,
@@ -1789,7 +1598,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingVertical: 5,
     paddingHorizontal: 12,
-  
+
     // borderRadius: 14,
     // textAlign: 'center',
     // overflow: 'hidden',

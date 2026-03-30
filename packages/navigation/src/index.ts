@@ -9,6 +9,7 @@ import {
   RideStrategy,
   TruckSize,
   TravelStrategy,
+  type TransitRouteOptions,
 } from './types';
 import type {
   NaviPoint,
@@ -17,6 +18,7 @@ import type {
   WalkRouteOptions,
   RideRouteOptions,
   EBikeRouteOptions,
+  TransitRouteOptions as TransitRouteOptionsType,
   TruckRouteOptions,
   RouteResult,
   DriveRouteResult,
@@ -31,6 +33,78 @@ import type {
   MotorcycleRouteOptions,
   IndependentMotorcycleRouteOptions,
 } from './types';
+
+function parsePolyline(polyline?: string): NaviPoint[] {
+  if (!polyline?.trim()) {
+    return [];
+  }
+
+  return polyline
+    .split(';')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .map((segment) => {
+      const [longitude, latitude] = segment.split(',').map((value) => Number(value.trim()));
+      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+        return null;
+      }
+
+      return {
+        latitude,
+        longitude,
+      };
+    })
+    .filter((point): point is NaviPoint => point !== null);
+}
+
+async function loadWebApiTransitFallback() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const webApi = require('expo-gaode-map-web-api');
+    if (typeof webApi?.GaodeWebAPI !== 'function') {
+      throw new Error('expo-gaode-map-web-api 未导出 GaodeWebAPI');
+    }
+    return webApi;
+  } catch {
+    throw new Error(
+      '公交路径规划依赖 expo-gaode-map-web-api。请安装该包，并在 ExpoGaodeMapModule.initSDK 中提供 webKey。'
+    );
+  }
+}
+
+function normalizeTransitRouteResult(
+  options: TransitRouteOptions,
+  result: any
+): DriveRouteResult {
+  // 导航包内部仍保持独立实现；
+  // 这里只是在“公交无法由导航 SDK 直算”时，把 Web API 结果映射成现有 RouteResult 形状。
+  const routes = (result?.route?.transits ?? []).map((transit: any, index: number) => {
+    const polyline = (transit?.segments ?? []).flatMap((segment: any) => [
+      ...(segment.walking?.steps?.flatMap((step: any) => parsePolyline(step.polyline)) ?? []),
+      ...(segment.bus?.buslines?.flatMap((line: any) => parsePolyline(line.polyline)) ?? []),
+      ...(segment.railway?.buslines?.flatMap((line: any) => parsePolyline(line.polyline)) ?? []),
+    ]);
+
+    return {
+      id: index,
+      start: options.from,
+      end: options.to,
+      distance: Number(transit?.distance ?? 0),
+      duration: Number(transit?.cost?.duration ?? 0),
+      segments: [],
+      polyline,
+      tollDistance: 0,
+      tollCost: Number(transit?.cost?.transit_fee ?? 0),
+      strategy: options.strategy,
+    };
+  });
+
+  return {
+    count: routes.length,
+    mainPathIndex: 0,
+    routes,
+  };
+}
 
 function hasStrategyOption(
   options: RouteOptions
@@ -66,11 +140,14 @@ export const destroyAllCalculators = () => ExpoGaodeMapNavigationModule.destroyA
 
 /**
  * 路径规划（通用方法）
- * 注意：公交路径规划暂未实现
  */
 export async function calculateRoute(
   options: RouteOptions
 ): Promise<RouteResult | DriveRouteResult> {
+  if ('type' in options && options.type === RouteType.TRANSIT) {
+    return calculateTransitRoute(options as TransitRouteOptions);
+  }
+
   // 1. 货车
   if ('size' in options) {
     return calculateTruckRoute(options as TruckRouteOptions);
@@ -134,6 +211,28 @@ export const calculateMotorcycleRoute = (options: MotorcycleRouteOptions) =>
   ExpoGaodeMapNavigationModule.calculateMotorcycleRoute(options);
 
 /**
+ * 公交换乘路径规划（运行时 fallback 到 Web API）
+ */
+export async function calculateTransitRoute(options: TransitRouteOptions): Promise<DriveRouteResult> {
+  // 运行时按需加载，避免把 navigation 包和 web-api 包在构建期强绑定。
+  const { GaodeWebAPI, TransitStrategy } = await loadWebApiTransitFallback();
+  const api = new GaodeWebAPI();
+  const result = await api.route.transit(
+    `${options.from.longitude},${options.from.latitude}`,
+    `${options.to.longitude},${options.to.latitude}`,
+    options.city1,
+    options.city2,
+    {
+      strategy: options.strategy ?? TransitStrategy.RECOMMENDED,
+      AlternativeRoute: options.alternativeRoute,
+      show_fields: 'cost,polyline',
+    }
+  );
+
+  return normalizeTransitRouteResult(options, result);
+}
+
+/**
 * 独立路径规划（不会影响当前导航；适合路线预览/行前选路）
 */
 export const independentDriveRoute = (options: IndependentDriveRouteOptions) => 
@@ -180,6 +279,7 @@ export type {
   WalkRouteOptions,
   RideRouteOptions,
   EBikeRouteOptions,
+  TransitRouteOptionsType as TransitRouteOptions,
   TruckRouteOptions,
   RouteResult,
   DriveRouteResult,
@@ -216,6 +316,7 @@ export default {
   calculateWalkRoute,
   calculateRideRoute,
   calculateEBikeRoute,
+  calculateTransitRoute,
   calculateTruckRoute,
   calculateMotorcycleRoute,
 

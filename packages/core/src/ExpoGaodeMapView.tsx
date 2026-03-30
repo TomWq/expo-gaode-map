@@ -17,6 +17,8 @@ import { MapUI } from './components/MapUI';
 import { createLazyNativeViewManager } from './utils/lazyNativeViewManager';
 import { View, StyleSheet } from 'react-native';
 import { normalizeLatLng } from './utils/GeoUtils';
+import type { FitToCoordinatesOptions } from './types/route-playback.types';
+import { fitCameraToCoordinates } from './utils/RouteUtils';
 
 export type { MapViewRef } from './types';
 
@@ -136,6 +138,26 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     },
     getCameraPosition: createApiMethod<() => Promise<CameraPosition>>('getCameraPosition'),
     takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
+    fitToCoordinates: async (points: LatLngPoint[], options?: FitToCoordinatesOptions) => {
+      try {
+        await fitCameraToCoordinates(
+          {
+            moveCamera: (position, duration) =>
+              callNativeMethod<(cameraPosition: CameraUpdate, animationDuration: number) => Promise<void>>(
+                'moveCamera',
+                position,
+                duration ?? 0
+              ),
+            getCameraPosition: () =>
+              callNativeMethod<() => Promise<CameraPosition>>('getCameraPosition'),
+          },
+          points,
+          options
+        );
+      } catch (error) {
+        throw ErrorHandler.wrapNativeError(error, 'fitToCoordinates');
+      }
+    },
   }), [callNativeMethod, createApiMethod]);
 
   /**

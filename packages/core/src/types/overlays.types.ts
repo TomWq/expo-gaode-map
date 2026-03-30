@@ -5,6 +5,10 @@
 
 import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent, TextStyle } from 'react-native';
 import type { ColorValue, LatLng, LatLngPoint, Point } from './common.types';
+import type {
+  SmoothMoveEndEvent,
+  SmoothMoveProgressEvent,
+} from './route-playback.types';
 
 /**
  * 标记点属性
@@ -161,6 +165,16 @@ export interface MarkerProps {
    * @default 10
    */
   smoothMoveDuration?: number;
+
+  /**
+   * 平滑移动进度事件
+   */
+  onSmoothMoveProgress?: (event: NativeSyntheticEvent<SmoothMoveProgressEvent>) => void;
+
+  /**
+   * 平滑移动完成事件
+   */
+  onSmoothMoveEnd?: (event: NativeSyntheticEvent<SmoothMoveEndEvent>) => void;
 }
 
 /**

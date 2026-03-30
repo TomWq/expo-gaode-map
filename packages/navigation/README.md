@@ -9,7 +9,7 @@
 - 🧭 **实时导航 UI**：提供 `NaviView` 组件，内置完整的导航界面、语音播报、转向指引、路况显示等。
 - 🛣️ **独立路径规划**：支持“先算路、再导航”的高级模式，可实现多路线对比与选择。
 - ⚙️ **策略丰富**：支持速度优先、避让拥堵、少收费、不走高速等多种算路策略。
-- � **开箱即用**：封装了 Android/iOS 原生导航 SDK，统一 JS 接口。
+- ✅ **开箱即用**：封装了 Android/iOS 原生导航 SDK，统一 JS 接口。
 
 ## 安装
 
@@ -246,6 +246,57 @@ import { MapView, Circle, Polygon } from 'expo-gaode-map-navigation';
   />
 </MapView>
 ```
+
+### 视口控制
+
+导航包的 `MapViewRef` 同样支持：
+
+- `moveCamera(position, duration?)`
+- `getCameraPosition()`
+- `fitToCoordinates(points, options?)`
+
+```tsx
+await mapRef.current?.fitToCoordinates(routePoints, {
+  duration: 500,
+  paddingFactor: 0.2,
+  maxZoom: 18,
+});
+```
+
+注意：
+
+- 这里的用户层 API 形状尽量和 `expo-gaode-map` 保持一致
+- 但底层地图实现仍然绑定导航 SDK，不与 `core` 共用同一套 MapView 实现
+
+### 公交算路 fallback（回退）
+
+`calculateTransitRoute` 会在运行时回退到 `expo-gaode-map-web-api`：
+
+```ts
+import { calculateTransitRoute, RouteType } from 'expo-gaode-map-navigation';
+
+const result = await calculateTransitRoute({
+  type: RouteType.TRANSIT,
+  from: { latitude: 39.9, longitude: 116.4 },
+  to: { latitude: 39.91, longitude: 116.41 },
+  city1: '010',
+  city2: '010',
+});
+```
+
+使用前请确认：
+
+- 已安装 `expo-gaode-map-web-api`
+- 已在 `ExpoGaodeMapModule.initSDK({ webKey })` 中提供 `webKey`
+
+如果缺少依赖或 `webKey`，运行时会抛出明确错误。
+
+### API 边界
+
+- 导航包内置地图能力，但地图实现与 `expo-gaode-map` 独立维护
+- 用户层输入输出会尽量与核心包保持一致，例如 `LatLngPoint`、`fitToCoordinates`
+- 可共享的范围仅限纯 TS 的 route / AOI 数据适配工具、文档和测试思路
+- 原生地图桥接、overlay 宿主逻辑、MapView facade 不会和核心包合并
 
 ## API 参考
 
