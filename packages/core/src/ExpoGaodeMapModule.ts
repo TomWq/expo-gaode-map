@@ -989,40 +989,25 @@ const helperMethods = {
     if (!nativeModule) return -1;
     try {
       const normalizedPoint = normalizeLatLng(point);
-      let normalizedPolygons: LatLngPoint[][];
-      let ringToPolygonIndex: number[] | null = null;
 
       // 处理三维数组 (LatLngPoint[][][]) 和二维数组 (LatLngPoint[][])
       if (Array.isArray(polygons[0]) && Array.isArray(polygons[0][0])) {
-        // LatLngPoint[][][] -> 扁平化为 LatLngPoint[][] 用于 C++ 遍历
-        // 同时记录每个 Ring 对应的原始多边形索引
-        normalizedPolygons = [];
-        ringToPolygonIndex = [];
-        (polygons as LatLngPoint[][][]).forEach((polygonRings, index) => {
-          polygonRings.forEach((ring) => {
-            normalizedPolygons.push(ring);
-            (ringToPolygonIndex as number[]).push(index);
-          });
-        });
-      } else {
-        normalizedPolygons = polygons as LatLngPoint[][];
-      }
+        const normalizedMultiPolygons = (polygons as LatLngPoint[][][]).map((polygonRings) =>
+          normalizeLatLngList(polygonRings)
+        );
 
-      const processedPolygons = normalizedPolygons.map((p) => normalizeLatLngList(p));
-      const resultIndex = nativeModule.findPointInPolygons(normalizedPoint, processedPolygons);
+        for (let index = 0; index < normalizedMultiPolygons.length; index += 1) {
+          if (nativeModule.isPointInPolygon(normalizedPoint, normalizedMultiPolygons[index])) {
+            return index;
+          }
+        }
 
-      // 如果未命中，返回 -1
-      if (resultIndex === -1) {
         return -1;
       }
 
-      // 如果存在映射关系（带孔多边形），将 Ring 索引映射回 Polygon 索引
-      if (ringToPolygonIndex) {
-        return ringToPolygonIndex[resultIndex];
-      }
-
-      // 简单多边形直接返回索引
-      return resultIndex;
+      const normalizedPolygons = polygons as LatLngPoint[][];
+      const processedPolygons = normalizedPolygons.map((p) => normalizeLatLngList(p));
+      return nativeModule.findPointInPolygons(normalizedPoint, processedPolygons);
     } catch (error) {
       ErrorLogger.warn('findPointInPolygons 失败', { point, error });
       return -1;

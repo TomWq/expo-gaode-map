@@ -71,11 +71,14 @@ export function useRoutePlayback(
   const map = React.useContext(MapContext);
   const optionsRef = React.useRef(options);
   const [state, setState] = React.useState<RoutePlaybackState>(DEFAULT_STATE);
+  const stateRef = React.useRef<RoutePlaybackState>(DEFAULT_STATE);
   const [speedMultiplier, setSpeedMultiplierState] = React.useState(options.speedMultiplier ?? 1);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const startAtRef = React.useRef(0);
   const elapsedBeforePauseRef = React.useRef(0);
   const lastAngleRef = React.useRef(0);
+  const previousPathRef = React.useRef<LatLng[] | null>(null);
+  const previousDurationRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     optionsRef.current = options;
@@ -125,6 +128,7 @@ export function useRoutePlayback(
   const publishState = React.useCallback(
     (nextState: RoutePlaybackState) => {
       // 统一从这里下发状态，避免不同控制分支各自维护回调时机。
+      stateRef.current = nextState;
       setState(nextState);
       optionsRef.current.onProgress?.(nextState);
     },
@@ -172,7 +176,7 @@ export function useRoutePlayback(
 
       publishState(nextState);
 
-      if (optionsRef.current.followCamera !== false && nextState.currentPosition && map) {
+      if (optionsRef.current.followCamera === true && nextState.currentPosition && map) {
         await map.moveCamera(
           {
             target: nextState.currentPosition,
@@ -194,6 +198,30 @@ export function useRoutePlayback(
     ]
   );
 
+  const runPlaybackTick = React.useCallback(async () => {
+    const elapsedMs = Date.now() - startAtRef.current + elapsedBeforePauseRef.current;
+    const progress = durationSeconds <= 0 ? 1 : elapsedMs / (durationSeconds * 1000);
+
+    if (progress >= 1) {
+      stopTimer();
+      elapsedBeforePauseRef.current = 0;
+      startAtRef.current = 0;
+      const completedState = await syncProgress(1, false);
+      optionsRef.current.onComplete?.(completedState);
+      return;
+    }
+
+    await syncProgress(progress, true);
+  }, [durationSeconds, stopTimer, syncProgress]);
+
+  const startTimer = React.useCallback(() => {
+    stopTimer();
+    const interval = Math.max(optionsRef.current.updateIntervalMs ?? 100, 16);
+    timerRef.current = setInterval(() => {
+      void runPlaybackTick();
+    }, interval);
+  }, [runPlaybackTick, stopTimer]);
+
   const stop = React.useCallback(() => {
     stopTimer();
     elapsedBeforePauseRef.current = 0;
@@ -213,34 +241,16 @@ export function useRoutePlayback(
     startAtRef.current = Date.now();
     lastAngleRef.current = 0;
 
-    if (optionsRef.current.autoFit !== false && map && normalizedPath.length > 0) {
+    if (optionsRef.current.autoFit === true && map && normalizedPath.length > 0) {
       await fitCameraToCoordinates(map, normalizedPath, optionsRef.current.fitOptions);
     }
 
     await syncProgress(0, true);
-
-    // 使用固定间隔推进进度，保证回放速度与 UI 反馈稳定。
-    const interval = Math.max(optionsRef.current.updateIntervalMs ?? 100, 16);
-    timerRef.current = setInterval(async () => {
-      const elapsedMs = Date.now() - startAtRef.current + elapsedBeforePauseRef.current;
-      const progress = durationSeconds <= 0 ? 1 : elapsedMs / (durationSeconds * 1000);
-
-      if (progress >= 1) {
-        stopTimer();
-        elapsedBeforePauseRef.current = 0;
-        startAtRef.current = 0;
-        const completedState = await syncProgress(1, false);
-        optionsRef.current.onComplete?.(completedState);
-        return;
-      }
-
-      await syncProgress(progress, true);
-    }, interval);
+    startTimer();
   }, [
-    durationSeconds,
     map,
     normalizedPath,
-    stopTimer,
+    startTimer,
     syncProgress,
   ]);
 
@@ -251,54 +261,39 @@ export function useRoutePlayback(
 
     stopTimer();
     elapsedBeforePauseRef.current += Date.now() - startAtRef.current;
+    startAtRef.current = 0;
+    const currentState = stateRef.current;
     publishState({
-      ...state,
+      ...currentState,
       isPlaying: false,
       isPaused: true,
       smoothMovePath: undefined,
       smoothMoveDuration: undefined,
     });
-  }, [durationSeconds, publishState, state, stopTimer]);
+  }, [durationSeconds, publishState, stopTimer]);
 
   const resume = React.useCallback(async () => {
-    if (state.progress >= 1) {
+    const currentState = stateRef.current;
+    if (currentState.progress >= 1) {
       await start();
       return;
     }
 
     startAtRef.current = Date.now();
     publishState({
-      ...state,
+      ...currentState,
       isPlaying: true,
       isPaused: false,
       smoothMovePath: normalizedPath,
       smoothMoveDuration: durationSeconds,
     });
-
-    const interval = Math.max(optionsRef.current.updateIntervalMs ?? 100, 16);
-    timerRef.current = setInterval(async () => {
-      const elapsedMs = Date.now() - startAtRef.current + elapsedBeforePauseRef.current;
-      const progress = durationSeconds <= 0 ? 1 : elapsedMs / (durationSeconds * 1000);
-
-      if (progress >= 1) {
-        stopTimer();
-        elapsedBeforePauseRef.current = 0;
-        startAtRef.current = 0;
-        const completedState = await syncProgress(1, false);
-        optionsRef.current.onComplete?.(completedState);
-        return;
-      }
-
-      await syncProgress(progress, true);
-    }, interval);
+    startTimer();
   }, [
     durationSeconds,
     normalizedPath,
     publishState,
     start,
-    state,
-    stopTimer,
-    syncProgress,
+    startTimer,
   ]);
 
   const seek = React.useCallback(
@@ -319,13 +314,65 @@ export function useRoutePlayback(
   React.useEffect(() => () => stopTimer(), [stopTimer]);
 
   React.useEffect(() => {
+    const pathChanged = previousPathRef.current !== normalizedPath;
+    const durationChanged =
+      previousDurationRef.current !== null && previousDurationRef.current !== durationSeconds;
+
+    previousPathRef.current = normalizedPath;
+    previousDurationRef.current = durationSeconds;
+
+    if (pathChanged) {
+      stopTimer();
+      elapsedBeforePauseRef.current = 0;
+      startAtRef.current = 0;
+      lastAngleRef.current = 0;
+      publishState({
+        ...DEFAULT_STATE,
+        currentPosition: normalizedPath[0] ?? null,
+        totalDistance,
+        durationSeconds,
+      });
+      return;
+    }
+
+    if (!durationChanged) {
+      return;
+    }
+
+    const currentState = stateRef.current;
+
+    if (currentState.isPlaying) {
+      elapsedBeforePauseRef.current = currentState.progress * durationSeconds * 1000;
+      startAtRef.current = Date.now();
+      publishState({
+        ...currentState,
+        totalDistance,
+        durationSeconds,
+        smoothMoveDuration: durationSeconds,
+      });
+      startTimer();
+      return;
+    }
+
+    if (currentState.isPaused) {
+      elapsedBeforePauseRef.current = currentState.progress * durationSeconds * 1000;
+      startAtRef.current = 0;
+      publishState({
+        ...currentState,
+        totalDistance,
+        durationSeconds,
+      });
+      return;
+    }
+
     publishState({
-      ...DEFAULT_STATE,
-      currentPosition: normalizedPath[0] ?? null,
+      ...currentState,
+      currentPosition:
+        currentState.progress > 0 ? currentState.currentPosition : normalizedPath[0] ?? null,
       totalDistance,
       durationSeconds,
     });
-  }, [durationSeconds, normalizedPath, publishState, totalDistance]);
+  }, [durationSeconds, normalizedPath, publishState, startTimer, stopTimer, totalDistance]);
 
   return {
     ...state,

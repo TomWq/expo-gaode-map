@@ -671,6 +671,7 @@ describe('ExpoGaodeMapModule', () => {
       nativeModule.latLngToPixel = jest.fn(() => ({ x: 256, y: 512 }));
       nativeModule.pixelToLatLng = jest.fn(() => ({ latitude: 39.91, longitude: 116.41 }));
       nativeModule.findPointInPolygons = jest.fn(() => 1);
+      nativeModule.isPointInPolygon = jest.fn((_point, polygon) => polygon.length === 2);
 
       expect(ExpoGaodeMapModule.latLngToTile([116.4, 39.9], 10)).toEqual({ x: 1, y: 2, z: 10 });
       expect(ExpoGaodeMapModule.tileToLatLng({ x: 1, y: 2, z: 10 })).toEqual({
@@ -711,6 +712,45 @@ describe('ExpoGaodeMapModule', () => {
           ]
         )
       ).toBe(0);
+      expect(nativeModule.findPointInPolygons).not.toHaveBeenCalled();
+    });
+
+    it('应该在点落入多边形空洞时返回 -1', () => {
+      const nativeModule = getNativeMock();
+      nativeModule.isPointInPolygon = jest
+        .fn()
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(false);
+
+      expect(
+        ExpoGaodeMapModule.findPointInPolygons(
+          [116.4055, 39.9055],
+          [
+            [
+              [
+                [116.4, 39.9],
+                [116.42, 39.9],
+                [116.42, 39.92],
+                [116.4, 39.92],
+              ],
+              [
+                [116.405, 39.905],
+                [116.406, 39.905],
+                [116.406, 39.906],
+                [116.405, 39.906],
+              ],
+            ],
+            [
+              [
+                [117.0, 40.0],
+                [117.1, 40.0],
+                [117.1, 40.1],
+                [117.0, 40.1],
+              ],
+            ],
+          ]
+        )
+      ).toBe(-1);
     });
 
     it('应该支持热力网格生成与几个降级分支', () => {
