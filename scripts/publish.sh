@@ -221,18 +221,51 @@ ensure_unique_version() {
   echo "$candidate"
 }
 
+get_latest_dist_tag_version() {
+  local package_name="$1"
+  local latest_version
+  latest_version="$(npm view "$package_name" dist-tags.latest 2>/dev/null | tr -d '\n' || true)"
+  if [ -z "$latest_version" ] || [ "$latest_version" == "undefined" ] || [ "$latest_version" == "null" ]; then
+    echo ""
+  else
+    echo "$latest_version"
+  fi
+}
+
+resolve_base_version() {
+  # $1: npm package name, $2: local package.json version
+  local package_name="$1"
+  local local_version="$2"
+
+  if [ "$RELEASE_TAG" == "latest" ]; then
+    local latest_online
+    latest_online="$(get_latest_dist_tag_version "$package_name")"
+    if [ -n "$latest_online" ]; then
+      echo "$latest_online"
+      return
+    fi
+    echo -e "${YELLOW}⚠️  未读取到 ${package_name} 的线上 latest，回退本地版本 ${local_version}${NC}" >&2
+  fi
+
+  echo "$local_version"
+}
+
 publish_core() {
   echo ""
   echo "📦 发布核心包 (expo-gaode-map) [${RELEASE_TAG}]..."
   cd packages/core
   
-  OLD_VERSION=$(node -p "require('./package.json').version")
+  LOCAL_VERSION=$(node -p "require('./package.json').version")
+  BASE_VERSION=$(resolve_base_version "expo-gaode-map" "$LOCAL_VERSION")
   echo "计算新版本号..."
-  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(bump_version "$BASE_VERSION" "$VERSION_FLAG")
   NEW_VERSION=$(ensure_unique_version "expo-gaode-map" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
+  if [ "$BASE_VERSION" != "$LOCAL_VERSION" ]; then
+    echo "版本基准(线上 latest): ${BASE_VERSION}（本地: ${LOCAL_VERSION}）"
+  fi
+  echo "版本: ${BASE_VERSION} -> ${NEW_VERSION}"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
     npm publish --access public
@@ -265,14 +298,18 @@ publish_search() {
   echo "📦 发布搜索包 (expo-gaode-map-search) [${RELEASE_TAG}]..."
   cd packages/search
   
-  OLD_VERSION=$(node -p "require('./package.json').version" | tr -d '\n')
+  LOCAL_VERSION=$(node -p "require('./package.json').version" | tr -d '\n')
+  BASE_VERSION=$(resolve_base_version "expo-gaode-map-search" "$LOCAL_VERSION" | tr -d '\n')
   
   echo "计算新版本号..."
-  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG" | tr -d '\n')
+  NEW_VERSION=$(bump_version "$BASE_VERSION" "$VERSION_FLAG" | tr -d '\n')
   NEW_VERSION=$(ensure_unique_version "expo-gaode-map-search" "$NEW_VERSION" "$PRERELEASE" | tr -d '\n')
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
+  if [ "$BASE_VERSION" != "$LOCAL_VERSION" ]; then
+    echo "版本基准(线上 latest): ${BASE_VERSION}（本地: ${LOCAL_VERSION}）"
+  fi
+  echo "版本: ${BASE_VERSION} -> ${NEW_VERSION}"
   
   # Search 包现在支持独立运行（配合 navigation），不再强制依赖 core 包
   echo "⚠️  Search 包独立发布，跳过 expo-gaode-map 依赖注入"
@@ -308,14 +345,18 @@ publish_navigation() {
   echo "📦 发布导航包 (expo-gaode-map-navigation) [${RELEASE_TAG}]..."
   cd packages/navigation
   
-  OLD_VERSION=$(node -p "require('./package.json').version")
+  LOCAL_VERSION=$(node -p "require('./package.json').version")
+  BASE_VERSION=$(resolve_base_version "expo-gaode-map-navigation" "$LOCAL_VERSION")
   
   echo "计算新版本号..."
-  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(bump_version "$BASE_VERSION" "$VERSION_FLAG")
   NEW_VERSION=$(ensure_unique_version "expo-gaode-map-navigation" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
+  if [ "$BASE_VERSION" != "$LOCAL_VERSION" ]; then
+    echo "版本基准(线上 latest): ${BASE_VERSION}（本地: ${LOCAL_VERSION}）"
+  fi
+  echo "版本: ${BASE_VERSION} -> ${NEW_VERSION}"
   
   # navigation 包是独立的，包含完整地图功能，不需要依赖 expo-gaode-map
   echo "⚠️  navigation 包是独立包，跳过 expo-gaode-map 依赖更新"
@@ -351,15 +392,19 @@ publish_web_api() {
   echo "📦 发布 Web API 包 (expo-gaode-map-web-api) [${RELEASE_TAG}]..."
   cd packages/web-api
   
-  OLD_VERSION=$(node -p "require('./package.json').version")
+  LOCAL_VERSION=$(node -p "require('./package.json').version")
+  BASE_VERSION=$(resolve_base_version "expo-gaode-map-web-api" "$LOCAL_VERSION")
   cp package.json package.json.backup
   
   echo "计算新版本号..."
-  NEW_VERSION=$(bump_version "$OLD_VERSION" "$VERSION_FLAG")
+  NEW_VERSION=$(bump_version "$BASE_VERSION" "$VERSION_FLAG")
   NEW_VERSION=$(ensure_unique_version "expo-gaode-map-web-api" "$NEW_VERSION" "$PRERELEASE")
   
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  echo "版本: ${OLD_VERSION} -> ${NEW_VERSION}"
+  if [ "$BASE_VERSION" != "$LOCAL_VERSION" ]; then
+    echo "版本基准(线上 latest): ${BASE_VERSION}（本地: ${LOCAL_VERSION}）"
+  fi
+  echo "版本: ${BASE_VERSION} -> ${NEW_VERSION}"
   
   # Web API 包在工作区通常使用 workspace:* 避免强耦合；发布前将 expo-gaode-map 依赖（如存在）对齐核心版本
   CORE_VERSION=$(node -p "require('../core/package.json').version")
