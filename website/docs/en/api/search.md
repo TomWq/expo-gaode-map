@@ -16,6 +16,7 @@ npm install expo-gaode-map-search
 
 ```typescript
 import {
+  createNativeSearchRuntime,
   initSearch,
   searchPOI,
   searchNearby,
@@ -28,6 +29,15 @@ import {
   type InputTipsResult,
 } from 'expo-gaode-map-search';
 ```
+
+## Recommended Entry (v3)
+
+```typescript
+const runtime = createNativeSearchRuntime();
+const page = await runtime.search.searchKeyword({ keyword: 'Starbucks', city: 'Beijing' });
+```
+
+Function-style APIs (`searchPOI/searchNearby/getInputTips/...`) remain available as a compatibility layer.
 
 ## API Methods
 

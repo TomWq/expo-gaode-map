@@ -10,9 +10,7 @@ describe('MapContext', () => {
       return null;
     };
 
-    expect(() => render(<Consumer />)).toThrow(
-      'useMap must be used within a ExpoGaodeMapView component'
-    );
+    expect(() => render(<Consumer />)).toThrow('无法调用 useMap：地图视图尚未初始化');
   });
 
   it('在 Provider 内使用 useMap 应返回上下文实例', () => {

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { Coordinates, ExpoGaodeMapNaviViewProps } from './types';
 import { createLazyNativeViewManager } from './map/utils/lazyNativeViewManager';
+import { ErrorHandler } from './map/utils/ErrorHandler';
 
 /**
  * ExpoGaodeMapNaviView Ref 类型
@@ -71,7 +72,9 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
   // 创建 API 引用
   const apiRef: ExpoGaodeMapNaviViewRef = React.useMemo(() => ({
     startNavigation: async (start: Coordinates | null, end: Coordinates, type: number) => {
-      if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('startNavigation');
+      }
       // 将对象解构为单独的参数传递给原生层
       const startLat = start?.latitude ?? 0;
       const startLng = start?.longitude ?? 0;
@@ -80,7 +83,9 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
       return nativeRef.current.startNavigation(startLat, startLng, endLat, endLng);
     },
     stopNavigation: async () => {
-      if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
+      if (!nativeRef.current) {
+        throw ErrorHandler.mapViewNotInitialized('stopNavigation');
+      }
       return nativeRef.current.stopNavigation();
     },
   }), []);

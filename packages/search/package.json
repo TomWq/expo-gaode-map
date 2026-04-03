@@ -4,13 +4,24 @@
   "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索，需先安装expo-gaode-map或者expo-gaode-map-navigation",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "default": "./build/index.js"
+    },
+    "./legacy": {
+      "types": "./build/legacy.d.ts",
+      "default": "./build/legacy.js"
+    }
+  },
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
+    "jest": "node ../../node_modules/jest/bin/jest.js --config ./jest.config.js",
     "test": "expo-module test",
     "prepare": "expo-module prepare",
-    "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
+    "prepublishOnly": "yarn --cwd ../.. check:shared-sync && yarn test --watchman=false && yarn build",
     "expo-module": "expo-module"
   },
   "keywords": [
@@ -47,9 +58,12 @@
     "access": "public"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",
     "expo": "^55.0.8",
     "expo-module-scripts": "^55.0.2",
+    "jest": "~29.7.0",
+    "jest-expo": "~55.0.11",
     "react-native": "0.83.2",
     "typescript": "^5.9.3"
   },

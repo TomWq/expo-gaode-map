@@ -1,9 +1,19 @@
 {
   "name": "expo-gaode-map-web-api",
   "version": "2.0.4",
-  "description": "高德地图 Web API 服务 - 搜索、路径规划、地理编码（纯 JavaScript 实现），配合 expo-gaode-map或者 expo-gaode-map-navigation 使用",
+  "description": "高德地图 Web API 服务 - 搜索、路径规划、地理编码（纯 JavaScript 实现，可独立使用，也可与 expo-gaode-map / expo-gaode-map-navigation 协同）",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "default": "./build/index.js"
+    },
+    "./legacy": {
+      "types": "./build/legacy.d.ts",
+      "default": "./build/legacy.js"
+    }
+  },
   "files": [
     "build",
     "README.md"
@@ -14,7 +24,8 @@
     "clean": "rm -rf build",
     "lint": "node -e \"const { spawnSync } = require('child_process'); const r = spawnSync('tsc', ['--noEmit', '--pretty', 'false'], { stdio: 'inherit' }); process.exit(r.status ?? 1);\" --",
     "test": "bun test",
-    "prepare": "yarn build"
+    "prepare": "yarn build",
+    "prepublishOnly": "yarn --cwd ../.. check:shared-sync && yarn test && yarn build"
   },
   "keywords": [
     "react-native",

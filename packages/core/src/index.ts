@@ -1,6 +1,24 @@
 
 import { createPermissionHook } from 'expo-modules-core';
 import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
+export * as V3 from './v3';
+export {
+  createCoreCapabilityRuntime,
+  createCorePlatformRuntime,
+  createCoreRuntime,
+  resolveCoreCapabilityAdapters,
+} from './v3/runtime-factories';
+export type {
+  CoreCapabilityAssemblyOptions,
+  CoreCapabilityAdaptersResult,
+  CoreCapabilityRuntime,
+  CoreCapabilityRuntimeOptions,
+  CorePlatformRuntime,
+  CorePlatformRuntimeOptions,
+  CoreRuntime,
+  CoreRuntimeModule,
+  CoreRuntimeOptions,
+} from './v3/runtime-factories';
 
 // 导出类型定义（包含所有通用类型）
 export * from './types';

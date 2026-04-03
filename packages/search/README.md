@@ -28,7 +28,55 @@ npm install expo-gaode-map-search
 - ✅ 支持类型过滤
 - ✅ 完整的 TypeScript 类型定义
 
-## 基本用法
+## 推荐用法（v3 Runtime）
+
+> `v3` 是默认推荐路径。`searchPOI/getInputTips/...` 等函数仍可用，但已进入兼容层。
+
+```typescript
+import { createNativeSearchRuntime } from 'expo-gaode-map-search';
+
+const runtime = createNativeSearchRuntime();
+
+const page = await runtime.search.searchKeyword({
+  keyword: '酒店',
+  city: '北京',
+  page: 1,
+  pageSize: 20,
+});
+
+console.log('找到', page.total, '个结果');
+console.log(page.items[0]?.name, page.items[0]?.address);
+```
+
+```typescript
+const tips = await runtime.search.getInputTips({
+  keyword: '天安门',
+  city: '北京',
+});
+
+const geocode = await runtime.geocode.reverseGeocode({
+  location: { latitude: 39.9088, longitude: 116.3975 },
+  extensions: 'all',
+});
+```
+
+## 基本用法（Legacy 兼容层，已废弃）
+
+主入口默认导出仍保持 legacy 兼容；如需显式锁定旧函数式 API，也可以从 `legacy` 子路径导入。
+
+```typescript
+import Search from 'expo-gaode-map-search';
+
+const result = await Search.searchPOI({ keyword: '酒店', city: '北京' });
+```
+
+```typescript
+import { searchPOI, getInputTips } from 'expo-gaode-map-search';
+```
+
+```typescript
+import { searchPOI, getInputTips } from 'expo-gaode-map-search/legacy';
+```
 
 ### POI 搜索
 
@@ -476,4 +524,3 @@ MIT
 - [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-example)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
-

@@ -37,47 +37,45 @@
  * console.log(`找到 ${tips.count} 个建议`);
  * ```
  */
+export * as V3 from './v3';
+export {
+  createWebCapabilityAdapter,
+  createWebDataCapabilityAdapter,
+  createWebDataRuntime,
+  createWebGeocodeProvider,
+  createWebRouteProvider,
+  createWebRuntime,
+  createWebSearchProvider,
+} from './v3';
+export type {
+  WebCapabilityAdapterOptions,
+  WebDataCapabilityAdapterOptions,
+  WebDataRuntimeFactoryOptions,
+  WebGeocodeProviderFactoryOptions,
+  WebProviderFactoryOptions,
+  WebRouteProviderFactoryOptions,
+  WebRuntimeFactoryOptions,
+} from './v3';
 
-/**
- * 在加载 Web API 模块前，强制校验“基础地图提供者”是否已安装。
- * 支持以下任一包：
- *  - expo-gaode-map（核心地图包）
- *  - expo-gaode-map-navigation（导航包，内置地图能力）
- * 这样可避免导航与核心包 SDK 冲突时无法使用的问题。
- */
-function ensureBaseInstalled() {
-  let installed = false;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('expo-gaode-map');
-    installed = true;
-  } catch (_) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      require('expo-gaode-map-navigation');
-      installed = true;
-    } catch (_) {
-      installed = false;
-    }
-  }
-
-  if (!installed) {
-    const msg =
-      '[expo-gaode-map-web-api] 需要先安装基础地图组件，支持以下任一包：\n' +
-      '  - expo-gaode-map（核心地图包），或\n' +
-      '  - expo-gaode-map-navigation（导航包，内置地图能力）\n' +
-      '请先安装并完成原生配置后再重试。';
-    throw new Error(msg);
-  }
-}
-
-ensureBaseInstalled();
-
-import { GaodeWebAPIClient, ClientConfig } from './utils/client';
+import {
+  GaodeWebAPIClient,
+  GaodeWebApiRuntimeError,
+  ClientConfig,
+} from './utils/client';
 import { GeocodeService } from './services/GeocodeService';
 import { RouteService } from './services/RouteService';
 import { POIService } from './services/POIService';
 import { InputTipsService } from './services/InputTipsService';
+import {
+  createWebCapabilityAdapter,
+  createWebDataCapabilityAdapter,
+  createWebDataRuntime,
+  createWebGeocodeProvider,
+  createWebRouteProvider,
+  createWebRuntime,
+  createWebSearchProvider,
+} from './v3';
+import type { GaodeRuntime } from './v3/runtime';
 
 /**
  * 从核心包解析 getWebKey（运行时解析，避免类型导出时序问题）
@@ -127,8 +125,13 @@ export type {
 } from './types/poi.types';
 
 // 客户端配置和错误类型导出
-export type { ClientConfig, APIError } from './utils/client';
-export { GaodeAPIError } from './utils/client';
+export type {
+  APIError,
+  ClientConfig,
+  WebApiErrorType,
+  WebApiUnifiedError,
+} from './utils/client';
+export { GaodeAPIError, GaodeWebApiRuntimeError } from './utils/client';
 
 // 错误码相关导出
 export { getErrorInfo, isSuccess, ERROR_CODE_MAP } from './utils/errorCodes';
@@ -147,9 +150,11 @@ export type {
 
 /**
  * 高德地图 Web API 主类
+ * @deprecated 建议迁移到 v3 provider/runtime：`createWebRuntime` 或 `createWebDataRuntime`
  */
 export class GaodeWebAPI {
   private client: GaodeWebAPIClient;
+  private runtime: GaodeRuntime;
   
   /** 地理编码服务 */
   public geocode: GeocodeService;
@@ -181,13 +186,17 @@ export class GaodeWebAPI {
     const webKey = config.key || resolveWebKey();
 
     if (!webKey) {
-      throw new Error(
-        '[expo-gaode-map-web-api] 缺少 Web API Key。您可以通过以下两种方式之一提供：\n' +
-        '1. 在构造函数中显式传入：new GaodeWebAPI({ key: "your-web-api-key" });\n' +
-        '2. 或者先通过 ExpoGaodeMapModule.initSDK({ webKey }) 初始化并提供 Web API Key：\n' +
-        "  import { ExpoGaodeMapModule } from 'expo-gaode-map';\n" +
-        '  ExpoGaodeMapModule.initSDK({ webKey: \"your-web-api-key\", iosKey, androidKey });'
-      );
+      throw new GaodeWebApiRuntimeError({
+        code: 'WEB_KEY_MISSING',
+        type: 'validation_error',
+        message:
+          '[expo-gaode-map-web-api] 缺少 Web API Key。您可以通过以下两种方式之一提供：\n' +
+          '1. 在构造函数中显式传入：new GaodeWebAPI({ key: "your-web-api-key" });\n' +
+          '2. 或者先通过 ExpoGaodeMapModule.initSDK({ webKey }) 初始化并提供 Web API Key：\n' +
+          "  import { ExpoGaodeMapModule } from 'expo-gaode-map';\n" +
+          '  ExpoGaodeMapModule.initSDK({ webKey: "your-web-api-key", iosKey, androidKey });',
+        retryable: false,
+      });
     }
 
     // 使用解析出的 key 或传入的 key
@@ -198,6 +207,11 @@ export class GaodeWebAPI {
     this.route = new RouteService(this.client);
     this.poi = new POIService(this.client);
     this.inputTips = new InputTipsService(this.client);
+    this.runtime = createWebRuntime({
+      search: { api: this },
+      geocode: { api: this },
+      route: { api: this },
+    });
   }
 
   /**
@@ -213,9 +227,39 @@ export class GaodeWebAPI {
   getKey(): string {
     return this.client.getKey();
   }
+
+  /**
+   * 返回与当前实例共享配置的 v3 runtime。
+   */
+  toRuntime(): GaodeRuntime {
+    return this.runtime;
+  }
 }
 
 /**
  * 创建默认导出，方便使用
+ */
+export const LegacyWebAPI = GaodeWebAPI;
+
+/**
+ * @deprecated 建议迁移到 v3 provider/runtime：`createWebRuntime` 或 provider 工厂
+ */
+export type LegacyWebAPIClass = typeof GaodeWebAPI;
+
+/**
+ * v3 provider/runtime API 聚合导出。
+ */
+export const V3WebAPI = {
+  createWebRuntime,
+  createWebDataRuntime,
+  createWebCapabilityAdapter,
+  createWebDataCapabilityAdapter,
+  createWebSearchProvider,
+  createWebGeocodeProvider,
+  createWebRouteProvider,
+};
+
+/**
+ * 兼容默认导出（legacy class API）。
  */
 export default GaodeWebAPI;

@@ -1,26 +1,32 @@
-import React, { useState } from 'react';
-import { View, Button, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
-import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+import React, { useMemo, useState } from 'react';
+import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { createWebRuntime } from 'expo-gaode-map-web-api';
 
 import { EXAMPLE_WEB_API_KEY } from './exampleConfig';
 
-/**
- * 高德地图 Web API 逆地理编码示例
- */
 export default function WebAPIExample() {
   const [apiKey, setApiKey] = useState(EXAMPLE_WEB_API_KEY);
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
-  
-  // 逆地理编码
+  const [runtime, setRuntime] = useState<ReturnType<typeof createWebRuntime> | null>(null);
+
   const [longitude, setLongitude] = useState('116.481028');
   const [latitude, setLatitude] = useState('39.989643');
   const [regeocodeResult, setRegeocodeResult] = useState('');
-  
-  // 地理编码
-  const [address, setAddress] = useState('北京市朝阳区阜通东大街6号');
-  const [geocodeResult, setGeocodeResult] = useState('');
 
-  // 初始化 API
+  const [keyword, setKeyword] = useState('咖啡');
+  const [searchResult, setSearchResult] = useState('');
+
+  const fallbackRuntime = useMemo(
+    () =>
+      createWebRuntime({
+        search: { config: { key: EXAMPLE_WEB_API_KEY } },
+        geocode: { config: { key: EXAMPLE_WEB_API_KEY } },
+        route: { config: { key: EXAMPLE_WEB_API_KEY } },
+      }),
+    []
+  );
+
+  const getRuntime = () => runtime ?? fallbackRuntime;
+
   const handleInitialize = () => {
     const effectiveKey = apiKey.trim() || EXAMPLE_WEB_API_KEY;
     if (!effectiveKey) {
@@ -28,55 +34,34 @@ export default function WebAPIExample() {
       return;
     }
 
-    const newApi = new GaodeWebAPI({ key: effectiveKey });
-    setApi(newApi);
-    Alert.alert(
-      '成功',
-      'Web API 实例已按当前 Key 初始化'
-    );
+    const next = createWebRuntime({
+      search: { config: { key: effectiveKey } },
+      geocode: { config: { key: effectiveKey } },
+      route: { config: { key: effectiveKey } },
+    });
+    setRuntime(next);
+    Alert.alert('成功', '已按当前 Key 初始化 v3 runtime');
   };
 
-  // 测试逆地理编码
-  const handleRegeocode = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
+  const handleReverseGeocode = async () => {
     try {
-      const result = await api.geocode.regeocode(`${longitude},${latitude}`, {
+      const result = await getRuntime().geocode.reverseGeocode({
+        location: {
+          longitude: Number(longitude),
+          latitude: Number(latitude),
+        },
         extensions: 'all',
       });
 
-      const info = result.regeocode;
-      const addr = info.addressComponent;
       const resultText = `
-📍 结构化地址：
-${info.formatted_address}
+📍 格式化地址：
+${result.formattedAddress}
 
-🏢 地址组成：
-国家：${addr.country || '-'}
-省份：${addr.province || '-'}
-城市：${addr.city || '直辖市'}
-区县：${addr.district || '-'}
-乡镇/街道：${addr.township || '-'}
-街道名：${addr.street || '-'}
-门牌号：${addr.number || '-'}
-${addr.towncode ? `街道编码：${addr.towncode}` : ''}
-
-${info.pois && info.pois.length > 0 ? `
-🏪 附近POI（前5个）：
-${info.pois.slice(0, 5).map((poi, i) => 
-  `${i + 1}. ${poi.name}\n   类型：${poi.type}\n   距离：${poi.distance}米`
-).join('\n')}
-` : ''}
-
-${info.roads && info.roads.length > 0 ? `
-🛣️ 附近道路（前3条）：
-${info.roads.slice(0, 3).map((road, i) => 
-  `${i + 1}. ${road.name} - ${road.distance}米`
-).join('\n')}
-` : ''}
+🏪 周边 POI（前 5 个）：
+${result.pois
+  .slice(0, 5)
+  .map((poi, i) => `${i + 1}. ${poi.name} - ${poi.address ?? '无地址'}`)
+  .join('\n')}
       `.trim();
 
       setRegeocodeResult(resultText);
@@ -85,66 +70,30 @@ ${info.roads.slice(0, 3).map((road, i) =>
     }
   };
 
-  // 测试地理编码
-  const handleGeocode = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
+  const handleKeywordSearch = async () => {
+    if (!keyword.trim()) {
+      Alert.alert('提示', '请输入关键词');
       return;
     }
 
     try {
-      const result = await api.geocode.geocode(address);
-
-      if (result.geocodes.length === 0) {
-        Alert.alert('提示', '未找到该地址');
-        return;
-      }
+      const result = await getRuntime().search.searchKeyword({
+        keyword: keyword.trim(),
+        city: '北京',
+        page: 1,
+        pageSize: 10,
+      });
 
       const resultText = `
-找到 ${result.count} 个结果：
+找到 ${result.total ?? result.items.length} 个结果
 
-${result.geocodes.map((geocode, i) => `
---- 结果 ${i + 1} ---
-📍 地址：${geocode.formatted_address}
-🌍 坐标：${geocode.location}
-📊 匹配级别：${geocode.level}
-🏛️ 行政区：
-   省份：${geocode.province}
-   城市：${geocode.city}
-   区县：${geocode.district}
-   区域码：${geocode.adcode}
-`).join('\n')}
+${result.items
+  .slice(0, 5)
+  .map((item, i) => `${i + 1}. ${item.name}\n   ${item.address ?? '无地址'}`)
+  .join('\n')}
       `.trim();
 
-      setGeocodeResult(resultText);
-    } catch (error) {
-      Alert.alert('错误', error instanceof Error ? error.message : '未知错误');
-    }
-  };
-
-  // 批量逆地理编码测试
-  const handleBatchRegeocode = async () => {
-    if (!api) {
-      Alert.alert('错误', '请先初始化 API');
-      return;
-    }
-
-    try {
-      const locations = [
-        '116.481028,39.989643', // 北京望京
-        '116.434446,39.90816',  // 北京天安门
-        '121.472644,31.231706', // 上海外滩
-      ];
-
-      const result = await api.geocode.batchRegeocode(locations);
-      
-      Alert.alert(
-        '批量逆地理编码',
-        '请查看控制台输出',
-        [{ text: '确定' }]
-      );
-      
-      console.log('批量逆地理编码结果：', JSON.stringify(result.regeocodes));
+      setSearchResult(resultText);
     } catch (error) {
       Alert.alert('错误', error instanceof Error ? error.message : '未知错误');
     }
@@ -152,11 +101,10 @@ ${result.geocodes.map((geocode, i) => `
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>高德地图 Web API 测试</Text>
+      <Text style={styles.title}>高德 Web API v3 Runtime 示例</Text>
 
-      {/* 初始化 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. 初始化 API</Text>
+        <Text style={styles.sectionTitle}>1. 初始化 Runtime</Text>
         <TextInput
           style={styles.input}
           value={apiKey}
@@ -164,15 +112,11 @@ ${result.geocodes.map((geocode, i) => `
           placeholder="输入 Web API Key"
           secureTextEntry
         />
-        <Button title="初始化" onPress={handleInitialize} />
-        <Text style={styles.hint}>
-          💡 提示：如果你已经在示例入口配置了 `EXPO_PUBLIC_AMAP_WEB_KEY`，这里可以直接点初始化。
-        </Text>
+        <Button title="初始化 v3 Runtime" onPress={handleInitialize} />
       </View>
 
-      {/* 逆地理编码 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. 逆地理编码（坐标 → 地址）</Text>
+        <Text style={styles.sectionTitle}>2. reverseGeocode（坐标 → 地址）</Text>
         <TextInput
           style={styles.input}
           value={longitude}
@@ -187,12 +131,7 @@ ${result.geocodes.map((geocode, i) => `
           placeholder="纬度"
           keyboardType="numeric"
         />
-        <Button
-          title="查询地址"
-          onPress={handleRegeocode}
-          // disabled={!api}
-        />
-        
+        <Button title="查询地址" onPress={handleReverseGeocode} />
         {regeocodeResult ? (
           <View style={styles.resultBox}>
             <Text style={styles.resultText}>{regeocodeResult}</Text>
@@ -200,50 +139,21 @@ ${result.geocodes.map((geocode, i) => `
         ) : null}
       </View>
 
-      {/* 地理编码 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>3. 地理编码（地址 → 坐标）</Text>
+        <Text style={styles.sectionTitle}>3. searchKeyword（关键词搜索）</Text>
         <TextInput
           style={styles.input}
-          value={address}
-          onChangeText={setAddress}
-          placeholder="输入地址"
+          value={keyword}
+          onChangeText={setKeyword}
+          placeholder="输入关键词，如 咖啡"
         />
-        <Button
-          title="查询坐标"
-          onPress={handleGeocode}
-          // disabled={!api}
-        />
-        
-        {geocodeResult ? (
+        <Button title="搜索 POI" onPress={handleKeywordSearch} />
+        {searchResult ? (
           <View style={styles.resultBox}>
-            <Text style={styles.resultText}>{geocodeResult}</Text>
+            <Text style={styles.resultText}>{searchResult}</Text>
           </View>
         ) : null}
       </View>
-
-      {/* 高级功能 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>4. 高级功能</Text>
-        <Button
-          title="批量逆地理编码"
-          onPress={handleBatchRegeocode}
-          // disabled={!api}
-        />
-      </View>
-
-      <View style={styles.note}>
-        <Text style={styles.noteTitle}>📝 使用说明：</Text>
-        <Text style={styles.noteText}>
-          1. Web API Key 与移动端 Key 不同，需单独申请{'\n'}
-          2. 个人开发者每天有30万次免费额度{'\n'}
-          3. 坐标格式：经度在前，纬度在后{'\n'}
-          4. extensions=all 可获取更详细信息{'\n'}
-          5. 需要网络连接，无法离线使用
-        </Text>
-      </View>
-
-      <View style={styles.spacer} />
     </ScrollView>
   );
 }
@@ -285,12 +195,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 14,
   },
-  hint: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
   resultBox: {
     backgroundColor: '#f0f9ff',
     padding: 12,
@@ -304,27 +208,5 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     color: '#333',
     lineHeight: 18,
-  },
-  note: {
-    backgroundColor: '#fff3e0',
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  noteTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#E65100',
-  },
-  noteText: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 18,
-  },
-  spacer: {
-    height: 40,
   },
 });

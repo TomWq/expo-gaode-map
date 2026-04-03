@@ -1,4 +1,28 @@
 import ExpoGaodeMapSearchModule from './ExpoGaodeMapSearchModule';
+export * as V3 from './v3';
+export { GaodeSearchError } from './search-error';
+export type { SearchErrorType, SearchUnifiedError } from './search-error';
+import {
+  createNativeGeocodeProvider,
+  createNativeSearchProvider,
+} from './v3/native-search-provider';
+export {
+  createNativeGeocodeProvider,
+  createNativeSearchProvider,
+} from './v3/native-search-provider';
+import {
+  createNativeSearchCapabilityAdapter,
+  createNativeSearchRuntime,
+} from './v3/runtime-factories';
+export {
+  createNativeSearchCapabilityAdapter,
+  createNativeSearchRuntime,
+} from './v3/runtime-factories';
+import { createNativeSearchRuntime as createNativeSearchRuntimeFactory } from './v3/runtime-factories';
+export type {
+  NativeSearchCapabilityAdapterOptions,
+  NativeSearchRuntimeOptions,
+} from './v3/runtime-factories';
 import type {
   Coordinates,
   POI,
@@ -16,7 +40,136 @@ import type {
   Road,
   RoadCross,
   AOI,
+  ReGeocodeResult as NativeReGeocodeResult,
+  SearchResult as NativeSearchResult,
+  InputTipsResult as NativeInputTipsResult,
 } from './ExpoGaodeMapSearch.types';
+import type {
+  ReverseGeocodeResult as V3ReverseGeocodeResult,
+  SearchPage as V3SearchPage,
+  SearchPOI as V3SearchPOI,
+  SearchSuggestion as V3SearchSuggestion,
+} from './v3/domain';
+
+let legacyRuntime: ReturnType<typeof createNativeSearchRuntimeFactory> | null = null;
+
+function getLegacyRuntime(): ReturnType<typeof createNativeSearchRuntimeFactory> {
+  if (!legacyRuntime) {
+    legacyRuntime = createNativeSearchRuntimeFactory();
+  }
+  return legacyRuntime;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function asNativeSearchResult(raw: unknown): NativeSearchResult | null {
+  if (!isRecord(raw) || !Array.isArray(raw.pois)) {
+    return null;
+  }
+
+  return raw as unknown as NativeSearchResult;
+}
+
+function asNativeInputTipsResult(raw: unknown): NativeInputTipsResult | null {
+  if (!isRecord(raw) || !Array.isArray(raw.tips)) {
+    return null;
+  }
+
+  return raw as unknown as NativeInputTipsResult;
+}
+
+function asNativeReGeocodeResult(raw: unknown): NativeReGeocodeResult | null {
+  if (!isRecord(raw) || typeof raw.formattedAddress !== 'string') {
+    return null;
+  }
+
+  return raw as unknown as NativeReGeocodeResult;
+}
+
+function toLegacyPOI(poi: V3SearchPOI): POI {
+  return {
+    id: poi.id ?? '',
+    name: poi.name,
+    address: poi.address ?? '',
+    location: poi.location ?? { latitude: 0, longitude: 0 },
+    typeCode: poi.typeCode ?? '',
+    typeDes: poi.typeName ?? '',
+    distance: poi.distanceMeters,
+    cityName: poi.cityName,
+    cityCode: poi.cityCode,
+    provinceName: poi.provinceName,
+    adName: poi.districtName,
+    adCode: poi.districtCode,
+  };
+}
+
+function toLegacySearchResult(page: V3SearchPage<V3SearchPOI>): SearchResult {
+  const total = page.total ?? page.items.length;
+  const pageNum = page.page ?? 1;
+  const pageSize = page.pageSize ?? Math.max(page.items.length, 1);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  return {
+    pois: page.items.map(toLegacyPOI),
+    total,
+    pageNum,
+    pageSize,
+    pageCount,
+  };
+}
+
+function toLegacyInputTip(item: V3SearchSuggestion): InputTip {
+  return {
+    id: item.id ?? '',
+    name: item.name,
+    address: item.address ?? '',
+    location: item.location ?? undefined,
+    typeCode: item.typeCode,
+    cityName: item.cityName,
+    adName: item.districtName,
+  };
+}
+
+function toLegacyInputTipsResult(
+  page: V3SearchPage<V3SearchSuggestion>
+): InputTipsResult {
+  return {
+    tips: page.items.map(toLegacyInputTip),
+  };
+}
+
+function createEmptyAddressComponent(): AddressComponent {
+  return {
+    province: '',
+    city: '',
+    district: '',
+    township: '',
+    neighborhood: '',
+    building: '',
+    cityCode: '',
+    adCode: '',
+    streetNumber: {
+      street: '',
+      number: '',
+      direction: '',
+      distance: 0,
+    },
+    businessAreas: [],
+  };
+}
+
+function toLegacyReGeocodeResult(result: V3ReverseGeocodeResult): ReGeocodeResult {
+  return {
+    formattedAddress: result.formattedAddress,
+    addressComponent: createEmptyAddressComponent(),
+    pois: result.pois.map(toLegacyPOI),
+    roads: [] as Road[],
+    roadCrosses: [] as RoadCross[],
+    aois: [] as AOI[],
+  };
+}
 
 /**
  * 初始化搜索模块（可选）
@@ -35,6 +188,8 @@ import type {
  * // 可选：提前初始化以检测问题
  * initSearch();
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export function initSearch(): void {
   ExpoGaodeMapSearchModule.initSearch();
@@ -59,9 +214,20 @@ export function initSearch(): void {
  *   console.log(poi.name, poi.address);
  * });
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export async function searchPOI(options: POISearchOptions): Promise<SearchResult> {
-  return await ExpoGaodeMapSearchModule.searchPOI(options);
+  const runtime = getLegacyRuntime();
+  const page = await runtime.search.searchKeyword({
+    keyword: options.keyword,
+    city: options.city,
+    types: options.types,
+    page: options.pageNum,
+    pageSize: options.pageSize,
+    location: options.center,
+  });
+  return asNativeSearchResult(page.raw) ?? toLegacySearchResult(page);
 }
 
 /**
@@ -78,9 +244,20 @@ export async function searchPOI(options: POISearchOptions): Promise<SearchResult
  *   radius: 1000,
  * });
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export async function searchNearby(options: NearbySearchOptions): Promise<SearchResult> {
-  return await ExpoGaodeMapSearchModule.searchNearby(options);
+  const runtime = getLegacyRuntime();
+  const page = await runtime.search.searchNearby({
+    keyword: options.keyword,
+    center: options.center,
+    radius: options.radius,
+    types: options.types,
+    page: options.pageNum,
+    pageSize: options.pageSize,
+  });
+  return asNativeSearchResult(page.raw) ?? toLegacySearchResult(page);
 }
 
 /**
@@ -100,9 +277,19 @@ export async function searchNearby(options: NearbySearchOptions): Promise<Search
  *   range: 500,
  * });
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export async function searchAlong(options: AlongSearchOptions): Promise<SearchResult> {
-  return await ExpoGaodeMapSearchModule.searchAlong(options);
+  const runtime = getLegacyRuntime();
+  const page = await runtime.search.searchAlong({
+    keyword: options.keyword,
+    polyline: options.polyline,
+    range: options.range,
+    page: undefined,
+    pageSize: undefined,
+  });
+  return asNativeSearchResult(page.raw) ?? toLegacySearchResult(page);
 }
 
 /**
@@ -122,9 +309,19 @@ export async function searchAlong(options: AlongSearchOptions): Promise<SearchRe
  *   ],
  * });
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export async function searchPolygon(options: PolygonSearchOptions): Promise<SearchResult> {
-  return await ExpoGaodeMapSearchModule.searchPolygon(options);
+  const runtime = getLegacyRuntime();
+  const page = await runtime.search.searchPolygon({
+    keyword: options.keyword,
+    polygon: options.polygon,
+    types: options.types,
+    page: options.pageNum,
+    pageSize: options.pageSize,
+  });
+  return asNativeSearchResult(page.raw) ?? toLegacySearchResult(page);
 }
 
 /**
@@ -143,9 +340,17 @@ export async function searchPolygon(options: PolygonSearchOptions): Promise<Sear
  *   console.log(tip.name, tip.address);
  * });
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export async function getInputTips(options: InputTipsOptions): Promise<InputTipsResult> {
-  return await ExpoGaodeMapSearchModule.getInputTips(options);
+  const runtime = getLegacyRuntime();
+  const page = await runtime.search.getInputTips({
+    keyword: options.keyword,
+    city: options.city,
+    types: options.types,
+  });
+  return asNativeInputTipsResult(page.raw) ?? toLegacyInputTipsResult(page);
 }
 
 /**
@@ -162,9 +367,17 @@ export async function getInputTips(options: InputTipsOptions): Promise<InputTips
  * });
  * console.log(result.formattedAddress);
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeGeocodeProvider` 或 `createNativeSearchRuntime`
  */
 export async function reGeocode(options: ReGeocodeOptions): Promise<ReGeocodeResult> {
-  return await ExpoGaodeMapSearchModule.reGeocode(options);
+  const runtime = getLegacyRuntime();
+  const result = await runtime.geocode.reverseGeocode({
+    location: options.location,
+    radius: options.radius,
+    extensions: options.requireExtension ? 'all' : 'base',
+  });
+  return asNativeReGeocodeResult(result.raw) ?? toLegacyReGeocodeResult(result);
 }
 
 /**
@@ -178,8 +391,15 @@ export async function reGeocode(options: ReGeocodeOptions): Promise<ReGeocodeRes
  * const poi = await getPoiDetail('B000A83M61');
  * console.log(poi.name, poi.address);
  * ```
+ *
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchProvider` 或 `createNativeSearchRuntime`
  */
 export async function getPoiDetail(id: string): Promise<POI> {
+  const runtime = getLegacyRuntime();
+  const poi = await runtime.search.getPoiDetail(id);
+  if (poi) {
+    return toLegacyPOI(poi);
+  }
   return await ExpoGaodeMapSearchModule.getPoiDetail(id);
 }
 
@@ -205,8 +425,11 @@ export type {
 
 export { SearchType } from './ExpoGaodeMapSearch.types';
 
-// 默认导出
-export default {
+/**
+ * Legacy 函数式 API 兼容层。
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchRuntime`
+ */
+export const LegacySearch = {
   initSearch,
   searchPOI,
   searchNearby,
@@ -214,4 +437,25 @@ export default {
   searchPolygon,
   getInputTips,
   reGeocode,
+  getPoiDetail,
 };
+
+/**
+ * @deprecated 建议迁移到 v3 provider/runtime：`createNativeSearchRuntime`
+ */
+export type LegacySearchAPI = typeof LegacySearch;
+
+/**
+ * v3 provider/runtime API 聚合导出。
+ */
+export const V3Search = {
+  createNativeSearchProvider,
+  createNativeGeocodeProvider,
+  createNativeSearchCapabilityAdapter,
+  createNativeSearchRuntime,
+};
+
+/**
+ * 兼容默认导出（legacy 函数式 API）。
+ */
+export default LegacySearch;

@@ -16,7 +16,8 @@ npm install expo-gaode-map-web-api
 ```
 
 ::: tip 提示
-Web API 包需要先安装基础地图组件（`expo-gaode-map` 或 `expo-gaode-map-navigation` 任选其一）。
+Web API 包可独立使用，不强依赖 `expo-gaode-map` / `expo-gaode-map-navigation`。
+如果你已经在基础模块 `initSDK` 里下发了 `webKey`，这里也可以无参构造复用该 key。
 :::
 
 ## 特性
@@ -24,7 +25,8 @@ Web API 包需要先安装基础地图组件（`expo-gaode-map` 或 `expo-gaode-
 - ✅ **纯 JavaScript**：跨平台一致，无原生编译依赖
 - ✅ **TypeScript 支持**：完整类型定义与错误码映射
 - ✅ **V5 API 适配**：已适配最新的路径规划策略与字段
-- ✅ **协同工作**：从基础模块读取 webKey，支持无参构造
+- ✅ **可独立使用**：仅安装本包并显式传入 key 即可
+- ✅ **协同工作**：可从基础模块读取 webKey，支持无参构造
 - ✅ **错误友好**：封装 `GaodeAPIError`，提供错误码中文说明
 
 ## 配置
@@ -37,7 +39,21 @@ Web API 包需要先安装基础地图组件（`expo-gaode-map` 或 `expo-gaode-
 这是 **Web 服务 Key**，不是 iOS/Android Key。
 :::
 
-### 2. 在基础模块初始化时配置
+### 2. 提供 Web API Key（推荐显式传入）
+
+#### 方式 A：在 Web API 运行时显式传入（推荐）
+
+```typescript
+import { createWebRuntime } from 'expo-gaode-map-web-api';
+
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
+```
+
+#### 方式 B：在基础模块初始化时下发（可选）
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
@@ -59,20 +75,32 @@ ExpoGaodeMapModule.initSDK({
 
 ### 3. 创建 API 实例
 
-你可以通过以下两种方式创建 API 实例：
+你可以通过以下三种方式创建 API 实例：
 
-#### 方式 A：无参构造（推荐）
+#### 方式 A：v3 runtime/provider（推荐）
+
+```typescript
+import { createWebRuntime } from 'expo-gaode-map-web-api';
+
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
+```
+
+#### 方式 B：`GaodeWebAPI` class（兼容层）
 
 如果你已经在基础模块（如 `expo-gaode-map`）的 `initSDK` 中配置了 `webKey`，则可以直接使用无参构造：
 
 ```typescript
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
 
-// 推荐：无参构造（从基础模块读取 webKey）
+// 兼容：无参构造（从基础模块读取 webKey）
 const api = new GaodeWebAPI();
 ```
 
-#### 方式 B：显式传入 Key 与高级配置
+#### 方式 C：显式传入 Key 与高级配置
 
 如果你需要配置重试策略或开启缓存，可以使用配置对象：
 

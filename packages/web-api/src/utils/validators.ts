@@ -7,7 +7,12 @@ export function validateCoordinate(coordinate: string): void {
   const pattern = /^-?((1[0-7]\d|\d{1,2})(\.\d+)?|180(\.0+)?),-?([0-8]\d(\.\d+)?|90(\.0+)?|\d(\.\d+)?)$/;
   
   if (!pattern.test(coordinate)) {
-    throw new Error(`Invalid coordinate format: "${coordinate}". Expected format: "longitude,latitude" (e.g., "116.481028,39.989643")`);
+    throw new GaodeWebApiRuntimeError({
+      code: 'INVALID_COORDINATE_FORMAT',
+      type: 'validation_error',
+      message: `Invalid coordinate format: "${coordinate}". Expected format: "longitude,latitude" (e.g., "116.481028,39.989643")`,
+      retryable: false,
+    });
   }
 }
 
@@ -20,3 +25,4 @@ export function validateCoordinates(coordinates: string, separator: string = '|'
   const coords = coordinates.split(separator);
   coords.forEach(coord => validateCoordinate(coord));
 }
+import { GaodeWebApiRuntimeError } from './client';

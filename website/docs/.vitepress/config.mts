@@ -13,12 +13,45 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
+          {
+            text: '版本',
+            items: [
+              { text: 'v2（旧版）', link: '/' },
+              { text: 'v3（新版）', link: '/v3/' }
+            ]
+          },
+          { text: 'v3 新版', link: '/v3/' },
           { text: '快速开始', link: '/guide/getting-started' },
           { text: 'API', link: '/api/' },
           { text: '示例', link: '/examples/' },
           { text: 'GitHub', link: 'https://github.com/TomWq/expo-gaode-map' }
         ],
         sidebar: {
+          '/v3/guide/': [
+          {
+            text: 'V3 指南',
+            items: [
+              { text: 'V3 首页', link: '/v3/' },
+              { text: '快速开始', link: '/v3/guide/getting-started' },
+              { text: '初始化', link: '/v3/guide/initialization' },
+              { text: '架构说明', link: '/v3/guide/architecture' },
+              { text: '导航功能', link: '/v3/guide/navigation' },
+              { text: 'Web API', link: '/v3/guide/web-api' },
+              { text: '搜索功能', link: '/v3/guide/search' },
+              { text: '迁移说明', link: '/v3/guide/migration' }
+            ]
+          }
+          ],
+          '/v3/api/': [
+            {
+              text: 'V3 API',
+              items: [
+                { text: 'API 总览', link: '/v3/api/' },
+                { text: 'Web API', link: '/v3/api/web-api' },
+                { text: '搜索 API', link: '/v3/api/search' }
+              ]
+            }
+          ],
           '/guide/': [
             {
               text: '指南',
@@ -91,12 +124,45 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },
+          {
+            text: 'Version',
+            items: [
+              { text: 'v2 (Legacy)', link: '/en/' },
+              { text: 'v3 (New)', link: '/en/v3/' }
+            ]
+          },
+          { text: 'v3 Docs', link: '/en/v3/' },
           { text: 'Get Started', link: '/en/guide/getting-started' },
           { text: 'API', link: '/en/api/' },
           { text: 'Examples', link: '/en/examples/' },
           { text: 'GitHub', link: 'https://github.com/TomWq/expo-gaode-map' }
         ],
         sidebar: {
+          '/en/v3/guide/': [
+          {
+            text: 'V3 Guide',
+            items: [
+              { text: 'V3 Home', link: '/en/v3/' },
+              { text: 'Getting Started', link: '/en/v3/guide/getting-started' },
+              { text: 'Initialization', link: '/en/v3/guide/initialization' },
+              { text: 'Architecture', link: '/en/v3/guide/architecture' },
+              { text: 'Navigation', link: '/en/v3/guide/navigation' },
+              { text: 'Web API', link: '/en/v3/guide/web-api' },
+              { text: 'Search', link: '/en/v3/guide/search' },
+              { text: 'Migration', link: '/en/v3/guide/migration' }
+            ]
+          }
+          ],
+          '/en/v3/api/': [
+            {
+              text: 'V3 API',
+              items: [
+                { text: 'API Overview', link: '/en/v3/api/' },
+                { text: 'Web API', link: '/en/v3/api/web-api' },
+                { text: 'Search API', link: '/en/v3/api/search' }
+              ]
+            }
+          ],
           '/en/guide/': [
             {
               text: 'Guide',

@@ -1,12 +1,13 @@
 # expo-gaode-map-web-api
 
-高德地图 Web API 服务模块（纯 JavaScript 实现），提供地理编码、路径规划、POI 搜索、输入提示等服务能力。支持与导航模块或核心地图模块协同，统一在应用初始化时下发 Web 服务 Key，随后直接无参构造使用。
+高德地图 Web API 服务模块（纯 JavaScript 实现），提供地理编码、路径规划、POI 搜索、输入提示等服务能力。可独立使用；也支持与导航模块或核心地图模块协同，在应用初始化时复用 Web 服务 Key。
 
 ## 特性
 
 - ✅ 纯 JavaScript：跨平台一致，无原生编译依赖（使用标准 `fetch`）
 - ✅ TypeScript：完整类型定义与错误码映射
 - ✅ 已适配新版 V5 路径规划策略与字段
+- ✅ 可独立使用：仅安装本包并显式传入 key 即可
 - ✅ 与地图/导航模块协作：从基础初始化动态解析 Web Key，支持无参构造
 - ✅ 运行时错误友好：封装 `GaodeAPIError`，提供错误码中文说明与排查建议
 
@@ -28,12 +29,6 @@
 
 ## 安装
 
-本模块要求先安装且初始化基础地图组件（导航模块或核心地图模块其一即可），用于提供 Web API Key：
-
-- 任选其一：
-  - `expo-gaode-map-navigation`（导航一体化，内置地图能力）
-  - `expo-gaode-map`（核心地图）
-
 安装本模块：
 ```bash
 bun add expo-gaode-map-web-api
@@ -42,7 +37,11 @@ yarn add expo-gaode-map-web-api
 # 或
 npm install expo-gaode-map-web-api
 ```
-注：若未安装上述基础包，安装时或运行时会给出明确提示。
+
+可选协同包（非必需）：
+
+- `expo-gaode-map-navigation`（导航一体化，内置地图能力）
+- `expo-gaode-map`（核心地图）
 
 ## 快速开始
 
@@ -50,8 +49,22 @@ npm install expo-gaode-map-web-api
 - 登录 [高德开放平台控制台](https://console.amap.com/)
 - 创建应用，添加“Web 服务”Key（注意：不是 iOS/Android Key）
 
-### 2. 在基础模块初始化时下发 webKey
-以导航模块为例（核心模块同理）：
+### 2. 提供 Web API Key
+
+方式 A（独立使用，推荐显式传入）：
+
+```ts
+import { createWebRuntime } from 'expo-gaode-map-web-api';
+
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
+```
+
+方式 B（与地图/导航协同，复用 initSDK 的 `webKey`）：
+
 ```ts
 import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
@@ -60,35 +73,25 @@ ExpoGaodeMapModule.initSDK({
 });
 ```
 
-### 3. 创建实例并使用
+### 3. 创建 Runtime 并使用（v3 推荐）
 
-你可以通过以下两种方式创建 API 实例：
-
-#### 方式 A：无参构造（推荐）
-先在基础模块初始化时配置 `webKey`，随后直接无参构造。这种方式便于统一管理 Key。
+如果已经在基础模块 `initSDK` 中提供过 `webKey`，这里可以省略 `config.key`：
 
 ```ts
-import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+import { createWebRuntime } from 'expo-gaode-map-web-api';
 
-// 无参：从基础模块运行时自动解析 webKey
-const api = new GaodeWebAPI();
-```
-
-#### 方式 B：显式传入 Key
-如果你不想依赖基础模块的初始化，或者需要使用不同的 Key，可以在构造函数中显式传入。
-
-```ts
-import { GaodeWebAPI } from 'expo-gaode-map-web-api';
-
-// 显式传入：直接使用提供的 Web 服务 Key
-const api = new GaodeWebAPI({ key: 'your-web-api-key' });
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
 ```
 
 ### Web API Key 解析顺序
 
-`GaodeWebAPI` 会按以下顺序解析 Web API Key：
+`createWebRuntime` / provider 最终也会使用相同的 key 解析策略：
 
-1. `new GaodeWebAPI({ key })` 中显式传入的 `key`
+1. Runtime/provider `config.key`
 2. `expo-gaode-map` 的 `ExpoGaodeMapModule.initSDK({ webKey })`
 3. `expo-gaode-map-navigation` 的 `ExpoGaodeMapModule.initSDK({ webKey })`
 
@@ -96,25 +99,31 @@ const api = new GaodeWebAPI({ key: 'your-web-api-key' });
 
 如果你的业务需要稳定使用 Web API，推荐显式传入 `key`，尤其是在示例工程、测试环境或多入口初始化场景里。
 
+> `GaodeWebAPI` class 仍可用（主入口默认导出，legacy 兼容层），建议新代码迁移到 v3 runtime/provider。
+> `expo-gaode-map-web-api/legacy` 仍保留为显式 legacy 别名入口。
+
 ### 4. 调用服务接口
 ```ts
-// 逆地理编码：坐标 → 地址
-const result = await api.geocode.regeocode('116.481028,39.989643');
-console.log(result.regeocode.formatted_address);
-
-// 地理编码：地址 → 坐标
-const geo = await api.geocode.geocode('北京市朝阳区阜通东大街6号');
-console.log(geo.geocodes[0].location);
-
-// 驾车路径规划（V5）
-const route = await api.route.driving('116.481028,39.989643', '116.434446,39.90816', {
-  show_fields: 'cost,navi,polyline',
+// 逆地理编码：坐标 -> 地址
+const geocode = await runtime.geocode.reverseGeocode({
+  location: { latitude: 39.989643, longitude: 116.481028 },
+  extensions: 'all',
 });
-console.log(route.route.paths[0].distance);
+console.log(geocode.formattedAddress);
 
-// AOI 边界查询（需开通权限）
-const aoi = await api.poi.getAOIBoundary('your-aoi-id');
-console.log(Array.isArray(aoi.aois) ? aoi.aois[0]?.polyline : aoi.aois?.polyline);
+// 驾车路径规划
+const route = await runtime.route.calculateDrivingRoute({
+  origin: { latitude: 39.989643, longitude: 116.481028 },
+  destination: { latitude: 39.90816, longitude: 116.434446 },
+});
+console.log(route.distanceMeters);
+
+// 关键字搜索
+const poiPage = await runtime.search.searchKeyword({
+  keyword: '肯德基',
+  city: '北京',
+});
+console.log(poiPage.items.length);
 ```
 
 ## 详细用法
@@ -268,7 +277,9 @@ result.regeocodes.forEach(item => {
 });
 ```
 
-### 地理编码
+### 地理编码（Legacy class API）
+
+> 以下示例基于 `GaodeWebAPI` class，仅用于兼容旧代码。新项目请优先使用 v3 runtime/provider。
 
 #### 基础用法
 
@@ -317,7 +328,7 @@ result.geocodes.forEach(geocode => {
 import React, { useState, useEffect } from 'react';
 import { View, Text } from 'react-native';
 import * as Location from 'expo-location';
-import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+import { GaodeWebAPI } from 'expo-gaode-map-web-api/legacy';
 
 const api = new GaodeWebAPI();
 
@@ -358,7 +369,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button } from 'react-native';
 // 如在“导航一体化模块”渲染地图，推荐：
 import { MapView, Marker } from 'expo-gaode-map-navigation';
-import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+import { GaodeWebAPI } from 'expo-gaode-map-web-api/legacy';
 
 const api = new GaodeWebAPI();
 
@@ -577,7 +588,7 @@ result.route.transits.forEach((transit, index) => {
 
 ## API 参考
 
-### GaodeWebAPI
+### GaodeWebAPI（Legacy）
 
 主类，用于创建 API 实例。
 

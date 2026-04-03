@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import { ExpoGaodeMapModule } from 'expo-gaode-map';
+import { createCorePlatformRuntime, ExpoGaodeMapModule } from 'expo-gaode-map';
 
 import {
   EXAMPLE_ANDROID_KEY,
@@ -56,6 +56,32 @@ export default function ExampleRuntimeGate({
         ...(EXAMPLE_ANDROID_KEY ? { androidKey: EXAMPLE_ANDROID_KEY } : {}),
         ...(EXAMPLE_IOS_KEY ? { iosKey: EXAMPLE_IOS_KEY } : {}),
         ...(EXAMPLE_WEB_API_KEY ? { webKey: EXAMPLE_WEB_API_KEY } : {}),
+      });
+
+      createCorePlatformRuntime({
+        map: {
+          privacyConfig: {
+            hasShow: true,
+            hasContainsPrivacy: true,
+            hasAgree: true,
+          },
+          sdkConfig: {
+            ...(EXAMPLE_ANDROID_KEY ? { androidKey: EXAMPLE_ANDROID_KEY } : {}),
+            ...(EXAMPLE_IOS_KEY ? { iosKey: EXAMPLE_IOS_KEY } : {}),
+            ...(EXAMPLE_WEB_API_KEY ? { webKey: EXAMPLE_WEB_API_KEY } : {}),
+          },
+        },
+        autoBootstrapMap: true,
+        capability: {
+          selection: {
+            requirements: {
+              search: true,
+              geocode: true,
+              route: true,
+            },
+            prefer: 'native-first',
+          },
+        },
       });
 
       try {

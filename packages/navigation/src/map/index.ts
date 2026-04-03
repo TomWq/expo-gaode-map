@@ -1,6 +1,24 @@
 
 import { createPermissionHook } from 'expo-modules-core';
 import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
+export * as V3 from './v3';
+export {
+  createNavigationCapabilityRuntime,
+  createNavigationPlatformRuntime,
+  createNavigationRuntime,
+  resolveNavigationCapabilityAdapters,
+} from './v3/runtime-factories';
+export type {
+  NavigationCapabilityAssemblyOptions,
+  NavigationCapabilityAdaptersResult,
+  NavigationCapabilityRuntime,
+  NavigationCapabilityRuntimeOptions,
+  NavigationPlatformRuntime,
+  NavigationPlatformRuntimeOptions,
+  NavigationRuntime,
+  NavigationRuntimeModule,
+  NavigationRuntimeOptions,
+} from './v3/runtime-factories';
 
 // 导出类型定义（包含所有通用类型）
 export * from './types';
@@ -11,6 +29,9 @@ export { default as ExpoGaodeMapModule } from './ExpoGaodeMapModule';
 export { default as MapView } from './ExpoGaodeMapView';
 export { useMap } from './components/MapContext';
 export { MapUI } from './components/MapUI';
+export { RouteOverlay } from './components/RouteOverlay';
+export { AreaMaskOverlay } from './components/AreaMaskOverlay';
+export { useRoutePlayback } from './hooks/useRoutePlayback';
 
 // 导出覆盖物组件
 export {
@@ -98,3 +119,9 @@ export const useLocationPermissions = createPermissionHook({
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';
+export {
+  buildLatLngBounds,
+  fitCameraToCoordinates,
+  getRouteBounds,
+  parseMultiRingPolyline,
+} from './utils/RouteUtils';

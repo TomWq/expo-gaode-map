@@ -1,3 +1,4 @@
+// This file is generated from internal/core-nav-source. Run `yarn sync:core-nav-shared` after editing the source files.
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
 import type { ViewProps } from 'react-native';

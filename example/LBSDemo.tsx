@@ -8,7 +8,7 @@ import {
   type MapViewRef,
   type CameraPosition 
 } from 'expo-gaode-map';
-import { GaodeWebAPI, DrivingStrategy } from 'expo-gaode-map-web-api';
+import { DrivingStrategy, createWebRuntime } from 'expo-gaode-map-web-api';
 
 import { EXAMPLE_WEB_API_KEY } from './exampleConfig';
 
@@ -23,10 +23,14 @@ export default function LBSDemo() {
   const [routePath, setRoutePath] = useState<any[]>([]); // 路径规划结果（坐标点串）
   const [routeInfo, setRouteInfo] = useState<{distance: number, duration: number} | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [api, setApi] = useState<GaodeWebAPI | null>(null);
+  const [runtime, setRuntime] = useState<ReturnType<typeof createWebRuntime> | null>(null);
   useEffect(() => {
-    const newApi = new GaodeWebAPI({ key: EXAMPLE_WEB_API_KEY });
-    setApi(newApi);
+    const nextRuntime = createWebRuntime({
+      search: { config: { key: EXAMPLE_WEB_API_KEY } },
+      geocode: { config: { key: EXAMPLE_WEB_API_KEY } },
+      route: { config: { key: EXAMPLE_WEB_API_KEY } },
+    });
+    setRuntime(nextRuntime);
   }, []);
 
   
@@ -38,12 +42,15 @@ export default function LBSDemo() {
       const loc = await ExpoGaodeMapModule.getCurrentLocation();
       
       // 2. Web API: 逆地理编码获取详细地址
-      const regeo = await api?.geocode.regeocode({
-        latitude: loc.latitude,
-        longitude: loc.longitude
+      const regeo = await runtime?.geocode.reverseGeocode({
+        location: {
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        },
+        extensions: 'all',
       });
 
-      const address = regeo?.regeocode.formatted_address;
+      const address = regeo?.formattedAddress;
       
       const newLoc = {
         latitude: loc.latitude,
@@ -79,14 +86,38 @@ export default function LBSDemo() {
       const options: any = { city: '北京' }; // 默认城市
       if (currentLocation) {
          // 周边搜索更符合用户直觉
-         const result = await api?.poi.searchAround(
-             { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
-             { keywords: searchText }
+         const result = await runtime?.search.searchNearby({
+           keyword: searchText,
+           center: {
+             latitude: currentLocation.latitude,
+             longitude: currentLocation.longitude,
+           },
+         });
+         setSearchResults(
+           (result?.items ?? []).map((poi) => ({
+             id: poi.id ?? poi.name,
+             name: poi.name,
+             address: poi.address ?? '',
+             location: poi.location
+               ? `${poi.location.longitude},${poi.location.latitude}`
+               : '',
+           }))
          );
-         setSearchResults(result?.pois || []);
       } else {
-         const result = await api?.poi.search(searchText, options);
-         setSearchResults(result?.pois || []);
+         const result = await runtime?.search.searchKeyword({
+           keyword: searchText,
+           city: options.city,
+         });
+         setSearchResults(
+           (result?.items ?? []).map((poi) => ({
+             id: poi.id ?? poi.name,
+             name: poi.name,
+             address: poi.address ?? '',
+             location: poi.location
+               ? `${poi.location.longitude},${poi.location.latitude}`
+               : '',
+           }))
+         );
       }
     } catch (error) {
       Alert.alert('搜索失败', String(error));
@@ -121,39 +152,23 @@ export default function LBSDemo() {
     try {
       // Web API: 驾车规划
       // 格式: "经度,纬度"
-      const startStr = `${currentLocation.longitude},${currentLocation.latitude}`;
-      const endStr = `${selectedPoi.longitude},${selectedPoi.latitude}`;
-
-      const result = await api?.route.driving(startStr, endStr, {
+      const result = await runtime?.route.calculateDrivingRoute({
+        origin: {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+        },
+        destination: {
+          latitude: selectedPoi.latitude,
+          longitude: selectedPoi.longitude,
+        },
         strategy: DrivingStrategy.AVOID_JAM, // 躲避拥堵
-        show_fields: 'cost,polyline', // 必须请求 cost 和 polyline 字段
       });
 
-      if (result && result.route.paths.length > 0) {
-        const path = result.route.paths[0];
-        
-        // 解析步骤中的所有坐标点
-        const points: any[] = [];
-        path.steps.forEach(step => {
-          const polyline = step.polyline; // "lng,lat;lng,lat..."
-          if (polyline) {
-            const coords = polyline.split(';').map(pair => {
-              const [lng, lat] = pair.split(',').map(Number);
-              return { latitude: lat, longitude: lng };
-            });
-            points.push(...coords);
-          }
-        });
-
-        setRoutePath(points);
-        
-        // V5 API 推荐从 cost 对象中获取 duration，同时也兼容旧字段
-        const durationStr = path.cost?.duration || path.duration || '0';
-        const distanceStr = path.distance || '0';
-        
+      if (result) {
+        setRoutePath(result.path);
         setRouteInfo({
-          distance: Number(distanceStr),
-          duration: Number(durationStr)
+          distance: result.distanceMeters,
+          duration: result.durationSeconds,
         });
 
         // 缩放地图以显示全貌

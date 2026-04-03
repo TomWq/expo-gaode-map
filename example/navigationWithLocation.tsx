@@ -9,7 +9,7 @@ import {
   type Coordinates,
   type LatLng,
 } from 'expo-gaode-map';
-import { DrivingStrategy, GaodeWebAPI, extractRoutePoints } from 'expo-gaode-map-web-api';
+import { DrivingStrategy, createWebRuntime } from 'expo-gaode-map-web-api';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -34,8 +34,13 @@ export default function NavigationWithLocation() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const C = Colors[scheme];
   const mapRef = useRef<MapViewRef>(null);
-  const api = useMemo(
-    () => new GaodeWebAPI({ key: EXAMPLE_WEB_API_KEY }),
+  const runtime = useMemo(
+    () =>
+      createWebRuntime({
+        search: { config: { key: EXAMPLE_WEB_API_KEY } },
+        geocode: { config: { key: EXAMPLE_WEB_API_KEY } },
+        route: { config: { key: EXAMPLE_WEB_API_KEY } },
+      }),
     []
   );
 
@@ -124,12 +129,13 @@ export default function NavigationWithLocation() {
         ? { latitude: startLoc.latitude, longitude: startLoc.longitude }
         : defaultOrigin;
 
-      const response = await api.route.driving(origin, defaultDest, {
+      const plan = await runtime.route.calculateDrivingRoute({
+        origin,
+        destination: defaultDest,
         strategy: DrivingStrategy.DEFAULT,
-        show_fields: 'polyline,cost',
       });
 
-      const points = extractRoutePoints(response);
+      const points = plan.path;
       if (!points.length) {
         throw new Error('当前路线没有可用的 polyline 点集');
       }

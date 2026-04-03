@@ -16,6 +16,11 @@ import type { ExpoGaodeMapModule as NativeExpoGaodeMapModule } from './types/nat
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
 import { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
+import {
+  createMapRuntime,
+  type MapRuntimeBootstrapOptions,
+  type MapRuntimeState,
+} from './v3/map-runtime';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
 
@@ -234,6 +239,84 @@ function assertPrivacyReady(scene: 'map' | 'sdk' = 'sdk'): void {
   }
 }
 
+function getPrivacyStatusInternal(): PrivacyStatus {
+  const nativeModule = getNativeModule();
+  if (!nativeModule) {
+    return {
+      hasShow: false,
+      hasContainsPrivacy: false,
+      hasAgree: false,
+      isReady: false,
+      privacyVersion: null,
+      agreedPrivacyVersion: null,
+      restoredFromStorage: false,
+    };
+  }
+  return nativeModule.getPrivacyStatus();
+}
+
+function setPrivacyConfigInternal(config: PrivacyConfig): void {
+  const nativeModule = getNativeModule();
+  if (!nativeModule) {
+    throw ErrorHandler.nativeModuleUnavailable();
+  }
+  if (typeof config.privacyVersion === 'string') {
+    nativeModule.setPrivacyVersion(config.privacyVersion);
+  }
+  nativeModule.setPrivacyShow(
+    config.hasShow,
+    config.hasContainsPrivacy ?? config.hasShow
+  );
+  nativeModule.setPrivacyAgree(config.hasAgree);
+}
+
+function initSDKInternal(config: SDKConfig): void {
+  const nativeModule = getNativeModule();
+  if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+  try {
+    const privacyStatus = nativeModule.getPrivacyStatus();
+    if (!privacyStatus.isReady) {
+      throw ErrorHandler.privacyNotAgreed('sdk');
+    }
+
+    // 检查是否有任何 key 被提供
+    const hasJSKeys = !!(config.androidKey || config.iosKey);
+    const hasWebKey = !!config.webKey;
+    // 如果 JS 端没有提供 androidKey/iosKey,检查原生端是否已配置
+    if (!hasJSKeys) {
+      const isNativeConfigured = nativeModule.isNativeSDKConfigured();
+      if (!isNativeConfigured && !hasWebKey) {
+        throw ErrorHandler.invalidApiKey('both');
+      }
+      // 如果原生已配置,或者只提供了 webKey,继续初始化
+      ErrorLogger.warn(
+        isNativeConfigured
+          ? 'SDK 使用原生端配置的 API Key'
+          : 'SDK 初始化仅使用 webKey',
+        { config }
+      );
+    }
+    _sdkConfig = config ?? null;
+    nativeModule.initSDK(config);
+    _isSDKInitialized = true;
+    ErrorLogger.warn('SDK 初始化成功', { config });
+  } catch (error) {
+    _isSDKInitialized = false;
+    throw ErrorHandler.wrapNativeError(error, 'SDK 初始化');
+  }
+}
+
+const mapRuntime = createMapRuntime({
+  module: {
+    setPrivacyConfig: setPrivacyConfigInternal,
+    getPrivacyStatus: getPrivacyStatusInternal,
+    initSDK: initSDKInternal,
+    isSDKInitialized: () => _isSDKInitialized,
+  },
+  getSDKConfig: () => _sdkConfig,
+  getWebKey: () => _sdkConfig?.webKey,
+});
+
 // 扩展原生模块，添加便捷方法
 const helperMethods = {
 
@@ -242,43 +325,11 @@ const helperMethods = {
    * 注意：允许不提供任何 API Key，因为原生端可能已通过 Config Plugin 配置
    */
   initSDK(config: SDKConfig): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
-    try {
-      const privacyStatus = nativeModule.getPrivacyStatus();
-      if (!privacyStatus.isReady) {
-        throw ErrorHandler.privacyNotAgreed('sdk');
-      }
-
-       // 检查是否有任何 key 被提供
-    const hasJSKeys = !!(config.androidKey || config.iosKey);
-    const hasWebKey = !!config.webKey;
-     // 如果 JS 端没有提供 androidKey/iosKey,检查原生端是否已配置
-       if (!hasJSKeys) {
-        const isNativeConfigured =  nativeModule.isNativeSDKConfigured();
-        if (!isNativeConfigured && !hasWebKey){
-          throw ErrorHandler.invalidApiKey('both');
-        }
-         // 如果原生已配置,或者只提供了 webKey,继续初始化
-          ErrorLogger.warn(
-            isNativeConfigured
-              ? 'SDK 使用原生端配置的 API Key'
-              : 'SDK 初始化仅使用 webKey',
-            { config }
-          );
-       }
-      _sdkConfig = config ?? null;
-      nativeModule.initSDK(config);
-      _isSDKInitialized = true;
-      ErrorLogger.warn('SDK 初始化成功', { config });
-    } catch (error) {
-      _isSDKInitialized = false;
-      throw ErrorHandler.wrapNativeError(error, 'SDK 初始化');
-    }
+    mapRuntime.ensureSDK(config, { force: true });
   },
 
   isSDKInitialized(): boolean {
-    return _isSDKInitialized;
+    return mapRuntime.getState().sdkInitialized;
   },
 
   /**
@@ -325,32 +376,19 @@ const helperMethods = {
    * 推荐业务层只调用这个方法
    */
   setPrivacyConfig(config: PrivacyConfig): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
-    if (typeof config.privacyVersion === 'string') {
-      nativeModule.setPrivacyVersion(config.privacyVersion);
-    }
-    nativeModule.setPrivacyShow(
-      config.hasShow,
-      config.hasContainsPrivacy ?? config.hasShow
-    );
-    nativeModule.setPrivacyAgree(config.hasAgree);
+    mapRuntime.ensurePrivacy(config);
   },
 
   getPrivacyStatus(): PrivacyStatus {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) {
-      return {
-        hasShow: false,
-        hasContainsPrivacy: false,
-        hasAgree: false,
-        isReady: false,
-        privacyVersion: null,
-        agreedPrivacyVersion: null,
-        restoredFromStorage: false,
-      };
-    }
-    return nativeModule.getPrivacyStatus();
+    return mapRuntime.getState().privacyStatus;
+  },
+
+  bootstrapRuntime(options: MapRuntimeBootstrapOptions = {}): MapRuntimeState {
+    return mapRuntime.bootstrap(options);
+  },
+
+  getRuntimeState(): MapRuntimeState {
+    return mapRuntime.getState();
   },
 
   calculateDistanceBetweenPoints(p1: LatLngPoint, p2: LatLngPoint): number {

@@ -5,6 +5,73 @@
 import { getErrorInfo, isSuccess, type ErrorInfo } from './errorCodes';
 import { LRUCache } from './lru';
 
+export type WebApiErrorType =
+  | ErrorInfo['type']
+  | 'http_error'
+  | 'network_error'
+  | 'timeout_error'
+  | 'abort_error'
+  | 'validation_error'
+  | 'unknown';
+
+export interface WebApiUnifiedError {
+  code: string;
+  type: WebApiErrorType;
+  message: string;
+  retryable: boolean;
+  cause?: unknown;
+}
+
+function isRetryableInfoCode(infocode: string): boolean {
+  const retryableCodes = [
+    '10004', // ACCESS_TOO_FREQUENT
+    '10014', // QPS_HAS_EXCEEDED_THE_LIMIT
+    '10015', // GATEWAY_TIMEOUT
+    '10016', // SERVER_IS_BUSY
+    '10017', // RESOURCE_UNAVAILABLE
+    '10019', // CQPS_HAS_EXCEEDED_THE_LIMIT
+    '10020', // CKQPS_HAS_EXCEEDED_THE_LIMIT
+    '10021', // CUQPS_HAS_EXCEEDED_THE_LIMIT
+  ];
+  return retryableCodes.includes(infocode);
+}
+
+export class GaodeWebApiRuntimeError
+  extends Error
+  implements WebApiUnifiedError
+{
+  public readonly code: string;
+  public readonly type: WebApiErrorType;
+  public readonly retryable: boolean;
+  public readonly cause?: unknown;
+
+  constructor(options: {
+    code: string;
+    type: WebApiErrorType;
+    message: string;
+    retryable?: boolean;
+    cause?: unknown;
+  }) {
+    super(options.message);
+    this.name = 'GaodeWebApiRuntimeError';
+    this.code = options.code;
+    this.type = options.type;
+    this.retryable = options.retryable ?? false;
+    this.cause = options.cause;
+    Object.setPrototypeOf(this, GaodeWebApiRuntimeError.prototype);
+  }
+
+  toJSON(): WebApiUnifiedError {
+    return {
+      code: this.code,
+      type: this.type,
+      message: this.message,
+      retryable: this.retryable,
+      cause: this.cause,
+    };
+  }
+}
+
 /**
  * 从核心包解析 getWebKey（运行时解析，避免类型导出时序问题）
  */
@@ -51,8 +118,17 @@ export class GaodeAPIError extends Error {
   public readonly type: ErrorInfo['type'];
   /** API 响应状态 */
   public readonly status: string;
+  /** 是否可重试 */
+  public readonly retryable: boolean;
+  /** 原始原因 */
+  public readonly cause?: unknown;
 
-  constructor(status: string, info: string, infocode: string) {
+  constructor(
+    status: string,
+    info: string,
+    infocode: string,
+    options: { cause?: unknown } = {}
+  ) {
     const errorInfo = getErrorInfo(infocode);
     
     // 使用友好的错误描述作为 message
@@ -65,6 +141,8 @@ export class GaodeAPIError extends Error {
     this.description = errorInfo.description;
     this.suggestion = errorInfo.suggestion;
     this.type = errorInfo.type;
+    this.retryable = isRetryableInfoCode(infocode);
+    this.cause = options.cause;
 
     // 保持正确的 prototype 链
     Object.setPrototypeOf(this, GaodeAPIError.prototype);
@@ -82,6 +160,8 @@ export class GaodeAPIError extends Error {
       suggestion: this.suggestion,
       type: this.type,
       status: this.status,
+      retryable: this.retryable,
+      cause: this.cause,
     };
   }
 
@@ -191,7 +271,12 @@ export class GaodeWebAPIClient {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       // 如果外部 signal 已经中止，则直接抛出
       if (signal?.aborted) {
-        throw new Error('Request aborted');
+        throw new GaodeWebApiRuntimeError({
+          code: 'REQUEST_ABORTED',
+          type: 'abort_error',
+          message: 'Request aborted',
+          retryable: false,
+        });
       }
 
       // 创建 AbortController 用于超时控制
@@ -218,7 +303,12 @@ export class GaodeWebAPIClient {
 
         // 检查 HTTP 状态
         if (!response.ok) {
-          throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+          throw new GaodeWebApiRuntimeError({
+            code: `HTTP_${response.status}`,
+            type: 'http_error',
+            message: `HTTP Error: ${response.status} ${response.statusText}`,
+            retryable: response.status >= 500,
+          });
         }
 
         // 解析 JSON
@@ -227,7 +317,7 @@ export class GaodeWebAPIClient {
         // 检查 API 状态
         if (data.status !== '1' && !isSuccess(data.infocode)) {
           // 检查是否为可重试的错误码 (QPS超限等)
-          if (this.shouldRetry(data.infocode) && attempt < this.maxRetries) {
+          if (isRetryableInfoCode(data.infocode) && attempt < this.maxRetries) {
              const error = new GaodeAPIError(
               data.status,
               data.info || 'Unknown error',
@@ -262,13 +352,25 @@ export class GaodeWebAPIClient {
         if (lastError.name === 'AbortError') {
            // 如果是手动取消，不重试
            if (signal?.aborted) {
-             throw new Error('Request aborted');
+             throw new GaodeWebApiRuntimeError({
+               code: 'REQUEST_ABORTED',
+               type: 'abort_error',
+               message: 'Request aborted',
+               retryable: false,
+               cause: lastError,
+             });
            }
            // 如果是超时，且还有重试机会，则继续
            if (attempt < this.maxRetries) {
              // 继续下一次循环
            } else {
-             throw new Error(`Request timeout after ${this.timeout}ms`);
+             throw new GaodeWebApiRuntimeError({
+               code: 'REQUEST_TIMEOUT',
+               type: 'timeout_error',
+               message: `Request timeout after ${this.timeout}ms`,
+               retryable: true,
+               cause: lastError,
+             });
            }
         }
 
@@ -280,37 +382,43 @@ export class GaodeWebAPIClient {
           continue;
         }
 
-        throw lastError;
+        if (lastError instanceof GaodeAPIError || lastError instanceof GaodeWebApiRuntimeError) {
+          throw lastError;
+        }
+
+        throw new GaodeWebApiRuntimeError({
+          code: 'NETWORK_REQUEST_FAILED',
+          type: 'network_error',
+          message: lastError.message,
+          retryable: true,
+          cause: lastError,
+        });
       }
     }
 
-    throw lastError || new Error('Unknown error occurred');
-  }
+    if (lastError instanceof GaodeAPIError || lastError instanceof GaodeWebApiRuntimeError) {
+      throw lastError;
+    }
 
-  /**
-   * 判断是否为可重试的错误码
-   */
-  private shouldRetry(infocode: string): boolean {
-    const retryableCodes = [
-      '10004', // ACCESS_TOO_FREQUENT
-      '10014', // QPS_HAS_EXCEEDED_THE_LIMIT
-      '10015', // GATEWAY_TIMEOUT
-      '10016', // SERVER_IS_BUSY
-      '10017', // RESOURCE_UNAVAILABLE
-      '10019', // CQPS_HAS_EXCEEDED_THE_LIMIT
-      '10020', // CKQPS_HAS_EXCEEDED_THE_LIMIT
-      '10021', // CUQPS_HAS_EXCEEDED_THE_LIMIT
-    ];
-    return retryableCodes.includes(infocode);
+    throw new GaodeWebApiRuntimeError({
+      code: 'UNKNOWN_ERROR',
+      type: 'unknown',
+      message: lastError?.message ?? 'Unknown error occurred',
+      retryable: false,
+      cause: lastError ?? undefined,
+    });
   }
 
   /**
    * 判断是否为可重试的异常
    */
   private isRetryableError(error: Error): boolean {
-    // GaodeAPIError 已经在 shouldRetry 中判断过了，这里只处理 GaodeAPIError 且 shouldRetry 为 true 的情况
+    // GaodeAPIError 通过官方 infocode 判断是否可重试
     if (error instanceof GaodeAPIError) {
-      return this.shouldRetry(error.code);
+      return isRetryableInfoCode(error.code);
+    }
+    if (error instanceof GaodeWebApiRuntimeError) {
+      return error.retryable;
     }
     // 网络错误通常没有 status 属性或者 status 为 undefined (fetch 失败)
     // 这里简单认为非 API 业务逻辑错误都可以尝试重试（除了 AbortError 已经在上面处理了）

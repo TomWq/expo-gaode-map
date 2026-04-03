@@ -7,7 +7,8 @@
 - ✅ **Pure JavaScript**: Cross-platform consistency, no native compilation dependencies
 - ✅ **TypeScript**: Complete type definitions and error code mapping
 - ✅ **V5 API**: Adapted to new route planning strategies and fields
-- ✅ **Collaborative**: Works with map/navigation modules, supports parameter-free construction
+- ✅ **Standalone-ready**: Can be used independently with explicit `key`
+- ✅ **Collaborative**: Can also reuse `webKey` from `initSDK` in map/navigation modules
 - ✅ **Error Friendly**: Encapsulates `GaodeAPIError` with Chinese error code descriptions
 
 ## Implemented Features
@@ -29,17 +30,16 @@
 
 ## Installation
 
-This module requires installing a base map component first (either navigation module or core map module):
+This module can be installed and used standalone:
 
 ```bash
-# Choose one
-npm install expo-gaode-map-navigation
-# or
-npm install expo-gaode-map
-
-# Then install this module
 npm install expo-gaode-map-web-api
 ```
+
+Optional companion packages (not required):
+
+- `expo-gaode-map`
+- `expo-gaode-map-navigation`
 
 ## Quick Start
 
@@ -51,7 +51,10 @@ Log in to [Gaode Open Platform Console](https://console.amap.com/), create an ap
 This is a Web Service Key, not an iOS/Android Key
 :::
 
-### 2. Provide webKey during base module initialization
+### 2. Provide Web API key
+
+Option A (recommended): pass `config.key` explicitly in runtime/provider config.  
+Option B (optional): provide `webKey` during `initSDK` and let Web API resolve it automatically.
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
@@ -63,7 +66,24 @@ ExpoGaodeMapModule.initSDK({
 });
 ```
 
-### 3. Parameter-free construction and usage
+### 3. Create and use (v3 recommended)
+
+```typescript
+import { createWebRuntime } from 'expo-gaode-map-web-api';
+
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
+
+const result = await runtime.geocode.reverseGeocode({
+  location: { longitude: 116.481028, latitude: 39.989643 },
+});
+console.log(result.formattedAddress);
+```
+
+Compatibility path (`GaodeWebAPI` class):
 
 ```typescript
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';
@@ -313,7 +333,7 @@ try {
 ## Notes
 
 1. **Key Type**: Must use Web Service Key (not iOS/Android Key)
-2. **Initialization**: Recommended to provide via `initSDK({ webKey })` in base module
+2. **Initialization**: Prefer explicit `key`; `initSDK({ webKey })` fallback is optional
 3. **Quota Limits**: Refer to Gaode console for quota and QPS limits
 4. **Coordinate Format**: Longitude first, latitude second (longitude,latitude)
 5. **Network Requests**: Requires network connection, cannot work offline
@@ -322,7 +342,7 @@ try {
 
 ### GaodeWebAPI Class
 
-Main class for managing Web API service instances.
+Compatibility class (for new projects, prefer `createWebRuntime` / provider factories).
 
 **Constructor:**
 
@@ -355,7 +375,7 @@ interface ClientConfig {
 **Parameters:**
 
 - `config.key` (Optional): AMap Web Service Key
-  - If omitted, tries to resolve `webKey` from the initialized base module.
+  - If omitted, tries to resolve `webKey` from initialized `expo-gaode-map` / `expo-gaode-map-navigation`.
 - `config.maxRetries`: Auto-retry count on failure (only for retryable errors like QPS limit).
 - `config.enableCache`: Enable LRU memory cache. Same requests will return cached results.
 

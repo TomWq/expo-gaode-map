@@ -1,7 +1,14 @@
-
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { GaodeWebAPI, } from 'expo-gaode-map-web-api';
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { createWebRuntime } from 'expo-gaode-map-web-api';
 
 import { EXAMPLE_WEB_API_KEY } from './exampleConfig';
 
@@ -9,118 +16,106 @@ export default function WebAPIAdvancedTest() {
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputText, setInputText] = useState('');
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
-  // 初始化 API 实例，启用缓存
-  // 使用 useMemo 确保只初始化一次，且在组件渲染时（即 SDK init 后）进行
-  const api = React.useMemo(() => new GaodeWebAPI({
-    key: EXAMPLE_WEB_API_KEY,
-    enableCache: true,
-    maxRetries: 3,
-    retryDelay: 1000,
-  }), []);
+  const runtime = useMemo(
+    () =>
+      createWebRuntime({
+        search: {
+          config: {
+            key: EXAMPLE_WEB_API_KEY,
+            enableCache: true,
+            maxRetries: 3,
+            retryDelay: 1000,
+          },
+        },
+        geocode: {
+          config: {
+            key: EXAMPLE_WEB_API_KEY,
+            enableCache: true,
+            maxRetries: 3,
+            retryDelay: 1000,
+          },
+        },
+        route: {
+          config: {
+            key: EXAMPLE_WEB_API_KEY,
+            enableCache: true,
+            maxRetries: 3,
+            retryDelay: 1000,
+          },
+        },
+      }),
+    []
+  );
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString();
-    setLogs(prev => [`[${time}] ${msg}`, ...prev]);
+    setLogs((prev) => [`[${time}] ${msg}`, ...prev]);
   };
 
   const clearLogs = () => setLogs([]);
 
-  // 测试 1: 请求取消 (InputTips)
   const handleInputChange = async (text: string) => {
     setInputText(text);
-    if (!text) return;
-
-    // 取消上一次未完成的请求
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      addLog(`❌ 取消了上一次搜索请求`);
+    if (!text.trim()) {
+      return;
     }
 
-    // 创建新的 Controller
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    requestIdRef.current += 1;
+    const currentId = requestIdRef.current;
+    addLog(`🔍 发起搜索: "${text}"`);
 
     try {
-      addLog(`🔍 发起搜索: "${text}"...`);
-      const result = await api.inputTips.getTips(text, {
+      const result = await runtime.search.getInputTips({
+        keyword: text,
         city: '北京',
-        signal: controller.signal,
       });
-      addLog(`✅ 搜索成功: 找到 ${result.tips.length} 个结果`);
-    } catch (error: any) {
-      if (error.name === 'AbortError' || error.message === 'Request aborted') {
-        addLog(`ℹ️ 请求已中断 (预期行为)`);
-      } else {
-        addLog(`❌ 搜索出错: ${error.message}`);
+      if (currentId !== requestIdRef.current) {
+        addLog('ℹ️ 丢弃过期结果（新请求已发起）');
+        return;
       }
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
-      }
+      addLog(`✅ 输入提示成功: ${result.items.length} 条`);
+    } catch (error) {
+      addLog(`❌ 输入提示失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  // 测试 2: 缓存验证
   const testCache = async () => {
     setLoading(true);
-    const location = '116.481028,39.989643';
-    
     try {
-      // 第一次请求
-      addLog(`📡 发起第 1 次逆地理编码 (网络请求)...`);
+      addLog('📡 第 1 次 reverseGeocode（网络）');
       const start1 = performance.now();
-      await api.geocode.regeocode(location);
+      await runtime.geocode.reverseGeocode({
+        location: { longitude: 116.481028, latitude: 39.989643 },
+      });
       const end1 = performance.now();
       addLog(`✅ 第 1 次耗时: ${(end1 - start1).toFixed(2)}ms`);
 
-      // 第二次请求 (应该命中缓存)
-      addLog(`💾 发起第 2 次逆地理编码 (期望命中缓存)...`);
+      addLog('💾 第 2 次 reverseGeocode（缓存）');
       const start2 = performance.now();
-      await api.geocode.regeocode(location);
+      await runtime.geocode.reverseGeocode({
+        location: { longitude: 116.481028, latitude: 39.989643 },
+      });
       const end2 = performance.now();
       addLog(`✅ 第 2 次耗时: ${(end2 - start2).toFixed(2)}ms`);
-      
-      if (end2 - start2 < 50) {
-        addLog(`🎉 缓存验证通过！速度提升显著`);
-      } else {
-        addLog(`⚠️ 缓存可能未命中，请检查网络或配置`);
-      }
-
-    } catch (error: any) {
-      addLog(`❌ 测试失败: ${error.message}`);
+    } catch (error) {
+      addLog(`❌ 缓存测试失败: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // 测试 3: 批量接口参数校验
-  const testBatchValidation = async () => {
+  const testValidation = async () => {
     setLoading(true);
     try {
-      addLog(`🧪 测试批量接口非法参数拦截...`);
-      // 故意构造包含 | 分隔符的非法地址
-      const invalidAddresses = ['北京市朝阳区|非法字符', '北京市海淀区'];
-      
-      await api.geocode.batchGeocode(invalidAddresses, '北京');
-      addLog(`❌ 错误：未拦截非法参数！`);
-    } catch (error: any) {
-      addLog(`✅ 成功拦截错误: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 测试 4: 坐标格式校验
-  const testCoordinateValidation = async () => {
-    setLoading(true);
-    try {
-      addLog(`🧪 测试非法坐标拦截...`);
-      await api.geocode.regeocode('invalid,coordinate');
-      addLog(`❌ 错误：未拦截非法坐标！`);
-    } catch (error: any) {
-      addLog(`✅ 成功拦截错误: ${error.message}`);
+      addLog('🧪 测试非法坐标校验');
+      await runtime.geocode.reverseGeocode({
+        location: { longitude: Number.NaN, latitude: 39.9 },
+      });
+      addLog('❌ 预期应失败，但未失败');
+    } catch (error) {
+      addLog(`✅ 校验生效: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -129,38 +124,30 @@ export default function WebAPIAdvancedTest() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Web API 高级功能测试</Text>
-        <Text style={styles.subtitle}>缓存 / 取消 / 重试 / 校验</Text>
+        <Text style={styles.title}>Web API v3 高级测试</Text>
+        <Text style={styles.subtitle}>Runtime / Provider / 缓存 / 校验</Text>
       </View>
 
       <View style={styles.content}>
-        {/* 输入提示测试区 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. 请求取消 (InputTips)</Text>
+          <Text style={styles.sectionTitle}>输入提示（并发结果去重）</Text>
           <TextInput
             style={styles.input}
-            placeholder="快速输入文字以触发取消机制..."
+            placeholder="输入关键字..."
             value={inputText}
             onChangeText={handleInputChange}
           />
         </View>
 
-        {/* 按钮测试区 */}
         <View style={styles.grid}>
           <TouchableOpacity style={styles.btn} onPress={testCache} disabled={loading}>
-            <Text style={styles.btnText}>测试 LRU 缓存</Text>
+            <Text style={styles.btnText}>测试缓存</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={[styles.btn, styles.btnWarn]} onPress={testBatchValidation} disabled={loading}>
+          <TouchableOpacity style={[styles.btn, styles.btnWarn]} onPress={testValidation} disabled={loading}>
             <Text style={styles.btnText}>测试参数校验</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btn, styles.btnWarn]} onPress={testCoordinateValidation} disabled={loading}>
-            <Text style={styles.btnText}>测试坐标校验</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 日志区 */}
         <View style={styles.logHeader}>
           <Text style={styles.sectionTitle}>运行日志</Text>
           <TouchableOpacity onPress={clearLogs}>
@@ -172,17 +159,19 @@ export default function WebAPIAdvancedTest() {
             <Text style={styles.emptyText}>等待操作...</Text>
           ) : (
             logs.map((log, index) => (
-              <Text key={index} style={styles.logText}>{log}</Text>
+              <Text key={`${index}-${log}`} style={styles.logText}>
+                {log}
+              </Text>
             ))
           )}
         </ScrollView>
       </View>
 
-      {loading && (
+      {loading ? (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
-      )}
+      ) : null}
     </View>
   );
 }

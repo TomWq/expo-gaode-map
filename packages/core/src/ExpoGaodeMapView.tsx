@@ -68,7 +68,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     );
 
     if (typeof nativeMethod !== 'function') {
-      throw new Error(`Method '${methodName}' is not available on native view. Make sure the native module is linked and rebuilt.`);
+      throw ErrorHandler.nativeModuleUnavailable();
     }
 
     return (nativeMethod as (...methodArgs: Parameters<T>) => ReturnType<T>).apply(

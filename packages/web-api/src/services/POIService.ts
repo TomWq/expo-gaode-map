@@ -2,7 +2,7 @@
  * 高德地图 Web API - POI 搜索服务
  */
 
-import { GaodeWebAPIClient } from '../utils/client';
+import { GaodeWebAPIClient, GaodeWebApiRuntimeError } from '../utils/client';
 import type {
   AOIBoundaryParams,
   AOIBoundaryResponse,
@@ -216,7 +216,12 @@ export class POIService {
     options?: { signal?: AbortSignal }
   ): Promise<POISearchResponse> {
     if (ids.length > 10) {
-      throw new Error('批量查询最多支持10个POI ID');
+      throw new GaodeWebApiRuntimeError({
+        code: 'BATCH_DETAIL_LIMIT_EXCEEDED',
+        type: 'validation_error',
+        message: '批量查询最多支持10个POI ID',
+        retryable: false,
+      });
     }
 
     const params: DetailRequestParams = {

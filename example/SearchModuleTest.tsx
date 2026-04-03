@@ -1,409 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, FlatList } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { createNativeSearchRuntime } from 'expo-gaode-map-search';
 
-// 尝试加载搜索模块
-import * as SearchModule from 'expo-gaode-map-search';
+type Suggestion = {
+  id?: string;
+  name: string;
+  address?: string;
+};
 
 export default function SearchModuleTest() {
+  const runtime = useMemo(() => createNativeSearchRuntime(), []);
   const [log, setLog] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('餐厅');
   const [city, setCity] = useState('北京');
-  const [tips, setTips] = useState<SearchModule.InputTip[]>([]);
+  const [tips, setTips] = useState<Suggestion[]>([]);
   const [showTips, setShowTips] = useState(false);
 
-
   const addLog = (message: string) => {
-    console.log('[SearchModuleTest]', message);
-    setLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    setLog((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
-  const testModuleLoad = () => {
-    console.log('[SearchModuleTest] testModuleLoad 被调用');
-    addLog('═══ 测试搜索模块加载 ═══');
-    
-    try {
-   
-      console.log('[SearchModuleTest] loadSearch 返回:', SearchModule);
-      
-      if (SearchModule) {
-        addLog('✅ 搜索模块加载成功!');
-        addLog(`📦 导出的方法: ${Object.keys(SearchModule).join(', ')}`);
-        return true;
-      } else {
-        addLog('❌ 搜索模块加载失败');
-        addLog('原因可能是:');
-        addLog('1. 原生代码未编译 - 需要运行 expo prebuild');
-        addLog('2. 模块未正确链接');
-        addLog('3. Gradle 配置问题');
-        return false;
-      }
-    } catch (error) {
-      console.error('[SearchModuleTest] 加载模块出错:', error);
-      addLog(`❌ 加载出错: ${error}`);
-      return false;
-    }
+  const testRuntimeLoad = () => {
+    addLog('═══ 测试 v3 runtime 加载 ═══');
+    addLog(`✅ runtime.search 可用: ${typeof runtime.search.searchKeyword === 'function'}`);
+    addLog(`✅ runtime.geocode 可用: ${typeof runtime.geocode.reverseGeocode === 'function'}`);
   };
 
-  const testPOISearch = async () => {
-    console.log('[SearchModuleTest] testPOISearch 被调用');
-    addLog('═══ 测试 POI 搜索 ═══');
-   
-    
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
-      return;
-    }
-
+  const testKeywordSearch = async () => {
+    addLog('═══ 测试关键词搜索 ═══');
     try {
-      addLog(`🔍 搜索关键词: ${keyword}`);
-      addLog(`📍 搜索城市: ${city}`);
-      
-      const result = await SearchModule.searchPOI({
+      const result = await runtime.search.searchKeyword({
         keyword,
         city,
+        page: 1,
         pageSize: 10,
-        pageNum: 1,
       });
-      
-      addLog(`✅ 搜索成功!`);
-      addLog(`📊 总数: ${result.total}`);
-      addLog(`📍 结果数: ${result.pois.length}`);
-      
-      result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
+
+      addLog(`✅ 搜索成功，总数: ${result.total ?? result.items.length}`);
+      result.items.slice(0, 3).forEach((poi, index) => {
         addLog(`${index + 1}. ${poi.name}`);
-        addLog(`   地址: ${poi.address || '无'}`);
-        if (poi.location?.latitude && poi.location?.longitude) {
-          addLog(`   坐标: ${poi.location.latitude.toFixed(4)}, ${poi.location.longitude.toFixed(4)}`);
-        } else {
-          addLog(`   坐标: 暂无`);
-        }
-        
-        if (poi.photos && poi.photos?.length > 0) {
-          addLog(`   图片: ${poi.photos[0].title || '无'}`);
-        } else {
-          addLog(`   图片: 暂无`);
-        }
-        
-        if (poi.indoor) {
-          addLog(`   indoor: 有: ${poi.indoor.floorName || '无'}`);
-        } else {
-          addLog(`   indoor: 无`);
-        }
-        if (poi.business) {
-          addLog(`   business: 有: ${poi.business.tag || '无'}`);
-        } else {
-          addLog(`   business: 无`);
-        }
+        addLog(`   地址: ${poi.address ?? '无'}`);
       });
-      
     } catch (error) {
-      console.error('[SearchModuleTest] 搜索出错:', error);
       addLog(`❌ 搜索失败: ${error}`);
     }
   };
 
   const testNearbySearch = async () => {
-    console.log('[SearchModuleTest] testNearbySearch 被调用');
     addLog('═══ 测试周边搜索 ═══');
-   
-    
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
-      return;
-    }
-
     try {
-      addLog(`🔍 搜索关键词: ${keyword}`);
-      addLog(`📍 中心点: 北京天安门 (39.9, 116.4)`);
-      addLog(`📏 半径: 1000米`);
-      
-      const result = await SearchModule.searchNearby({
+      const result = await runtime.search.searchNearby({
         keyword,
         center: { latitude: 39.9, longitude: 116.4 },
         radius: 1000,
+        page: 1,
         pageSize: 10,
-        pageNum: 1,
       });
-      
-      addLog(`✅ 搜索成功!`);
-      addLog(`📊 总数: ${result.total}`);
-      addLog(`📍 结果数: ${result.pois.length}`);
-      
-      result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
-        addLog(`${index + 1}. ${poi.name}`);
-        addLog(`   距离: ${poi.distance || 0}米`);
+      addLog(`✅ 周边搜索成功，结果: ${result.items.length}`);
+      result.items.slice(0, 3).forEach((poi, index) => {
+        addLog(`${index + 1}. ${poi.name} (${poi.distanceMeters ?? 0}米)`);
       });
-      
     } catch (error) {
-      console.error('[SearchModuleTest] 周边搜索出错:', error);
-      addLog(`❌ 搜索失败: ${error}`);
-    }
-  };
-
-  // 实时获取输入提示
-  const fetchInputTips = async (text: string) => {
-    if (!text || text.length < 2) {
-      setTips([]);
-      setShowTips(false);
-      return;
-    }
-
-    
-    if (!SearchModule) return;
-
-    try {
-      const result = await SearchModule.getInputTips({
-        keyword: text,
-        city,
-      });
-      
-      setTips(result.tips || []);
-      setShowTips(result.tips && result.tips.length > 0);
-    } catch (error) {
-      console.error('[SearchModuleTest] 获取提示出错:', error);
-      setTips([]);
-      setShowTips(false);
-    }
-  };
-
-  // 防抖处理
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchInputTips(keyword);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [keyword, city]);
-
-  const testInputTips = async () => {
-    console.log('[SearchModuleTest] testInputTips 被调用');
-    addLog('═══ 测试输入提示 ═══');
-
-    
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
-      return;
-    }
-
-    try {
-      addLog(`🔍 关键词: ${keyword}`);
-      addLog(`📍 城市: ${city}`);
-      
-      const result = await SearchModule.getInputTips({
-        keyword,
-        city,
-      });
-      
-      addLog(`✅ 获取提示成功!`);
-      addLog(`📊 提示数: ${result.tips.length}`);
-      
-      result.tips.slice(0, 5).forEach((tip: SearchModule.InputTip, index: number) => {
-        addLog(`${index + 1}. ${tip.name}`);
-        if (tip.address) addLog(`   ${tip.address}`);
-      });
-      
-    } catch (error) {
-      console.error('[SearchModuleTest] 获取提示出错:', error);
-      addLog(`❌ 获取提示失败: ${error}`);
+      addLog(`❌ 周边搜索失败: ${error}`);
     }
   };
 
   const testAlongSearch = async () => {
-    console.log('[SearchModuleTest] testAlongSearch 被调用');
     addLog('═══ 测试沿途搜索 ═══');
-
-    
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
-      return;
-    }
-
     try {
-      // 模拟一条路线：从天安门到景山公园
-      const polyline = [
-        { latitude: 39.9042, longitude: 116.4074 }, // 天安门
-        { latitude: 39.9100, longitude: 116.4074 }, // 中间点
-        { latitude: 39.9250, longitude: 116.4074 }, // 景山公园
-      ];
-      
-      // 沿途搜索只支持：加油站、ATM、汽修、厕所
-      const searchKeyword = 'ATM';
-      addLog(`🔍 搜索关键词: ${searchKeyword}`);
-      addLog(`📍 路线: 天安门 → 景山公园`);
-      addLog(`📏 路线点数: ${polyline.length}`);
-      addLog(`ℹ️ 支持的类型: 加油站、ATM、汽修、厕所`);
-      
-      const result = await SearchModule.searchAlong({
-        keyword: searchKeyword,
-        polyline,
-       
+      const result = await runtime.search.searchAlong({
+        keyword: 'ATM',
+        polyline: [
+          { latitude: 39.9042, longitude: 116.4074 },
+          { latitude: 39.91, longitude: 116.4074 },
+          { latitude: 39.925, longitude: 116.4074 },
+        ],
       });
-      
-      addLog(`✅ 搜索成功!`);
-      addLog(`📊 总数: ${result.total}`);
-      addLog(`📍 结果数: ${result.pois.length}`);
-      
-      result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
-        addLog(`${index + 1}. ${poi.name}`);
-        addLog(`   地址: ${poi.address || '无'}`);
-        if (poi.distance) {
-          addLog(`   距离: ${poi.distance}米`);
-        }
-      });
-      
+      addLog(`✅ 沿途搜索成功，结果: ${result.items.length}`);
     } catch (error) {
-      console.error('[SearchModuleTest] 沿途搜索出错:', error);
-      addLog(`❌ 搜索失败: ${error}`);
+      addLog(`❌ 沿途搜索失败: ${error}`);
     }
   };
 
   const testPolygonSearch = async () => {
-    console.log('[SearchModuleTest] testPolygonSearch 被调用');
     addLog('═══ 测试多边形搜索 ═══');
+    try {
+      const result = await runtime.search.searchPolygon({
+        keyword,
+        polygon: [
+          { latitude: 39.9, longitude: 116.395 },
+          { latitude: 39.9, longitude: 116.42 },
+          { latitude: 39.915, longitude: 116.42 },
+          { latitude: 39.915, longitude: 116.395 },
+        ],
+        page: 1,
+        pageSize: 10,
+      });
+      addLog(`✅ 多边形搜索成功，结果: ${result.items.length}`);
+    } catch (error) {
+      addLog(`❌ 多边形搜索失败: ${error}`);
+    }
+  };
 
-    
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
+  const fetchInputTips = async (text: string) => {
+    if (text.trim().length < 2) {
+      setTips([]);
+      setShowTips(false);
       return;
     }
 
     try {
-      // 定义天安门周边的多边形区域
-      const polygon = [
-        { latitude: 39.900, longitude: 116.395 }, // 西南角
-        { latitude: 39.900, longitude: 116.420 }, // 东南角
-        { latitude: 39.915, longitude: 116.420 }, // 东北角
-        { latitude: 39.915, longitude: 116.395 }, // 西北角
-      ];
-      
-      addLog(`🔍 搜索关键词: ${keyword}`);
-      addLog(`📍 搜索区域: 天安门周边多边形`);
-      addLog(`📏 多边形顶点数: ${polygon.length}`);
-      
-      const result = await SearchModule.searchPolygon({
-        keyword,
-        polygon,
-        pageSize: 10,
-        pageNum: 1,
+      const result = await runtime.search.getInputTips({
+        keyword: text,
+        city,
       });
-      
-      addLog(`✅ 搜索成功!`);
-      addLog(`📊 总数: ${result.total}`);
-      addLog(`📍 结果数: ${result.pois.length}`);
-      
-      result.pois.forEach((poi: SearchModule.POI, index: number) => {
-        addLog(`${index + 1}. ${poi.name}`);
-        addLog(`   地址: ${poi.address || '无'}`);
-       
-        if (poi.location?.latitude && poi.location?.longitude) {
-          addLog(`   坐标: ${poi.location.latitude.toFixed(4)}, ${poi.location.longitude.toFixed(4)}`);
-        }
-      });
-      
-    } catch (error) {
-      console.error('[SearchModuleTest] 多边形搜索出错:', error);
-      addLog(`❌ 搜索失败: ${error}`);
+      const items = result.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        address: item.address,
+      }));
+      setTips(items);
+      setShowTips(items.length > 0);
+    } catch {
+      setTips([]);
+      setShowTips(false);
     }
   };
 
   const testPoiDetail = async () => {
-    console.log('[SearchModuleTest] testPoiDetail 被调用');
     addLog('═══ 测试 POI 详情 ═══');
-
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
-      return;
-    }
-
     try {
-      // 为了演示，先搜索“天安门”获取一个真实的 ID
-      addLog('1. 预搜索"天安门"以获取有效 ID...');
-      const searchResult = await SearchModule.searchPOI({
+      const page = await runtime.search.searchKeyword({
         keyword: '天安门',
         city: '北京',
-        pageSize: 1
+        page: 1,
+        pageSize: 1,
       });
 
-      let targetId = 'B000A83M61'; // 默认备用
-      if (searchResult.pois.length > 0) {
-        targetId = searchResult.pois[0].id;
-        addLog(`✅ 获取到 ID: ${targetId} (${searchResult.pois[0].name})`);
-      } else {
-        addLog(`⚠️ 未搜到结果，使用默认 ID: ${targetId}`);
-      }
-      
-      addLog(`🔍 开始查询 POI 详情...`);
-      const result = await SearchModule.getPoiDetail(targetId);
-      
-      addLog(`✅ 详情查询成功!`);
-      addLog(`📌 名称: ${result.name}`);
-      addLog(`📍 地址: ${result.address}`);
-      addLog(`📞 电话: ${result.tel || '暂无'}`);
-      addLog(`🏷️ 类型: ${result.typeDes}`);
-      
-      if (result.location) {
-        addLog(`🌐 坐标: ${result.location.latitude.toFixed(6)}, ${result.location.longitude.toFixed(6)}`);
+      const id = page.items[0]?.id;
+      if (!id) {
+        addLog('⚠️ 未拿到可用 POI id');
+        return;
       }
 
+      const detail = await runtime.search.getPoiDetail(id);
+      addLog(`✅ 详情查询成功: ${detail?.name ?? '未知'}`);
     } catch (error) {
-      console.error('[SearchModuleTest] POI 详情搜索出错:', error);
       addLog(`❌ 详情查询失败: ${error}`);
     }
   };
 
-  const testReGeocode = async () => {
-    console.log('[SearchModuleTest] testReGeocode 被调用');
+  const testReverseGeocode = async () => {
     addLog('═══ 测试逆地理编码 ═══');
- 
-
-    if (!SearchModule) {
-      addLog('❌ 搜索模块未加载');
-      return;
-    }
-
     try {
-      // 天安门坐标
-      const location = { latitude: 39.908823, longitude: 116.397470 };
-      
-      addLog(`📍 坐标: ${location.latitude}, ${location.longitude}`);
-      addLog(`📏 搜索半径: 1000米`);
-      
-      const result = await SearchModule.reGeocode({
-        location,
+      const result = await runtime.geocode.reverseGeocode({
+        location: { latitude: 39.908823, longitude: 116.39747 },
         radius: 1000,
-        requireExtension: true
+        extensions: 'all',
       });
-      console.log(JSON.stringify(result));
-      addLog(`✅ 逆地理编码成功!`);
-      addLog(`🏠 格式化地址: ${result.formattedAddress}`);
-      addLog(`🏙️ 所在区: ${result.addressComponent?.district || '未知'}`);
-      
-      if (result.pois && result.pois.length > 0) {
-        addLog(`📍 周边POI数量: ${result.pois.length}`);
-        result.pois.slice(0, 3).forEach((poi: SearchModule.POI, index: number) => {
-          addLog(`   ${index + 1}. ${poi.name} (${poi.typeDes || '未知类型'})`);
-        });
-      }
-
-      if (result.roads && result.roads.length > 0) {
-         addLog(`🛣️ 周边道路: ${result.roads[0].name}`);
-      }
-      
+      addLog(`✅ 逆地理编码成功: ${result.formattedAddress}`);
+      addLog(`📍 周边 POI: ${result.pois.length}`);
     } catch (error) {
-      console.error('[SearchModuleTest] 逆地理编码出错:', error);
       addLog(`❌ 逆地理编码失败: ${error}`);
     }
   };
 
-  const clearLog = () => {
-    console.log('[SearchModuleTest] clearLog 被调用');
-    setLog([]);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchInputTips(keyword);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keyword, city]);
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>🔍 搜索模块测试</Text>
-      <Text style={styles.subtitle}>测试 expo-gaode-map-search</Text>
+      <Text style={styles.title}>🔍 搜索模块测试（v3 Runtime）</Text>
 
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>搜索关键词:</Text>
@@ -411,22 +190,19 @@ export default function SearchModuleTest() {
           <TextInput
             style={styles.input}
             value={keyword}
-            onChangeText={(text) => {
-              console.log('[SearchModuleTest] 关键词改变:', text);
-              setKeyword(text);
-            }}
+            onChangeText={setKeyword}
             onFocus={() => {
               if (tips.length > 0) setShowTips(true);
             }}
             placeholder="输入关键词（如：餐厅、酒店）"
           />
-          
-          {showTips && tips.length > 0 && (
+
+          {showTips && tips.length > 0 ? (
             <View style={styles.tipsContainer}>
               <FlatList
                 data={tips.slice(0, 5)}
                 nestedScrollEnabled
-                keyExtractor={(item, index) => `${item.id || index}`}
+                keyExtractor={(item, index) => `${item.id ?? index}`}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.tipItem}
@@ -437,135 +213,57 @@ export default function SearchModuleTest() {
                     }}
                   >
                     <Text style={styles.tipName}>{item.name}</Text>
-                    {item.address && (
-                      <Text style={styles.tipAddress}>{item.address}</Text>
-                    )}
+                    {item.address ? <Text style={styles.tipAddress}>{item.address}</Text> : null}
                   </TouchableOpacity>
                 )}
                 ItemSeparatorComponent={() => <View style={styles.tipSeparator} />}
               />
-              <TouchableOpacity
-                style={styles.closeTips}
-                onPress={() => setShowTips(false)}
-              >
+              <TouchableOpacity style={styles.closeTips} onPress={() => setShowTips(false)}>
                 <Text style={styles.closeTipsText}>关闭</Text>
               </TouchableOpacity>
             </View>
-          )}
+          ) : null}
         </View>
-        
+
         <Text style={styles.inputLabel}>城市:</Text>
-        <TextInput
-          style={styles.input}
-          value={city}
-          onChangeText={(text) => {
-            console.log('[SearchModuleTest] 城市改变:', text);
-            setCity(text);
-          }}
-          placeholder="输入城市"
-        />
+        <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="输入城市" />
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => {
-            console.log('[SearchModuleTest] 测试模块加载按钮被点击');
-            testModuleLoad();
-          }}
-        >
-          <Text style={styles.buttonText}>🔌 测试模块加载</Text>
+        <TouchableOpacity style={styles.button} onPress={testRuntimeLoad}>
+          <Text style={styles.buttonText}>🔌 测试 Runtime 加载</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => {
-            console.log('[SearchModuleTest] POI搜索按钮被点击');
-            testPOISearch();
-          }}
-        >
-          <Text style={styles.buttonText}>🔍 POI 搜索</Text>
+        <TouchableOpacity style={styles.button} onPress={() => void testKeywordSearch()}>
+          <Text style={styles.buttonText}>🔍 关键词搜索</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => {
-            console.log('[SearchModuleTest] 周边搜索按钮被点击');
-            testNearbySearch();
-          }}
-        >
+        <TouchableOpacity style={styles.button} onPress={() => void testNearbySearch()}>
           <Text style={styles.buttonText}>📍 周边搜索</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            console.log('[SearchModuleTest] 输入提示按钮被点击');
-            testInputTips();
-          }}
-        >
-          <Text style={styles.buttonText}>💡 输入提示</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            console.log('[SearchModuleTest] 沿途搜索按钮被点击');
-            testAlongSearch();
-          }}
-        >
+        <TouchableOpacity style={styles.button} onPress={() => void testAlongSearch()}>
           <Text style={styles.buttonText}>🛣️ 沿途搜索</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            console.log('[SearchModuleTest] 多边形搜索按钮被点击');
-            testPolygonSearch();
-          }}
-        >
+        <TouchableOpacity style={styles.button} onPress={() => void testPolygonSearch()}>
           <Text style={styles.buttonText}>📐 多边形搜索</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            console.log('[SearchModuleTest] 逆地理编码按钮被点击');
-            testReGeocode();
-          }}
-        >
+        <TouchableOpacity style={styles.button} onPress={() => void testReverseGeocode()}>
           <Text style={styles.buttonText}>🗺️ 逆地理编码</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            console.log('[SearchModuleTest] POI详情查询按钮被点击');
-            testPoiDetail();
-          }}
-        >
-          <Text style={styles.buttonText}>📍 POI 详情查询</Text>
+        <TouchableOpacity style={styles.button} onPress={() => void testPoiDetail()}>
+          <Text style={styles.buttonText}>📍 POI 详情</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.clearButton]}
-          onPress={() => {
-            console.log('[SearchModuleTest] 清空日志按钮被点击');
-            clearLog();
-          }}
-        >
+        <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={() => setLog([])}>
           <Text style={styles.buttonText}>🗑️ 清空日志</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.logContainer}>
-        <Text style={styles.logTitle}>📝 测试日志 (共 {log.length} 条):</Text>
+        <Text style={styles.logTitle}>📝 测试日志 (共 {log.length} 条)</Text>
         <ScrollView style={styles.logScroll}>
           {log.length === 0 ? (
             <Text style={styles.logEmpty}>点击上方按钮开始测试...</Text>
           ) : (
             log.map((item, index) => (
-              <Text key={index} style={styles.logItem}>
+              <Text key={`${index}-${item}`} style={styles.logItem}>
                 {item}
               </Text>
             ))
@@ -587,12 +285,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     color: '#333',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
     textAlign: 'center',
   },
   inputContainer: {
@@ -640,6 +332,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginBottom: 15,
+    minHeight: 220,
   },
   logTitle: {
     fontSize: 16,
@@ -661,24 +354,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 5,
     fontFamily: 'monospace',
-  },
-  infoContainer: {
-    backgroundColor: '#FFF3E0',
-    padding: 15,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#F57C00',
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#555',
-    lineHeight: 18,
   },
   tipsContainer: {
     position: 'absolute',
@@ -709,7 +384,7 @@ const styles = StyleSheet.create({
   tipAddress: {
     fontSize: 12,
     color: '#666',
-    },
+  },
   tipSeparator: {
     height: 1,
     backgroundColor: '#f0f0f0',

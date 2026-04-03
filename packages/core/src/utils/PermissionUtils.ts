@@ -1,3 +1,4 @@
+// This file is generated from internal/core-nav-source. Run `yarn sync:core-nav-shared` after editing the source files.
 import { Platform } from 'react-native';
 import { PlatformDetector } from './PlatformDetector';
 

@@ -1,3 +1,4 @@
+// This file is generated from internal/core-nav-source. Run `yarn sync:core-nav-shared` after editing the source files.
 /**
  * 高德地图错误处理工具
  * 提供友好的错误提示和解决方案指引
@@ -27,18 +28,68 @@ export enum ErrorType {
   NETWORK_ERROR = 'NETWORK_ERROR',
 }
 
+export type GaodeErrorCategory =
+  | 'config'
+  | 'privacy'
+  | 'permission'
+  | 'location'
+  | 'native'
+  | 'validation'
+  | 'network';
+
+function resolveDefaultRetryable(type: ErrorType): boolean {
+  switch (type) {
+    case ErrorType.NETWORK_ERROR:
+    case ErrorType.LOCATION_FAILED:
+      return true;
+    default:
+      return false;
+  }
+}
+
+function resolveErrorCategory(type: ErrorType): GaodeErrorCategory {
+  switch (type) {
+    case ErrorType.SDK_NOT_INITIALIZED:
+    case ErrorType.INVALID_API_KEY:
+      return 'config';
+    case ErrorType.PRIVACY_NOT_AGREED:
+      return 'privacy';
+    case ErrorType.PERMISSION_DENIED:
+      return 'permission';
+    case ErrorType.LOCATION_FAILED:
+      return 'location';
+    case ErrorType.NATIVE_MODULE_UNAVAILABLE:
+    case ErrorType.MAP_VIEW_NOT_INITIALIZED:
+      return 'native';
+    case ErrorType.INVALID_PARAMETER:
+      return 'validation';
+    case ErrorType.NETWORK_ERROR:
+      return 'network';
+    default:
+      return 'validation';
+  }
+}
+
 /**
  * 错误详情接口
  */
 export interface ErrorDetails {
+  /** 统一错误码（默认与 type 一致） */
+  code?: string;
   /** 错误类型 */
   type: ErrorType;
+  /** 错误分类 */
+  category?: GaodeErrorCategory;
   /** 错误消息 */
   message: string;
+  /** 是否可重试 */
+  retryable?: boolean;
   /** 解决方案 */
   solution: string;
   /** 文档链接 */
   docUrl?: string;
+  /** 错误原因（统一字段） */
+  cause?: unknown;
   /** 原始错误 */
   originalError?: Error;
 }
@@ -47,7 +98,11 @@ export interface ErrorDetails {
  * 自定义错误类
  */
 export class GaodeMapError extends Error {
+  code: string;
   type: ErrorType;
+  category: GaodeErrorCategory;
+  retryable: boolean;
+  cause?: unknown;
   solution: string;
   docUrl?: string;
   originalError?: Error;
@@ -68,10 +123,29 @@ ${details.docUrl ? `📖 详细文档：\n   ${details.docUrl}\n` : ''}━━━
 `;
     super(fullMessage);
     this.name = 'GaodeMapError';
+    this.code = details.code ?? details.type;
     this.type = details.type;
+    this.category = details.category ?? resolveErrorCategory(details.type);
+    this.retryable = details.retryable ?? resolveDefaultRetryable(details.type);
+    this.cause = details.cause ?? details.originalError;
     this.solution = details.solution;
     this.docUrl = details.docUrl;
-    this.originalError = details.originalError;
+    this.originalError =
+      details.originalError ??
+      (this.cause instanceof Error ? this.cause : undefined);
+  }
+
+  toJSON() {
+    return {
+      code: this.code,
+      type: this.type,
+      category: this.category,
+      message: this.message,
+      retryable: this.retryable,
+      cause: this.cause,
+      solution: this.solution,
+      docUrl: this.docUrl,
+    };
   }
 }
 
@@ -412,6 +486,10 @@ const App = () => {
    * 包装原生错误，提供更友好的提示
    */
   static wrapNativeError(error: unknown, context: string): GaodeMapError {
+    if (error instanceof GaodeMapError) {
+      return error;
+    }
+
     const errorMessage = error instanceof Error ? error.message : String(error);
     const scene = context.includes('MapView') || context.includes('渲染') ? 'map' : 'sdk';
 

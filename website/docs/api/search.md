@@ -14,6 +14,7 @@ npm install expo-gaode-map-search
 
 ```typescript
 import {
+  createNativeSearchRuntime,
   searchPOI,
   searchNearby,
   searchAlong,
@@ -28,6 +29,15 @@ import {
   type ReGeocodeResult,
 } from 'expo-gaode-map-search';
 ```
+
+## 推荐入口（v3）
+
+```typescript
+const runtime = createNativeSearchRuntime();
+const page = await runtime.search.searchKeyword({ keyword: '酒店', city: '北京' });
+```
+
+> `searchPOI/searchNearby/getInputTips/...` 函数式 API 仍可用，但属于兼容层。
 
 ## 方法
 

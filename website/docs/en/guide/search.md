@@ -76,6 +76,28 @@ eas build --platform all
 
 ## Basic Usage
 
+### Recommended (v3 Runtime)
+
+```typescript
+import { createNativeSearchRuntime } from 'expo-gaode-map-search';
+
+const runtime = createNativeSearchRuntime();
+
+const page = await runtime.search.searchKeyword({
+  keyword: 'Starbucks',
+  city: 'Beijing',
+  page: 1,
+  pageSize: 20,
+});
+
+const tips = await runtime.search.getInputTips({
+  keyword: 'Star',
+  city: 'Beijing',
+});
+```
+
+Function-style APIs (`searchPOI/getInputTips/...`) are still supported as a compatibility layer, but new code should prefer runtime/provider APIs.
+
 ### Import the Module
 
 ```typescript

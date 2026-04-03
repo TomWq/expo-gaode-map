@@ -1,3 +1,4 @@
+// This file is generated from internal/core-nav-source. Run `yarn sync:core-nav-shared` after editing the source files.
 import * as React from 'react';
 import type { PolylineProps } from '../../types';
 import { normalizeLatLngList } from '../../utils/GeoUtils';

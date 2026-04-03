@@ -20,7 +20,7 @@
     "lint": "expo-module lint",
     "test": "expo-module test",
     "prepare": "expo-module prepare && yarn build:plugin",
-    "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
+    "prepublishOnly": "yarn --cwd ../.. check:shared-sync && yarn test --watchman=false && yarn build",
     "expo-module": "expo-module",
     "open:ios": "xed example/ios",
     "open:android": "open -a \"Android Studio\" example/android",

@@ -15,7 +15,9 @@ npm install expo-gaode-map-search
 ```
 
 ::: tip 提示
-搜索包依赖核心包 `expo-gaode-map`，请确保已安装核心包。
+搜索包依赖基础地图模块，请确保已安装以下任一包：
+- `expo-gaode-map`
+- `expo-gaode-map-navigation`
 :::
 
 ## 配置
@@ -63,6 +65,28 @@ ExpoGaodeMapModule.initSDK({
 ```
 
 ## API 参考
+
+### v3 推荐用法（Runtime）
+
+```typescript
+import { createNativeSearchRuntime } from 'expo-gaode-map-search';
+
+const runtime = createNativeSearchRuntime();
+
+const page = await runtime.search.searchKeyword({
+  keyword: '酒店',
+  city: '北京',
+  page: 1,
+  pageSize: 20,
+});
+
+const tips = await runtime.search.getInputTips({
+  keyword: '天安门',
+  city: '北京',
+});
+```
+
+> `searchPOI/getInputTips/...` 等函数式 API 仍可用，但属于兼容层，建议新代码优先使用 runtime/provider。
 
 ### POI 搜索
 

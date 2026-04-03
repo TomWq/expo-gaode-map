@@ -13,6 +13,7 @@ import {
   ReGeocodeResult,
   SearchResult,
 } from './ExpoGaodeMapSearch.types';
+import { GaodeSearchError } from './search-error';
 
 
 /**
@@ -33,7 +34,12 @@ function ensureBaseInstalled() {
       '请确保已安装以下任一包并重新构建应用 (npx expo prebuild)：\n' +
       '  - expo-gaode-map（核心地图包）\n' +
       '  - expo-gaode-map-navigation（导航包，内置地图能力）';
-    throw new Error(msg);
+    throw new GaodeSearchError({
+      code: 'BASE_MAP_MODULE_MISSING',
+      type: 'config_error',
+      message: msg,
+      retryable: false,
+    });
   }
 }
 

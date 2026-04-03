@@ -1,5 +1,7 @@
+// This file is generated from internal/core-nav-source. Run `yarn sync:core-nav-shared` after editing the source files.
 import * as React from 'react';
 import type { MapViewRef } from '../types';
+import { ErrorHandler } from '../utils/ErrorHandler';
 
 /**
  * 地图上下文
@@ -14,7 +16,7 @@ export const MapContext = React.createContext<MapViewRef | null>(null);
 export function useMap(): MapViewRef {
   const context = React.useContext(MapContext);
   if (!context) {
-    throw new Error('useMap must be used within a MapView component');
+    throw ErrorHandler.mapViewNotInitialized('useMap');
   }
   return context;
 }

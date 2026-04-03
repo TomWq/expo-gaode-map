@@ -71,10 +71,12 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 ### 搜索功能
 
 ```tsx
-import { searchPOI } from 'expo-gaode-map-search';
+import { createNativeSearchRuntime } from 'expo-gaode-map-search';
+
+const searchRuntime = createNativeSearchRuntime();
 
 // POI 搜索
-const result = await searchPOI({
+const result = await searchRuntime.search.searchKeyword({
   keyword: '酒店',
   city: '北京',
 });
@@ -97,20 +99,24 @@ const result = await calculateDriveRoute({
 ### Web API 服务
 
 ```tsx
-import { GaodeWebAPI } from 'expo-gaode-map-web-api';
+import { createWebRuntime } from 'expo-gaode-map-web-api';
 
-// 无参构造（从基础模块读取 webKey）
-const api = new GaodeWebAPI();
+// 推荐：显式传 key（web-api 可独立使用）
+const runtime = createWebRuntime({
+  geocode: { config: { key: 'your-web-api-key' } },
+});
 
 // 逆地理编码：坐标 → 地址
-const result = await api.geocode.regeocode('116.481028,39.989643');
-console.log(result.regeocode.formatted_address);
+const result = await runtime.geocode.reverseGeocode({
+  location: { longitude: 116.481028, latitude: 39.989643 },
+});
+console.log(result.formattedAddress);
 
 // 驾车路径规划
-const route = await api.route.driving(
-  '116.481028,39.989643',
-  '116.434446,39.90816'
-);
+const route = await runtime.route.calculateDrivingRoute({
+  origin: { longitude: 116.481028, latitude: 39.989643 },
+  destination: { longitude: 116.434446, latitude: 39.90816 },
+});
 ```
 
 ### 覆盖物

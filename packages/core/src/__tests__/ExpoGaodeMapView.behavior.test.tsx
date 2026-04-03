@@ -100,6 +100,6 @@ describe('ExpoGaodeMapView 行为测试', () => {
 
     render(<ExpoGaodeMapView ref={ref} />);
 
-    expect(() => ref.current.takeSnapshot()).toThrow('takeSnapshot 失败');
+    expect(() => ref.current.takeSnapshot()).toThrow('NATIVE_MODULE_UNAVAILABLE');
   });
 });

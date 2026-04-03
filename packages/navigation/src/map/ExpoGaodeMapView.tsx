@@ -17,19 +17,11 @@ import { MapUI } from './components/MapUI';
 import { createLazyNativeViewManager } from './utils/lazyNativeViewManager';
 import { View, StyleSheet } from 'react-native';
 import type { FitToCoordinatesOptions } from './types/route-playback.types';
+import { fitCameraFromPoints } from './v3/map-camera';
 
 export type { MapViewRef } from './types';
 
 const getNativeView = createLazyNativeViewManager<MapViewProps & { ref?: React.Ref<MapViewRef> }>('ExpoGaodeMapView');
-const MIN_ZOOM = 3;
-const MAX_ZOOM = 20;
-
-function estimateZoom(latitudeDelta: number, longitudeDelta: number, options?: FitToCoordinatesOptions) {
-  const span = Math.max(latitudeDelta, longitudeDelta, 0.0001);
-  const rawZoom = Math.log2(360 / span);
-  return Math.max(options?.minZoom ?? MIN_ZOOM, Math.min(options?.maxZoom ?? MAX_ZOOM, Number(rawZoom.toFixed(2))));
-}
-
 
 /**
  * 高德地图视图组件，提供地图操作API和覆盖物管理功能
@@ -74,7 +66,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     );
 
     if (typeof nativeMethod !== 'function') {
-      throw new Error(`Method '${methodName}' is not available on native view. Make sure the native module is linked and rebuilt.`);
+      throw ErrorHandler.nativeModuleUnavailable();
     }
 
     return (nativeMethod as (...methodArgs: Parameters<T>) => ReturnType<T>).apply(
@@ -146,46 +138,22 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     takeSnapshot: createApiMethod<() => Promise<string>>('takeSnapshot'),
     fitToCoordinates: async (points: LatLngPoint[], options?: FitToCoordinatesOptions) => {
       try {
-        const normalized = points.map((point) => normalizeLatLng(point));
-        if (normalized.length === 0) {
-          return;
-        }
-
-        const currentCamera = await callNativeMethod<() => Promise<CameraPosition>>('getCameraPosition');
-        if (normalized.length === 1) {
-          await callNativeMethod<(cameraPosition: CameraUpdate, animationDuration: number) => Promise<void>>(
-            'moveCamera',
-            {
-              target: normalized[0],
-              zoom: options?.singlePointZoom ?? currentCamera.zoom ?? 16,
-              bearing: options?.preserveBearing === false ? options?.bearing : currentCamera.bearing ?? options?.bearing,
-              tilt: options?.preserveTilt === false ? options?.tilt : currentCamera.tilt ?? options?.tilt,
-            },
-            options?.duration ?? 0
-          );
-          return;
-        }
-
-        const latitudes = normalized.map((point) => point.latitude);
-        const longitudes = normalized.map((point) => point.longitude);
-        const paddingFactor = options?.paddingFactor ?? 1.2;
-        const north = Math.max(...latitudes);
-        const south = Math.min(...latitudes);
-        const east = Math.max(...longitudes);
-        const west = Math.min(...longitudes);
-
-        await callNativeMethod<(cameraPosition: CameraUpdate, animationDuration: number) => Promise<void>>(
-          'moveCamera',
+        await fitCameraFromPoints(
           {
-            target: {
-              latitude: (north + south) / 2,
-              longitude: (east + west) / 2,
-            },
-            zoom: estimateZoom((north - south) * paddingFactor, (east - west) * paddingFactor, options),
-            bearing: options?.preserveBearing === false ? options?.bearing : currentCamera.bearing ?? options?.bearing,
-            tilt: options?.preserveTilt === false ? options?.tilt : currentCamera.tilt ?? options?.tilt,
+            moveCamera: (position, duration) =>
+              callNativeMethod<(cameraPosition: CameraUpdate, animationDuration: number) => Promise<void>>(
+                'moveCamera',
+                {
+                  ...position,
+                  target: position.target ? normalizeLatLng(position.target) : undefined,
+                },
+                duration ?? 0
+              ),
+            getCameraPosition: () =>
+              callNativeMethod<() => Promise<CameraPosition>>('getCameraPosition'),
           },
-          options?.duration ?? 0
+          points,
+          options
         );
       } catch (error) {
         throw ErrorHandler.wrapNativeError(error, 'fitToCoordinates');

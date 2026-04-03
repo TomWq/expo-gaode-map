@@ -114,8 +114,8 @@ It communicates with AMap servers via HTTP.
 Characteristics:
 
 - Pure JS, no native dependencies
-- Works together with core or navigation packages by reading `webKey` from
-  `initSDK`
+- Can run standalone with explicit `key`
+- Can also work with core/navigation by reusing `webKey` from `initSDK`
 - Supports the latest V5 route planning APIs
 - Fully typed with TypeScript definitions
 
@@ -175,12 +175,12 @@ Navigation App (navigation)
    AMap Navi SDK (navi-3dmap)
 ```
 
-### Web API (Both Options)
+### Web API (Standalone or with either option)
 
 ```text
-Any App (core or navigation)
- ├─ expo-gaode-map or expo-gaode-map-navigation
+Any App (standalone / core / navigation)
  └─ expo-gaode-map-web-api
+     + optional expo-gaode-map or expo-gaode-map-navigation
 
       ↓
    AMap Web Service API
@@ -196,4 +196,3 @@ Any App (core or navigation)
 - [Web API Guide](/en/guide/web-api)
 - [API Reference](/en/api/)
 - [Examples](/en/examples/)
-

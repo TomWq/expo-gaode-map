@@ -1,4 +1,12 @@
 {
   "compilerOptions": {},
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base",
+  "exclude": [
+    "node_modules",
+    "packages/**/build/**",
+    "packages/**/__tests__/**",
+    "packages/**/__mocks__/**",
+    "packages/**/__rsc_tests__/**",
+    "packages/web-api/test/**"
+  ]
 }

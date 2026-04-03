@@ -48,7 +48,13 @@
     "version:navigation:beta": "cd packages/navigation && npm version prerelease --preid=beta --no-git-tag-version",
     "version:web-api:beta": "cd packages/web-api && npm version prerelease --preid=beta --no-git-tag-version",
     "android": "yarn run:android",
-    "ios": "yarn run:ios"
+    "ios": "yarn run:ios",
+    "sync:v3-shared": "node scripts/sync-v3-shared.mjs",
+    "sync:core-nav-shared": "node scripts/sync-core-nav-shared.mjs",
+    "sync:all-shared": "yarn sync:v3-shared && yarn sync:core-nav-shared",
+    "check:shared-sync": "node scripts/check-shared-sync.mjs",
+    "preflight:docs": "yarn --cwd website docs:build",
+    "preflight:release": "yarn check:shared-sync && yarn tsc --noEmit --pretty false && yarn workspace expo-gaode-map test --watchman=false && yarn workspace expo-gaode-map-navigation test --watchman=false && yarn workspace expo-gaode-map-search test --watchman=false && yarn workspace expo-gaode-map-web-api test && yarn workspace expo-gaode-map build && yarn workspace expo-gaode-map-navigation build && yarn workspace expo-gaode-map-search build && yarn workspace expo-gaode-map-web-api build && yarn preflight:docs"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",

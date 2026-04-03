@@ -2,7 +2,7 @@
  * 高德地图 Web API - 地理编码服务
  */
 
-import { GaodeWebAPIClient } from '../utils/client';
+import { GaodeWebAPIClient, GaodeWebApiRuntimeError } from '../utils/client';
 import type {
   RegeocodeParams,
   RegeocodeResponse,
@@ -123,7 +123,12 @@ export class GeocodeService {
   ): Promise<BatchRegeocodeResponse> {
     // 检查是否有任何输入包含分隔符
     if (locations.some(loc => loc.includes('|'))) {
-      throw new Error('Invalid location: Individual locations cannot contain the "|" separator.');
+      throw new GaodeWebApiRuntimeError({
+        code: 'INVALID_BATCH_LOCATION',
+        type: 'validation_error',
+        message: 'Invalid location: Individual locations cannot contain the "|" separator.',
+        retryable: false,
+      });
     }
 
     const locationStr = locations.join('|');
@@ -159,7 +164,12 @@ export class GeocodeService {
   async batchGeocode(addresses: string[], city?: string, options?: { signal?: AbortSignal }): Promise<GeocodeResponse> {
     // 检查是否有任何输入包含分隔符
     if (addresses.some(addr => addr.includes('|'))) {
-       throw new Error('Invalid address: Individual addresses cannot contain the "|" separator.');
+       throw new GaodeWebApiRuntimeError({
+         code: 'INVALID_BATCH_ADDRESS',
+         type: 'validation_error',
+         message: 'Invalid address: Individual addresses cannot contain the "|" separator.',
+         retryable: false,
+       });
     }
     
     const params: GeocodeParams = {

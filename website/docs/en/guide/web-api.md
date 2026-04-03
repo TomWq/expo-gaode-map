@@ -12,11 +12,25 @@ yarn add expo-gaode-map-web-api
 npm install expo-gaode-map-web-api
 ```
 
+`expo-gaode-map-web-api` works standalone. Installing `expo-gaode-map` or `expo-gaode-map-navigation` is optional and only needed if you want to reuse `webKey` from `initSDK`.
+
 ## Configuration
 
 You need an AMap Web Service Key.
 
-Set it during SDK initialization so the Web API package can read it:
+Recommended: pass it explicitly when creating runtime/providers:
+
+```ts
+import { createWebRuntime } from 'expo-gaode-map-web-api';
+
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
+```
+
+Optional: set it during SDK initialization so Web API can reuse it:
 
 ```ts
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
@@ -27,6 +41,20 @@ ExpoGaodeMapModule.initSDK({
 ```
 
 ## Create an API Instance
+
+Recommended (v3 runtime/provider):
+
+```ts
+import { createWebRuntime } from 'expo-gaode-map-web-api';
+
+const runtime = createWebRuntime({
+  search: { config: { key: 'your-web-api-key' } },
+  geocode: { config: { key: 'your-web-api-key' } },
+  route: { config: { key: 'your-web-api-key' } },
+});
+```
+
+Compatibility path (`GaodeWebAPI` class):
 
 ```ts
 import { GaodeWebAPI } from 'expo-gaode-map-web-api';

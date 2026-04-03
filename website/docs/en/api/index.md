@@ -83,23 +83,25 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 ### Search Features
 
 ```tsx
-import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map-search';
+import { createNativeSearchRuntime } from 'expo-gaode-map-search';
+
+const searchRuntime = createNativeSearchRuntime();
 
 // Keyword search
-const result = await searchPOI({
+const result = await searchRuntime.search.searchKeyword({
   keyword: 'Starbucks',
   city: 'Beijing',
 });
 
 // Nearby search
-const nearby = await searchNearby({
+const nearby = await searchRuntime.search.searchNearby({
   center: { latitude: 39.9, longitude: 116.4 },
   keyword: 'restaurant',
   radius: 2000,
 });
 
 // Input tips
-const tips = await getInputTips({
+const tips = await searchRuntime.search.getInputTips({
   keyword: 'Star',
   city: 'Beijing',
 });

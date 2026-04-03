@@ -1,4 +1,5 @@
 import ExpoGaodeMapNavigationModule from './ExpoGaodeMapNavigationModule';
+import { ErrorType, GaodeMapError } from './map/utils/ErrorHandler';
 
 // 重新导出地图模块的所有内容
 export * from './map';
@@ -34,70 +35,97 @@ import type {
   IndependentMotorcycleRouteOptions,
 } from './types';
 
-function parsePolyline(polyline?: string): NaviPoint[] {
-  if (!polyline?.trim()) {
-    return [];
-  }
-
-  return polyline
-    .split(';')
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-    .map((segment) => {
-      const [longitude, latitude] = segment.split(',').map((value) => Number(value.trim()));
-      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
-        return null;
-      }
-
-      return {
-        latitude,
-        longitude,
-      };
-    })
-    .filter((point): point is NaviPoint => point !== null);
+interface TransitRoutePlanLike {
+  distanceMeters?: number;
+  durationSeconds?: number;
+  path?: NaviPoint[];
+  raw?: unknown;
 }
 
-async function loadWebApiTransitFallback() {
+interface TransitRouteProviderLike {
+  calculateTransitRoutes?(params: {
+    origin: NaviPoint;
+    destination: NaviPoint;
+    city1: string;
+    city2: string;
+    strategy?: number;
+    alternativeRoute?: 1 | 2 | 3;
+  }): Promise<TransitRoutePlanLike[]>;
+}
+
+function extractTransitFee(raw: unknown): number {
+  const transitFee =
+    (raw as { cost?: { transit_fee?: number | string } } | undefined)?.cost
+      ?.transit_fee;
+  const parsed = Number(transitFee ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function loadWebApiTransitFallbackProvider(): Promise<TransitRouteProviderLike> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const webApi = require('expo-gaode-map-web-api');
-    if (typeof webApi?.GaodeWebAPI !== 'function') {
-      throw new Error('expo-gaode-map-web-api 未导出 GaodeWebAPI');
+
+    if (typeof webApi?.createWebRouteProvider === 'function') {
+      const provider = webApi.createWebRouteProvider();
+      if (typeof provider?.calculateTransitRoutes === 'function') {
+        return provider as TransitRouteProviderLike;
+      }
     }
-    return webApi;
-  } catch {
-    throw new Error(
-      '公交路径规划依赖 expo-gaode-map-web-api。请安装该包，并在 ExpoGaodeMapModule.initSDK 中提供 webKey。'
-    );
+
+    if (typeof webApi?.createWebRuntime === 'function') {
+      const runtime = webApi.createWebRuntime();
+      const transitRouteMethod = runtime?.route?.calculateTransitRoutes;
+      if (typeof transitRouteMethod === 'function') {
+        return {
+          calculateTransitRoutes: transitRouteMethod.bind(runtime.route),
+        };
+      }
+    }
+
+    throw new GaodeMapError({
+      code: 'TRANSIT_FALLBACK_INVALID_EXPORT',
+      type: ErrorType.INVALID_PARAMETER,
+      message:
+        'expo-gaode-map-web-api 未导出可用的公交算路 provider（createWebRouteProvider/createWebRuntime）',
+      retryable: false,
+      solution:
+        '请升级 expo-gaode-map-web-api 到 v3 兼容版本，并确认导出了 createWebRouteProvider 或 createWebRuntime。',
+    });
+  } catch (error) {
+    if (error instanceof GaodeMapError) {
+      throw error;
+    }
+
+    throw new GaodeMapError({
+      code: 'TRANSIT_FALLBACK_UNAVAILABLE',
+      type: ErrorType.INVALID_PARAMETER,
+      message:
+        '公交路径规划依赖 expo-gaode-map-web-api。请安装该包，并在 ExpoGaodeMapModule.initSDK 中提供 webKey。',
+      retryable: false,
+      cause: error,
+      solution:
+        '安装 expo-gaode-map-web-api 并配置 webKey 后重试；若已安装，请检查打包产物是否包含该包。',
+    });
   }
 }
 
 function normalizeTransitRouteResult(
   options: TransitRouteOptions,
-  result: any
+  plans: TransitRoutePlanLike[]
 ): DriveRouteResult {
-  // 导航包内部仍保持独立实现；
-  // 这里只是在“公交无法由导航 SDK 直算”时，把 Web API 结果映射成现有 RouteResult 形状。
-  const routes = (result?.route?.transits ?? []).map((transit: any, index: number) => {
-    const polyline = (transit?.segments ?? []).flatMap((segment: any) => [
-      ...(segment.walking?.steps?.flatMap((step: any) => parsePolyline(step.polyline)) ?? []),
-      ...(segment.bus?.buslines?.flatMap((line: any) => parsePolyline(line.polyline)) ?? []),
-      ...(segment.railway?.buslines?.flatMap((line: any) => parsePolyline(line.polyline)) ?? []),
-    ]);
-
-    return {
-      id: index,
-      start: options.from,
-      end: options.to,
-      distance: Number(transit?.distance ?? 0),
-      duration: Number(transit?.cost?.duration ?? 0),
-      segments: [],
-      polyline,
-      tollDistance: 0,
-      tollCost: Number(transit?.cost?.transit_fee ?? 0),
-      strategy: options.strategy,
-    };
-  });
+  const routes = (plans ?? []).map((plan, index) => ({
+    id: index,
+    start: options.from,
+    end: options.to,
+    distance: Number(plan?.distanceMeters ?? 0),
+    duration: Number(plan?.durationSeconds ?? 0),
+    segments: [],
+    polyline: Array.isArray(plan?.path) ? plan.path : [],
+    tollDistance: 0,
+    tollCost: extractTransitFee(plan?.raw),
+    strategy: options.strategy,
+  }));
 
   return {
     count: routes.length,
@@ -215,21 +243,29 @@ export const calculateMotorcycleRoute = (options: MotorcycleRouteOptions) =>
  */
 export async function calculateTransitRoute(options: TransitRouteOptions): Promise<DriveRouteResult> {
   // 运行时按需加载，避免把 navigation 包和 web-api 包在构建期强绑定。
-  const { GaodeWebAPI, TransitStrategy } = await loadWebApiTransitFallback();
-  const api = new GaodeWebAPI();
-  const result = await api.route.transit(
-    `${options.from.longitude},${options.from.latitude}`,
-    `${options.to.longitude},${options.to.latitude}`,
-    options.city1,
-    options.city2,
-    {
-      strategy: options.strategy ?? TransitStrategy.RECOMMENDED,
-      AlternativeRoute: options.alternativeRoute,
-      show_fields: 'cost,polyline',
-    }
-  );
+  const provider = await loadWebApiTransitFallbackProvider();
 
-  return normalizeTransitRouteResult(options, result);
+  if (typeof provider.calculateTransitRoutes !== 'function') {
+    throw new GaodeMapError({
+      code: 'TRANSIT_FALLBACK_INVALID_PROVIDER',
+      type: ErrorType.INVALID_PARAMETER,
+      message: '未找到可用的公交路径规划方法 calculateTransitRoutes',
+      retryable: false,
+      solution:
+        '请升级 expo-gaode-map-web-api 到 v3 兼容版本，并确认 createWebRouteProvider/createWebRuntime 返回了 route.calculateTransitRoutes。',
+    });
+  }
+
+  const plans = await provider.calculateTransitRoutes({
+    origin: options.from,
+    destination: options.to,
+    city1: options.city1,
+    city2: options.city2,
+    strategy: options.strategy,
+    alternativeRoute: options.alternativeRoute,
+  });
+
+  return normalizeTransitRouteResult(options, plans);
 }
 
 /**
