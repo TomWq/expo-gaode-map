@@ -64,7 +64,7 @@ export default function App() {
   return (
     <MapView 
       style={{ flex: 1 }} 
-      mapType={0} // 0: Standard, 1: Satellite
+      mapType={1} // 1: Standard, 2: Satellite
       initialCameraPosition={{
         target: { latitude: 39.909, longitude: 116.397 }, // 北京天安门
         zoom: 10

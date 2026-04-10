@@ -54,11 +54,11 @@ export interface CameraPosition {
 ### 地图类型枚举
 ```typescript
 export enum MapType {
-    Standard = 0,   // 标准地图
-    Satellite = 1,  // 卫星地图
-    Night = 2,      // 夜间地图
-    Navi = 3,       // 导航地图
-    Bus = 4         // 公交地图
+    Standard = 1,   // 标准地图
+    Satellite = 2,  // 卫星地图
+    Night = 3,      // 夜间地图
+    Navi = 4,       // 导航地图
+    Bus = 5         // 公交地图
 }
 ```
 

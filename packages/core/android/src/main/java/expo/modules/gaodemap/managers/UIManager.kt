@@ -356,11 +356,11 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    */
   fun setMapType(type: Int) {
     aMap.mapType = when (type) {
-      1 -> AMap.MAP_TYPE_SATELLITE  // 卫星地图
-      2 -> AMap.MAP_TYPE_NIGHT      // 夜间地图
-      3 -> AMap.MAP_TYPE_NAVI       // 导航地图
-      4 -> AMap.MAP_TYPE_BUS        // 公交地图
-      else -> AMap.MAP_TYPE_NORMAL  // 标准地图
+      2 -> AMap.MAP_TYPE_SATELLITE  // 卫星地图
+      3 -> AMap.MAP_TYPE_NIGHT      // 夜间地图
+      4 -> AMap.MAP_TYPE_NAVI       // 导航地图
+      5 -> AMap.MAP_TYPE_BUS        // 公交地图
+      else -> AMap.MAP_TYPE_NORMAL  // 标准地图 (1, 以及兼容旧值 0)
     }
   }
   

@@ -108,7 +108,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     // Props 存储
     /** 地图类型 */
-    internal var mapType: Int = 0
+    internal var mapType: Int = 1
     /** 初始相机位置 */
     internal var initialCameraPosition: Map<String, Any?>? = null
     /** 是否跟随用户位置 */
@@ -186,7 +186,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
                 isMapLoaded = true
 
                 // 应用缓存的 Props
-                if (mapType != 0) {
+                if (mapType != 1) {
                     setMapType(mapType)
                 }
 

@@ -10,6 +10,7 @@ import {
 
 import {
   ExpoGaodeMapModule,
+  MapType,
   MapUI,
   MapView,
   Marker,
@@ -27,10 +28,21 @@ import { BEIJING_CENTER } from './playgroundUtils';
  */
 export default function MapBasicsExample() {
   const mapRef = React.useRef<MapViewRef>(null);
+  const mapTypeOptions = React.useMemo(
+    () => [
+      { label: '标准', value: MapType.Standard },
+      { label: '卫星', value: MapType.Satellite },
+      { label: '夜间', value: MapType.Night },
+      { label: '导航', value: MapType.Navi },
+      { label: '公交', value: MapType.Bus },
+    ],
+    []
+  );
   const [initialCamera, setInitialCamera] =
     React.useState<CameraPosition | null>(null);
   const [location, setLocation] = React.useState<LatLng | null>(null);
   const [isLocating, setIsLocating] = React.useState(false);
+  const [mapType, setMapType] = React.useState<MapType>(MapType.Standard);
   const [cameraInfo, setCameraInfo] = React.useState('等待地图事件...');
   const [cameraMoveCount, setCameraMoveCount] = React.useState(0);
   const [cameraIdleCount, setCameraIdleCount] = React.useState(0);
@@ -164,7 +176,7 @@ export default function MapBasicsExample() {
         indoorViewEnabled
         buildingsEnabled
         labelsEnabled
-        mapType={2}
+        mapType={mapType}
         onLocation={({ nativeEvent }) => {
           setLocation({
             latitude: nativeEvent.latitude,
@@ -209,6 +221,9 @@ export default function MapBasicsExample() {
               <Text style={styles.cardMeta}>
                 事件统计 · move {cameraMoveCount} / idle {cameraIdleCount}
               </Text>
+              <Text style={styles.cardMeta}>
+                当前模式 · {mapTypeOptions.find((option) => option.value === mapType)?.label ?? '未知'}
+              </Text>
             </View>
 
             <View style={styles.toolbar}>
@@ -226,7 +241,7 @@ export default function MapBasicsExample() {
                   {isLocating ? '停止连续定位' : '开始连续定位'}
                 </Text>
               </Pressable>
-              <View style={styles.zoomRow}>
+              {/*<View style={styles.zoomRow}>
                 <Pressable
                   style={styles.zoomButton}
                   onPress={() => {
@@ -243,6 +258,29 @@ export default function MapBasicsExample() {
                 >
                   <Text style={styles.zoomButtonText}>缩小</Text>
                 </Pressable>
+              </View>*/}
+              <View style={styles.mapTypeRow}>
+                {mapTypeOptions.map((option) => {
+                  const active = option.value === mapType;
+                  return (
+                    <Pressable
+                      key={option.label}
+                      style={[styles.mapTypeButton, active && styles.mapTypeButtonActive]}
+                      onPress={() => {
+                        setMapType(option.value);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.mapTypeButtonText,
+                          active && styles.mapTypeButtonTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           </View>
@@ -348,5 +386,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: '700',
+  },
+  mapTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mapTypeButton: {
+    minWidth: 52,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#f8fafc',
+  },
+  mapTypeButtonActive: {
+    borderColor: '#1d4ed8',
+    backgroundColor: '#dbeafe',
+  },
+  mapTypeButtonText: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  mapTypeButtonTextActive: {
+    color: '#1d4ed8',
   },
 });

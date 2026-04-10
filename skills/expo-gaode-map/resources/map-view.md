@@ -18,7 +18,7 @@ ExpoGaodeMapModule.setPrivacyAgree(true);
 
 | 属性 | 类型 | 说明 |
 |----------|----------|--------------|
-| `mapType` | `MapType` (Enum) | 地图底图类型: `Standard(0)`, `Satellite(1)`, `Night(2)`, `Navi(3)`, `Bus(4)` |
+| `mapType` | `MapType` (Enum) | 地图底图类型: `Standard(1)`, `Satellite(2)`, `Night(3)`, `Navi(4)`, `Bus(5)` |
 | `initialCameraPosition` | `CameraPosition` | 初始显示的中心点、缩放级别(3-20)、旋转角度、倾斜角度 |
 | `myLocationEnabled` | `boolean` | 是否显示定位蓝点 |
 | `trafficEnabled` | `boolean` | 是否开启实时路况 |

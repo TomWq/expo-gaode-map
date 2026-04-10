@@ -182,7 +182,7 @@ await mapRef.current?.fitToCoordinates(routePoints, {
 ### 基础地图
 
 ```tsx
-import { ExpoGaodeMapModule, MapView } from 'expo-gaode-map';
+import { ExpoGaodeMapModule, MapType, MapView } from 'expo-gaode-map';
 
 if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   ExpoGaodeMapModule.setPrivacyConfig({
@@ -196,7 +196,7 @@ export default function App() {
   return (
     <MapView
       style={{ flex: 1 }}
-      mapType={0}
+      mapType={MapType.Standard}
       initialCameraPosition={{
         target: { latitude: 39.9, longitude: 116.4 },
         zoom: 10,

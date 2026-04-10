@@ -29,14 +29,15 @@ class UIManager: NSObject, MAMapViewDelegate {
     
     /**
      * 设置地图类型
-     * @param type 0:标准 1:卫星 2:夜间 3:导航
+     * @param type 1:标准 2:卫星 3:夜间 4:导航 5:公交
      */
     func setMapType(_ type: Int) {
         guard let mapView = mapView else { return }
         switch type {
-        case 1: mapView.mapType = .satellite
-        case 2: mapView.mapType = .standardNight
-        case 3: mapView.mapType = .navi
+        case 2: mapView.mapType = .satellite
+        case 3: mapView.mapType = .standardNight
+        case 4: mapView.mapType = .navi
+        case 5: mapView.mapType = .bus
         default: mapView.mapType = .standard
         }
         

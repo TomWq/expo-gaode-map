@@ -63,7 +63,7 @@ class ExpoGaodeMapViewModule : Module() {
       }
 
       OnViewDidUpdateProps { view: ExpoGaodeMapView ->
-        if (view.mapType != 0) {
+        if (view.mapType != 1) {
           view.setMapType(view.mapType)
         }
         

@@ -75,11 +75,11 @@ interface MapPoi {
 
 ```ts
 enum MapType {
-  Standard = 0,
-  Satellite = 1,
-  Night = 2,
-  Navi = 3,
-  Bus = 4, // Android
+  Standard = 1,
+  Satellite = 2,
+  Night = 3,
+  Navi = 4,
+  Bus = 5, // Android
 }
 ```
 

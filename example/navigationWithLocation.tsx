@@ -8,6 +8,7 @@ import {
   type CameraPosition,
   type Coordinates,
   type LatLng,
+  MapType,
 } from 'expo-gaode-map';
 import { DrivingStrategy, GaodeWebAPI, extractRoutePoints } from 'expo-gaode-map-web-api';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -171,7 +172,7 @@ export default function NavigationWithLocation() {
         <MapView
           ref={mapRef}
           style={styles.map}
-          mapType={2}
+          mapType={MapType.Night}
           initialCameraPosition={initialCamera}
           myLocationEnabled={trackingMode === 'realtime'}
           myLocationButtonEnabled

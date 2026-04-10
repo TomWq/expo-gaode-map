@@ -17,6 +17,7 @@ import {
   type MapPoi,
   MapUI,
   type LatLngPoint,
+  MapType,
 } from 'expo-gaode-map';
 import { reGeocode } from 'expo-gaode-map-search'
 import * as MediaLibrary from 'expo-media-library';
@@ -790,7 +791,7 @@ export default function MamScreen() {
         trafficEnabled={true}
         labelsEnabled={true}
         buildingsEnabled={true}
-        mapType={2}
+        mapType={MapType.Night}
         zoomGesturesEnabled
         scrollGesturesEnabled
         worldMapSwitchEnabled

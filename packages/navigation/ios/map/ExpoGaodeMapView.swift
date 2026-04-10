@@ -16,8 +16,8 @@ import QuartzCore
 class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate, MAMultiPointOverlayRendererDelegate {
     // MARK: - 属性
     
-    /// 地图类型 (0:标准 1:卫星 2:夜间 3:导航)
-    var mapType: Int = 0
+    /// 地图类型 (1:标准 2:卫星 3:夜间 4:导航 5:公交)
+    var mapType: Int = 1
     /// 初始相机位置
     var initialCameraPosition: [String: Any]?
     /// 是否显示缩放控件
@@ -471,7 +471,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             return
         }
 
-        uiManager.setMapType(0)
+        uiManager.setMapType(1)
         uiManager.setShowsScale(showsScale)
         uiManager.setShowsCompass(showsCompass)
         uiManager.setZoomEnabled(isZoomEnabled)
@@ -528,17 +528,20 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      */
     private func updateAppleMapStyle() {
         switch mapType {
-        case 1: // 卫星
+        case 2: // 卫星
             appleMapView.mapType = .satellite
             appleMapView.overrideUserInterfaceStyle = .unspecified
-        case 2: // 夜间
+        case 3: // 夜间
             // 苹果地图没有专门的夜间模式枚举，通过强制 Dark Mode 实现
             appleMapView.mapType = .standard
             appleMapView.overrideUserInterfaceStyle = .dark
-        case 3: // 导航
+        case 4: // 导航
             appleMapView.mapType = .standard
             appleMapView.overrideUserInterfaceStyle = .unspecified
-        default: // 标准 (0)
+        case 5: // 公交
+            appleMapView.mapType = .standard
+            appleMapView.overrideUserInterfaceStyle = .unspecified
+        default: // 标准 (1，兼容旧值 0)
             appleMapView.mapType = .standard
             // 标准模式下跟随系统，如果系统是深色则显示深色，否则浅色
             appleMapView.overrideUserInterfaceStyle = .unspecified

@@ -195,28 +195,28 @@ export enum MapType {
   /**
    * 标准地图
    */
-  Standard = 0,
+  Standard = 1,
 
   /**
    * 卫星地图
    */
-  Satellite = 1,
+  Satellite = 2,
 
   /**
    * 夜间地图
    */
-  Night = 2,
+  Night = 3,
 
   /**
    * 导航地图
    */
-  Navi = 3,
+  Navi = 4,
 
   /**
    * 公交地图
    * @platform android
    */
-  Bus = 4,
+  Bus = 5,
 }
 
 /**

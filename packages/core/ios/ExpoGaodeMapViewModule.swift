@@ -2,14 +2,6 @@ import ExpoModulesCore
 import MAMapKit
 import CoreLocation
 
-enum MapType: Int, Enumerable {
-    case standard = 0
-    case satellite = 1
-    case night = 2
-    case navi = 3
-    case bus = 4
-}
-
 /**
  * 高德地图视图 Module
  */
@@ -20,8 +12,8 @@ public class ExpoGaodeMapViewModule: Module {
         View(ExpoGaodeMapView.self) {
             Events("onMapPress", "onPressPoi", "onMapLongPress", "onLoad", "onLocation", "onCameraMove", "onCameraIdle")
             
-            Prop("mapType") { (view: ExpoGaodeMapView, type: MapType) in
-                view.mapType = type.rawValue
+            Prop("mapType") { (view: ExpoGaodeMapView, type: Int) in
+                view.mapType = type
             }
             
             Prop("initialCameraPosition") { (view: ExpoGaodeMapView, position: [String: Any]?) in
