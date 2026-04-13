@@ -1,5 +1,5 @@
 import ExpoModulesCore
-import AMapNaviKit
+import MAMapKit
 import UIKit
 
 /**
@@ -154,9 +154,9 @@ class MarkerView: ExpoView {
     
     // JS 侧可以调用
     func setCacheKey(_ key: String?) {
+        guard cacheKey != key else { return }
         self.cacheKey = key
-        // 发生变化时刷新 annotation
-        updateAnnotation()
+        refreshAnnotationAppearance(invalidateChildrenCache: !subviews.isEmpty)
     }
     
     /**
@@ -246,8 +246,6 @@ class MarkerView: ExpoView {
                 if let generated = self.createImageFromSubviews() {
                     annotationView.image = generated
                     self.applyCenterOffset(to: annotationView, defaultOffset: .zero)
-                } else if self.hasPendingImageContent() {
-                    self.scheduleSubviewRefresh(allowFallbackToDefault: false)
                 }
             }
             return annotationView
@@ -255,10 +253,12 @@ class MarkerView: ExpoView {
         
         // 2. 如果有 icon 属性，使用自定义图标
         if let iconUri = iconUri, !iconUri.isEmpty {
-            let key = cacheKey ?? "icon|\(iconUri)|\(Int(iconWidth))x\(Int(iconHeight))"
+            let key = iconCacheKey(for: iconUri)
             if let cached = IconBitmapCache.shared.image(forKey: key) {
                 annotationView?.image = cached
-                annotationView?.centerOffset = CGPoint(x: 0, y: -cached.size.height / 2)
+                if let annotationView = annotationView {
+                    applyCenterOffset(to: annotationView, defaultOffset: CGPoint(x: 0, y: -cached.size.height / 2))
+                }
                 return annotationView
             }
             
@@ -274,7 +274,7 @@ class MarkerView: ExpoView {
                 if let img = resizedImage {
                     IconBitmapCache.shared.setImage(img, forKey: key)
                     annotationView.image = img
-                    annotationView.centerOffset = CGPoint(x: 0, y: -img.size.height / 2)
+                    self.applyCenterOffset(to: annotationView, defaultOffset: CGPoint(x: 0, y: -img.size.height / 2))
                 }
             }
             return annotationView
@@ -391,10 +391,12 @@ class MarkerView: ExpoView {
             self.annotationView = annotationView
             
             // 构建 key
-            let key = cacheKey ?? "icon|\(iconUri)|\(Int(iconWidth))x\(Int(iconHeight))"
+            let key = iconCacheKey(for: iconUri)
             if let cached = IconBitmapCache.shared.image(forKey: key) {
                 annotationView?.image = cached
-                annotationView?.centerOffset = CGPoint(x: 0, y: -cached.size.height / 2)
+                if let annotationView = annotationView {
+                    applyCenterOffset(to: annotationView, defaultOffset: CGPoint(x: 0, y: -cached.size.height / 2))
+                }
                 return annotationView
             }
 
@@ -411,7 +413,9 @@ class MarkerView: ExpoView {
                     if let img = resizedImage {
                         IconBitmapCache.shared.setImage(img, forKey: key)
                         annotationView?.image = img
-                        annotationView?.centerOffset = CGPoint(x: 0, y: -img.size.height / 2)
+                        if let annotationView = annotationView {
+                            self.applyCenterOffset(to: annotationView, defaultOffset: CGPoint(x: 0, y: -img.size.height / 2))
+                        }
                     }
                 }
             }
@@ -451,6 +455,9 @@ class MarkerView: ExpoView {
         pinView?.canShowCallout = canShowCallout
         pinView?.isDraggable = draggable
         pinView?.animatesDrop = animatesDrop
+        if let pinView = pinView {
+            applyCenterOffset(to: pinView, defaultOffset: .zero)
+        }
         
         self.annotationView = pinView
         return pinView
@@ -536,6 +543,41 @@ class MarkerView: ExpoView {
         IconBitmapCache.shared.setImage(image, forKey: key)
         
         return image
+    }
+
+    private func iconCacheKey(for iconUri: String) -> String {
+        let baseKey = cacheKey ?? "icon|\(iconUri)"
+        return "\(baseKey)|\(Int(iconWidth.rounded()))x\(Int(iconHeight.rounded()))"
+    }
+
+    private func applyCenterOffset(to annotationView: MAAnnotationView, defaultOffset: CGPoint) {
+        annotationView.centerOffset = resolvedCenterOffset(defaultOffset: defaultOffset)
+    }
+
+    private func resolvedCenterOffset(defaultOffset: CGPoint) -> CGPoint {
+        guard let centerOffset else {
+            return defaultOffset
+        }
+
+        let x = centerOffset["x"] ?? Double(defaultOffset.x)
+        let y = centerOffset["y"] ?? Double(defaultOffset.y)
+        return CGPoint(x: x, y: y)
+    }
+
+    private func currentDefaultCenterOffset() -> CGPoint {
+        if !subviews.isEmpty {
+            return .zero
+        }
+
+        if let image = annotationView?.image ?? animatedAnnotationView?.image {
+            return CGPoint(x: 0, y: -image.size.height / 2)
+        }
+
+        if let iconUri, !iconUri.isEmpty {
+            return CGPoint(x: 0, y: -iconHeight / 2)
+        }
+
+        return .zero
     }
 
     private func resolvedCustomSubviewSize(defaultSize: CGSize) -> CGSize {
@@ -808,6 +850,45 @@ class MarkerView: ExpoView {
             IconBitmapCache.shared.removeImage(forKey: childrenCacheKey(for: size))
         }
     }
+
+    private func refreshAnnotationAppearance(invalidateChildrenCache: Bool = false) {
+        guard !isRemoving else { return }
+
+        let refresh = { [weak self] in
+            guard let self = self, let mapView = self.mapView else { return }
+
+            self.pendingSubviewRefreshTask?.cancel()
+            self.pendingSubviewRefreshTask = nil
+
+            if invalidateChildrenCache {
+                self.lastRenderedChildrenSignature = nil
+                if !self.subviews.isEmpty {
+                    self.invalidateCurrentChildrenCache()
+                }
+            }
+
+            if let animatedAnnotation = self.animatedAnnotation {
+                self.animatedAnnotationView = nil
+                mapView.removeAnnotation(animatedAnnotation)
+                mapView.addAnnotation(animatedAnnotation)
+                return
+            }
+
+            if let annotation = self.annotation {
+                self.annotationView = nil
+                mapView.removeAnnotation(annotation)
+                mapView.addAnnotation(annotation)
+            } else {
+                self.updateAnnotation()
+            }
+        }
+
+        if Thread.isMainThread {
+            refresh()
+        } else {
+            DispatchQueue.main.async(execute: refresh)
+        }
+    }
     
     /**
      * 设置纬度
@@ -893,28 +974,83 @@ class MarkerView: ExpoView {
      */
     func setDraggable(_ draggable: Bool) {
         self.draggable = draggable
+        annotationView?.isDraggable = draggable
+        animatedAnnotationView?.isDraggable = draggable
         updateAnnotation()
     }
     
     func setIconUri(_ uri: String?) {
         self.iconUri = uri
-        updateAnnotation()
+        refreshAnnotationAppearance()
+    }
+
+    func setIconWidth(_ width: Double) {
+        guard iconWidth != width else { return }
+        iconWidth = width
+        if let iconUri, !iconUri.isEmpty {
+            refreshAnnotationAppearance()
+        }
+    }
+
+    func setIconHeight(_ height: Double) {
+        guard iconHeight != height else { return }
+        iconHeight = height
+        if let iconUri, !iconUri.isEmpty {
+            refreshAnnotationAppearance()
+        }
+    }
+
+    func setCustomViewWidth(_ width: Double) {
+        guard customViewWidth != width else { return }
+        customViewWidth = width
+        if !subviews.isEmpty {
+            refreshAnnotationAppearance(invalidateChildrenCache: true)
+        }
+    }
+
+    func setCustomViewHeight(_ height: Double) {
+        guard customViewHeight != height else { return }
+        customViewHeight = height
+        if !subviews.isEmpty {
+            refreshAnnotationAppearance(invalidateChildrenCache: true)
+        }
     }
     
     func setCenterOffset(_ offset: [String: Double]) {
         self.centerOffset = offset
+        if let annotationView = annotationView {
+            applyCenterOffset(to: annotationView, defaultOffset: currentDefaultCenterOffset())
+        }
+        if let animatedAnnotationView = animatedAnnotationView {
+            applyCenterOffset(to: animatedAnnotationView, defaultOffset: currentDefaultCenterOffset())
+        }
     }
     
     func setAnimatesDrop(_ animate: Bool) {
         self.animatesDrop = animate
+        (annotationView as? MAPinAnnotationView)?.animatesDrop = animate
     }
     
     func setPinColor(_ color: String) {
+        guard pinColor != color else { return }
         self.pinColor = color
+        if subviews.isEmpty && (iconUri?.isEmpty ?? true) {
+            refreshAnnotationAppearance()
+        }
     }
     
     func setCanShowCallout(_ show: Bool) {
         self.canShowCallout = show
+        if subviews.isEmpty {
+            annotationView?.canShowCallout = show
+            animatedAnnotationView?.canShowCallout = show
+        }
+    }
+
+    func setGrowAnimation(_ enabled: Bool) {
+        guard growAnimation != enabled else { return }
+        growAnimation = enabled
+        refreshAnnotationAppearance()
     }
     
     // MARK: - 平滑移动相关方法
@@ -1125,6 +1261,7 @@ class MarkerView: ExpoView {
         // 取消待处理的任务
         pendingAddTask?.cancel()
         pendingUpdateTask?.cancel()
+        pendingSubviewRefreshTask?.cancel()
         
         // 清理引用，防止内存泄漏
         mapView = nil
