@@ -1,5 +1,5 @@
 import ExpoModulesCore
-import MAMapKit
+import AMapNaviKit
 import UIKit
 
 /**
