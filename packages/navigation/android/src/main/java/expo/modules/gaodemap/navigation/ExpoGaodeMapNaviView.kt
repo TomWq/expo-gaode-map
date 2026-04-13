@@ -14,6 +14,7 @@ import com.amap.api.navi.AMapNaviViewOptions
 import com.amap.api.navi.enums.MapStyle
 import com.amap.api.navi.enums.NaviType
 import com.amap.api.navi.model.*
+import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -59,7 +60,9 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var isVectorLineShow: Boolean = true
     internal var isNaviTravelView : Boolean = false
     internal var isCompassEnabled: Boolean = true
-    private val naviView: AMapNaviView = AMapNaviView(context)
+    private val naviView: AMapNaviView by lazy(LazyThreadSafetyMode.NONE) {
+        AMapNaviView(context)
+    }
     private var aMapNavi: AMapNavi? = null
     private var startCoordinate: NaviLatLng? = null
     private var endCoordinate: NaviLatLng? = null
@@ -299,6 +302,14 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
 
     init {
         try {
+            val appCtx = context.applicationContext ?: context
+            SDKInitializer.restorePersistedState(appCtx)
+            if (!SDKInitializer.isPrivacyReady()) {
+                throw IllegalStateException(
+                    "隐私协议未完成确认，请先调用 setPrivacyConfig（或 setPrivacyShow/setPrivacyAgree）"
+                )
+            }
+
             // 初始化导航视图
             naviView.onCreate(Bundle())
             naviView.layoutParams = android.widget.FrameLayout.LayoutParams(
@@ -315,7 +326,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             ensureOverlayInsetHook()
             
             // 使用单例获取导航实例
-            aMapNavi = AMapNavi.getInstance(context.applicationContext)
+            aMapNavi = AMapNavi.getInstance(appCtx)
             aMapNavi?.addAMapNaviListener(naviListener)
             
             // 使用内置语音播报功能（v5.6.0+）

@@ -58,6 +58,13 @@ export interface IndependentDriveRouteOptions {
   carNumber?: string;
   /** 是否考虑限行 */
   restriction?: boolean;
+  /** 避让区域（可选） */
+  avoidPolygons?: Array<Array<{
+    latitude: number;
+    longitude: number;
+  }>>;
+  /** 避让道路（道路名称，可选） */
+  avoidRoad?: string;
 }
 
 /**

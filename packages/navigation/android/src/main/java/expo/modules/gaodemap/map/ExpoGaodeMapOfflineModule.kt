@@ -3,10 +3,12 @@ package expo.modules.gaodemap.map
 import android.os.Bundle
 import android.os.StatFs
 import android.os.Environment
+import android.util.Log
 import com.amap.api.maps.offlinemap.OfflineMapCity
 import com.amap.api.maps.offlinemap.OfflineMapManager
 import com.amap.api.maps.offlinemap.OfflineMapProvince
 import com.amap.api.maps.offlinemap.OfflineMapStatus
+import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -81,20 +83,8 @@ class ExpoGaodeMapOfflineModule : Module() {
     // ==================== 模块生命周期 ====================
     
     OnCreate {
-      // 初始化离线地图管理器
-      offlineMapManager = OfflineMapManager(appContext.reactContext, object : OfflineMapManager.OfflineMapDownloadListener {
-        override fun onDownload(status: Int, completeCode: Int, downName: String?) {
-          handleDownloadStatus(status, completeCode, downName)
-        }
-        
-        override fun onCheckUpdate(hasNew: Boolean, name: String?) {
-          // 更新检查回调
-        }
-        
-        override fun onRemove(success: Boolean, name: String?, describe: String?) {
-          // 删除回调
-        }
-      })
+      // 避免在应用启动早期（JS 隐私同意前）触发 OfflineMapManager 初始化导致 555571
+      getOfflineMapManager()
     }
     
     OnDestroy {
@@ -106,24 +96,24 @@ class ExpoGaodeMapOfflineModule : Module() {
     // ==================== 地图列表管理 ====================
     
     AsyncFunction("getAvailableCities") {
-      val cities = offlineMapManager?.offlineMapCityList ?: emptyList()
+      val cities = getOfflineMapManager()?.offlineMapCityList ?: emptyList()
       cities.map { city -> convertCityToMap(city) }
     }
     
     AsyncFunction("getAvailableProvinces") {
-      val provinces = offlineMapManager?.offlineMapProvinceList ?: emptyList()
+      val provinces = getOfflineMapManager()?.offlineMapProvinceList ?: emptyList()
       provinces.map { province -> convertProvinceToMap(province) }
     }
     
     AsyncFunction("getCitiesByProvince") { provinceCode: String ->
-      val province = offlineMapManager?.offlineMapProvinceList?.find { 
+      val province = getOfflineMapManager()?.offlineMapProvinceList?.find {
         it.provinceCode == provinceCode 
       }
       province?.cityList?.map { city -> convertCityToMap(city) } ?: emptyList()
     }
     
     AsyncFunction("getDownloadedMaps") {
-      val cities = offlineMapManager?.downloadOfflineMapCityList ?: emptyList()
+      val cities = getOfflineMapManager()?.downloadOfflineMapCityList ?: emptyList()
       cities.map { city -> convertCityToMap(city) }
     }
     
@@ -137,11 +127,11 @@ class ExpoGaodeMapOfflineModule : Module() {
         downloadingCities.add(cityCode)
         pausedCities.remove(cityCode)
       }
-      offlineMapManager?.downloadByCityCode(cityCode)
+      getOfflineMapManager()?.downloadByCityCode(cityCode)
     }
     
     AsyncFunction("pauseDownload") { cityCode: String ->
-      val city = offlineMapManager?.getItemByCityCode(cityCode)
+      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
       
       synchronized(lock) {
         pausedCities.add(cityCode)
@@ -150,7 +140,7 @@ class ExpoGaodeMapOfflineModule : Module() {
       
       // 使用 pauseByName 暂停指定城市
       city?.city?.let { cityName ->
-        offlineMapManager?.pauseByName(cityName)
+        getOfflineMapManager()?.pauseByName(cityName)
       }
       
       if (city != null) {
@@ -168,11 +158,11 @@ class ExpoGaodeMapOfflineModule : Module() {
       }
       // Android SDK 没有针对单个城市的恢复方法
       // 需要重新调用 downloadByCityCode 来继续下载
-      offlineMapManager?.downloadByCityCode(cityCode)
+      getOfflineMapManager()?.downloadByCityCode(cityCode)
     }
     
     AsyncFunction("cancelDownload") { cityCode: String ->
-      val city = offlineMapManager?.getItemByCityCode(cityCode)
+      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
       
       synchronized(lock) {
         downloadingCities.remove(cityCode)
@@ -180,7 +170,7 @@ class ExpoGaodeMapOfflineModule : Module() {
       }
       
       // 使用 stop() 停止所有下载(包括队列)
-      offlineMapManager?.stop()
+      getOfflineMapManager()?.stop()
       
       if (city != null) {
         sendEvent("onDownloadCancelled", Bundle().apply {
@@ -191,11 +181,11 @@ class ExpoGaodeMapOfflineModule : Module() {
     }
     
     AsyncFunction("deleteMap") { cityCode: String ->
-      val city = offlineMapManager?.getItemByCityCode(cityCode)
+      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
         ?: throw IllegalArgumentException("City not found: $cityCode")
       
       // 官方文档:remove() 需要传入城市名称,不是城市代码
-      offlineMapManager?.remove(city.city)
+      getOfflineMapManager()?.remove(city.city)
       
       synchronized(lock) {
         downloadingCities.remove(cityCode)
@@ -207,29 +197,29 @@ class ExpoGaodeMapOfflineModule : Module() {
       synchronized(lock) {
         downloadingCities.add(cityCode)
       }
-      offlineMapManager?.updateOfflineCityByCode(cityCode)
+      getOfflineMapManager()?.updateOfflineCityByCode(cityCode)
     }
     
     AsyncFunction("checkUpdate") { cityCode: String ->
-      val city = offlineMapManager?.getItemByCityCode(cityCode)
+      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
       city?.state == OfflineMapStatus.NEW_VERSION
     }
     
     // ==================== 状态查询 ====================
     
     AsyncFunction("isMapDownloaded") { cityCode: String ->
-      val city = offlineMapManager?.getItemByCityCode(cityCode)
+      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
       city?.state == OfflineMapStatus.SUCCESS || 
       city?.state == OfflineMapStatus.CHECKUPDATES
     }
     
     AsyncFunction("getMapStatus") { cityCode: String ->
-      val city = offlineMapManager?.getItemByCityCode(cityCode)
+      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
       city?.let { convertCityToMap(it) } ?: Bundle()
     }
     
     AsyncFunction("getTotalProgress") {
-      val downloadedCities = offlineMapManager?.downloadOfflineMapCityList ?: emptyList()
+      val downloadedCities = getOfflineMapManager()?.downloadOfflineMapCityList ?: emptyList()
       if (downloadedCities.isEmpty()) {
         0.0
       } else {
@@ -246,12 +236,12 @@ class ExpoGaodeMapOfflineModule : Module() {
     
     AsyncFunction("getStorageSize") {
       // 计算所有已下载地图的大小
-      val cities = offlineMapManager?.downloadOfflineMapCityList ?: emptyList()
+      val cities = getOfflineMapManager()?.downloadOfflineMapCityList ?: emptyList()
       cities.sumOf { it.size }
     }
     
     AsyncFunction("getStorageInfo") {
-      val cities = offlineMapManager?.downloadOfflineMapCityList ?: emptyList()
+      val cities = getOfflineMapManager()?.downloadOfflineMapCityList ?: emptyList()
       val offlineMapSize = cities.sumOf { it.size }
       
       // 获取存储路径的统计信息
@@ -273,9 +263,9 @@ class ExpoGaodeMapOfflineModule : Module() {
     }
     
     AsyncFunction("clearAllMaps") {
-      offlineMapManager?.downloadOfflineMapCityList?.forEach { city ->
+      getOfflineMapManager()?.downloadOfflineMapCityList?.forEach { city ->
         // 使用城市名称删除
-        offlineMapManager?.remove(city.city)
+        getOfflineMapManager()?.remove(city.city)
       }
       synchronized(lock) {
         downloadingCities.clear()
@@ -302,16 +292,16 @@ class ExpoGaodeMapOfflineModule : Module() {
         }
       }
       cityCodes.forEach { cityCode ->
-        offlineMapManager?.downloadByCityCode(cityCode)
+        getOfflineMapManager()?.downloadByCityCode(cityCode)
       }
     }
     
     AsyncFunction("batchDelete") { cityCodes: List<String> ->
       cityCodes.forEach { cityCode ->
-        val city = offlineMapManager?.getItemByCityCode(cityCode)
+        val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
         // 使用城市名称删除,不是城市代码
         city?.city?.let { cityName ->
-          offlineMapManager?.remove(cityName)
+          getOfflineMapManager()?.remove(cityName)
         }
       }
       synchronized(lock) {
@@ -329,18 +319,18 @@ class ExpoGaodeMapOfflineModule : Module() {
         }
       }
       cityCodes.forEach { cityCode ->
-        offlineMapManager?.updateOfflineCityByCode(cityCode)
+        getOfflineMapManager()?.updateOfflineCityByCode(cityCode)
       }
     }
     
     AsyncFunction("pauseAllDownloads") {
       // pause() 只暂停正在下载的,不包括队列
-      offlineMapManager?.pause()
+      getOfflineMapManager()?.pause()
       
       synchronized(lock) {
         pausedCities.addAll(downloadingCities)
         downloadingCities.forEach { cityCode ->
-          val city = offlineMapManager?.getItemByCityCode(cityCode)
+          val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
           if (city != null) {
             sendEvent("onDownloadPaused", Bundle().apply {
               putString("cityCode", cityCode)
@@ -363,7 +353,7 @@ class ExpoGaodeMapOfflineModule : Module() {
           downloadingCities.add(cityCode)
           pausedCities.remove(cityCode)
         }
-        offlineMapManager?.downloadByCityCode(cityCode)
+        getOfflineMapManager()?.downloadByCityCode(cityCode)
       }
     }
   }
@@ -377,9 +367,9 @@ class ExpoGaodeMapOfflineModule : Module() {
     if (downName == null) return
     
     // downName 可能是城市代码或城市名称,尝试两种方式查找
-    var city = offlineMapManager?.getItemByCityCode(downName)
+    var city = getOfflineMapManager()?.getItemByCityCode(downName)
     if (city == null) {
-      city = offlineMapManager?.offlineMapCityList?.find { it.city == downName }
+      city = getOfflineMapManager()?.offlineMapCityList?.find { it.city == downName }
     }
     
     if (city == null) return
@@ -530,6 +520,42 @@ class ExpoGaodeMapOfflineModule : Module() {
       OfflineMapStatus.CHECKUPDATES -> "not_downloaded"
       OfflineMapStatus.NEW_VERSION -> "not_downloaded"
       else -> "not_downloaded"
+    }
+  }
+
+  /**
+   * 按需初始化 OfflineMapManager：
+   * - 隐私未同意时不初始化，避免应用启动阶段触发 555571
+   * - 用户同意后首次调用离线接口时自动初始化
+   */
+  private fun getOfflineMapManager(): OfflineMapManager? {
+    offlineMapManager?.let { return it }
+
+    val context = appContext.reactContext ?: return null
+    return try {
+      SDKInitializer.restorePersistedState(context)
+      if (!SDKInitializer.isPrivacyReady()) {
+        null
+      } else {
+        OfflineMapManager(context, object : OfflineMapManager.OfflineMapDownloadListener {
+          override fun onDownload(status: Int, completeCode: Int, downName: String?) {
+            handleDownloadStatus(status, completeCode, downName)
+          }
+
+          override fun onCheckUpdate(hasNew: Boolean, name: String?) {
+            // 更新检查回调
+          }
+
+          override fun onRemove(success: Boolean, name: String?, describe: String?) {
+            // 删除回调
+          }
+        }).also { manager ->
+          offlineMapManager = manager
+        }
+      }
+    } catch (e: Exception) {
+      Log.w("ExpoGaodeMapOffline", "OfflineMapManager 初始化失败: ${e.message}")
+      null
     }
   }
 }

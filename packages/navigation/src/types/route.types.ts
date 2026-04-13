@@ -177,6 +177,117 @@ export interface TruckRouteOptions extends BaseRouteOptions {
 }
 
 /**
+ * 官方导航页参数（Android: AmapNaviPage.showRouteActivity）
+ */
+export interface OfficialNaviPageOptions {
+  /** 起点（可选，不传则由 SDK 使用当前位置） */
+  from?: Coordinates & {
+    name?: string;
+    poiId?: string;
+  };
+  /** 终点（必填） */
+  to: Coordinates & {
+    name?: string;
+    poiId?: string;
+  };
+  /** 途经点（可选） */
+  waypoints?: Array<
+    Coordinates & {
+      name?: string;
+      poiId?: string;
+    }
+  >;
+  /** 页面类型：`ROUTE` 路线页 / `NAVI` 导航页 */
+  pageType?: 'ROUTE' | 'NAVI' | string;
+  /** 算路类型：`DRIVER` / `WALK` / `RIDE` / `MOTORCYCLE`（当前主要用于驾车） */
+  officialNaviType?: 'DRIVER' | 'WALK' | 'RIDE' | 'MOTORCYCLE' | string;
+  /** 组件主题：`BLUE`（默认）/ `WHITE` / `BLACK` */
+  theme?: 'BLUE' | 'WHITE' | 'BLACK' | string;
+  /** 组件算路策略（参考 PathPlanningStrategy 常量） */
+  routeStrategy?: number;
+  /** 是否直接进入导航页（iOS 对应 `setStartNaviDirectly`） */
+  startNaviDirectly?: boolean;
+  /** 直接导航模式（仅直接进导航页时生效） */
+  naviMode?: number;
+  needCalculateRouteWhenPresent?: boolean;
+  /** 退出导航页时是否销毁 DriveManager 实例，默认 false */
+  needDestroyDriveManagerInstanceWhenNaviExit?: boolean;
+  /** 是否显示退出导航弹窗，默认 true */
+  showExitNaviDialog?: boolean;
+  /** 是否使用内置语音，默认 true（6.1.0+ 默认 true） */
+  useInnerVoice?: boolean;
+  /** 路况开关是否打开（默认 false） */
+  trafficEnabled?: boolean;
+  /** 是否显示路口放大图 */
+  showCrossImage?: boolean;
+  /** 是否显示“路径偏好策略”页面 */
+  showRouteStrategyPreferenceView?: boolean;
+  /** 是否显示“下下个路口”引导 */
+  secondActionVisible?: boolean;
+  /** 是否展示语音设置项（文档原方法名 `setShowVoiceSetings`） */
+  showVoiceSettings?: boolean;
+  /** 驾车多路线模式（true 多路线 / false 单路线） */
+  multipleRouteNaviMode?: boolean;
+  /** 货车多路线模式（付费能力） */
+  truckMultipleRouteNaviMode?: boolean;
+  /** 是否显示鹰眼小地图 */
+  showEagleMap?: boolean;
+  /** 比例尺智能缩放是否开启 */
+  scaleAutoChangeEnable?: boolean;
+  /** 昼夜模式：0 自动 / 1 白天 / 2 夜间 */
+  dayAndNightMode?: 0 | 1 | 2 | number;
+  /** iOS 地图样式类型（覆盖 dayAndNightMode） */
+  mapViewModeType?: number;
+  /** 播报模式：1 简洁 / 2 详细 / 3 静音 */
+  broadcastMode?: 1 | 2 | 3 | number;
+  /** iOS 播报类型（覆盖 broadcastMode） */
+  broadcastType?: number;
+  /** 导航视角：1 正北向上 / 2 车头向上 */
+  carDirectionMode?: 1 | 2 | number;
+  /** iOS 跟随模式（覆盖 carDirectionMode） */
+  trackingMode?: number;
+  /** 是否显示“随后转向”图标（iOS） */
+  showNextRoadInfo?: boolean;
+  /** 多路线模式下是否显示备选路线（iOS） */
+  showBackupRoute?: boolean;
+  /** 网约车模式（iOS） */
+  onlineCarHailingType?: number;
+  /** 是否显示限行图层（iOS，付费能力） */
+  showRestrictareaEnable?: boolean;
+  /** 到达目的地后是否移除路线和牵引线（iOS） */
+  removePolylineAndVectorlineWhenArrivedDestination?: boolean;
+  /** 车辆信息（用于尾号限行/货车导航） */
+  carInfo?: {
+    /** 车辆类型：如 `0` 小客车 / `1` 货车 / `11` 摩托车 */
+    carType?: string;
+    /** 车牌号 */
+    carNumber?: string;
+    /** 是否考虑限行 */
+    restriction?: boolean;
+    /** 摩托车排量 */
+    motorcycleCC?: number;
+    /** 货车轴数 */
+    vehicleAxis?: string;
+    /** 货车高度（米） */
+    vehicleHeight?: string;
+    /** 货车长度（米） */
+    vehicleLength?: string;
+    /** 货车宽度（米） */
+    vehicleWidth?: string;
+    /** 货车尺寸等级 */
+    vehicleSize?: string;
+    /** 货车载重（吨） */
+    vehicleLoad?: string;
+    /** 货车总重（吨） */
+    vehicleWeight?: string;
+    /** 是否开启载重参数 */
+    vehicleLoadSwitch?: boolean;
+    /** 算路时是否忽略货车重量（iOS） */
+    isLoadIgnore?: boolean;
+  };
+}
+
+/**
  * 路径步骤动作类型
  */
 export enum StepAction {

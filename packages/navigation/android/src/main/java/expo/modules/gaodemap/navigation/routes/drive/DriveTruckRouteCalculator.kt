@@ -3,6 +3,8 @@ package expo.modules.gaodemap.navigation.routes.drive
 import android.content.Context
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
+import com.amap.api.navi.model.NaviLatLng
+import com.amap.api.navi.model.NaviPoi
 import expo.modules.gaodemap.navigation.ExpoGaodeMapNavigationModule
 import expo.modules.gaodemap.navigation.listeners.RouteCalculateListener
 import expo.modules.gaodemap.navigation.utils.Converters
@@ -22,6 +24,10 @@ class DriveTruckRouteCalculator(
   private val context: Context,
   private val module: ExpoGaodeMapNavigationModule
 ) {
+  companion object {
+    private const val TAG = "DriveTruckRouteCalculator"
+  }
+
   private var aMapNavi: AMapNavi? = null
   private var routeListener: RouteCalculateListener? = null
   private var isInitialized = false
@@ -97,7 +103,8 @@ class DriveTruckRouteCalculator(
     val fromPoi = from?.let { Converters.parseNaviPoi(it) }
     val toPoi = Converters.parseNaviPoi(to)
     @Suppress("UNCHECKED_CAST")
-    val waypoints = Converters.parseWaypoints(options["waypoints"] as? List<Map<String, Any?>>)
+    val waypointsRaw = options["waypoints"] as? List<Map<String, Any?>>
+    val waypoints = Converters.parseWaypoints(waypointsRaw)
 
     // 1) 直接传策略值，或 2) 通过 strategyConvert 计算
     val strategy: Int = if (options.containsKey("strategy")) {
@@ -141,8 +148,25 @@ class DriveTruckRouteCalculator(
     android.util.Log.d("DriveTruckRouteCalculator", "起点: $fromPoi")
     android.util.Log.d("DriveTruckRouteCalculator", "终点: $toPoi")
     android.util.Log.d("DriveTruckRouteCalculator", "策略: $strategy")
-    
-    val result = aMapNavi?.calculateDriveRoute(fromPoi, toPoi, waypoints, strategy)
+
+    val fromLatLng = from?.let { Converters.parseNaviLatLng(it) }
+    val toLatLng = Converters.parseNaviLatLng(to)
+    val waypointsLatLng = Converters.parseWaypointsLatLng(waypointsRaw)
+    val avoidPolygons = Converters.parseAvoidPolygons(options["avoidPolygons"])
+    val avoidRoad = (options["avoidRoad"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+
+    val result = calculateDriveRouteWithOptionalAvoid(
+      fromPoi = fromPoi,
+      toPoi = toPoi,
+      waypointsPoi = waypoints,
+      fromLatLng = fromLatLng,
+      toLatLng = toLatLng,
+      waypointsLatLng = waypointsLatLng,
+      strategy = strategy,
+      avoidPolygons = avoidPolygons,
+      avoidRoad = avoidRoad
+    )
+
     android.util.Log.d("DriveTruckRouteCalculator", "calculateDriveRoute 返回: $result")
   }
 
@@ -191,6 +215,158 @@ class DriveTruckRouteCalculator(
     } finally {
       aMapNavi = null
       routeListener = null
+    }
+  }
+
+  /**
+   * 兼容不同版本 SDK 的避让参数能力：
+   * - 若传了 avoidPolygons / avoidRoad，优先尝试反射调用带避让参数的重载；
+   * - 不可用时回退到普通算路，保证兼容性。
+   */
+  private fun calculateDriveRouteWithOptionalAvoid(
+    fromPoi: NaviPoi?,
+    toPoi: NaviPoi,
+    waypointsPoi: List<NaviPoi>,
+    fromLatLng: NaviLatLng?,
+    toLatLng: NaviLatLng,
+    waypointsLatLng: List<NaviLatLng>,
+    strategy: Int,
+    avoidPolygons: List<List<NaviLatLng>>,
+    avoidRoad: String?
+  ): Boolean {
+    val navi = aMapNavi ?: return false
+    val hasAvoidPolygon = avoidPolygons.isNotEmpty()
+    val hasAvoidRoad = !avoidRoad.isNullOrBlank()
+
+    if (hasAvoidPolygon || hasAvoidRoad) {
+      val reflected = invokeDriveRouteWithAvoidByReflection(
+        navi = navi,
+        fromPoi = fromPoi,
+        toPoi = toPoi,
+        waypointsPoi = waypointsPoi,
+        fromLatLng = fromLatLng,
+        toLatLng = toLatLng,
+        waypointsLatLng = waypointsLatLng,
+        strategy = strategy,
+        avoidPolygons = avoidPolygons,
+        avoidRoad = avoidRoad.orEmpty()
+      )
+
+      if (reflected != null) {
+        return reflected
+      }
+
+      android.util.Log.w(
+        TAG,
+        "avoidPolygons/avoidRoad 已传入，但当前 SDK 重载不可用，回退到普通算路"
+      )
+    }
+
+    return navi.calculateDriveRoute(fromPoi, toPoi, waypointsPoi, strategy)
+  }
+
+  private fun invokeDriveRouteWithAvoidByReflection(
+    navi: AMapNavi,
+    fromPoi: NaviPoi?,
+    toPoi: NaviPoi,
+    waypointsPoi: List<NaviPoi>,
+    fromLatLng: NaviLatLng?,
+    toLatLng: NaviLatLng,
+    waypointsLatLng: List<NaviLatLng>,
+    strategy: Int,
+    avoidPolygons: List<List<NaviLatLng>>,
+    avoidRoad: String
+  ): Boolean? {
+    val startList = fromLatLng?.let { listOf(it) }
+    val endList = listOf(toLatLng)
+
+    val avoidPolygonArgs: List<Any> = buildList {
+      if (avoidPolygons.isNotEmpty()) {
+        add(avoidPolygons)
+        add(avoidPolygons.first())
+        add(avoidPolygons.flatten())
+      } else {
+        add(emptyList<NaviLatLng>())
+      }
+    }
+
+    // 依次尝试常见重载：List 版本、POI 版本；以及是否包含 avoidRoad。
+    for (avoidArg in avoidPolygonArgs) {
+      if (startList != null) {
+        invokeBooleanMethodIfMatch(
+          target = navi,
+          methodName = "calculateDriveRoute",
+          args = arrayOf(startList, endList, waypointsLatLng, avoidArg, avoidRoad, strategy)
+        )?.let { return it }
+
+        invokeBooleanMethodIfMatch(
+          target = navi,
+          methodName = "calculateDriveRoute",
+          args = arrayOf(startList, endList, waypointsLatLng, avoidArg, strategy)
+        )?.let { return it }
+      }
+
+      if (fromPoi != null) {
+        invokeBooleanMethodIfMatch(
+          target = navi,
+          methodName = "calculateDriveRoute",
+          args = arrayOf(fromPoi, toPoi, waypointsPoi, avoidArg, avoidRoad, strategy)
+        )?.let { return it }
+
+        invokeBooleanMethodIfMatch(
+          target = navi,
+          methodName = "calculateDriveRoute",
+          args = arrayOf(fromPoi, toPoi, waypointsPoi, avoidArg, strategy)
+        )?.let { return it }
+      }
+    }
+
+    return null
+  }
+
+  private fun invokeBooleanMethodIfMatch(
+    target: Any,
+    methodName: String,
+    args: Array<Any>
+  ): Boolean? {
+    val methods = target.javaClass.methods.filter { method ->
+      method.name == methodName && method.parameterTypes.size == args.size
+    }
+
+    for (method in methods) {
+      if (!areArgsCompatible(method.parameterTypes, args)) continue
+      try {
+        val value = method.invoke(target, *args)
+        if (value is Boolean) return value
+      } catch (_: Exception) {
+        // 尝试下一个重载
+      }
+    }
+
+    return null
+  }
+
+  private fun areArgsCompatible(paramTypes: Array<Class<*>>, args: Array<Any>): Boolean {
+    if (paramTypes.size != args.size) return false
+    for (index in paramTypes.indices) {
+      val expected = boxPrimitive(paramTypes[index])
+      val actual = args[index].javaClass
+      if (!expected.isAssignableFrom(actual)) return false
+    }
+    return true
+  }
+
+  private fun boxPrimitive(type: Class<*>): Class<*> {
+    return when (type) {
+      java.lang.Integer.TYPE -> java.lang.Integer::class.java
+      java.lang.Long.TYPE -> java.lang.Long::class.java
+      java.lang.Boolean.TYPE -> java.lang.Boolean::class.java
+      java.lang.Float.TYPE -> java.lang.Float::class.java
+      java.lang.Double.TYPE -> java.lang.Double::class.java
+      java.lang.Short.TYPE -> java.lang.Short::class.java
+      java.lang.Byte.TYPE -> java.lang.Byte::class.java
+      java.lang.Character.TYPE -> java.lang.Character::class.java
+      else -> type
     }
   }
 }

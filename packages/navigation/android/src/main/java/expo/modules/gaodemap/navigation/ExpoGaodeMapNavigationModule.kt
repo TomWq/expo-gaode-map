@@ -8,6 +8,7 @@ import com.amap.api.navi.model.AMapNaviPathGroup
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.gaodemap.navigation.routes.drive.DriveTruckRouteCalculator
 import expo.modules.gaodemap.navigation.routes.walkride.WalkRideRouteCalculator
 import expo.modules.gaodemap.navigation.routes.ebike.EbikeRouteCalculator
@@ -15,6 +16,7 @@ import expo.modules.gaodemap.navigation.listeners.IndependentRouteListener
 import expo.modules.gaodemap.navigation.utils.Converters
 import expo.modules.gaodemap.navigation.managers.IndependentRouteManager
 import expo.modules.gaodemap.navigation.services.IndependentRouteService
+import java.util.Locale
 
 
 /**
@@ -47,6 +49,12 @@ class ExpoGaodeMapNavigationModule : Module() {
   @SuppressLint("SuspiciousIndentation")
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMapNavigation")
+
+    OnCreate {
+      appContext.reactContext?.let { context ->
+        SDKInitializer.restorePersistedState(context)
+      }
+    }
 
     // 仅保留算路相关事件（用于需要事件的场景；Promise 也会在 Listener 中完成）
     Events(
@@ -200,6 +208,7 @@ class ExpoGaodeMapNavigationModule : Module() {
      */
     AsyncFunction("startNaviWithIndependentPath") { options: Map<String, Any?>, promise: Promise ->
       try {
+        ensureNavigationPrivacyReady()
         val token = (options["token"] as? Number)?.toInt() ?: throw Exception("token is required")
         val routeId = (options["routeId"] as? Number)?.toInt()
         val routeIndex = (options["routeIndex"] as? Number)?.toInt()
@@ -209,6 +218,29 @@ class ExpoGaodeMapNavigationModule : Module() {
         promise.resolve(true)
       } catch (e: Exception) {
         promise.reject("START_NAVI_ERROR", e.message, e)
+      }
+    }
+
+    /**
+     * 打开高德官方导航页面（AmapNaviPage.showRouteActivity）
+     * 参数：
+     * - from?: { latitude, longitude, name?, poiId? }（可选，不传则使用当前位置）
+     * - to: { latitude, longitude, name?, poiId? }（必填）
+     * - waypoints?: Array<{ latitude, longitude, name?, poiId? }>（可选）
+     * - needCalculateRouteWhenPresent?: Boolean（默认 true）
+     * - needDestroyDriveManagerInstanceWhenNaviExit?: Boolean（默认 false）
+     * - showExitNaviDialog?: Boolean（默认 true）
+     * - useInnerVoice?: Boolean（默认 true）
+     * - pageType?: String（可选，例如 ROUTE/NAVI）
+     * - officialNaviType?: String（可选，例如 DRIVER）
+     */
+    AsyncFunction("openOfficialNaviPage") { options: Map<String, Any?>, promise: Promise ->
+      try {
+        ensureNavigationPrivacyReady()
+        openOfficialNaviPage(options)
+        promise.resolve(true)
+      } catch (e: Exception) {
+        promise.reject("OPEN_OFFICIAL_PAGE_ERROR", e.message, e)
       }
     }
 
@@ -230,6 +262,7 @@ class ExpoGaodeMapNavigationModule : Module() {
     // 注意：摩托车是收费能力；务必在算路前设置 carType=11 和排量，否则不生效
     AsyncFunction("calculateMotorcycleRoute") { options: Map<String, Any?>, promise: Promise ->
       try {
+        ensureNavigationPrivacyReady()
         // 设置摩托车车辆信息（车牌可选、排量可选）
         try {
           val carNumber = options["carNumber"] as? String
@@ -283,6 +316,7 @@ class ExpoGaodeMapNavigationModule : Module() {
   }
 
   private fun ensureDriveTruck(): DriveTruckRouteCalculator {
+    ensureNavigationPrivacyReady()
     if (driveTruckCalculator == null) {
       driveTruckCalculator = DriveTruckRouteCalculator(context, this)
     }
@@ -290,6 +324,7 @@ class ExpoGaodeMapNavigationModule : Module() {
   }
 
   private fun ensureWalkRide(): WalkRideRouteCalculator {
+    ensureNavigationPrivacyReady()
     if (walkRideCalculator == null) {
       walkRideCalculator = WalkRideRouteCalculator(context, this)
     }
@@ -297,6 +332,7 @@ class ExpoGaodeMapNavigationModule : Module() {
   }
 
   private fun ensureEbike(): EbikeRouteCalculator {
+    ensureNavigationPrivacyReady()
     if (ebikeCalculator == null) {
       ebikeCalculator = EbikeRouteCalculator(context, this)
     }
@@ -304,10 +340,358 @@ class ExpoGaodeMapNavigationModule : Module() {
   }
 
   private fun ensureIndependentService(): IndependentRouteService {
+    ensureNavigationPrivacyReady()
     if (independentRouteService == null) {
       independentRouteService = IndependentRouteService(context, this)
     }
     return independentRouteService!!
+  }
+
+  private fun ensureNavigationPrivacyReady() {
+    SDKInitializer.restorePersistedState(context)
+    if (!SDKInitializer.isPrivacyReady()) {
+      throw Exception(
+        "隐私协议未完成确认，请先调用 setPrivacyConfig（hasShow/hasContainsPrivacy/hasAgree 均为 true）"
+      )
+    }
+  }
+
+  private fun openOfficialNaviPage(options: Map<String, Any?>) {
+    @Suppress("UNCHECKED_CAST")
+    val from = options["from"] as? Map<String, Any?>
+    @Suppress("UNCHECKED_CAST")
+    val to = options["to"] as? Map<String, Any?> ?: throw Exception("to is required")
+    @Suppress("UNCHECKED_CAST")
+    val waypointsRaw = options["waypoints"] as? List<Map<String, Any?>>
+
+    val startPoi = createOfficialPoi(from, "起点")
+    val endPoi = createOfficialPoi(to, "终点")
+      ?: throw Exception("to is required and must contain latitude/longitude")
+    val waypointPois = waypointsRaw
+      ?.mapIndexedNotNull { index, item -> createOfficialPoi(item, "途经点${index + 1}") }
+      ?: emptyList()
+
+    val params = createAmapNaviParams(
+      startPoi = startPoi,
+      endPoi = endPoi,
+      waypointPois = waypointPois,
+      options = options
+    )
+    showOfficialNaviPage(params)
+  }
+
+  private fun createOfficialPoi(
+    coordinate: Map<String, Any?>?,
+    fallbackName: String
+  ): Any? {
+    if (coordinate == null) return null
+
+    val latitude = (coordinate["latitude"] as? Number)?.toDouble()
+      ?: throw Exception("coordinate.latitude is required")
+    val longitude = (coordinate["longitude"] as? Number)?.toDouble()
+      ?: throw Exception("coordinate.longitude is required")
+    val name = (coordinate["name"] as? String)?.trim()?.takeIf { it.isNotEmpty() } ?: fallbackName
+    val poiId = (coordinate["poiId"] as? String).orEmpty()
+
+    val latLngClass = Class.forName("com.amap.api.maps.model.LatLng")
+    val latLng = latLngClass
+      .getConstructor(Double::class.javaPrimitiveType, Double::class.javaPrimitiveType)
+      .newInstance(latitude, longitude)
+
+    val poiClass = Class.forName("com.amap.api.maps.model.Poi")
+    val candidates = listOf<Array<Any?>>(
+      arrayOf(name, latLng, poiId),
+      arrayOf(name, latLng),
+    )
+
+    for (args in candidates) {
+      instantiateIfMatch(poiClass, args)?.let { return it }
+    }
+
+    throw Exception("当前 SDK 的 Poi 构造函数不兼容")
+  }
+
+  private fun createAmapNaviParams(
+    startPoi: Any?,
+    endPoi: Any,
+    waypointPois: List<Any>,
+    options: Map<String, Any?>
+  ): Any {
+    val paramsClass = Class.forName("com.amap.api.navi.AmapNaviParams")
+    val naviTypeClass = loadFirstAvailableClass(
+      "com.amap.api.navi.AmapNaviType",
+      "com.amap.api.navi.enums.AmapNaviType"
+    ) ?: throw Exception("当前 SDK 缺少 AmapNaviType 枚举类")
+    val pageTypeClass = loadFirstAvailableClass(
+      "com.amap.api.navi.AmapPageType",
+      "com.amap.api.navi.enums.AmapPageType"
+    )
+
+    val officialNaviType = resolveEnumConstant(
+      enumClass = naviTypeClass,
+      preferName = options["officialNaviType"] as? String,
+      fallbackNames = listOf("DRIVER", "DRIVE", "CAR")
+    )
+    val pageType = pageTypeClass?.let {
+      resolveEnumConstant(
+        enumClass = it,
+        preferName = options["pageType"] as? String,
+        fallbackNames = listOf("ROUTE", "NAVI")
+      )
+    }
+
+    val waypointValue: Any? = if (waypointPois.isEmpty()) null else ArrayList(waypointPois)
+    val candidates = mutableListOf<Array<Any?>>(
+      arrayOf(startPoi, waypointValue, endPoi, officialNaviType, pageType),
+      arrayOf(startPoi, waypointValue, endPoi, officialNaviType),
+      arrayOf(startPoi, null, endPoi, officialNaviType, pageType),
+      arrayOf(startPoi, null, endPoi, officialNaviType),
+      arrayOf(startPoi, endPoi, officialNaviType, pageType),
+      arrayOf(startPoi, endPoi, officialNaviType),
+    )
+
+    for (args in candidates) {
+      val params = instantiateIfMatch(paramsClass, args) ?: continue
+      applyOptionalParamsByReflection(params, options)
+      return params
+    }
+
+    throw Exception("当前 SDK 的 AmapNaviParams 构造函数不兼容")
+  }
+
+  private fun applyOptionalParamsByReflection(params: Any, options: Map<String, Any?>) {
+    // 保持旧行为：未传时仍沿用默认值
+    val needCalculate = options["needCalculateRouteWhenPresent"] as? Boolean ?: true
+    val needDestroy = options["needDestroyDriveManagerInstanceWhenNaviExit"] as? Boolean ?: false
+    val showExitDialog = options["showExitNaviDialog"] as? Boolean ?: true
+    val useInnerVoice = options["useInnerVoice"] as? Boolean ?: true
+
+    invokeSetterIfExists(params, "setNeedCalculateRouteWhenPresent", needCalculate)
+    invokeSetterIfExists(params, "setNeedDestroyDriveManagerInstanceWhenNaviExit", needDestroy)
+    invokeSetterIfExists(params, "setShowExitNaviDialog", showExitDialog)
+    invokeSetterIfExists(params, "setUseInnerVoice", useInnerVoice)
+
+    // 不依赖 Context 的参数
+    invokeSetterIfExists(params, "setMultipleRouteNaviMode", options["multipleRouteNaviMode"])
+    invokeSetterIfExists(params, "setTruckMultipleRouteNaviMode", options["truckMultipleRouteNaviMode"])
+    invokeSetterIfExists(params, "setSecondActionVisible", options["secondActionVisible"])
+    invokeSetterIfExists(params, "setShowCrossImage", options["showCrossImage"])
+    invokeSetterIfExists(params, "setShowRouteStrategyPreferenceView", options["showRouteStrategyPreferenceView"])
+    invokeSetterIfExists(params, "setShowVoiceSetings", options["showVoiceSettings"])
+    invokeSetterIfExists(params, "setTrafficEnabled", options["trafficEnabled"])
+    invokeSetterIfExists(params, "setRouteStrategy", options["routeStrategy"])
+    invokeSetterIfExists(params, "setNaviMode", options["naviMode"])
+
+    // 依赖 Context 的参数
+    invokeSetterWithContextIfExists(params, "setDayAndNightMode", options["dayAndNightMode"])
+    invokeSetterWithContextIfExists(params, "setBroadcastMode", options["broadcastMode"])
+    invokeSetterWithContextIfExists(params, "setCarDirectionMode", options["carDirectionMode"])
+    invokeSetterWithContextIfExists(params, "setScaleAutoChangeEnable", options["scaleAutoChangeEnable"])
+    invokeSetterWithContextIfExists(params, "showEagleMap", options["showEagleMap"])
+
+    // 主题（枚举）
+    val themeName = options["theme"] as? String
+    if (!themeName.isNullOrBlank()) {
+      val themeClass = runCatching {
+        Class.forName("com.amap.api.navi.AmapNaviTheme")
+      }.getOrNull()
+      if (themeClass != null) {
+        val theme = resolveEnumConstant(
+          enumClass = themeClass,
+          preferName = themeName,
+          fallbackNames = emptyList()
+        )
+        invokeSetterIfExists(params, "setTheme", theme)
+      }
+    }
+
+    // 车辆信息（用于限行/货车）
+    @Suppress("UNCHECKED_CAST")
+    val carInfoMap = options["carInfo"] as? Map<String, Any?>
+    if (carInfoMap != null) {
+      val carInfo = buildCarInfo(carInfoMap)
+      invokeSetterIfExists(params, "setCarInfo", carInfo)
+    }
+  }
+
+  private fun buildCarInfo(options: Map<String, Any?>): AMapCarInfo {
+    val carInfo = AMapCarInfo()
+
+    try {
+      val carType = (options["carType"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+      if (carType != null) carInfo.carType = carType
+    } catch (_: Exception) {}
+    try {
+      val carNumber = (options["carNumber"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+      if (carNumber != null) carInfo.setCarNumber(carNumber)
+    } catch (_: Exception) {}
+    try {
+      val restriction = options["restriction"] as? Boolean
+      if (restriction != null) carInfo.isRestriction = restriction
+    } catch (_: Exception) {}
+    try {
+      val motorcycleCC = (options["motorcycleCC"] as? Number)?.toInt()
+      if (motorcycleCC != null) carInfo.motorcycleCC = motorcycleCC
+    } catch (_: Exception) {}
+
+    // 货车相关可选参数（部分版本 SDK 可能不存在对应 setter，故用反射安全调用）
+    invokeSetterIfExists(carInfo, "setVehicleAxis", options["vehicleAxis"])
+    invokeSetterIfExists(carInfo, "setVehicleHeight", options["vehicleHeight"])
+    invokeSetterIfExists(carInfo, "setVehicleLength", options["vehicleLength"])
+    invokeSetterIfExists(carInfo, "setVehicleWidth", options["vehicleWidth"])
+    invokeSetterIfExists(carInfo, "setVehicleSize", options["vehicleSize"])
+    invokeSetterIfExists(carInfo, "setVehicleLoad", options["vehicleLoad"])
+    invokeSetterIfExists(carInfo, "setVehicleWeight", options["vehicleWeight"])
+    invokeSetterIfExists(carInfo, "setVehicleLoadSwitch", options["vehicleLoadSwitch"])
+
+    return carInfo
+  }
+
+  private fun invokeSetterIfExists(target: Any, methodName: String, value: Any?) {
+    if (value == null) return
+    val methods = target.javaClass.methods.filter { method ->
+      method.name == methodName && method.parameterTypes.size == 1
+    }
+    for (method in methods) {
+      val converted = coerceValue(method.parameterTypes[0], value) ?: continue
+      try {
+        method.invoke(target, converted)
+        return
+      } catch (_: Exception) {
+        // try next overload
+      }
+    }
+  }
+
+  private fun invokeSetterWithContextIfExists(target: Any, methodName: String, value: Any?) {
+    if (value == null) return
+    val appCtx = context.applicationContext ?: context
+    val methods = target.javaClass.methods.filter { method ->
+      method.name == methodName && method.parameterTypes.size == 2
+    }
+    for (method in methods) {
+      val params = method.parameterTypes
+      if (!params[0].isAssignableFrom(appCtx.javaClass)) continue
+      val converted = coerceValue(params[1], value) ?: continue
+      try {
+        method.invoke(target, appCtx, converted)
+        return
+      } catch (_: Exception) {
+        // try next overload
+      }
+    }
+  }
+
+  private fun coerceValue(expectedType: Class<*>, value: Any): Any? {
+    val boxed = boxPrimitive(expectedType)
+    if (boxed.isAssignableFrom(value.javaClass)) return value
+
+    return when (boxed) {
+      java.lang.Integer::class.java -> (value as? Number)?.toInt()
+      java.lang.Long::class.java -> (value as? Number)?.toLong()
+      java.lang.Double::class.java -> (value as? Number)?.toDouble()
+      java.lang.Float::class.java -> (value as? Number)?.toFloat()
+      java.lang.Short::class.java -> (value as? Number)?.toShort()
+      java.lang.Byte::class.java -> (value as? Number)?.toByte()
+      java.lang.Boolean::class.java -> when (value) {
+        is Boolean -> value
+        is Number -> value.toInt() != 0
+        is String -> value.equals("true", ignoreCase = true) || value == "1"
+        else -> null
+      }
+      java.lang.String::class.java -> value.toString()
+      else -> {
+        if (boxed.isEnum && value is String) {
+          val byName = boxed.enumConstants
+            ?.associateBy { (it as Enum<*>).name.uppercase(Locale.ROOT) }
+          byName?.get(value.trim().uppercase(Locale.ROOT))
+        } else {
+          null
+        }
+      }
+    }
+  }
+
+  private fun showOfficialNaviPage(params: Any) {
+    val pageClass = Class.forName("com.amap.api.navi.AmapNaviPage")
+    val pageInstance = pageClass.getMethod("getInstance").invoke(null)
+    val showMethod = pageClass.methods.firstOrNull { method ->
+      method.name == "showRouteActivity" && method.parameterTypes.size == 3
+    } ?: throw Exception("未找到 showRouteActivity 方法")
+
+    val appCtx = context.applicationContext ?: context
+    showMethod.invoke(pageInstance, appCtx, params, null)
+  }
+
+  private fun resolveEnumConstant(
+    enumClass: Class<*>,
+    preferName: String?,
+    fallbackNames: List<String>
+  ): Any {
+    val constants = enumClass.enumConstants
+      ?: throw Exception("${enumClass.simpleName} is not enum")
+    val byName = constants.associateBy { (it as Enum<*>).name.uppercase(Locale.ROOT) }
+
+    val preferred = preferName?.trim()?.uppercase(Locale.ROOT)
+    if (!preferred.isNullOrEmpty()) {
+      byName[preferred]?.let { return it }
+    }
+    for (name in fallbackNames) {
+      byName[name.uppercase(Locale.ROOT)]?.let { return it }
+    }
+    return constants.first()
+  }
+
+  private fun loadFirstAvailableClass(vararg classNames: String): Class<*>? {
+    for (name in classNames) {
+      val clazz = runCatching { Class.forName(name) }.getOrNull()
+      if (clazz != null) return clazz
+    }
+    return null
+  }
+
+  private fun instantiateIfMatch(clazz: Class<*>, args: Array<Any?>): Any? {
+    val constructors = clazz.constructors.filter { constructor ->
+      constructor.parameterTypes.size == args.size
+    }
+
+    for (constructor in constructors) {
+      if (!areArgsCompatible(constructor.parameterTypes, args)) continue
+      try {
+        return constructor.newInstance(*args)
+      } catch (_: Exception) {
+        // try next constructor
+      }
+    }
+    return null
+  }
+
+  private fun areArgsCompatible(paramTypes: Array<Class<*>>, args: Array<Any?>): Boolean {
+    if (paramTypes.size != args.size) return false
+    for (index in paramTypes.indices) {
+      val expected = boxPrimitive(paramTypes[index])
+      val actual = args[index]
+      if (actual == null) {
+        if (expected.isPrimitive) return false
+        continue
+      }
+      if (!expected.isAssignableFrom(actual.javaClass)) return false
+    }
+    return true
+  }
+
+  private fun boxPrimitive(type: Class<*>): Class<*> {
+    return when (type) {
+      java.lang.Integer.TYPE -> java.lang.Integer::class.java
+      java.lang.Long.TYPE -> java.lang.Long::class.java
+      java.lang.Boolean.TYPE -> java.lang.Boolean::class.java
+      java.lang.Float.TYPE -> java.lang.Float::class.java
+      java.lang.Double.TYPE -> java.lang.Double::class.java
+      java.lang.Short.TYPE -> java.lang.Short::class.java
+      java.lang.Byte.TYPE -> java.lang.Byte::class.java
+      java.lang.Character.TYPE -> java.lang.Character::class.java
+      else -> type
+    }
   }
 
   /**

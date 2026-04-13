@@ -160,6 +160,39 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       }
     }
 
+    // 导航组件 Activity（AmapNaviPage.showRouteActivity 依赖）
+    if (mainApplication) {
+      if (!mainApplication['activity']) {
+        mainApplication['activity'] = [];
+      }
+
+      const naviActivityName = 'com.amap.api.navi.AmapRouteActivity';
+      const naviConfigChanges = 'orientation|keyboardHidden|screenSize|navigation';
+      const naviTheme = '@android:style/Theme.NoTitleBar';
+
+      const activityIndex = mainApplication['activity'].findIndex(
+        (item) => item.$?.['android:name'] === naviActivityName
+      );
+
+      if (activityIndex === -1) {
+        mainApplication['activity'].push({
+          $: {
+            'android:name': naviActivityName,
+            'android:theme': naviTheme,
+            'android:configChanges': naviConfigChanges,
+          },
+        });
+      } else {
+        const existing = mainApplication['activity'][activityIndex];
+        existing.$ = {
+          ...(existing.$ || {}),
+          'android:name': naviActivityName,
+          'android:theme': existing.$?.['android:theme'] || naviTheme,
+          'android:configChanges': existing.$?.['android:configChanges'] || naviConfigChanges,
+        };
+      }
+    }
+
     // 添加 API Key 到 application 标签
     if (mainApplication && props.androidKey) {
       if (!mainApplication['meta-data']) {

@@ -1,5 +1,5 @@
 import type { NativeModule } from 'expo';
-import { DriveRouteOptions, DriveRouteResult, EBikeRouteOptions, RideRouteOptions, RouteResult, TruckRouteOptions, WalkRouteOptions } from './route.types';
+import { DriveRouteOptions, DriveRouteResult, EBikeRouteOptions, OfficialNaviPageOptions, RideRouteOptions, RouteResult, TruckRouteOptions, WalkRouteOptions } from './route.types';
 import { 
   MotorcycleRouteOptions, 
   IndependentDriveRouteOptions, 
@@ -76,6 +76,10 @@ export interface ExpoGaodeMapNavigationModule extends NativeModule {
      * 启动独立路径导航（会影响当前导航）
      */
     startNaviWithIndependentPath: (options: StartNaviWithIndependentPathOptions) => Promise<boolean>
+    /**
+     * 打开官方导航页（Android: AmapNaviPage.showRouteActivity）
+     */
+    openOfficialNaviPage: (options: OfficialNaviPageOptions) => Promise<boolean>
     /**
      * 清除独立路径（会影响当前导航）
      */

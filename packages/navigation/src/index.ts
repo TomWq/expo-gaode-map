@@ -20,6 +20,7 @@ import type {
   EBikeRouteOptions,
   TransitRouteOptions as TransitRouteOptionsType,
   TruckRouteOptions,
+  OfficialNaviPageOptions,
   RouteResult,
   DriveRouteResult,
   IndependentRouteResult,
@@ -266,6 +267,12 @@ export const startNaviWithIndependentPath = (options: StartNaviWithIndependentPa
   ExpoGaodeMapNavigationModule.startNaviWithIndependentPath(options);
 
 /**
+ * 打开高德官方导航页（Android 原生 AmapNaviPage）
+ */
+export const openOfficialNaviPage = (options: OfficialNaviPageOptions) =>
+  ExpoGaodeMapNavigationModule.openOfficialNaviPage(options);
+
+/**
  * 独立路径组：清理
  */
 export const clearIndependentRoute = (options: ClearIndependentRouteOptions) => 
@@ -290,6 +297,7 @@ export type {
   IndependentRideRouteOptions,
   SelectIndependentRouteOptions,
   StartNaviWithIndependentPathOptions,
+  OfficialNaviPageOptions,
   ClearIndependentRouteOptions,
   MotorcycleRouteOptions,
   IndependentMotorcycleRouteOptions,
@@ -330,6 +338,7 @@ export default {
   // 独立路径组操作
   selectIndependentRoute,
   startNaviWithIndependentPath,
+  openOfficialNaviPage,
   clearIndependentRoute,
 };
 

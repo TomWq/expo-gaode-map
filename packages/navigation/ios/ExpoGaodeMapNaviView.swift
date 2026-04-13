@@ -12,6 +12,23 @@ import AMapNaviKit
 public class ExpoGaodeMapNaviView: ExpoView {
   
   // MARK: - 高德 SDK 初始化检查
+
+  /// 检查隐私协议是否已完成并同步到各 SDK
+  private func checkPrivacyReady() throws {
+    GaodeMapPrivacyManager.restorePersistedState()
+    guard GaodeMapPrivacyManager.isReady else {
+      throw NSError(
+        domain: "ExpoGaodeMapPrivacy",
+        code: -1002,
+        userInfo: [
+          NSLocalizedDescriptionKey: "隐私协议未完成确认",
+          NSLocalizedFailureReasonErrorKey: "请先调用 setPrivacyConfig（或 setPrivacyShow/setPrivacyAgree）并确保参数为 true",
+          NSLocalizedRecoverySuggestionErrorKey: "建议在首次启动弹窗同意后再进入导航页面。"
+        ]
+      )
+    }
+    GaodeMapPrivacyManager.applyPrivacyState()
+  }
   
   /// 检查高德地图 SDK 是否已初始化
   private func checkAMapInitialization() throws {
@@ -180,15 +197,17 @@ public class ExpoGaodeMapNaviView: ExpoView {
   
   // MARK: - Setup
   private func setupNaviView() {
-    // 检查高德 SDK 是否已初始化
+    // 检查隐私状态 + SDK 初始化状态
     do {
+      try checkPrivacyReady()
       try checkAMapInitialization()
     } catch {
       let errorMessage = formatError(error)
+      let code = (error as NSError).domain == "ExpoGaodeMapPrivacy" ? "PRIVACY_NOT_AGREED" : "AMAP_NOT_INITIALIZED"
       // 触发初始化失败事件
       DispatchQueue.main.async {
         self.onNavigationFailed([
-          "error": "AMAP_NOT_INITIALIZED",
+          "error": code,
           "message": errorMessage
         ])
       }
@@ -360,11 +379,13 @@ public class ExpoGaodeMapNaviView: ExpoView {
   
   // MARK: - Public Methods
   func startNavigation(startLat: Double, startLng: Double, endLat: Double, endLng: Double, promise: Promise) {
-    // 再次检查初始化状态
+    // 再次检查隐私状态和初始化状态
     do {
+      try checkPrivacyReady()
       try checkAMapInitialization()
     } catch {
-      promise.reject("AMAP_NOT_INITIALIZED", formatError(error))
+      let code = (error as NSError).domain == "ExpoGaodeMapPrivacy" ? "PRIVACY_NOT_AGREED" : "AMAP_NOT_INITIALIZED"
+      promise.reject(code, formatError(error))
       return
     }
     

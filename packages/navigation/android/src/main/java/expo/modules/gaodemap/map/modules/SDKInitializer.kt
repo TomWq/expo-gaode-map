@@ -102,6 +102,7 @@ object SDKInitializer {
             AMapLocationClient.updatePrivacyShow(appContext, privacyShown, privacyContains)
             MapsInitializer.updatePrivacyAgree(appContext, privacyAgreed)
             AMapLocationClient.updatePrivacyAgree(appContext, privacyAgreed)
+            applyNavigationPrivacyState(appContext)
         } catch (e: Exception) {
             android.util.Log.w("ExpoGaodeMap", "同步隐私状态失败: ${e.message}")
         }
@@ -193,5 +194,39 @@ object SDKInitializer {
         }
 
         editor.apply()
+    }
+
+    /**
+     * 导航 SDK 隐私同步（NaviSetting）
+     *
+     * 说明：
+     * - 导航 SDK 需要在 AMapNavi.getInstance(...) 前调用 updatePrivacyShow/updatePrivacyAgree。
+     * - 使用反射兼容不同版本导航 SDK（某些版本可能不存在 NaviSetting 或方法签名变化）。
+     */
+    private fun applyNavigationPrivacyState(context: Context) {
+        try {
+            val naviSettingClass = Class.forName("com.amap.api.navi.NaviSetting")
+            val updatePrivacyShow = naviSettingClass.getDeclaredMethod(
+                "updatePrivacyShow",
+                Context::class.java,
+                Boolean::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType
+            )
+            val updatePrivacyAgree = naviSettingClass.getDeclaredMethod(
+                "updatePrivacyAgree",
+                Context::class.java,
+                Boolean::class.javaPrimitiveType
+            )
+
+            // NaviSetting.updatePrivacyShow(context, isContains, isShow)
+            updatePrivacyShow.invoke(null, context, privacyContains, privacyShown)
+            updatePrivacyAgree.invoke(null, context, privacyAgreed)
+        } catch (e: ClassNotFoundException) {
+            android.util.Log.w("ExpoGaodeMap", "未检测到 NaviSetting，跳过导航隐私同步: ${e.message}")
+        } catch (e: NoSuchMethodException) {
+            android.util.Log.w("ExpoGaodeMap", "NaviSetting 隐私方法签名不匹配，跳过导航隐私同步: ${e.message}")
+        } catch (e: Exception) {
+            android.util.Log.w("ExpoGaodeMap", "同步导航 SDK 隐私状态失败: ${e.message}")
+        }
     }
 }

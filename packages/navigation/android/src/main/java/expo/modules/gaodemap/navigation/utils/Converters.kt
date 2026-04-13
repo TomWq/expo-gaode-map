@@ -43,6 +43,36 @@ object Converters {
   }
 
   /**
+   * 转换途经点列表（NaviLatLng）
+   */
+  fun parseWaypointsLatLng(list: List<Map<String, Any?>>?): List<NaviLatLng> {
+    return list?.map { parseNaviLatLng(it) } ?: emptyList()
+  }
+
+  /**
+   * 转换避让区域（多边形）
+   * 输入结构：[[{latitude, longitude}, ...], ...]
+   * 每个多边形至少 3 个点才有效
+   */
+  @Suppress("UNCHECKED_CAST")
+  fun parseAvoidPolygons(raw: Any?): List<List<NaviLatLng>> {
+    val polygons = raw as? List<*> ?: return emptyList()
+
+    return polygons.mapNotNull { polygonRaw ->
+      val pointsRaw = polygonRaw as? List<*> ?: return@mapNotNull null
+      val points = pointsRaw.mapNotNull { pointRaw ->
+        val point = pointRaw as? Map<String, Any?> ?: return@mapNotNull null
+        try {
+          parseNaviLatLng(point)
+        } catch (_: Exception) {
+          null
+        }
+      }
+      if (points.size >= 3) points else null
+    }
+  }
+
+  /**
    * 转换导航路径信息（用于 getNaviInfo）
    * Android SDK 中导航信息通过路径对象获取
    */

@@ -3,6 +3,8 @@ package expo.modules.gaodemap.navigation.services
 import android.content.Context
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
+import com.amap.api.navi.model.NaviLatLng
+import com.amap.api.navi.model.NaviPoi
 import expo.modules.gaodemap.navigation.ExpoGaodeMapNavigationModule
 import expo.modules.gaodemap.navigation.listeners.IndependentRouteListener
 import expo.modules.gaodemap.navigation.utils.Converters
@@ -18,6 +20,9 @@ class IndependentRouteService(
   private val context: Context,
   private val module: ExpoGaodeMapNavigationModule
 ) {
+  companion object {
+    private const val TAG = "IndependentRouteService"
+  }
 
   // 驾车（小客车）
   fun independentDriveRoute(options: Map<String, Any?>, promise: Promise) {
@@ -32,7 +37,8 @@ class IndependentRouteService(
       val fromPoi = from?.let { Converters.parseNaviPoi(it) }
       val toPoi = Converters.parseNaviPoi(to)
       @Suppress("UNCHECKED_CAST")
-      val waypoints = Converters.parseWaypoints(options["waypoints"] as? List<Map<String, Any?>>)
+      val waypointsRaw = options["waypoints"] as? List<Map<String, Any?>>
+      val waypointsPoi = Converters.parseWaypoints(waypointsRaw)
 
       val strategy = resolveDriveStrategy(navi, options)
 
@@ -42,13 +48,57 @@ class IndependentRouteService(
         setCarInfo(navi, "0", carNumber, restriction)
       }
 
+      val listener = IndependentRouteListener(module, promise)
+      val avoidPolygons = Converters.parseAvoidPolygons(options["avoidPolygons"])
+      val avoidRoad = (options["avoidRoad"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+      val hasAvoidPolygon = avoidPolygons.isNotEmpty()
+      val hasAvoidRoad = !avoidRoad.isNullOrBlank()
+
+      if (hasAvoidPolygon || hasAvoidRoad) {
+        val fromLatLng = from?.let { Converters.parseNaviLatLng(it) }
+        val toLatLng = Converters.parseNaviLatLng(to)
+        val waypointsLatLng = Converters.parseWaypointsLatLng(waypointsRaw)
+
+        val reflected = invokeIndependentDriveRouteWithAvoidByReflection(
+          navi = navi,
+          fromPoi = fromPoi,
+          toPoi = toPoi,
+          waypointsPoi = waypointsPoi,
+          fromLatLng = fromLatLng,
+          toLatLng = toLatLng,
+          waypointsLatLng = waypointsLatLng,
+          strategy = strategy,
+          avoidPolygons = avoidPolygons,
+          avoidRoad = avoidRoad.orEmpty(),
+          listener = listener
+        )
+
+        when (reflected) {
+          true -> return
+          false -> {
+            promise.reject("CALCULATE_ERROR", "独立避让算路启动失败", null)
+            return
+          }
+
+          null -> {
+            android.util.Log.w(TAG, "当前 SDK 不支持 independentCalculateRoute 的避让参数重载")
+            promise.reject(
+              "AVOID_NOT_SUPPORTED",
+              "当前安卓 SDK 不支持独立路径的避让参数，请升级 navi-3dmap SDK",
+              null
+            )
+            return
+          }
+        }
+      }
+
       navi.independentCalculateRoute(
         fromPoi,
         toPoi,
-        waypoints,
+        waypointsPoi,
         strategy,
         1, // 驾车
-        IndependentRouteListener(module, promise)
+        listener
       )
     } catch (e: Exception) {
       promise.reject("CALCULATE_ERROR", e.message, e)
@@ -190,7 +240,9 @@ class IndependentRouteService(
       val prioritiseHighway = options["prioritiseHighway"] as? Boolean ?: false
       try {
         navi.strategyConvert(avoidCongestion, avoidHighway, avoidCost, prioritiseHighway, true)
-      } catch (_: Exception) { 0 }
+      } catch (_: Exception) {
+        0
+      }
     }
   }
 
@@ -209,13 +261,136 @@ class IndependentRouteService(
         if (restriction != null) isRestriction = restriction
         if (motorcycleCC != null) {
           try {
-              this.motorcycleCC = motorcycleCC
-          } catch (_: Exception) {}
+            this.motorcycleCC = motorcycleCC
+          } catch (_: Exception) {
+          }
         }
       }
       navi.setCarInfo(carInfo)
     } catch (_: Exception) {
       // ignore
+    }
+  }
+
+  /**
+   * 兼容不同版本 SDK 的 independentCalculateRoute 避让参数能力。
+   *
+   * 返回：
+   * - true: 已成功调用到某个重载，后续等待回调
+   * - false: 命中重载但返回失败
+   * - null: 未找到可匹配的重载
+   */
+  private fun invokeIndependentDriveRouteWithAvoidByReflection(
+    navi: AMapNavi,
+    fromPoi: NaviPoi?,
+    toPoi: NaviPoi,
+    waypointsPoi: List<NaviPoi>,
+    fromLatLng: NaviLatLng?,
+    toLatLng: NaviLatLng,
+    waypointsLatLng: List<NaviLatLng>,
+    strategy: Int,
+    avoidPolygons: List<List<NaviLatLng>>,
+    avoidRoad: String,
+    listener: IndependentRouteListener
+  ): Boolean? {
+    val startList = fromLatLng?.let { listOf(it) }
+    val endList = listOf(toLatLng)
+    val hasAvoidRoad = avoidRoad.isNotBlank()
+
+    val avoidPolygonArgs: List<Any> = buildList {
+      if (avoidPolygons.isNotEmpty()) {
+        add(avoidPolygons)
+        add(avoidPolygons.first())
+        add(avoidPolygons.flatten())
+      } else {
+        add(emptyList<NaviLatLng>())
+      }
+    }
+
+    for (avoidArg in avoidPolygonArgs) {
+      if (startList != null) {
+        val listArgs = buildList<Array<Any>> {
+          add(arrayOf(startList, endList, waypointsLatLng, avoidArg, avoidRoad, strategy, 1, listener))
+          add(arrayOf(startList, endList, waypointsLatLng, avoidArg, strategy, 1, listener))
+          if (hasAvoidRoad) {
+            add(arrayOf(startList, endList, waypointsLatLng, avoidRoad, strategy, 1, listener))
+          }
+        }
+
+        for (args in listArgs) {
+          invokeMethodIfMatch(
+            target = navi,
+            methodName = "independentCalculateRoute",
+            args = args
+          )?.let { return it }
+        }
+      }
+
+      if (fromPoi != null) {
+        val poiArgs = buildList<Array<Any>> {
+          add(arrayOf(fromPoi, toPoi, waypointsPoi, avoidArg, avoidRoad, strategy, 1, listener))
+          add(arrayOf(fromPoi, toPoi, waypointsPoi, avoidArg, strategy, 1, listener))
+          if (hasAvoidRoad) {
+            add(arrayOf(fromPoi, toPoi, waypointsPoi, avoidRoad, strategy, 1, listener))
+          }
+        }
+
+        for (args in poiArgs) {
+          invokeMethodIfMatch(
+            target = navi,
+            methodName = "independentCalculateRoute",
+            args = args
+          )?.let { return it }
+        }
+      }
+    }
+
+    return null
+  }
+
+  private fun invokeMethodIfMatch(
+    target: Any,
+    methodName: String,
+    args: Array<Any>
+  ): Boolean? {
+    val methods = target.javaClass.methods.filter { method ->
+      method.name == methodName && method.parameterTypes.size == args.size
+    }
+
+    for (method in methods) {
+      if (!areArgsCompatible(method.parameterTypes, args)) continue
+      try {
+        val value = method.invoke(target, *args)
+        return if (value is Boolean) value else true
+      } catch (_: Exception) {
+        // 尝试下一个重载
+      }
+    }
+
+    return null
+  }
+
+  private fun areArgsCompatible(paramTypes: Array<Class<*>>, args: Array<Any>): Boolean {
+    if (paramTypes.size != args.size) return false
+    for (index in paramTypes.indices) {
+      val expected = boxPrimitive(paramTypes[index])
+      val actual = args[index].javaClass
+      if (!expected.isAssignableFrom(actual)) return false
+    }
+    return true
+  }
+
+  private fun boxPrimitive(type: Class<*>): Class<*> {
+    return when (type) {
+      java.lang.Integer.TYPE -> java.lang.Integer::class.java
+      java.lang.Long.TYPE -> java.lang.Long::class.java
+      java.lang.Boolean.TYPE -> java.lang.Boolean::class.java
+      java.lang.Float.TYPE -> java.lang.Float::class.java
+      java.lang.Double.TYPE -> java.lang.Double::class.java
+      java.lang.Short.TYPE -> java.lang.Short::class.java
+      java.lang.Byte.TYPE -> java.lang.Byte::class.java
+      java.lang.Character.TYPE -> java.lang.Character::class.java
+      else -> type
     }
   }
 }

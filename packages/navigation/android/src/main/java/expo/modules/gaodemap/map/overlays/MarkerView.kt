@@ -41,7 +41,6 @@ import androidx.core.view.isEmpty
 import androidx.core.graphics.scale
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.TextView
 import com.amap.api.maps.model.animation.AlphaAnimation
 import com.amap.api.maps.model.animation.AnimationSet
 import com.amap.api.maps.model.animation.ScaleAnimation

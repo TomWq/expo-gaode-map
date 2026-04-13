@@ -99,6 +99,8 @@ enum GaodeMapPrivacyManager {
         MAMapView.updatePrivacyAgree(agreeStatus)
         AMapLocationManager.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
         AMapLocationManager.updatePrivacyAgree(agreeStatus)
+        AMapNaviManagerConfig.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
+        AMapNaviManagerConfig.updatePrivacyAgree(agreeStatus)
     }
 
     static func status() -> [String: Any] {
