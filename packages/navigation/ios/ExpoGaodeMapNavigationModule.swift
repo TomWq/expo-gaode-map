@@ -411,11 +411,19 @@ public class ExpoGaodeMapNavigationModule: Module {
       }
     }
 
-    let startNaviDirectly = boolValue(options["startNaviDirectly"])
-      ?? ((options["pageType"] as? String)?.uppercased() == "NAVI")
-    if let startNaviDirectly {
-      invokeBoolSetter(target: config, selectorName: "setStartNaviDirectly:", value: startNaviDirectly)
-    }
+//    let startNaviDirectly = boolValue(options["startNaviDirectly"])
+//      ?? ((options["pageType"] as? String)?.uppercased() == "NAVI")
+//    if let startNaviDirectly {
+//      invokeBoolSetter(target: config, selectorName: "setStartNaviDirectly:", value: startNaviDirectly)
+//    }
+      let startNaviDirectly = boolValue(options["startNaviDirectly"])
+        ?? ((options["pageType"] as? String)?.uppercased() == "NAVI")
+
+      invokeBoolSetter(
+        target: config,
+        selectorName: "setStartNaviDirectly:",
+        value: startNaviDirectly
+      )
 
     if let needCalculateRoute = boolValue(options["needCalculateRouteWhenPresent"]) {
       invokeBoolSetter(target: config, selectorName: "setNeedCalculateRouteWhenPresent:", value: needCalculateRoute)

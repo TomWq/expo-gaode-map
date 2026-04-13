@@ -89,19 +89,39 @@ enum GaodeMapPrivacyManager {
         applyPrivacyState()
         notifyIfNeeded(previousStatus: previousStatus)
     }
-
+    
     static func applyPrivacyState() {
         let showStatus: AMapPrivacyShowStatus = hasShow ? .didShow : .notShow
         let infoStatus: AMapPrivacyInfoStatus = hasContainsPrivacy ? .didContain : .notContain
         let agreeStatus: AMapPrivacyAgreeStatus = hasAgree ? .didAgree : .notAgree
 
+        // Map & Location（类方法 ✅）
         MAMapView.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
         MAMapView.updatePrivacyAgree(agreeStatus)
         AMapLocationManager.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
         AMapLocationManager.updatePrivacyAgree(agreeStatus)
-        AMapNaviManagerConfig.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
-        AMapNaviManagerConfig.updatePrivacyAgree(agreeStatus)
+
+        // Navi（实例方法 ⚠️）
+        let naviConfig = AMapNaviManagerConfig()
+        naviConfig.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
+        naviConfig.updatePrivacyAgree(agreeStatus)
     }
+
+//    static func applyPrivacyState() {
+//        let showStatus: AMapPrivacyShowStatus = hasShow ? .didShow : .notShow
+//        let infoStatus: AMapPrivacyInfoStatus = hasContainsPrivacy ? .didContain : .notContain
+//        let agreeStatus: AMapPrivacyAgreeStatus = hasAgree ? .didAgree : .notAgree
+//
+//        MAMapView.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
+//        MAMapView.updatePrivacyAgree(agreeStatus)
+//        AMapLocationManager.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
+//        AMapLocationManager.updatePrivacyAgree(agreeStatus)
+//        let config = AMapNaviManagerConfig()
+//        config.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
+//        config.updatePrivacyAgree(agreeStatus)
+////        AMapNaviManagerConfig.updatePrivacyShow(showStatus, privacyInfo: infoStatus)
+////        AMapNaviManagerConfig.updatePrivacyAgree(agreeStatus)
+//    }
 
     static func status() -> [String: Any] {
         [
