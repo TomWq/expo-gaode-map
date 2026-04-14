@@ -207,10 +207,8 @@ export interface OfficialNaviPageOptions {
   routeStrategy?: number;
   /** 是否直接进入导航页（iOS 对应 `setStartNaviDirectly`） */
   startNaviDirectly?: boolean;
-  /** 直接导航模式（仅直接进导航页时生效）：1 实时 / 2 模拟 */
+  /** 直接导航模式（仅直接进导航页时生效）：1 实时 / 2 模拟（iOS 官方组件当前不支持模拟） */
   naviMode?: number;
-  /** iOS 直接导航模式（可选，优先级高于 naviMode） */
-  iosNaviMode?: number;
   needCalculateRouteWhenPresent?: boolean;
   /** 退出导航页时是否销毁 DriveManager 实例，默认 false */
   needDestroyDriveManagerInstanceWhenNaviExit?: boolean;

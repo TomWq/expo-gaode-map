@@ -458,10 +458,14 @@ public class ExpoGaodeMapNavigationModule: Module {
         selectorName: "setStartNaviDirectly:",
         value: startNaviDirectly
       )
-      if let naviMode = parseCompositeNaviMode(options: options) {
-        // iOS 官方组件头文件未公开该方法，但在实际 SDK 中存在；通过反射安全调用。
-        // 仅在 startNaviDirectly = true 时该参数才有意义。
-        invokeIntSetter(target: config, selectorName: "setNaviMode:", value: naviMode)
+
+      // iOS 官方导航组件模式目前仅支持实时导航，不支持模拟导航。
+      if startNaviDirectly && isCompositeEmulatorRequested(options: options) {
+        throw NSError(
+          domain: "ExpoGaodeMapNavigation",
+          code: -2006,
+          userInfo: [NSLocalizedDescriptionKey: "iOS 官方导航组件模式不支持模拟导航，请改用实时导航（naviMode=1）或使用 NaviView 模拟导航"]
+        )
       }
 
     if let needCalculateRoute = boolValue(options["needCalculateRouteWhenPresent"]) {
@@ -705,23 +709,15 @@ public class ExpoGaodeMapNavigationModule: Module {
     }
   }
 
-  private func parseCompositeNaviMode(options: [String: Any]) -> Int? {
-    if let iosRaw = intValue(options["iosNaviMode"]) {
-      return iosRaw
+  private func isCompositeEmulatorRequested(options: [String: Any]) -> Bool {
+    if let naviMode = intValue(options["naviMode"]), naviMode == 2 {
+      return true
     }
-    guard let raw = intValue(options["naviMode"]) else {
-      return nil
+    // 历史参数兼容：iosNaviMode 已废弃，但若仍传 2，依然给出明确不支持提示
+    if let legacyIOSNaviMode = intValue(options["iosNaviMode"]), legacyIOSNaviMode == 2 {
+      return true
     }
-    switch raw {
-    case 0:
-      return 1 // 兼容旧参数：0(旧GPS) -> AMapNaviModeGPS(1)
-    case 1:
-      return 1 // GPS
-    case 2:
-      return 2 // Emulator
-    default:
-      return raw
-    }
+    return false
   }
 
   private func parseBroadcastType(options: [String: Any]) -> Int? {

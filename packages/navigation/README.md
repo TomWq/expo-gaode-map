@@ -230,7 +230,7 @@ await openOfficialNaviPage({
   to: { latitude: 39.908823, longitude: 116.39747, name: '终点' }, // 必填
   pageType: 'NAVI',               // ROUTE | NAVI
   startNaviDirectly: true,
-  naviMode: 2,                    // 1=实时导航, 2=模拟导航（官方组件）
+  naviMode: 2,                    // 1=实时导航, 2=模拟导航（iOS 官方组件不支持模拟）
   theme: 'BLUE',                  // BLUE | WHITE | BLACK
   trafficEnabled: true,
   showCrossImage: true,
@@ -241,6 +241,7 @@ await openOfficialNaviPage({
 
 - 支持 Android / iOS 平台差异参数（如 `dayAndNightMode`、`broadcastMode`、`mapViewModeType`、`trackingMode` 等）。
 - iOS 直接进导航页时需开启后台定位 `UIBackgroundModes: location`。
+- iOS 官方导航组件模式不支持模拟导航；若传 `naviMode: 2` 会直接返回错误提示。
 - Android 依赖 `AmapRouteActivity`，Config Plugin 会自动注入 Manifest。
 
 ### 地图组件 (Map)

@@ -462,11 +462,11 @@ await openOfficialNaviPage({
 | `removePolylineAndVectorlineWhenArrivedDestination` | iOS | 到达后移除路线和牵引线 |
 | `showCameraDistanceEnable` | iOS | 是否显示电子眼距离（SDK 支持时生效） |
 | `scaleFactor` | iOS | 地图缩放比例（SDK 支持时生效） |
-| `iosNaviMode` | iOS | iOS 直接导航模式，优先级高于 `naviMode` |
 
 ### 重要限制
 
 - iOS 直接进导航页（`pageType: 'NAVI'` 或 `startNaviDirectly: true`）要求开启后台定位 `UIBackgroundModes: location`。
+- iOS 官方导航组件模式不支持模拟导航；若传 `naviMode: 2` 会直接返回错误提示。
 - 若未开启，接口会返回 `BACKGROUND_LOCATION_NOT_ENABLED`。
 - Android 官方组件依赖 `com.amap.api.navi.AmapRouteActivity`，插件已自动注入；自定义原生工程请确保 Manifest 已声明该 Activity。
 

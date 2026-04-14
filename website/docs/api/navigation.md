@@ -334,7 +334,7 @@ const ok = await openOfficialNaviPage({
 | `startNaviDirectly` | `boolean` | 是否直接进入导航页 |
 | `theme` | `'BLUE' \| 'WHITE' \| 'BLACK'` | 官方组件主题 |
 | `routeStrategy` | `number` | 路线策略值 |
-| `naviMode` | `number` | 直接导航模式：`1` 实时、`2` 模拟 |
+| `naviMode` | `number` | 直接导航模式：`1` 实时、`2` 模拟（iOS 官方组件当前不支持模拟） |
 | `trafficEnabled` | `boolean` | 是否显示实时路况 |
 | `showCrossImage` | `boolean` | 是否显示路口放大图 |
 | `showRouteStrategyPreferenceView` | `boolean` | 是否显示策略偏好页 |
@@ -362,7 +362,6 @@ iOS 特有参数：
 
 | 参数 | 说明 |
 |------|------|
-| `iosNaviMode` | iOS 直接导航模式，优先级高于 `naviMode` |
 | `mapViewModeType` | 地图样式类型（覆盖 `dayAndNightMode`） |
 | `broadcastType` | 播报类型（覆盖 `broadcastMode`） |
 | `trackingMode` | 跟随模式（覆盖 `carDirectionMode`） |
@@ -377,6 +376,7 @@ iOS 特有参数：
 注意事项：
 
 - iOS 直接导航（`pageType='NAVI'` 或 `startNaviDirectly=true`）需要开启后台定位能力（`UIBackgroundModes: location`），否则会返回 `BACKGROUND_LOCATION_NOT_ENABLED`。
+- iOS 官方导航组件模式不支持模拟导航；若传 `naviMode=2` 会直接返回错误提示。
 - Android 官方导航组件依赖 `AmapRouteActivity`，本插件默认会自动注入到 `AndroidManifest.xml`。
 
 ## 独立路径规划 API
