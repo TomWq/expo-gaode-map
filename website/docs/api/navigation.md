@@ -291,6 +291,94 @@ const result = await calculateEBikeRoute({
 });
 ```
 
+## 官方导航组件 API
+
+### openOfficialNaviPage - 打开官方导航页
+
+调用高德官方导航组件（Android: `AmapNaviPage`，iOS: `AMapNaviCompositeManager`）。
+
+```typescript
+import { openOfficialNaviPage } from 'expo-gaode-map-navigation';
+
+const ok = await openOfficialNaviPage({
+  from: { latitude: 39.909186, longitude: 116.397411, name: '起点' }, // 可选
+  to: { latitude: 39.908823, longitude: 116.39747, name: '终点' },      // 必填
+  pageType: 'NAVI',                 // ROUTE | NAVI
+  startNaviDirectly: true,
+  naviMode: 2,                      // 1=实时导航, 2=模拟导航（官方组件）
+  routeStrategy: 10,
+  theme: 'BLUE',
+  trafficEnabled: true,
+  showCrossImage: true,
+  showRouteStrategyPreferenceView: true,
+  carInfo: {
+    carType: '0',
+    carNumber: '京A12345',
+    restriction: true,
+  },
+});
+```
+
+返回值：
+
+- `Promise<boolean>`：`true` 表示调起请求已成功发送（不代表已到达目的地）
+
+通用参数（Android / iOS）：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `from` | `{ latitude, longitude, name?, poiId? }` | 起点，可选；不传通常使用“我的位置” |
+| `to` | `{ latitude, longitude, name?, poiId? }` | 终点，必填 |
+| `waypoints` | `Array<{ latitude, longitude, name?, poiId? }>` | 途经点，最多 3 个 |
+| `pageType` | `'ROUTE' \| 'NAVI'` | 打开路线页或直接导航页 |
+| `startNaviDirectly` | `boolean` | 是否直接进入导航页 |
+| `theme` | `'BLUE' \| 'WHITE' \| 'BLACK'` | 官方组件主题 |
+| `routeStrategy` | `number` | 路线策略值 |
+| `naviMode` | `number` | 直接导航模式：`1` 实时、`2` 模拟 |
+| `trafficEnabled` | `boolean` | 是否显示实时路况 |
+| `showCrossImage` | `boolean` | 是否显示路口放大图 |
+| `showRouteStrategyPreferenceView` | `boolean` | 是否显示策略偏好页 |
+| `multipleRouteNaviMode` | `boolean` | 驾车多路线模式 |
+| `truckMultipleRouteNaviMode` | `boolean` | 货车多路线模式（付费能力） |
+| `showEagleMap` | `boolean` | 是否显示鹰眼小地图 |
+| `scaleAutoChangeEnable` | `boolean` | 是否自动缩放比例尺 |
+| `showExitNaviDialog` | `boolean` | 是否显示退出导航确认 |
+| `needCalculateRouteWhenPresent` | `boolean` | 打开组件时是否自动算路 |
+| `needDestroyDriveManagerInstanceWhenNaviExit` | `boolean` | 退出时是否销毁 DriveManager |
+| `carInfo` | `object` | 车辆信息（车牌、限行、货车参数等） |
+
+Android 特有参数：
+
+| 参数 | 说明 |
+|------|------|
+| `dayAndNightMode` | 昼夜模式：`0` 自动、`1` 白天、`2` 夜间 |
+| `broadcastMode` | 语音播报：`1` 简洁、`2` 详细、`3` 静音 |
+| `carDirectionMode` | 视角模式：`1` 正北朝上、`2` 车头朝上 |
+| `showVoiceSettings` | 是否显示语音设置项 |
+| `secondActionVisible` | 是否显示“下下个路口”引导 |
+| `useInnerVoice` | 是否使用内置语音 |
+
+iOS 特有参数：
+
+| 参数 | 说明 |
+|------|------|
+| `iosNaviMode` | iOS 直接导航模式，优先级高于 `naviMode` |
+| `mapViewModeType` | 地图样式类型（覆盖 `dayAndNightMode`） |
+| `broadcastType` | 播报类型（覆盖 `broadcastMode`） |
+| `trackingMode` | 跟随模式（覆盖 `carDirectionMode`） |
+| `showNextRoadInfo` | 是否显示随后转向图标 |
+| `showBackupRoute` | 多路线模式下是否显示备选路线 |
+| `onlineCarHailingType` | 网约车模式 |
+| `showRestrictareaEnable` | 是否显示限行图层（付费能力） |
+| `removePolylineAndVectorlineWhenArrivedDestination` | 到达后是否移除路线与牵引线 |
+| `showCameraDistanceEnable` | 是否显示电子眼距离（SDK 支持时生效） |
+| `scaleFactor` | 地图缩放比例（SDK 支持时生效） |
+
+注意事项：
+
+- iOS 直接导航（`pageType='NAVI'` 或 `startNaviDirectly=true`）需要开启后台定位能力（`UIBackgroundModes: location`），否则会返回 `BACKGROUND_LOCATION_NOT_ENABLED`。
+- Android 官方导航组件依赖 `AmapRouteActivity`，本插件默认会自动注入到 `AndroidManifest.xml`。
+
 ## 独立路径规划 API
 
 独立路径规划**不会影响当前导航状态**，适用于路线预览、对比和切换场景。

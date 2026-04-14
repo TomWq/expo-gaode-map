@@ -74,6 +74,28 @@ public class ExpoGaodeMapNavigationModule: Module {
     try checkAMapInitialization()
   }
 
+  /// 检查 iOS 是否开启后台定位模式（避免导航启动时出现系统异常）
+  private func ensureBackgroundLocationModeForNavigation() throws {
+    let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+    guard backgroundModes?.contains("location") == true else {
+      throw NSError(
+        domain: "ExpoGaodeMapNavigation",
+        code: -1003,
+        userInfo: [
+          NSLocalizedDescriptionKey: "iOS 后台定位模式未开启，无法安全启动导航",
+          NSLocalizedFailureReasonErrorKey: "Info.plist 缺少 UIBackgroundModes: location",
+          NSLocalizedRecoverySuggestionErrorKey: """
+            请在 app.json 插件配置中开启后台定位后重新 prebuild：
+            ["expo-gaode-map-navigation", {
+              "enableBackgroundLocation": true
+            }]
+            然后执行：npx expo prebuild --clean
+            """
+        ]
+      )
+    }
+  }
+
   /// 检查并同步隐私状态（导航 SDK 同样要求在调用任何接口前完成）
   private func ensurePrivacyReady() throws {
     GaodeMapPrivacyManager.restorePersistedState()
@@ -239,6 +261,7 @@ public class ExpoGaodeMapNavigationModule: Module {
     AsyncFunction("startNaviWithIndependentPath") { (options: [String: Any], promise: Promise) in
       do {
         try self.ensureInitialized()
+        try self.ensureBackgroundLocationModeForNavigation()
       } catch {
         self.rejectInitializationError(promise, error: error)
         return
@@ -258,6 +281,12 @@ public class ExpoGaodeMapNavigationModule: Module {
     AsyncFunction("openOfficialNaviPage") { (options: [String: Any], promise: Promise) in
       do {
         try self.ensureInitialized()
+        let pageType = (options["pageType"] as? String)?.uppercased()
+        let startNaviDirectly = (options["startNaviDirectly"] as? Bool) ?? false
+        // 只有直接进导航页时才强制要求后台定位模式；纯路线规划页不拦截
+        if pageType == "NAVI" || startNaviDirectly {
+          try self.ensureBackgroundLocationModeForNavigation()
+        }
       } catch {
         self.rejectInitializationError(promise, error: error)
         return
@@ -343,9 +372,14 @@ public class ExpoGaodeMapNavigationModule: Module {
 
   private func rejectInitializationError(_ promise: Promise, error: Error) {
     let nsError = error as NSError
-    let code = (nsError.domain == "ExpoGaodeMapNavigation" && nsError.code == -1002)
-      ? "PRIVACY_NOT_AGREED"
-      : "AMAP_NOT_INITIALIZED"
+    let code: String
+    if nsError.domain == "ExpoGaodeMapNavigation" && nsError.code == -1002 {
+      code = "PRIVACY_NOT_AGREED"
+    } else if nsError.domain == "ExpoGaodeMapNavigation" && nsError.code == -1003 {
+      code = "BACKGROUND_LOCATION_NOT_ENABLED"
+    } else {
+      code = "AMAP_NOT_INITIALIZED"
+    }
     promise.reject(code, formatError(error))
   }
 
@@ -424,6 +458,11 @@ public class ExpoGaodeMapNavigationModule: Module {
         selectorName: "setStartNaviDirectly:",
         value: startNaviDirectly
       )
+      if let naviMode = parseCompositeNaviMode(options: options) {
+        // iOS 官方组件头文件未公开该方法，但在实际 SDK 中存在；通过反射安全调用。
+        // 仅在 startNaviDirectly = true 时该参数才有意义。
+        invokeIntSetter(target: config, selectorName: "setNaviMode:", value: naviMode)
+      }
 
     if let needCalculateRoute = boolValue(options["needCalculateRouteWhenPresent"]) {
       invokeBoolSetter(target: config, selectorName: "setNeedCalculateRouteWhenPresent:", value: needCalculateRoute)
@@ -460,6 +499,16 @@ public class ExpoGaodeMapNavigationModule: Module {
     }
     if let showEagleMap = boolValue(options["showEagleMap"]) {
       invokeBoolSetter(target: config, selectorName: "setShowEagleMap:", value: showEagleMap)
+    }
+    if let showCameraDistanceEnable = boolValue(options["showCameraDistanceEnable"]) {
+      invokeBoolSetter(
+        target: config,
+        selectorName: "setShowCameraDistanceEnable:",
+        value: showCameraDistanceEnable
+      )
+    }
+    if let scaleFactor = doubleValue(options["scaleFactor"]) {
+      invokeDoubleSetter(target: config, selectorName: "setScaleFactor:", value: scaleFactor)
     }
     if let showRestrict = boolValue(options["showRestrictareaEnable"]) {
       invokeBoolSetter(target: config, selectorName: "setShowRestrictareaEnable:", value: showRestrict)
@@ -656,6 +705,25 @@ public class ExpoGaodeMapNavigationModule: Module {
     }
   }
 
+  private func parseCompositeNaviMode(options: [String: Any]) -> Int? {
+    if let iosRaw = intValue(options["iosNaviMode"]) {
+      return iosRaw
+    }
+    guard let raw = intValue(options["naviMode"]) else {
+      return nil
+    }
+    switch raw {
+    case 0:
+      return 1 // 兼容旧参数：0(旧GPS) -> AMapNaviModeGPS(1)
+    case 1:
+      return 1 // GPS
+    case 2:
+      return 2 // Emulator
+    default:
+      return raw
+    }
+  }
+
   private func parseBroadcastType(options: [String: Any]) -> Int? {
     if let raw = intValue(options["broadcastType"]) {
       return raw
@@ -738,6 +806,15 @@ public class ExpoGaodeMapNavigationModule: Module {
     let selector = NSSelectorFromString(selectorName)
     guard target.responds(to: selector) else { return }
     typealias Function = @convention(c) (AnyObject, Selector, UInt) -> Void
+    let implementation = target.method(for: selector)
+    let function = unsafeBitCast(implementation, to: Function.self)
+    function(target, selector, value)
+  }
+
+  private func invokeDoubleSetter(target: NSObject, selectorName: String, value: Double) {
+    let selector = NSSelectorFromString(selectorName)
+    guard target.responds(to: selector) else { return }
+    typealias Function = @convention(c) (AnyObject, Selector, Double) -> Void
     let implementation = target.method(for: selector)
     let function = unsafeBitCast(implementation, to: Function.self)
     function(target, selector, value)

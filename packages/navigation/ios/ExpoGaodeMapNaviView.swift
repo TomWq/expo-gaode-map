@@ -68,6 +68,28 @@ public class ExpoGaodeMapNaviView: ExpoView {
       )
     }
   }
+
+  /// 检查 iOS 是否配置了后台定位模式（避免导航启动时触发系统异常）
+  private func ensureBackgroundLocationModeForNavigation() throws {
+    let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+    guard backgroundModes?.contains("location") == true else {
+      throw NSError(
+        domain: "ExpoGaodeMapNaviView",
+        code: -1003,
+        userInfo: [
+          NSLocalizedDescriptionKey: "iOS 后台定位模式未开启，无法安全启动导航",
+          NSLocalizedFailureReasonErrorKey: "Info.plist 缺少 UIBackgroundModes: location",
+          NSLocalizedRecoverySuggestionErrorKey: """
+            请在 app.json 插件配置中开启后台定位后重新 prebuild：
+            ["expo-gaode-map-navigation", {
+              "enableBackgroundLocation": true
+            }]
+            然后执行：npx expo prebuild --clean
+            """
+        ]
+      )
+    }
+  }
   
   /// 格式化错误信息
   private func formatError(_ error: Error) -> String {
@@ -383,8 +405,17 @@ public class ExpoGaodeMapNaviView: ExpoView {
     do {
       try checkPrivacyReady()
       try checkAMapInitialization()
+      try ensureBackgroundLocationModeForNavigation()
     } catch {
-      let code = (error as NSError).domain == "ExpoGaodeMapPrivacy" ? "PRIVACY_NOT_AGREED" : "AMAP_NOT_INITIALIZED"
+      let nsError = error as NSError
+      let code: String
+      if nsError.domain == "ExpoGaodeMapPrivacy" {
+        code = "PRIVACY_NOT_AGREED"
+      } else if nsError.code == -1003 {
+        code = "BACKGROUND_LOCATION_NOT_ENABLED"
+      } else {
+        code = "AMAP_NOT_INITIALIZED"
+      }
       promise.reject(code, formatError(error))
       return
     }

@@ -2,8 +2,9 @@
 //  IndependentRouteService.swift
 //  expo-gaode-map-navigation
 //
-//  独立路径规划服务 - 简化实现，使用标准路径规划 API
-//  注意：iOS SDK 的独立算路 API 可能不支持 callback 方式，使用标准代理方式
+//  独立路径规划服务
+//  驾车/货车/摩托车：优先使用官方独立算路回调（返回 AMapNaviRouteGroup）
+//  步行/骑行：沿用对应 Manager 的标准算路回调
 //
 
 import Foundation
@@ -47,59 +48,61 @@ class IndependentRouteService: NSObject {
       promise.reject("INVALID_PARAMS", "from and to are required")
       return
     }
-    
-    guard let startPoint = Converters.parseNaviPoint(from),
-          let endPoint = Converters.parseNaviPoint(to) else {
-      promise.reject("INVALID_COORDS", "Invalid coordinates")
+
+    guard let startPOIInfo = Converters.parseNaviPOIInfo(from),
+          let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
+      promise.reject("INVALID_COORDS", "Invalid coordinates or POI info")
       return
     }
-    
-    // 解析途经点
-    var wayPoints: [AMapNaviPoint]? = nil
-    if let waypoints = options["waypoints"] as? [[String: Any]] {
-      wayPoints = waypoints.compactMap { Converters.parseNaviPoint($0) }
+
+    let wayPOIInfos: [AMapNaviPOIInfo]? = {
+      guard let waypoints = options["waypoints"] as? [[String: Any]] else { return nil }
+      return Converters.parseNaviPOIInfos(waypoints)
+    }()
+
+    if let vehicleInfo = buildVehicleInfo(options: options) {
+      driveManager?.setVehicleInfo(vehicleInfo)
     }
-    
-    // 解析策略
-    let strategyValue = options["strategy"] as? Int ?? 10
-    let strategy: AMapNaviDrivingStrategy = AMapNaviDrivingStrategy(rawValue: strategyValue) ?? AMapNaviDrivingStrategy.drivingStrategySingleDefault
-    
-    currentScene = "drive"
-    currentPromise = promise
-    currentToken = independentRouteManager.generateToken()
-    
-    let success = driveManager?.calculateDriveRoute(
-      withStart: [startPoint],
-      end: [endPoint],
-      wayPoints: wayPoints,
-      drivingStrategy: strategy
+
+    let strategyValue = resolveDriveStrategyValue(options: options)
+    let strategy = AMapNaviDrivingStrategy(rawValue: strategyValue)
+      ?? AMapNaviDrivingStrategy.drivingStrategySingleDefault
+    let token = independentRouteManager.generateToken()
+
+    let success = driveManager?.independentCalculateDriveRoute(
+      withStart: startPOIInfo,
+      end: endPOIInfo,
+      wayPOIInfos: wayPOIInfos,
+      drivingStrategy: strategy,
+      callback: { [weak self] routeGroup, error in
+        guard let self else { return }
+        if let error = error {
+          promise.reject("CALCULATE_FAILED", error.localizedDescription)
+          return
+        }
+        guard let routeGroup = routeGroup else {
+          promise.reject("CALCULATE_FAILED", "独立驾车算路成功回调未返回 routeGroup")
+          return
+        }
+
+        self.independentRouteManager.storeRouteGroup(token: token, routeGroup: routeGroup)
+        let result = self.convertIndependentDriveResult(routeGroup: routeGroup, token: token)
+        promise.resolve(result)
+      }
     ) ?? false
-    
+
     if !success {
-      currentPromise = nil
-      currentToken = nil
       promise.reject("CALCULATE_FAILED", "独立驾车路线规划启动失败")
     }
   }
   
   // MARK: - 独立货车路线规划
   func independentTruckRoute(options: [String: Any], promise: Promise) {
-    // 设置货车信息
-    if let vehicleInfo = options["vehicleInfo"] as? [String: Any] {
-      let naviVehicleInfo = AMapNaviVehicleInfo()
-      naviVehicleInfo.type = vehicleInfo["type"] as? Int ?? 1
-      naviVehicleInfo.size = vehicleInfo["size"] as? Int ?? 2
-      naviVehicleInfo.width = vehicleInfo["width"] as? Double ?? 2.5
-      naviVehicleInfo.height = vehicleInfo["height"] as? Double ?? 3.0
-      naviVehicleInfo.length = vehicleInfo["length"] as? Double ?? 10.0
-      naviVehicleInfo.load = vehicleInfo["load"] as? Double ?? 10.0
-      naviVehicleInfo.weight = vehicleInfo["weight"] as? Double ?? 15.0
-      naviVehicleInfo.axisNums = vehicleInfo["axisNums"] as? Int ?? 2
-      driveManager?.setVehicleInfo(naviVehicleInfo)
+    var truckOptions = options
+    if truckOptions["carType"] == nil && (truckOptions["vehicleInfo"] as? [String: Any]) == nil {
+      truckOptions["carType"] = 1
     }
-    
-    // 复用驾车路线规划
-    independentDriveRoute(options: options, promise: promise)
+    independentDriveRoute(options: truckOptions, promise: promise)
   }
   
   // MARK: - 独立步行路线规划
@@ -158,7 +161,146 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立摩托车路线规划（使用驾车接口）
   func independentMotorcycleRoute(options: [String: Any], promise: Promise) {
-    independentDriveRoute(options: options, promise: promise)
+    var motorcycleOptions = options
+    if motorcycleOptions["carType"] == nil {
+      motorcycleOptions["carType"] = 11
+    }
+    independentDriveRoute(options: motorcycleOptions, promise: promise)
+  }
+
+  private func resolveDriveStrategyValue(options: [String: Any]) -> Int {
+    if let strategy = options["strategy"] as? Int {
+      return strategy
+    }
+    return Converters.convertDrivingPreferenceToStrategy(
+      multipleRoute: true,
+      avoidCongestion: options["avoidCongestion"] as? Bool ?? false,
+      avoidHighway: options["avoidHighway"] as? Bool ?? false,
+      avoidCost: options["avoidCost"] as? Bool ?? false,
+      prioritiseHighway: options["prioritiseHighway"] as? Bool ?? false
+    )
+  }
+
+  private func buildVehicleInfo(options: [String: Any]) -> AMapNaviVehicleInfo? {
+    let naviVehicleInfo = AMapNaviVehicleInfo()
+    var hasAnyValue = false
+
+    if let vehicleInfo = options["vehicleInfo"] as? [String: Any] {
+      if let type = intValue(vehicleInfo["type"]) {
+        naviVehicleInfo.type = type
+        hasAnyValue = true
+      }
+      if let size = intValue(vehicleInfo["size"]) {
+        naviVehicleInfo.size = size
+        hasAnyValue = true
+      }
+      if let width = doubleValue(vehicleInfo["width"]) {
+        naviVehicleInfo.width = width
+        hasAnyValue = true
+      }
+      if let height = doubleValue(vehicleInfo["height"]) {
+        naviVehicleInfo.height = height
+        hasAnyValue = true
+      }
+      if let length = doubleValue(vehicleInfo["length"]) {
+        naviVehicleInfo.length = length
+        hasAnyValue = true
+      }
+      if let load = doubleValue(vehicleInfo["load"]) {
+        naviVehicleInfo.load = load
+        hasAnyValue = true
+      }
+      if let weight = doubleValue(vehicleInfo["weight"]) {
+        naviVehicleInfo.weight = weight
+        hasAnyValue = true
+      }
+      if let axisNums = intValue(vehicleInfo["axisNums"]) {
+        naviVehicleInfo.axisNums = axisNums
+        hasAnyValue = true
+      }
+    }
+
+    if let carType = intValue(options["carType"]) {
+      naviVehicleInfo.type = carType
+      hasAnyValue = true
+    }
+    if let carNumber = options["carNumber"] as? String, !carNumber.isEmpty {
+      naviVehicleInfo.vehicleId = carNumber
+      hasAnyValue = true
+    }
+    if let restriction = options["restriction"] as? Bool {
+      naviVehicleInfo.isETARestriction = restriction
+      hasAnyValue = true
+    }
+    if let motorcycleCC = intValue(options["motorcycleCC"]) {
+      naviVehicleInfo.motorcycleCC = motorcycleCC
+      hasAnyValue = true
+    }
+
+    return hasAnyValue ? naviVehicleInfo : nil
+  }
+
+  private func convertIndependentDriveResult(
+    routeGroup: AMapNaviRouteGroup,
+    token: Int
+  ) -> [String: Any] {
+    let orderedRouteIds = routeGroup.naviRouteIDs?.map { $0.intValue } ?? []
+    var routes: [[String: Any]] = []
+
+    if let naviRoutes = routeGroup.naviRoutes {
+      let fallbackIds = naviRoutes.keys.map { $0.intValue }.sorted()
+      let routeIds = orderedRouteIds.isEmpty ? fallbackIds : orderedRouteIds
+      for routeId in routeIds {
+        let key = NSNumber(value: routeId)
+        guard let route = naviRoutes[key] else { continue }
+        routes.append([
+          "routeId": routeId,
+          "distance": route.routeLength,
+          "duration": route.routeTime,
+          "tollCost": route.routeTollCost,
+          "strategy": "推荐路线",
+          "polyline": extractCoordinates(from: route)
+        ])
+      }
+    } else if let route = routeGroup.naviRoute {
+      let routeId = routeGroup.naviRouteID
+      routes.append([
+        "routeId": routeId,
+        "distance": route.routeLength,
+        "duration": route.routeTime,
+        "tollCost": route.routeTollCost,
+        "strategy": "推荐路线",
+        "polyline": extractCoordinates(from: route)
+      ])
+    }
+
+    let finalRouteIds = orderedRouteIds.isEmpty ? routes.compactMap { $0["routeId"] as? Int } : orderedRouteIds
+    let mainRouteId = routeGroup.naviRouteID
+    let mainPathIndex = finalRouteIds.firstIndex(of: mainRouteId) ?? 0
+
+    return [
+      "success": true,
+      "independent": true,
+      "token": token,
+      "count": routes.count,
+      "mainPathIndex": mainPathIndex,
+      "routeIds": finalRouteIds,
+      "routes": routes
+    ]
+  }
+
+  private func intValue(_ raw: Any?) -> Int? {
+    if let value = raw as? Int { return value }
+    if let value = raw as? NSNumber { return value.intValue }
+    if let value = raw as? String { return Int(value) }
+    return nil
+  }
+
+  private func doubleValue(_ raw: Any?) -> Double? {
+    if let value = raw as? Double { return value }
+    if let value = raw as? NSNumber { return value.doubleValue }
+    if let value = raw as? String { return Double(value) }
+    return nil
   }
   
   func destroy() {

@@ -207,8 +207,10 @@ export interface OfficialNaviPageOptions {
   routeStrategy?: number;
   /** 是否直接进入导航页（iOS 对应 `setStartNaviDirectly`） */
   startNaviDirectly?: boolean;
-  /** 直接导航模式（仅直接进导航页时生效） */
+  /** 直接导航模式（仅直接进导航页时生效）：1 实时 / 2 模拟 */
   naviMode?: number;
+  /** iOS 直接导航模式（可选，优先级高于 naviMode） */
+  iosNaviMode?: number;
   needCalculateRouteWhenPresent?: boolean;
   /** 退出导航页时是否销毁 DriveManager 实例，默认 false */
   needDestroyDriveManagerInstanceWhenNaviExit?: boolean;
@@ -232,6 +234,10 @@ export interface OfficialNaviPageOptions {
   truckMultipleRouteNaviMode?: boolean;
   /** 是否显示鹰眼小地图 */
   showEagleMap?: boolean;
+  /** iOS 是否显示电子眼距离（7.7.0+，具体以 SDK 版本为准） */
+  showCameraDistanceEnable?: boolean;
+  /** iOS 地图缩放比例（7.7.0+，具体以 SDK 版本为准） */
+  scaleFactor?: number;
   /** 比例尺智能缩放是否开启 */
   scaleAutoChangeEnable?: boolean;
   /** 昼夜模式：0 自动 / 1 白天 / 2 夜间 */

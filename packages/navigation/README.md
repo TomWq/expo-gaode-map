@@ -219,6 +219,30 @@ await startNaviWithIndependentPath({
 });
 ```
 
+### 官方导航页（openOfficialNaviPage）
+
+新增支持直接调起高德官方导航组件（Android: `AmapNaviPage`，iOS: `AMapNaviCompositeManager`）。
+
+```typescript
+import { openOfficialNaviPage } from 'expo-gaode-map-navigation';
+
+await openOfficialNaviPage({
+  to: { latitude: 39.908823, longitude: 116.39747, name: '终点' }, // 必填
+  pageType: 'NAVI',               // ROUTE | NAVI
+  startNaviDirectly: true,
+  naviMode: 2,                    // 1=实时导航, 2=模拟导航（官方组件）
+  theme: 'BLUE',                  // BLUE | WHITE | BLACK
+  trafficEnabled: true,
+  showCrossImage: true,
+});
+```
+
+说明：
+
+- 支持 Android / iOS 平台差异参数（如 `dayAndNightMode`、`broadcastMode`、`mapViewModeType`、`trackingMode` 等）。
+- iOS 直接进导航页时需开启后台定位 `UIBackgroundModes: location`。
+- Android 依赖 `AmapRouteActivity`，Config Plugin 会自动注入 Manifest。
+
 ### 地图组件 (Map)
 
 模块导出了完整的地图组件，与 `expo-gaode-map` API 保持一致。

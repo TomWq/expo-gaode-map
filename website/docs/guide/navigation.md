@@ -412,6 +412,64 @@ export default function RoutePreviewScreen() {
 }
 ```
 
+## 官方导航页（openOfficialNaviPage）
+
+`openOfficialNaviPage` 会调起高德官方导航组件（非 `NaviView` 内嵌模式），适合快速接入官方完整 UI。
+
+支持两种页面模式：
+
+- `pageType: 'ROUTE'`：先打开官方路线规划页
+- `pageType: 'NAVI'`：直接进入官方导航页
+
+### 基础示例（直接进入导航 + 模拟）
+
+```typescript
+import { openOfficialNaviPage } from 'expo-gaode-map-navigation';
+
+await openOfficialNaviPage({
+  from: { latitude: 39.909186, longitude: 116.397411, name: '天安门' }, // 可选
+  to: { latitude: 39.908823, longitude: 116.39747, name: '目的地' },      // 必填
+  pageType: 'NAVI',
+  startNaviDirectly: true,
+  naviMode: 2,             // 1=实时导航, 2=模拟导航（官方组件）
+  routeStrategy: 10,       // 策略值，默认推荐多路径策略
+  theme: 'BLACK',          // BLUE | WHITE | BLACK
+  trafficEnabled: true,
+  showCrossImage: true,
+  carInfo: {
+    carType: '1',          // 1=货车, 0=小客车, 11=摩托车
+    carNumber: '京A12345',
+    restriction: true,
+  },
+});
+```
+
+### 平台特有参数
+
+| 参数 | 平台 | 说明 |
+|------|------|------|
+| `dayAndNightMode` | Android | 昼夜模式：`0` 自动、`1` 白天、`2` 夜间 |
+| `broadcastMode` | Android | 语音播报：`1` 简洁、`2` 详细、`3` 静音 |
+| `carDirectionMode` | Android | 视角：`1` 正北朝上、`2` 车头朝上 |
+| `showVoiceSettings` | Android | 是否显示语音设置项 |
+| `secondActionVisible` | Android | 是否显示“下下个路口”引导 |
+| `mapViewModeType` | iOS | 地图样式类型（覆盖 `dayAndNightMode`） |
+| `broadcastType` | iOS | 播报类型（覆盖 `broadcastMode`） |
+| `trackingMode` | iOS | 跟随模式（覆盖 `carDirectionMode`） |
+| `showNextRoadInfo` | iOS | 是否显示随后转向图标 |
+| `showBackupRoute` | iOS | 多路线模式下是否显示备选路线 |
+| `showRestrictareaEnable` | iOS | 是否显示限行图层（付费能力） |
+| `removePolylineAndVectorlineWhenArrivedDestination` | iOS | 到达后移除路线和牵引线 |
+| `showCameraDistanceEnable` | iOS | 是否显示电子眼距离（SDK 支持时生效） |
+| `scaleFactor` | iOS | 地图缩放比例（SDK 支持时生效） |
+| `iosNaviMode` | iOS | iOS 直接导航模式，优先级高于 `naviMode` |
+
+### 重要限制
+
+- iOS 直接进导航页（`pageType: 'NAVI'` 或 `startNaviDirectly: true`）要求开启后台定位 `UIBackgroundModes: location`。
+- 若未开启，接口会返回 `BACKGROUND_LOCATION_NOT_ENABLED`。
+- Android 官方组件依赖 `com.amap.api.navi.AmapRouteActivity`，插件已自动注入；自定义原生工程请确保 Manifest 已声明该 Activity。
+
 ## NaviView 导航组件
 
 `NaviView` 是高德官方提供的完整导航界面组件。
