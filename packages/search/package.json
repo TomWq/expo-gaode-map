@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-search",
-  "version": "1.3.13",
+  "version": "1.3.14",
   "description": "React Native AMap (Gaode Map) search module for Expo: POI search, nearby search, keyword search, and geocoding.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
