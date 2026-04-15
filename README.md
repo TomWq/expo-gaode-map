@@ -1,6 +1,6 @@
 # expo-gaode-map
 
-> React Native / Expo AMap (Gaode Map) library for China map apps. Popular searches: `rn 高德地图`, `react native 高德地图`, `expo 高德地图`, `react native amap`, `expo amap`.
+> React Native / Expo AMap (Gaode Map) solution for China map apps, with map rendering, location, search, navigation, and offline map support.
 
 A fully-featured Amap (Gaode Map) React Native library, **built with Expo Modules API**, using Monorepo architecture. It provides complete functionality including map display, location, search, navigation, and Web API.
 
@@ -27,18 +27,23 @@ Includes complete API documentation, usage guides, and example code:
 
 ## 🚀 Why Choose expo-gaode-map?
 
-> Built for China map scenarios with the AMap (Gaode) ecosystem.  
-> Note: This is an engineering-focused comparison of common options. Check each project's latest docs for exact details.
+> If your target is China map products with Expo integration, New Architecture readiness, and a unified stack
+> for map + search + navigation + offline capabilities, `expo-gaode-map` is built as a production-first default.
 
-| Comparison | expo-gaode-map | General map stack (e.g. react-native-maps) | Older RN AMap libraries (e.g. react-native-amap3d) |
+| Comparison | expo-gaode-map | react-native-maps (general map stack) | react-native-amap3d (older community AMap stack) |
 |---|---|---|---|
-| Expo integration | ✅ Expo Modules + Config Plugin | ⚠️ Primarily generic map capabilities | ⚠️ Often requires extra adaptation |
-| China map readiness (AMap) | ✅ Direct AMap-native capabilities | ⚠️ Usually needs extra China-specific work | ✅ Core capabilities available |
-| Unified stack (Map + Search + Navigation + Web API) | ✅ Monorepo with coordinated modules | ❌ Usually assembled from multiple libraries | ⚠️ Commonly focused on single-library scope |
-| Offline map support | ✅ | ⚠️ Often requires extra implementation | ⚠️ Depends on project/version |
-| Geometry utilities (TS + C++) | ✅ Built in | ❌ Usually custom implementation | ❌ Usually not built in |
-| Privacy compliance + typed error guidance | ✅ Built in | ⚠️ Usually app-side implementation | ⚠️ Project dependent |
-| Maintenance + docs completeness | ✅ Active iterations + docs site + example repo | ✅ Mature ecosystem but generic focus | ⚠️ Community maintenance pace may vary |
+| China map readiness (AMap) | ✅ Designed around native AMap capabilities | ⚠️ Primarily generic abstraction; in Mainland China, Android delivery often faces Google Maps/GMS availability constraints | ✅ Core AMap capabilities |
+| Expo integration experience | ✅ Expo Modules + Config Plugin (auto key/permission setup) | ⚠️ Usually requires additional project wiring | ⚠️ Often requires manual adaptation |
+| React Native New Architecture (Fabric/TurboModules) | ✅ Explicit New + Old Architecture support | ✅/⚠️ Depends on official support scope | ⚠️ No clear New Architecture support statement |
+| Unified stack (Map + Search + Navigation + Web API) | ✅ Four coordinated packages in one monorepo | ❌ Usually multi-library assembly | ❌ Primarily map-layer scope |
+| Navigation (route planning + nav view) | ✅ `expo-gaode-map-navigation` | ❌ | ❌ |
+| Search stack (POI/nearby/geocode) | ✅ `expo-gaode-map-search` + `web-api` | ❌ | ⚠️ Usually requires extra composition |
+| Offline maps | ✅ Built-in APIs | ⚠️ Usually needs extra implementation | ⚠️ Depends on fork/version |
+| Geometry utilities (TS + C++) | ✅ Built in (distance/area/simplification/nearest point, etc.) | ❌ | ❌ |
+| Privacy compliance + typed error guidance | ✅ Built in with solution links | ⚠️ Usually app-side implementation | ⚠️ Usually app-side implementation |
+| Maintenance signal | ✅ Active releases + docs + example repo | ✅ Active but general-map focused | ⚠️ Upstream [README](https://github.com/qiuxiang/react-native-amap3d) states "maintenance only, no new features" |
+
+> Note: Comparison is based on public documentation and common engineering usage patterns as of 2026-04-15.
 
 ## ✨ Key Features
 
