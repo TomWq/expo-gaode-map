@@ -1,5 +1,7 @@
 # expo-gaode-map
 
+> React Native / Expo AMap (Gaode Map) library for China map apps. Popular searches: `rn 高德地图`, `react native 高德地图`, `expo 高德地图`, `react native amap`, `expo amap`.
+
 A fully-featured Amap (Gaode Map) React Native library, **built with Expo Modules API**, using Monorepo architecture. It provides complete functionality including map display, location, search, navigation, and Web API.
 
 > 💡 This library is built using [Expo Modules API](https://docs.expo.dev/modules/overview/), providing type-safe native module interfaces and an excellent developer experience.
@@ -22,6 +24,21 @@ Includes complete API documentation, usage guides, and example code:
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API Reference](https://TomWq.github.io/expo-gaode-map/api/)
 - [Usage Examples](https://github.com/TomWq/expo-gaode-map-example)
+
+## 🚀 Why Choose expo-gaode-map?
+
+> Built for China map scenarios with the AMap (Gaode) ecosystem.  
+> Note: This is an engineering-focused comparison of common options. Check each project's latest docs for exact details.
+
+| Comparison | expo-gaode-map | General map stack (e.g. react-native-maps) | Older RN AMap libraries (e.g. react-native-amap3d) |
+|---|---|---|---|
+| Expo integration | ✅ Expo Modules + Config Plugin | ⚠️ Primarily generic map capabilities | ⚠️ Often requires extra adaptation |
+| China map readiness (AMap) | ✅ Direct AMap-native capabilities | ⚠️ Usually needs extra China-specific work | ✅ Core capabilities available |
+| Unified stack (Map + Search + Navigation + Web API) | ✅ Monorepo with coordinated modules | ❌ Usually assembled from multiple libraries | ⚠️ Commonly focused on single-library scope |
+| Offline map support | ✅ | ⚠️ Often requires extra implementation | ⚠️ Depends on project/version |
+| Geometry utilities (TS + C++) | ✅ Built in | ❌ Usually custom implementation | ❌ Usually not built in |
+| Privacy compliance + typed error guidance | ✅ Built in | ⚠️ Usually app-side implementation | ⚠️ Project dependent |
+| Maintenance + docs completeness | ✅ Active iterations + docs site + example repo | ✅ Mature ecosystem but generic focus | ⚠️ Community maintenance pace may vary |
 
 ## ✨ Key Features
 

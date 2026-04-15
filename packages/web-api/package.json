@@ -1,7 +1,7 @@
 {
   "name": "expo-gaode-map-web-api",
   "version": "2.0.4",
-  "description": "高德地图 Web API 服务 - 搜索、路径规划、地理编码（纯 JavaScript 实现），配合 expo-gaode-map或者 expo-gaode-map-navigation 使用",
+  "description": "AMap (Gaode Map) Web API toolkit for Expo/React Native: search, geocoding, and route planning in pure JavaScript.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "files": [
@@ -19,11 +19,18 @@
   "keywords": [
     "react-native",
     "expo",
+    "expo-gaode-map-web-api",
+    "expo-amap",
+    "react-native-amap",
+    "react-native-gaode-map",
     "amap",
     "gaode",
+    "gaode-map",
     "web-api",
     "search",
     "geocode",
+    "geocoding",
+    "route-planning",
     "route",
     "高德地图"
   ],

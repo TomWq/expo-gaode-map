@@ -1,7 +1,7 @@
 {
   "name": "expo-gaode-map-search",
   "version": "1.3.13",
-  "description": "高德地图搜索功能模块 - POI搜索、关键词搜索、周边搜索，需先安装expo-gaode-map或者expo-gaode-map-navigation",
+  "description": "React Native AMap (Gaode Map) search module for Expo: POI search, nearby search, keyword search, and geocoding.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -17,11 +17,20 @@
     "react-native",
     "expo",
     "expo-gaode-map",
+    "expo-gaode-map-search",
+    "expo-amap",
+    "react-native-amap",
+    "react-native-gaode-map",
+    "rn-amap-search",
     "amap",
+    "gaode-map",
     "search",
     "poi",
+    "nearby-search",
+    "geocoding",
     "高德地图",
-    "搜索"
+    "搜索",
+    "POI搜索"
   ],
   "repository": {
     "type": "git",

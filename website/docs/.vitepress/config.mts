@@ -2,8 +2,84 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+  lang: 'zh-CN',
   title: "expo-gaode-map",
-  description: "高德地图 React Native 组件库文档",
+  description: "Expo / React Native 高德地图（AMap）组件库文档：地图、定位、搜索、导航、离线地图。",
+  sitemap: {
+    hostname: 'https://tomwq.github.io/expo-gaode-map/'
+  },
+  head: [
+    [
+      'meta',
+      {
+        name: 'keywords',
+        content: 'rn 高德地图, react native 高德地图, expo 高德地图, react native amap, expo amap, gaode map react native, amap react native'
+      }
+    ],
+    [
+      'meta',
+      {
+        property: 'og:type',
+        content: 'website'
+      }
+    ],
+    [
+      'meta',
+      {
+        property: 'og:title',
+        content: 'expo-gaode-map | React Native 高德地图'
+      }
+    ],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content: 'Expo / React Native 高德地图组件库：地图、定位、覆盖物、搜索、导航、离线地图。'
+      }
+    ],
+    [
+      'meta',
+      {
+        property: 'og:url',
+        content: 'https://tomwq.github.io/expo-gaode-map/'
+      }
+    ],
+    [
+      'meta',
+      {
+        property: 'og:image',
+        content: 'https://tomwq.github.io/expo-gaode-map/hero-map.svg'
+      }
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:card',
+        content: 'summary_large_image'
+      }
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:title',
+        content: 'expo-gaode-map | React Native 高德地图'
+      }
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:description',
+        content: 'Expo / React Native 高德地图组件库：地图、定位、覆盖物、搜索、导航、离线地图。'
+      }
+    ],
+    [
+      'meta',
+      {
+        name: 'twitter:image',
+        content: 'https://tomwq.github.io/expo-gaode-map/hero-map.svg'
+      }
+    ]
+  ],
   base: '/expo-gaode-map/',
   
   locales: {

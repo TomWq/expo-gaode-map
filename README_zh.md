@@ -1,8 +1,16 @@
 # expo-gaode-map
 
+> 面向 React Native / Expo 的高德地图组件库。常见检索词：`rn 高德地图`、`react native 高德地图`、`expo 高德地图`、`react native amap`、`expo amap`。
+
 一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，采用 Monorepo 架构，提供地图显示、定位、搜索、导航、Web API 等完整功能。
 
 > 💡 本组件使用 [Expo Modules API](https://docs.expo.dev/modules/overview/) 构建，提供了类型安全的原生模块接口和优秀的开发体验。
+
+<div align="center">
+
+[🇺🇸 English README](README.md)
+
+</div>
 
 ## 📖 完整文档
 
@@ -16,6 +24,21 @@
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API 参考](https://TomWq.github.io/expo-gaode-map/api/)
 - [使用示例](https://github.com/TomWq/expo-gaode-map-example)
+
+## 🚀 为什么选择 expo-gaode-map？
+
+> 面向中国地图业务（高德生态）做了完整能力覆盖。  
+> 注：下表基于常见方案的公开能力做工程视角对比，具体以各项目最新文档为准。
+
+| 对比项 | expo-gaode-map | 通用地图方案（如 react-native-maps） | 旧版 RN 高德库（如 react-native-amap3d） |
+|---|---|---|---|
+| Expo 生态支持 | ✅ Expo Modules + Config Plugin | ⚠️ 以通用地图能力为主 | ⚠️ 多数需额外适配 |
+| 中国地图场景适配（高德） | ✅ 原生高德能力直连 | ⚠️ 需自行补齐中国场景能力 | ✅ 具备基础能力 |
+| 一体化能力（地图 + 搜索 + 导航 + Web API） | ✅ 同仓 monorepo 维护 | ❌ 通常依赖多库拼装 | ⚠️ 常见为单库能力 |
+| 离线地图能力 | ✅ | ⚠️ 需额外实现 | ⚠️ 依版本而定 |
+| 几何计算工具（TS + C++） | ✅ | ❌ 通常需自行实现 | ❌ 通常无内置 |
+| 隐私合规与错误提示体系 | ✅ 内置（含错误类型与解决方案） | ⚠️ 需自行封装 | ⚠️ 依项目实现 |
+| 维护与文档完整度 | ✅ 持续迭代 + 在线文档 + 示例仓库 | ✅ 生态成熟但偏通用场景 | ⚠️ 社区维护节奏不稳定 |
 
 ## ✨ 主要特性
 
