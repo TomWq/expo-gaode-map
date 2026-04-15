@@ -241,7 +241,7 @@ export default function MapBasicsExample() {
                   {isLocating ? '停止连续定位' : '开始连续定位'}
                 </Text>
               </Pressable>
-              {/*<View style={styles.zoomRow}>
+              <View style={styles.zoomRow}>
                 <Pressable
                   style={styles.zoomButton}
                   onPress={() => {
@@ -258,7 +258,7 @@ export default function MapBasicsExample() {
                 >
                   <Text style={styles.zoomButtonText}>缩小</Text>
                 </Pressable>
-              </View>*/}
+              </View>
               <View style={styles.mapTypeRow}>
                 {mapTypeOptions.map((option) => {
                   const active = option.value === mapType;

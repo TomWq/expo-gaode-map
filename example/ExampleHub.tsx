@@ -28,6 +28,7 @@ import PlatformOptimizationDemo from './PlatformOptimizationDemo';
 import PolylineExample from './PolylineExample';
 import PrivacyInitializationExample from './PrivacyInitializationExample';
 import RandomMarkersExample from './RandomMarkersExample';
+import RentalMapLabelExample from './RentalMapLabelExample';
 import SearchModuleTest from './SearchModuleTest';
 import SmoothMoveExample from './SmoothMoveExample';
 import TestNewPermissionMethods from './TestNewPermissionMethods';
@@ -137,6 +138,14 @@ const EXAMPLES: ExampleDefinition[] = [
     description: '更贴近群友截图的横向卡片 Marker，继续使用远程图片与 cacheKey 切换。',
     category: 'overlay',
     component: MarkerTravelCardExample,
+  },
+  {
+    id: 'rental-map-label',
+    title: '租房地图标签（截图同款）',
+    description:
+      '复现“气泡价签/列表标签”两种地图标记样式，支持随缩放自动切换和手动切换。',
+    category: 'overlay',
+    component: RentalMapLabelExample,
   },
   {
     id: 'random-markers',
