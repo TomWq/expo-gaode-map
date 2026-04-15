@@ -31,12 +31,12 @@ if (!privacyStatus.isReady) {
 1. 首次进入应用先展示你的隐私协议页面
 2. 用户点击同意后调用 `setPrivacyConfig(...)`（或分别调用 `setPrivacyShow` / `setPrivacyAgree`）
 3. 原生层会持久化同意状态，后续冷启动自动恢复
-4. 然后再调用 `initSDK`
+4. 如果未使用 Config Plugin，或你需要 Web API 服务，再调用 `initSDK(...)`
 5. 最后再请求定位权限、渲染地图或调用搜索/定位能力
 
 ### 2. SDK 初始化
 
-在隐私确认完成后初始化 SDK：
+在隐私确认完成后按需初始化 SDK：
 
 ```tsx
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
@@ -61,16 +61,16 @@ useEffect(() => {
   // 2.通过 工单 联系商务开通
   // ExpoGaodeMapModule.setLoadWorldVectorMap(true);
 
-  // 2. 初始化 SDK（使用 Config Plugin 时原生 key 可省略）
-  ExpoGaodeMapModule.initSDK({
-    webKey: 'your-web-api-key', // 使用 Web API 服务时需要
-  });
+  // 2. 按需调用：
+  // - 使用 Config Plugin 且不使用 Web API：可不调用 initSDK
+  // - 使用 Web API：调用 initSDK 并传入 webKey
+  ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 }, []);
 ```
 
 ::: tip Config Plugin 自动配置
-如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，**但运行时隐私步骤仍必须手动调用**。
-推荐在用户同意隐私后执行一次 `initSDK`；之后冷启动时原生会自动恢复隐私状态，你只需要继续按需调用 `initSDK`。
+如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，SDK 默认自动初始化，**但运行时隐私步骤仍必须手动调用**。  
+因此：地图/定位场景通常不需要再显式调用 `initSDK`；只有在使用 Web API（或运行时手动设置 `webKey`）时再调用。
 
 ```tsx
 if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
@@ -81,12 +81,23 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 使用 Config Plugin 时，原生 key 可省略
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
-});
+// 仅在使用 Web API 时调用
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 ```
+:::
+
+::: warning 不使用 Config Plugin（必须调用）
+如果没有使用 Config Plugin，必须显式调用：
+
+```tsx
+ExpoGaodeMapModule.initSDK({
+  androidKey: 'your-android-api-key',
+  iosKey: 'your-ios-api-key',
+});
+```
+
+才能正常使用地图相关能力。
 :::
 
 **不使用 Config Plugin 时**，需要手动传入原生 Key：
@@ -196,10 +207,8 @@ export default function App() {
         });
       }
 
-      // 2. 初始化 SDK（使用 Config Plugin 时原生 key 可省略）
-      ExpoGaodeMapModule.initSDK({
-        webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
-      });
+      // 2. 仅在使用 Web API 时调用
+      // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
       // 3. 请求定位权限
       await requestPermission();

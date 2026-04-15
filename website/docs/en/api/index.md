@@ -60,10 +60,9 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// Initialize SDK
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // only needed for Web API features
-});
+// With Config Plugin and map/location-only usage, you can skip initSDK.
+// Only needed for Web API features:
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 // Get current location
 const location = await ExpoGaodeMapModule.getCurrentLocation();

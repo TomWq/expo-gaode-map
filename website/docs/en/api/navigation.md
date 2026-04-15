@@ -59,11 +59,16 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-key',
-  iosKey: 'your-ios-key',
-  webKey: 'your-web-api-key', // Optional: for Web API package
-});
+// With Config Plugin and map/navigation-only usage, you can skip initSDK.
+// Only needed for Web API features:
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
+
+// Without Config Plugin, provide native keys manually:
+// ExpoGaodeMapModule.initSDK({
+//   androidKey: 'your-android-key',
+//   iosKey: 'your-ios-key',
+//   webKey: 'your-web-api-key', // optional unless using Web API
+// });
 ```
 
 ## Built-in Map Features

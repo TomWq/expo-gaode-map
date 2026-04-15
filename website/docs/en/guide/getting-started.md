@@ -79,9 +79,20 @@ npx expo prebuild
 
 If you prefer manual configuration, see [Initialization Guide](./initialization).
 
+If you do **not** use Config Plugin, you **must** call:
+
+```typescript
+ExpoGaodeMapModule.initSDK({
+  androidKey: 'your-android-api-key',
+  iosKey: 'your-ios-api-key',
+});
+```
+
+before using map/location/search/navigation capabilities.
+
 ## Basic Usage
 
-### 1. Initialize SDK
+### 1. Privacy + Initialization
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
@@ -96,11 +107,9 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 2. Initialize before using any map features
-ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
-});
+// 2. With Config Plugin, native SDK auto-initializes by default.
+// Only call initSDK when you need Web API features:
+// ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 ```
 
 ### 2. Display Map
@@ -160,8 +169,8 @@ export default function App() {
         });
       }
 
-      // 2. Initialize SDK
-      ExpoGaodeMapModule.initSDK({});
+      // 2. Only needed for Web API features
+      // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
       // 3. Request location permission
       const result = await ExpoGaodeMapModule.requestLocationPermission();

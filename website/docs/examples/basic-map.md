@@ -41,10 +41,8 @@ export default function MapWithLocation() {
         hasAgree: true,
       });
     }
-    // 使用 Config Plugin 时可传空对象
-    ExpoGaodeMapModule.initSDK({
-      webKey: 'your-web-api-key', // 可选
-    });
+    // 仅在使用 Web API 时调用
+    // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
   }, []);
 
   return (

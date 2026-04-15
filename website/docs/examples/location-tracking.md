@@ -24,10 +24,8 @@ export default function BasicLocation() {
         hasAgree: true,
       });
     }
-    // 使用 Config Plugin 时可传空对象
-    ExpoGaodeMapModule.initSDK({
-      webKey: 'your-web-api-key', // 可选
-    });
+    // 仅在使用 Web API 时调用
+    // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
   }, []);
 
   const getLocation = async () => {
@@ -73,10 +71,8 @@ export default function ContinuousLocation() {
         hasAgree: true,
       });
     }
-    // 使用 Config Plugin 时可传空对象
-    ExpoGaodeMapModule.initSDK({
-      webKey: 'your-web-api-key', // 可选
-    });
+    // 仅在使用 Web API 时调用
+    // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
     // 配置定位
     ExpoGaodeMapModule.setLocatingWithReGeocode(true);
@@ -144,10 +140,8 @@ export default function MapLocationTracking() {
         hasAgree: true,
       });
     }
-    // 使用 Config Plugin 时可传空对象
-    ExpoGaodeMapModule.initSDK({
-      webKey: 'your-web-api-key', // 可选
-    });
+    // 仅在使用 Web API 时调用
+    // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
     ExpoGaodeMapModule.setLocatingWithReGeocode(true);
     ExpoGaodeMapModule.setInterval(2000);

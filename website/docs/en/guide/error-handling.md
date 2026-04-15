@@ -74,8 +74,8 @@ ExpoGaodeMapModule.initSDK({
 });
 ```
 
-If you use the Config Plugin, native API Keys can be configured automatically.
-In that case `initSDK({})` can be omitted or called with only `webKey`.
+If you use the Config Plugin, native API Keys are configured automatically and SDK initialization is automatic by default.
+In that case, only call `initSDK({ webKey })` when you use Web API features.
 
 See: [Initialization](/en/guide/initialization)
 
@@ -142,4 +142,3 @@ try {
 - [Getting Started](/en/guide/getting-started)
 - [Initialization](/en/guide/initialization)
 - [Location API](/en/api/location)
-

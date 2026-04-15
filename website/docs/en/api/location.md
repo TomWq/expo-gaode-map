@@ -17,10 +17,8 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 2. Initialize SDK
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key',
-});
+// 2. Only needed for Web API features
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 // 3. Request permission
 await ExpoGaodeMapModule.requestLocationPermission();
@@ -35,7 +33,7 @@ ExpoGaodeMapModule.start();
 
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
-| `initSDK` | `SDKConfig` | `void` | Initialize SDK; native keys can be omitted when using Config Plugin |
+| `initSDK` | `SDKConfig` | `void` | Initialize SDK when needed (without Config Plugin, or when you need to provide `webKey`) |
 | `isSDKInitialized` | - | `boolean` | Whether JS-side initialization has been called |
 | `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | Sync privacy notice display status |
 | `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | Sync user privacy consent |
@@ -301,7 +299,8 @@ export default function LocationExample() {
         hasAgree: true,
       });
 
-      ExpoGaodeMapModule.initSDK({});
+      // Only needed for Web API features
+      // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
       const permission = await ExpoGaodeMapModule.requestLocationPermission();
       if (!permission.granted) return;

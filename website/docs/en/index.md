@@ -65,11 +65,15 @@ npm install expo-gaode-map
 ```tsx
 import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// Initialize SDK
-ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
-});
+// With Config Plugin, native SDK auto-initializes by default.
+// Only needed for Web API features:
+// ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
+
+// Without Config Plugin, this is mandatory:
+// ExpoGaodeMapModule.initSDK({
+//   androidKey: 'your-android-api-key',
+//   iosKey: 'your-ios-api-key',
+// });
 
 // Use map component
 <MapView

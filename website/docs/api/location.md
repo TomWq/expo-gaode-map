@@ -17,10 +17,8 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 2. 初始化 SDK（使用 Config Plugin 时，原生 Key 可省略）
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key',
-});
+// 2. 仅在使用 Web API 时调用
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 // 3. 请求定位权限
 await ExpoGaodeMapModule.requestLocationPermission();
@@ -35,7 +33,7 @@ ExpoGaodeMapModule.start();
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| `initSDK` | `SDKConfig` | `void` | 初始化 SDK，使用 Config Plugin 时原生 Key 可省略 |
+| `initSDK` | `SDKConfig` | `void` | 按需初始化 SDK（未使用 Config Plugin，或需要下发 `webKey` 时） |
 | `isSDKInitialized` | - | `boolean` | 当前 JS 侧是否已调用过初始化 |
 | `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | 同步隐私弹窗展示状态 |
 | `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | 同步用户是否同意隐私 |
@@ -300,7 +298,8 @@ export default function LocationExample() {
         hasAgree: true,
       });
 
-      ExpoGaodeMapModule.initSDK({});
+      // 仅在使用 Web API 时调用
+      // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
       const permission = await ExpoGaodeMapModule.requestLocationPermission();
       if (!permission.granted) return;

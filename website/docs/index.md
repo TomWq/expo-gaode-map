@@ -91,6 +91,8 @@ npm install expo-gaode-map-search
 
 ::: tip 重要提示
 - 使用 Config Plugin 时，原生 Key 会自动配置 安卓的 `AndroidManifest.xml` 和 ios 的 `Info.plist`
+- 使用 Config Plugin 且仅地图/定位场景时，SDK 默认自动初始化；仅在使用 `expo-gaode-map-web-api` 时再调用 `initSDK({ webKey })`
+- 如果不使用 Config Plugin，必须调用 `initSDK({ androidKey, iosKey })` 后再使用地图能力
 - 建议使用真机测试，模拟器可能不支持地图功能，会出现黑屏或闪退等异常情况
 :::
 

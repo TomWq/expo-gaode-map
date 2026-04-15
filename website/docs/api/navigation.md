@@ -40,10 +40,9 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 使用 Config Plugin 时，原生 Key 已自动配置，可传空对象
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
-});
+// 使用 Config Plugin 且仅地图/导航场景时，可不调用 initSDK
+// 仅在使用 Web API 时调用：
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 // 不使用 Config Plugin 时，需要手动传入原生 Key
 ExpoGaodeMapModule.initSDK({

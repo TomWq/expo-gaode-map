@@ -44,10 +44,8 @@ export default function App() {
           });
         }
 
-        // 2. 初始化 SDK（使用 Config Plugin 时可传空对象）
-        ExpoGaodeMapModule.initSDK({
-          webKey: 'your-web-api-key', // 可选
-        });
+        // 2. 仅在使用 Web API 时调用
+        // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
         
         // 3. 检查权限
         const status = await ExpoGaodeMapModule.checkLocationPermission();

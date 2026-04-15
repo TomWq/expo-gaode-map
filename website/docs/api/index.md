@@ -59,10 +59,9 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 再初始化 SDK（使用 Config Plugin 时，原生 Key 可省略）
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
-});
+// 使用 Config Plugin 且仅地图/定位场景时，可不调用 initSDK
+// 仅在使用 Web API 时调用：
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 // 获取当前位置
 const location = await ExpoGaodeMapModule.getCurrentLocation();

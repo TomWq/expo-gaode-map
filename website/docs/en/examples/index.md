@@ -96,8 +96,8 @@ function useMapInit() {
         });
       }
 
-      // Initialize SDK
-      ExpoGaodeMapModule.initSDK({});
+      // Only needed for Web API features
+      // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
       // Request permission
       const result = await ExpoGaodeMapModule.requestLocationPermission();

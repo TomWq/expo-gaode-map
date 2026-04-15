@@ -124,9 +124,24 @@ npx expo run:android
 npx expo run:ios
 ```
 
+With Config Plugin (`androidKey` / `iosKey`) configured, the native map SDK is auto-initialized by default on app startup.
+
+`ExpoGaodeMapModule.initSDK({ webKey })` is only needed when you use `expo-gaode-map-web-api` (or when you want to set a runtime `webKey` manually).
+
+If you **do not** use Config Plugin, you **must** call:
+
+```ts
+ExpoGaodeMapModule.initSDK({
+  androidKey: 'your-android-key',
+  iosKey: 'your-ios-key',
+});
+```
+
+before using map/location/navigation/search capabilities.
+
 ## 🔒 Privacy Compliance
 
-On a **fresh install** (or after your privacy policy version changes), you must complete privacy consent **before** calling `initSDK()` or rendering `MapView`.
+On a **fresh install** (or after your privacy policy version changes), you must complete privacy consent **before** rendering `MapView`.
 
 After consent is granted once, native iOS / Android now **persist and auto-restore** the privacy state on later cold starts, so you do **not** need to call `setPrivacyConfig()` again on every app launch.
 
@@ -144,10 +159,8 @@ if (!privacyStatus.isReady) {
     privacyVersion: '2026-03-13',
   });
 }
-
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key',
-});
+// With Config Plugin: only needed when you use expo-gaode-map-web-api
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 ```
 
 If privacy consent is missing on a fresh install, the library now throws a clear `PRIVACY_NOT_AGREED` error instead of leaving the native SDK to fail unpredictably.

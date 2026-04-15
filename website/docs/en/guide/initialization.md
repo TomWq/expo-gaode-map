@@ -14,7 +14,7 @@ Config Plugin only writes native keys and permission declarations. It does **not
 
 ### Basic Initialization
 
-Initialize the SDK only after privacy consent is completed:
+After privacy consent, initialize SDK only when needed:
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
@@ -35,12 +35,19 @@ if (!privacyStatus.isReady) {
 // Must be called before initSDK
 ExpoGaodeMapModule.setLoadWorldVectorMap(true);
 
-// Initialize SDK
-ExpoGaodeMapModule.initSDK({
-  androidKey: 'your-android-api-key',
-  iosKey: 'your-ios-api-key',
-});
+// With Config Plugin, native SDK auto-initializes by default.
+// Only needed when you use Web API features:
+// ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
+
+// Without Config Plugin, you must provide native keys manually:
+// ExpoGaodeMapModule.initSDK({
+//   androidKey: 'your-android-api-key',
+//   iosKey: 'your-ios-api-key',
+//   webKey: 'your-web-api-key', // optional unless using Web API
+// });
 ```
+
+> If Config Plugin is not used, `initSDK({ androidKey, iosKey })` is mandatory before using map features.
 
 ### Get API Keys
 
@@ -179,10 +186,8 @@ function showPrivacyPolicy() {
   });
 }
 
-// 2. Then initialize SDK
-ExpoGaodeMapModule.initSDK({
-  webKey: 'your-web-api-key', // only needed for Web API features
-});
+// 2. Only needed when using Web API features
+ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
 // 3. Request location permission
 await requestLocationPermission();
@@ -215,6 +220,9 @@ Then run:
 ```bash
 npx expo prebuild
 ```
+
+With Config Plugin configured, native SDK initialization is automatic on app startup.
+You still need to complete runtime privacy consent on first install.
 
 See [Config Plugin Guide](./config-plugin) for details.
 
@@ -283,8 +291,8 @@ function App() {
         });
       }
 
-      // 2. Initialize SDK
-      ExpoGaodeMapModule.initSDK({});
+      // 2. Only needed for Web API features
+      // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
       // 3. Request location permission
       const result = await ExpoGaodeMapModule.requestLocationPermission();
