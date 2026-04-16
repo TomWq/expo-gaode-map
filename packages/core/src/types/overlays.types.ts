@@ -12,6 +12,7 @@ import type {
 
 /**
  * 标记点属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface MarkerProps {
   /**
@@ -179,6 +180,7 @@ export interface MarkerProps {
 
 /**
  * 折线属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface PolylineProps {
   /**
@@ -249,6 +251,7 @@ export interface PolylineProps {
 
 /**
  * 多边形属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface PolygonProps {
   /**
@@ -299,6 +302,7 @@ export interface PolygonProps {
 
 /**
  * 圆形属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface CircleProps {
   /**
@@ -359,6 +363,7 @@ export interface HeatMapGradient {
 
 /**
  * 热力图属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface HeatMapProps {
   /**
@@ -411,6 +416,7 @@ export interface MultiPointItem extends LatLng {
 
 /**
  * 海量点属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface MultiPointProps {
   /**
@@ -501,6 +507,7 @@ export interface ClusterPoint {
 
 /**
  * 聚合图层属性
+ * @platform harmony 当前版本暂不支持（开发中）
  */
 export interface ClusterProps {
   /**

@@ -1,6 +1,7 @@
-
-import { createPermissionHook } from 'expo-modules-core';
+import * as React from 'react';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
+declare const require: ((id: string) => unknown) | undefined;
 
 // 导出类型定义（包含所有通用类型）
 export * from './types';
@@ -84,6 +85,140 @@ export type {
 const requestPermissionsAsync = ExpoGaodeMapModuleWithHelpers.requestLocationPermission
 const getPermissionsAsync = ExpoGaodeMapModuleWithHelpers.checkLocationPermission
 
+type PermissionHookOptions<TGetResult, TRequestResult> = {
+  getMethod: () => Promise<TGetResult>;
+  requestMethod: () => Promise<TRequestResult>;
+};
+
+type CreatePermissionHook = <TGetResult, TRequestResult>(
+  options: PermissionHookOptions<TGetResult, TRequestResult>
+) => () => readonly [
+  TGetResult | null,
+  () => Promise<TRequestResult>,
+  () => Promise<TGetResult>
+];
+
+const isHarmonyPlatform = (): boolean => (Platform.OS as string) === 'harmony';
+
+function optionalRequire(moduleName: string): unknown | null {
+  const runtimeRequire = (globalThis as { __r?: (id: string) => unknown }).__r
+    ?? (typeof require === 'function' ? require : null);
+  if (typeof runtimeRequire !== 'function') {
+    return null;
+  }
+
+  try {
+    return runtimeRequire(moduleName);
+  } catch {
+    return null;
+  }
+}
+
+function resolveExpoCreatePermissionHook(): CreatePermissionHook | null {
+  const expoModulesCore = optionalRequire('expo-modules-core') as {
+    createPermissionHook?: CreatePermissionHook;
+  } | null;
+  if (typeof expoModulesCore?.createPermissionHook === 'function') {
+    return expoModulesCore.createPermissionHook;
+  }
+  return null;
+}
+
+function createHarmonyPermissionHook<TGetResult, TRequestResult>(
+  options: PermissionHookOptions<TGetResult, TRequestResult>
+): () => readonly [
+  TGetResult | null,
+  () => Promise<TRequestResult>,
+  () => Promise<TGetResult>
+] {
+  const { getMethod, requestMethod } = options;
+
+  const getFallbackPermissionStatus = () =>
+    ({
+      granted: false,
+      status: 'undetermined',
+      canAskAgain: true,
+      isPermanentlyDenied: false,
+      backgroundLocation: false,
+      expires: 'never',
+    });
+
+  const isHarmonyNativeModuleReady = (): boolean => {
+    let turboModule = null;
+    try {
+      turboModule = TurboModuleRegistry.get('ExpoGaodeMap');
+    } catch {
+      turboModule = null;
+    }
+    const legacyModule = NativeModules.ExpoGaodeMap;
+    return !!(turboModule || legacyModule);
+  };
+
+  return () => {
+    const [status, setStatus] = React.useState<TGetResult | null>(null);
+
+    const getPermission = React.useCallback(async (): Promise<TGetResult> => {
+      if (!isHarmonyNativeModuleReady()) {
+        const fallback = getFallbackPermissionStatus() as unknown as TGetResult;
+        setStatus(fallback);
+        return fallback;
+      }
+
+      try {
+        const nextStatus = await getMethod();
+        setStatus(nextStatus);
+        return nextStatus;
+      } catch (error) {
+        const fallback = getFallbackPermissionStatus() as unknown as TGetResult;
+        console.warn(`[expo-gaode-map] Harmony getPermission fallback: ${JSON.stringify(error)}`);
+        setStatus(fallback);
+        return fallback;
+      }
+    }, [getMethod]);
+
+    const requestPermission = React.useCallback(async (): Promise<TRequestResult> => {
+      if (!isHarmonyNativeModuleReady()) {
+        const fallback = getFallbackPermissionStatus() as unknown as TRequestResult;
+        console.warn('[expo-gaode-map] Harmony requestPermission skipped: native module not ready');
+        await getPermission();
+        return fallback;
+      }
+
+      try {
+        const nextStatus = await requestMethod();
+        await getPermission();
+        return nextStatus;
+      } catch (error) {
+        console.warn(`[expo-gaode-map] Harmony requestPermission fallback: ${JSON.stringify(error)}`);
+        const fallback = getFallbackPermissionStatus() as unknown as TRequestResult;
+        await getPermission();
+        return fallback;
+      }
+    }, [getPermission, requestMethod]);
+
+    React.useEffect(() => {
+      void getPermission();
+    }, [getPermission]);
+
+    return [status, requestPermission, getPermission] as const;
+  };
+}
+
+function createPermissionHookCompat<TGetResult, TRequestResult>(
+  options: PermissionHookOptions<TGetResult, TRequestResult>
+) {
+  const expoCreatePermissionHook = resolveExpoCreatePermissionHook();
+  if (expoCreatePermissionHook) {
+    return expoCreatePermissionHook(options);
+  }
+
+  if (!isHarmonyPlatform()) {
+    throw new Error('expo-modules-core.createPermissionHook is required on iOS/Android');
+  }
+
+  return createHarmonyPermissionHook(options);
+}
+
 
 /**
  * Check or request permissions to access the location.
@@ -94,7 +229,7 @@ const getPermissionsAsync = ExpoGaodeMapModuleWithHelpers.checkLocationPermissio
  * const [status, requestPermission] = useLocationPermissions();
  * ```
  */
-export const useLocationPermissions = createPermissionHook({
+export const useLocationPermissions = createPermissionHookCompat({
   getMethod: getPermissionsAsync,
   requestMethod: requestPermissionsAsync,
 })

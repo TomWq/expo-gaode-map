@@ -2,6 +2,7 @@
  * 高德地图错误处理工具
  * 提供友好的错误提示和解决方案指引
  */
+import { Platform } from 'react-native';
 
 /**
  * 错误类型枚举
@@ -80,6 +81,9 @@ ${details.docUrl ? `📖 详细文档：\n   ${details.docUrl}\n` : ''}━━━
  */
 export class ErrorHandler {
   private static docBaseUrl = 'https://TomWq.github.io/expo-gaode-map';
+  private static isHarmonyPlatform(): boolean {
+    return (Platform.OS as string) === 'harmony';
+  }
 
   /**
    * SDK 未初始化错误
@@ -145,6 +149,37 @@ ExpoGaodeMapModule.initSDK({
    * API Key 配置错误
    */
   static invalidApiKey(platform: 'android' | 'ios' | 'both'): GaodeMapError {
+    if (this.isHarmonyPlatform()) {
+      return new GaodeMapError({
+        type: ErrorType.INVALID_API_KEY,
+        message: 'Harmony API Key 配置错误或未生效（INVALID_USER_KEY / 10001）',
+        solution: `请按顺序排查：
+
+1️⃣  初始化时机必须在首屏 MapView 之前：
+ExpoGaodeMapModule.setPrivacyConfig({
+  hasShow: true,
+  hasContainsPrivacy: true,
+  hasAgree: true,
+});
+ExpoGaodeMapModule.initSDK({
+  harmonyKey: 'your-harmony-key',
+});
+
+2️⃣  检查高德开放平台里的 Harmony Key 绑定信息：
+• 应用平台必须是 HarmonyOS NEXT 对应类型
+• 包名 / 应用标识需与当前鸿蒙工程一致
+• 证书签名（指纹）需与当前构建签名一致
+• 开通了地图与定位服务能力（你当前报错来自 LOC SDK）
+
+3️⃣  确认没有把 Android/iOS Key 误用于鸿蒙：
+• 推荐单独使用 harmonyKey
+• 如果有多端 key，确保 Harmony 侧拿到的是 harmonyKey
+
+4️⃣  修改 key 配置后，重启 Metro 并重新安装 HAP。`,
+        docUrl: `${this.docBaseUrl}/guide/initialization.html`,
+      });
+    }
+
     const platformText = {
       android: 'Android',
       ios: 'iOS',
@@ -297,6 +332,33 @@ ExpoGaodeMapModule.setDesiredAccuracy(0); // 最佳精度`,
    * 原生模块不可用错误
    */
   static nativeModuleUnavailable(): GaodeMapError {
+    if (this.isHarmonyPlatform()) {
+      return new GaodeMapError({
+        type: ErrorType.NATIVE_MODULE_UNAVAILABLE,
+        message: 'expo-gaode-map 原生模块不可用（Harmony）',
+        solution: `请检查以下步骤：
+
+1️⃣  依赖解析是否指向本地 workspace 包：
+• package.json 中使用 "expo-gaode-map": "workspace:*"
+• 根目录已声明 workspaces，且在根目录执行过 yarn
+
+2️⃣  RNOH 包注册是否完成：
+• RNPackagesFactory 已返回 ExpoGaodeMapPackage
+• buildCustomRNComponent 已注册 ExpoGaodeMapView
+• arkTsComponentNames 包含 ExpoGaodeMapView
+
+3️⃣  CMake / PackageProvider 是否已链接到当前库的 harmony 实现：
+• add_subdirectory(...) 包含 expo_gaode_map 的 cpp
+• target_link_libraries(...) 包含对应 rnoh_* 目标
+• PackageProvider 返回对应 package
+
+4️⃣  清缓存并重启：
+• 关闭占用 8081 的进程后重启 Metro
+• 重新编译并安装 HAP`,
+        docUrl: `${this.docBaseUrl}/guide/getting-started.html`,
+      });
+    }
+
     return new GaodeMapError({
       type: ErrorType.NATIVE_MODULE_UNAVAILABLE,
       message: 'expo-gaode-map 原生模块不可用',

@@ -75,7 +75,7 @@ export interface MapViewProps {
   userLocationRepresentation?: {
     /** 精度圈是否显示 @default true */
     showsAccuracyRing?: boolean;
-    /** 是否显示方向指示 @default true @platform ios */
+    /** 是否显示方向指示 @default true @platform ios @platform harmony 暂不支持 */
     showsHeadingIndicator?: boolean;
     /** 精度圈填充颜色 支持 '#RRGGBB'、'red' 或 ARGB 数字 */
     fillColor?: string | number;
@@ -83,17 +83,17 @@ export interface MapViewProps {
     strokeColor?: string | number;
     /** 精度圈边线宽度 @default 0 */
     lineWidth?: number;
-    /** 内部蓝色圆点是否使用律动效果 @default true @platform ios */
+    /** 内部蓝色圆点是否使用律动效果 @default true @platform ios @platform harmony 暂不支持 */
     enablePulseAnimation?: boolean;
-    /** 定位点背景色 @default 'white' @platform ios */
+    /** 定位点背景色 @default 'white' @platform ios @platform harmony 暂不支持 */
     locationDotBgColor?: string | number;
-    /** 定位点蓝色圆点颜色 @default 'blue' @platform ios */
+    /** 定位点蓝色圆点颜色 @default 'blue' @platform ios @platform harmony 暂不支持 */
     locationDotFillColor?: string | number;
-    /** 定位图标 支持网络图片(http/https)、本地文件(file://)或资源名称 */
+    /** 定位图标（Harmony 当前仅支持 rawfile 路径） */
     image?: string;
-    /** 定位图标宽度(像素) */
+    /** 定位图标宽度(像素) @platform harmony 暂不支持 */
     imageWidth?: number;
-    /** 定位图标高度(像素) */
+    /** 定位图标高度(像素) @platform harmony 暂不支持 */
     imageHeight?: number;
     /**
      * 是否显示定位蓝点 @default true
@@ -101,12 +101,12 @@ export interface MapViewProps {
      * - Android: 对应 MyLocationStyle.showMyLocation() (5.1.0+)
      */
     showMyLocation?: boolean;
-    /** 定位图标锚点 U 坐标 (0.0-1.0) @platform android */
+    /** 定位图标锚点 U 坐标 (0.0-1.0) @platform android @platform harmony */
     anchorU?: number;
-    /** 定位图标锚点 V 坐标 (0.0-1.0) @platform android */
+    /** 定位图标锚点 V 坐标 (0.0-1.0) @platform android @platform harmony */
     anchorV?: number;
     /**
-     * 定位蓝点展现模式 @platform android
+     * 定位蓝点展现模式 @platform android @platform harmony
      * @default 'LOCATION_ROTATE' (连续定位、定位点旋转、移动到中心)
      *
      * 🧭 **方向指示说明**：
@@ -155,6 +155,7 @@ export interface MapViewProps {
   /**
    * 是否显示缩放按钮
    * @platform android
+   * @platform harmony
    */
   zoomControlsEnabled?: boolean;
 
@@ -166,6 +167,7 @@ export interface MapViewProps {
   /**
    * 是否显示定位按钮
    * @platform android
+   * @platform harmony
    */
   myLocationButtonEnabled?: boolean;
 
@@ -221,6 +223,7 @@ export interface MapViewProps {
    * - true: 当中心点在国外时自动切换到苹果地图（iOS），国内时切换回高德地图
    * - false: 始终使用高德地图
    * @platform ios 当前仅支持 iOS 安卓因为需要使用 Google Maps SDK和谷歌服务
+   * @platform harmony 映射为 `MapsInitializer.setLoadWorldVectorMap`
    * @default false
    */
   worldMapSwitchEnabled?: boolean;

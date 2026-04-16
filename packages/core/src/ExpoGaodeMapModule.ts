@@ -1,5 +1,4 @@
-import { requireNativeModule } from 'expo';
-import { Platform } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 
 import {
   LatLng,
@@ -18,6 +17,45 @@ import { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './typ
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
+const isHarmonyPlatform = (): boolean => (Platform.OS as string) === 'harmony';
+type ExpoRequireNativeModule = <T>(moduleName: string) => T;
+declare const require: ((id: string) => unknown) | undefined;
+
+function optionalRequire(moduleName: string): unknown | null {
+  const runtimeRequire = (globalThis as { __r?: (id: string) => unknown }).__r
+    ?? (typeof require === 'function' ? require : null);
+  if (typeof runtimeRequire !== 'function') {
+    return null;
+  }
+
+  try {
+    return runtimeRequire(moduleName);
+  } catch {
+    return null;
+  }
+}
+
+function resolveExpoRequireNativeModule(): ExpoRequireNativeModule | null {
+  if (isHarmonyPlatform()) {
+    return null;
+  }
+
+  const expoPackage = optionalRequire('expo') as {
+    requireNativeModule?: ExpoRequireNativeModule;
+  } | null;
+  if (typeof expoPackage?.requireNativeModule === 'function') {
+    return expoPackage.requireNativeModule;
+  }
+
+  const expoModulesCore = optionalRequire('expo-modules-core') as {
+    requireNativeModule?: ExpoRequireNativeModule;
+  } | null;
+  if (typeof expoModulesCore?.requireNativeModule === 'function') {
+    return expoModulesCore.requireNativeModule;
+  }
+
+  return null;
+}
 
 function normalizeCoordinateType(type: CoordinateType): number | null {
   switch (type) {
@@ -155,8 +193,61 @@ function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
     return nativeModuleCache;
   }
 
+  const resolveHarmonyFallback = (): NativeExpoGaodeMapModule | null => {
+    if (!isHarmonyPlatform()) {
+      return null;
+    }
+
+    try {
+      const turboModule = TurboModuleRegistry.get('ExpoGaodeMap') as NativeExpoGaodeMapModule | null;
+      if (turboModule) {
+        flushHarmonyPendingState(turboModule);
+        return turboModule;
+      }
+    } catch {
+      // Harmony TurboModule may not be registered in early startup or misconfigured host.
+      // Fall back to legacy NativeModules lookup below.
+    }
+
+    const legacyModule = NativeModules.ExpoGaodeMap as NativeExpoGaodeMapModule | undefined;
+    if (legacyModule) {
+      flushHarmonyPendingState(legacyModule);
+    }
+    return legacyModule ?? null;
+  };
+
+  if (isHarmonyPlatform()) {
+    const harmonyModule = resolveHarmonyFallback();
+    if (harmonyModule) {
+      nativeModuleCache = harmonyModule;
+      return nativeModuleCache;
+    }
+
+    if (optional) {
+      if (hasHarmonyPendingState() && !harmonyPendingFlushRunning) {
+        scheduleHarmonyPendingFlush();
+      }
+      return null;
+    }
+
+    const moduleError = ErrorHandler.nativeModuleUnavailable();
+    ErrorLogger.log(moduleError);
+    throw moduleError;
+  }
+
+  const expoRequireNativeModule = resolveExpoRequireNativeModule();
+  if (!expoRequireNativeModule) {
+    if (optional) {
+      return null;
+    }
+
+    const moduleError = ErrorHandler.nativeModuleUnavailable();
+    ErrorLogger.log(moduleError);
+    throw moduleError;
+  }
+
   try {
-    nativeModuleCache = requireNativeModule<NativeExpoGaodeMapModule>('ExpoGaodeMap');
+    nativeModuleCache = expoRequireNativeModule<NativeExpoGaodeMapModule>('ExpoGaodeMap');
     return nativeModuleCache;
   } catch (error) {
     if (optional) {
@@ -166,6 +257,140 @@ function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
     ErrorLogger.log(moduleError);
     throw moduleError;
   }
+}
+
+type HarmonyPendingState = {
+  privacyShow?: boolean;
+  privacyContainsPrivacy?: boolean;
+  privacyAgree?: boolean;
+  privacyVersion?: string | null;
+  sdkConfig?: SDKConfig | null;
+};
+
+const harmonyPendingState: HarmonyPendingState = {};
+const HARMONY_PENDING_FLUSH_INTERVAL_MS = 50;
+const HARMONY_PENDING_FLUSH_MAX_ATTEMPTS = 120;
+let harmonyPendingFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let harmonyPendingFlushAttempts = 0;
+let harmonyPendingFlushStopped = false;
+let harmonyPendingFlushRunning = false;
+
+function hasHarmonyPendingState(): boolean {
+  return (
+    typeof harmonyPendingState.privacyShow === 'boolean' ||
+    typeof harmonyPendingState.privacyContainsPrivacy === 'boolean' ||
+    typeof harmonyPendingState.privacyAgree === 'boolean' ||
+    typeof harmonyPendingState.privacyVersion === 'string' ||
+    harmonyPendingState.sdkConfig != null
+  );
+}
+
+function clearHarmonyPendingFlushScheduler(): void {
+  if (harmonyPendingFlushTimer) {
+    clearTimeout(harmonyPendingFlushTimer);
+    harmonyPendingFlushTimer = null;
+  }
+  harmonyPendingFlushAttempts = 0;
+  harmonyPendingFlushStopped = false;
+  harmonyPendingFlushRunning = false;
+}
+
+function scheduleHarmonyPendingFlush(): void {
+  if (!isHarmonyPlatform() || !hasHarmonyPendingState()) {
+    return;
+  }
+
+  if (harmonyPendingFlushStopped) {
+    return;
+  }
+
+  if (harmonyPendingFlushTimer) {
+    return;
+  }
+
+  harmonyPendingFlushTimer = setTimeout(() => {
+    harmonyPendingFlushTimer = null;
+
+    if (harmonyPendingFlushStopped) {
+      return;
+    }
+
+    if (!hasHarmonyPendingState()) {
+      harmonyPendingFlushAttempts = 0;
+      return;
+    }
+
+    harmonyPendingFlushRunning = true;
+    try {
+      const module = getNativeModule(true);
+      if (module) {
+        flushHarmonyPendingState(module);
+        if (!hasHarmonyPendingState()) {
+          harmonyPendingFlushAttempts = 0;
+          return;
+        }
+      }
+    } finally {
+      harmonyPendingFlushRunning = false;
+    }
+
+    harmonyPendingFlushAttempts += 1;
+    if (harmonyPendingFlushAttempts >= HARMONY_PENDING_FLUSH_MAX_ATTEMPTS) {
+      harmonyPendingFlushStopped = true;
+      if (harmonyPendingFlushTimer) {
+        clearTimeout(harmonyPendingFlushTimer);
+        harmonyPendingFlushTimer = null;
+      }
+      ErrorLogger.warn('Harmony native module not ready, pending SDK/privacy config still not flushed', {
+        attempts: harmonyPendingFlushAttempts,
+      });
+      return;
+    }
+
+    scheduleHarmonyPendingFlush();
+  }, HARMONY_PENDING_FLUSH_INTERVAL_MS);
+}
+
+function flushHarmonyPendingState(module: NativeExpoGaodeMapModule): void {
+  if (!isHarmonyPlatform()) {
+    return;
+  }
+
+  try {
+    if (typeof harmonyPendingState.privacyVersion === 'string') {
+      module.setPrivacyVersion(harmonyPendingState.privacyVersion);
+    }
+
+    if (
+      typeof harmonyPendingState.privacyShow === 'boolean' ||
+      typeof harmonyPendingState.privacyContainsPrivacy === 'boolean'
+    ) {
+      const hasShow = harmonyPendingState.privacyShow ?? true;
+      module.setPrivacyShow(
+        hasShow,
+        harmonyPendingState.privacyContainsPrivacy ?? hasShow
+      );
+    }
+
+    if (typeof harmonyPendingState.privacyAgree === 'boolean') {
+      module.setPrivacyAgree(harmonyPendingState.privacyAgree);
+    }
+
+    if (harmonyPendingState.sdkConfig) {
+      module.initSDK(harmonyPendingState.sdkConfig);
+    }
+  } catch {
+    // Ignore flush failures and keep pending state for later retries.
+    scheduleHarmonyPendingFlush();
+    return;
+  }
+
+  harmonyPendingState.privacyShow = undefined;
+  harmonyPendingState.privacyContainsPrivacy = undefined;
+  harmonyPendingState.privacyAgree = undefined;
+  harmonyPendingState.privacyVersion = undefined;
+  harmonyPendingState.sdkConfig = undefined;
+  clearHarmonyPendingFlushScheduler();
 }
 
 function getBoundNativeValue(
@@ -224,8 +449,11 @@ const privacySensitiveMethodNames = new Set<string>([
 ]);
 
 function assertPrivacyReady(scene: 'map' | 'sdk' = 'sdk'): void {
-  const nativeModule = getNativeModule();
+  const nativeModule = getNativeModule(true);
   if (!nativeModule) {
+    if (isHarmonyPlatform()) {
+      return;
+    }
     throw ErrorHandler.nativeModuleUnavailable();
   }
   const status = nativeModule.getPrivacyStatus();
@@ -242,8 +470,18 @@ const helperMethods = {
    * 注意：允许不提供任何 API Key，因为原生端可能已通过 Config Plugin 配置
    */
   initSDK(config: SDKConfig): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        _sdkConfig = config ?? null;
+        harmonyPendingState.sdkConfig = _sdkConfig;
+        harmonyPendingFlushStopped = false;
+        scheduleHarmonyPendingFlush();
+        _isSDKInitialized = true;
+        return;
+      }
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
     try {
       const privacyStatus = nativeModule.getPrivacyStatus();
       if (!privacyStatus.isReady) {
@@ -251,9 +489,9 @@ const helperMethods = {
       }
 
        // 检查是否有任何 key 被提供
-    const hasJSKeys = !!(config.androidKey || config.iosKey);
+    const hasJSKeys = !!(config.androidKey || config.iosKey || config.harmonyKey);
     const hasWebKey = !!config.webKey;
-     // 如果 JS 端没有提供 androidKey/iosKey,检查原生端是否已配置
+     // 如果 JS 端没有提供平台 key,检查原生端是否已配置
        if (!hasJSKeys) {
         const isNativeConfigured =  nativeModule.isNativeSDKConfigured();
         if (!isNativeConfigured && !hasWebKey){
@@ -268,6 +506,7 @@ const helperMethods = {
           );
        }
       _sdkConfig = config ?? null;
+      harmonyPendingState.sdkConfig = _sdkConfig;
       nativeModule.initSDK(config);
       _isSDKInitialized = true;
       ErrorLogger.warn('SDK 初始化成功', { config });
@@ -286,8 +525,17 @@ const helperMethods = {
    * @deprecated 请优先使用 `setPrivacyConfig`
    */
   setPrivacyShow(hasShow: boolean, hasContainsPrivacy?: boolean): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        harmonyPendingState.privacyShow = !!hasShow;
+        harmonyPendingState.privacyContainsPrivacy = !!(hasContainsPrivacy ?? hasShow);
+        harmonyPendingFlushStopped = false;
+        scheduleHarmonyPendingFlush();
+        return;
+      }
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
     nativeModule.setPrivacyShow(hasShow, hasContainsPrivacy ?? hasShow);
   },
 
@@ -296,8 +544,16 @@ const helperMethods = {
    * @deprecated 请优先使用 `setPrivacyConfig`
    */
   setPrivacyAgree(hasAgree: boolean): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        harmonyPendingState.privacyAgree = !!hasAgree;
+        harmonyPendingFlushStopped = false;
+        scheduleHarmonyPendingFlush();
+        return;
+      }
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
     nativeModule.setPrivacyAgree(hasAgree);
   },
 
@@ -306,8 +562,16 @@ const helperMethods = {
    * 当版本号变化时，之前的同意状态会失效
    */
   setPrivacyVersion(version: string): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        harmonyPendingState.privacyVersion = version || null;
+        harmonyPendingFlushStopped = false;
+        scheduleHarmonyPendingFlush();
+        return;
+      }
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
     nativeModule.setPrivacyVersion(version);
   },
 
@@ -315,8 +579,21 @@ const helperMethods = {
    * 清空已持久化的隐私同意状态
    */
   resetPrivacyConsent(): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        harmonyPendingState.privacyShow = undefined;
+        harmonyPendingState.privacyContainsPrivacy = undefined;
+        harmonyPendingState.privacyAgree = undefined;
+        harmonyPendingState.privacyVersion = undefined;
+        harmonyPendingState.sdkConfig = null;
+        _sdkConfig = null;
+        _isSDKInitialized = false;
+        clearHarmonyPendingFlushScheduler();
+        return;
+      }
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
     nativeModule.resetPrivacyConsent();
   },
 
@@ -325,8 +602,20 @@ const helperMethods = {
    * 推荐业务层只调用这个方法
    */
   setPrivacyConfig(config: PrivacyConfig): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        harmonyPendingState.privacyShow = !!config.hasShow;
+        harmonyPendingState.privacyContainsPrivacy = !!(config.hasContainsPrivacy ?? config.hasShow);
+        harmonyPendingState.privacyAgree = !!config.hasAgree;
+        harmonyPendingState.privacyVersion =
+          typeof config.privacyVersion === 'string' ? config.privacyVersion : null;
+        harmonyPendingFlushStopped = false;
+        scheduleHarmonyPendingFlush();
+        return;
+      }
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
     if (typeof config.privacyVersion === 'string') {
       nativeModule.setPrivacyVersion(config.privacyVersion);
     }
@@ -338,8 +627,23 @@ const helperMethods = {
   },
 
   getPrivacyStatus(): PrivacyStatus {
-    const nativeModule = getNativeModule();
+    const nativeModule = getNativeModule(true);
     if (!nativeModule) {
+      if (isHarmonyPlatform()) {
+        const hasShow = harmonyPendingState.privacyShow ?? true;
+        const hasContainsPrivacy = harmonyPendingState.privacyContainsPrivacy ?? hasShow;
+        const hasAgree = harmonyPendingState.privacyAgree ?? true;
+        const privacyVersion = harmonyPendingState.privacyVersion ?? null;
+        return {
+          hasShow,
+          hasContainsPrivacy,
+          hasAgree,
+          isReady: hasShow && hasContainsPrivacy && hasAgree,
+          privacyVersion,
+          agreedPrivacyVersion: hasAgree ? privacyVersion : null,
+          restoredFromStorage: false,
+        };
+      }
       return {
         hasShow: false,
         hasContainsPrivacy: false,

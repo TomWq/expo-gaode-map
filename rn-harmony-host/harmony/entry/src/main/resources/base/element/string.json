@@ -1,0 +1,32 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": ""
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": ""
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "template"
+    },
+    {
+      "name": "permission_approximate_location_reason",
+      "value": "用于在地图中展示大致位置和附近信息"
+    },
+    {
+      "name": "permission_location_reason",
+      "value": "用于在地图中提供精准定位与导航相关能力"
+    },
+    {
+      "name": "permission_location_background_reason",
+      "value": "用于在后台持续提供定位相关服务"
+    },
+    {
+      "name": "permission_keep_background_running_reason",
+      "value": "用于保持后台任务运行以支持持续定位能力"
+    }
+  ]
+}

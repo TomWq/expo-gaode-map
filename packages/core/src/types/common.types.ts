@@ -14,6 +14,8 @@ export interface SDKConfig {
   iosKey?: string;
   /** web api key 如果要使用expo-gaode-map-web-api相关的功能，需要配置web api key*/
   webKey?: string;
+  /** 高德地图 Harmony 平台的 API Key */
+  harmonyKey?: string;
 }
 
 /**

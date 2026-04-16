@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { CircleProps } from '../../types';
 import { normalizeLatLng } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
+import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
 
 const getNativeCircleView = createLazyNativeViewManager<CircleProps>('CircleView');
 
@@ -13,6 +14,11 @@ const getNativeCircleView = createLazyNativeViewManager<CircleProps>('CircleView
  * @returns 渲染原生圆形组件
  */
 function Circle(props: CircleProps) {
+  if (isHarmonyPlatform()) {
+    warnHarmonyOverlayUnsupported('Circle');
+    return null;
+  }
+
   const NativeCircleView = React.useMemo(() => getNativeCircleView(), []);
   const { center, ...restProps } = props;
   const normalizedCenter = normalizeLatLng(center);
@@ -60,4 +66,8 @@ function arePropsEqual(prevProps: CircleProps, nextProps: CircleProps): boolean 
 }
 
 // 导出优化后的组件
-export default React.memo(Circle, arePropsEqual);
+const MemoizedCircle = React.memo(Circle, arePropsEqual) as React.ComponentType<CircleProps> & {
+  expoGaodeOverlayType?: string;
+};
+MemoizedCircle.expoGaodeOverlayType = 'Circle';
+export default MemoizedCircle;

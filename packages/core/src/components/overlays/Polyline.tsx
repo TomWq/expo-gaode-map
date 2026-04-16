@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { PolylineProps } from '../../types';
 import { normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
+import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
 const getNativePolylineView = createLazyNativeViewManager<PolylineProps>('PolylineView');
 
 /**
@@ -11,6 +12,11 @@ const getNativePolylineView = createLazyNativeViewManager<PolylineProps>('Polyli
  * @returns 高德地图原生折线视图组件
  */
 function Polyline(props: PolylineProps) {
+  if (isHarmonyPlatform()) {
+    warnHarmonyOverlayUnsupported('Polyline');
+    return null;
+  }
+
   const NativePolylineView = React.useMemo(() => getNativePolylineView(), []);
   const { points, ...restProps } = props;
   // 归一化坐标数组
@@ -54,4 +60,8 @@ function arePropsEqual(prevProps: PolylineProps, nextProps: PolylineProps): bool
 }
 
 // 导出优化后的组件
-export default React.memo(Polyline, arePropsEqual);
+const MemoizedPolyline = React.memo(Polyline, arePropsEqual) as React.ComponentType<PolylineProps> & {
+  expoGaodeOverlayType?: string;
+};
+MemoizedPolyline.expoGaodeOverlayType = 'Polyline';
+export default MemoizedPolyline;

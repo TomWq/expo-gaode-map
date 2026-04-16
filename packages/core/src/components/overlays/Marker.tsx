@@ -5,6 +5,7 @@ import type { MarkerProps } from '../../types';
 import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
+import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
 
 type NativeMarkerViewProps = Omit<MarkerProps, 'position'> & {
   latitude: number;
@@ -57,6 +58,11 @@ function areSmoothMovePathsEqual(
  * - 所有事件回调
  */
 function Marker(props: MarkerProps) {
+  if (isHarmonyPlatform()) {
+    warnHarmonyOverlayUnsupported('Marker');
+    return null;
+  }
+
   const NativeMarkerView = React.useMemo(() => getNativeMarkerView(), []);
   const [measuredSize, setMeasuredSize] = React.useState(AUTO_SIZE_FALLBACK);
   // 从 props 中排除 position 属性，避免传递到原生层
@@ -263,7 +269,11 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
 }
 
 // 导出优化后的组件
-export default React.memo(Marker, arePropsEqual);
+const MemoizedMarker = React.memo(Marker, arePropsEqual) as React.ComponentType<MarkerProps> & {
+  expoGaodeOverlayType?: string;
+};
+MemoizedMarker.expoGaodeOverlayType = 'Marker';
+export default MemoizedMarker;
 
 const styles = StyleSheet.create({
   measureContainer: {

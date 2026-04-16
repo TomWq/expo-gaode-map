@@ -2,7 +2,7 @@
  * 高德地图离线地图原生模块
  */
 
-import { NativeModule, requireNativeModule } from 'expo';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 import type {
   OfflineMapInfo,
   OfflineMapDownloadConfig,
@@ -10,10 +10,65 @@ import type {
   OfflineMapEvents,
 } from './types/offline.types';
 
+type NativeModuleSubscription = { remove: () => void };
+
+interface OfflineEventEmitter {
+  addListener<K extends keyof OfflineMapEvents>(
+    eventName: K,
+    listener: OfflineMapEvents[K]
+  ): NativeModuleSubscription;
+  addListener(
+    eventName: string,
+    listener: (...args: unknown[]) => void
+  ): NativeModuleSubscription;
+  removeAllListeners(eventName?: keyof OfflineMapEvents | string): void;
+  removeListeners?(count: number): void;
+};
+
+type ExpoRequireNativeModule = <T>(moduleName: string) => T;
+declare const require: ((id: string) => unknown) | undefined;
+const isHarmonyPlatform = (): boolean => (Platform.OS as string) === 'harmony';
+
+function optionalRequire(moduleName: string): unknown | null {
+  const runtimeRequire = (globalThis as { __r?: (id: string) => unknown }).__r
+    ?? (typeof require === 'function' ? require : null);
+  if (typeof runtimeRequire !== 'function') {
+    return null;
+  }
+
+  try {
+    return runtimeRequire(moduleName);
+  } catch {
+    return null;
+  }
+}
+
+function resolveExpoRequireNativeModule(): ExpoRequireNativeModule | null {
+  if (isHarmonyPlatform()) {
+    return null;
+  }
+
+  const expoPackage = optionalRequire('expo') as {
+    requireNativeModule?: ExpoRequireNativeModule;
+  } | null;
+  if (typeof expoPackage?.requireNativeModule === 'function') {
+    return expoPackage.requireNativeModule;
+  }
+
+  const expoModulesCore = optionalRequire('expo-modules-core') as {
+    requireNativeModule?: ExpoRequireNativeModule;
+  } | null;
+  if (typeof expoModulesCore?.requireNativeModule === 'function') {
+    return expoModulesCore.requireNativeModule;
+  }
+
+  return null;
+}
+
 /**
  * 离线地图原生模块接口
  */
-declare class ExpoGaodeMapOfflineModule extends NativeModule<OfflineMapEvents> {
+interface ExpoGaodeMapOfflineModule extends OfflineEventEmitter {
   // ==================== 地图列表管理 ====================
   
   /**
@@ -180,11 +235,40 @@ declare class ExpoGaodeMapOfflineModule extends NativeModule<OfflineMapEvents> {
 
 let nativeModuleCache: ExpoGaodeMapOfflineModule | null = null;
 
-function getNativeModule(): ExpoGaodeMapOfflineModule {
-  if (!nativeModuleCache) {
-    nativeModuleCache = requireNativeModule<ExpoGaodeMapOfflineModule>('ExpoGaodeMapOffline');
+function getNativeModule(optional = false): ExpoGaodeMapOfflineModule | null {
+  if (nativeModuleCache) {
+    return nativeModuleCache;
   }
-  return nativeModuleCache;
+
+  if (isHarmonyPlatform()) {
+    const harmonyTurboModule = TurboModuleRegistry.get('ExpoGaodeMapOffline') as
+      | ExpoGaodeMapOfflineModule
+      | null;
+    if (harmonyTurboModule) {
+      nativeModuleCache = harmonyTurboModule;
+      return nativeModuleCache;
+    }
+
+    const harmonyLegacyModule = NativeModules.ExpoGaodeMapOffline as
+      | ExpoGaodeMapOfflineModule
+      | undefined;
+    if (harmonyLegacyModule) {
+      nativeModuleCache = harmonyLegacyModule;
+      return nativeModuleCache;
+    }
+  } else {
+    const expoRequireNativeModule = resolveExpoRequireNativeModule();
+    if (expoRequireNativeModule) {
+      nativeModuleCache = expoRequireNativeModule<ExpoGaodeMapOfflineModule>('ExpoGaodeMapOffline');
+      return nativeModuleCache;
+    }
+  }
+
+  if (optional) {
+    return null;
+  }
+
+  throw new Error("Native module 'ExpoGaodeMapOffline' is unavailable");
 }
 
 function getBoundNativeValue(
@@ -201,6 +285,36 @@ function getBoundNativeValue(
 
 export default new Proxy({} as ExpoGaodeMapOfflineModule, {
   get(_target, prop) {
-    return getBoundNativeValue(getNativeModule(), prop);
+    const module = getNativeModule(true);
+    if (module) {
+      return getBoundNativeValue(module, prop);
+    }
+
+    if (
+      prop === '__esModule' ||
+      prop === 'default' ||
+      prop === 'then' ||
+      prop === 'catch' ||
+      prop === 'finally' ||
+      prop === Symbol.toStringTag
+    ) {
+      return undefined;
+    }
+
+    if (prop === 'addListener') {
+      return () => ({ remove: () => {} });
+    }
+
+    if (prop === 'removeAllListeners' || prop === 'removeListeners') {
+      return () => {};
+    }
+
+    if (typeof prop === 'string') {
+      return () => {
+        throw new Error("Native module 'ExpoGaodeMapOffline' is unavailable");
+      };
+    }
+
+    return undefined;
   },
 });

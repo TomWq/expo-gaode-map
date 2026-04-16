@@ -8,6 +8,7 @@
     "build",
     "android",
     "ios",
+    "harmony",
     "shared",
     "app.plugin.js",
     "expo-module.config.json",
@@ -59,6 +60,9 @@
   "homepage": "https://tomwq.github.io/expo-gaode-map/",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
+  },
+  "harmony": {
+    "alias": "expo-gaode-map"
   },
   "devDependencies": {
     "@babel/runtime": "^7.25.7",

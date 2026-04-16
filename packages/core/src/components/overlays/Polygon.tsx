@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { PolygonProps } from '../../types';
 import { normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
+import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
 const getNativePolygonView = createLazyNativeViewManager<PolygonProps>('PolygonView');
 
 /**
@@ -11,6 +12,11 @@ const getNativePolygonView = createLazyNativeViewManager<PolygonProps>('PolygonV
  * @returns 高德地图原生多边形视图组件
  */
 function Polygon(props: PolygonProps) {
+  if (isHarmonyPlatform()) {
+    warnHarmonyOverlayUnsupported('Polygon');
+    return null;
+  }
+
   const NativePolygonView = React.useMemo(() => getNativePolygonView(), []);
   const { points, ...restProps } = props;
   // 归一化坐标数组
@@ -47,4 +53,8 @@ function arePropsEqual(prevProps: PolygonProps, nextProps: PolygonProps): boolea
 }
 
 // 导出优化后的组件
-export default React.memo(Polygon, arePropsEqual);
+const MemoizedPolygon = React.memo(Polygon, arePropsEqual) as React.ComponentType<PolygonProps> & {
+  expoGaodeOverlayType?: string;
+};
+MemoizedPolygon.expoGaodeOverlayType = 'Polygon';
+export default MemoizedPolygon;

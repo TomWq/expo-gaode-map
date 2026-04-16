@@ -1,0 +1,14 @@
+{
+  "name": "expo-gaode-map",
+  "version": "2.2.31-harmony.0",
+  "description": "HarmonyOS implementation for expo-gaode-map core",
+  "main": "index.ets",
+  "license": "MIT",
+  "dependencies": {
+    "@rnoh/react-native-openharmony": "0.72.82",
+    "@amap/amap_lbs_map3d": ">=11.1.101",
+    "@amap/amap_lbs_search": ">=11.1.101",
+    "@amap/amap_lbs_location": ">=11.1.101",
+    "@amap/amap_lbs_common": ">=11.1.101"
+  }
+}

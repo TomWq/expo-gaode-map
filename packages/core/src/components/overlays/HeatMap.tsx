@@ -5,6 +5,7 @@ import type { HeatMapProps } from '../../types';
 import type { LatLng } from '../../types';
 import { normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
+import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
 
 type NativeHeatMapProps = Omit<HeatMapProps, 'data'> & ViewProps & {
   data: LatLng[];
@@ -20,6 +21,11 @@ const getNativeHeatMap = createLazyNativeViewManager<NativeHeatMapProps>('HeatMa
  * @returns 渲染高德地图原生热力图组件
  */
 function HeatMap(props: HeatMapProps) {
+  if (isHarmonyPlatform()) {
+    warnHarmonyOverlayUnsupported('HeatMap');
+    return null;
+  }
+
   const NativeHeatMap = React.useMemo(() => getNativeHeatMap(), []);
   const { data, ...restProps } = props;
   const normalizedData = normalizeLatLngList(data);
@@ -66,4 +72,8 @@ function arePropsEqual(prevProps: HeatMapProps, nextProps: HeatMapProps): boolea
 }
 
 // 导出优化后的组件
-export default React.memo(HeatMap, arePropsEqual);
+const MemoizedHeatMap = React.memo(HeatMap, arePropsEqual) as React.ComponentType<HeatMapProps> & {
+  expoGaodeOverlayType?: string;
+};
+MemoizedHeatMap.expoGaodeOverlayType = 'HeatMap';
+export default MemoizedHeatMap;

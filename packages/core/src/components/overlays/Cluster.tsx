@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { ClusterProps } from '../../types';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
+import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
 
 const getNativeCluster = createLazyNativeViewManager<ClusterProps>('ClusterView');
 
@@ -11,6 +12,11 @@ const getNativeCluster = createLazyNativeViewManager<ClusterProps>('ClusterView'
  * @returns 渲染原生点聚合组件
  */
 function Cluster(props: ClusterProps) {
+  if (isHarmonyPlatform()) {
+    warnHarmonyOverlayUnsupported('Cluster');
+    return null;
+  }
+
   const NativeCluster = React.useMemo(() => getNativeCluster(), []);
   return <NativeCluster {...props} />;
 }
@@ -65,4 +71,8 @@ function arePropsEqual(prevProps: ClusterProps, nextProps: ClusterProps): boolea
 }
 
 // 导出优化后的组件
-export default React.memo(Cluster, arePropsEqual);
+const MemoizedCluster = React.memo(Cluster, arePropsEqual) as React.ComponentType<ClusterProps> & {
+  expoGaodeOverlayType?: string;
+};
+MemoizedCluster.expoGaodeOverlayType = 'Cluster';
+export default MemoizedCluster;
