@@ -48,17 +48,22 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         self.permissionCallback = callback
         
         // 确保在主线程操作
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            
+        DispatchQueue.main.async {
             if self.locationManager == nil {
                 self.locationManager = CLLocationManager()
-                self.locationManager?.delegate = self
             }
+
+            guard let locationManager = self.locationManager else {
+                self.permissionCallback?(false, "unknown")
+                self.permissionCallback = nil
+                return
+            }
+
+            locationManager.delegate = self
             
             var currentStatus: CLAuthorizationStatus
             if #available(iOS 14.0, *) {
-                currentStatus = self.locationManager?.authorizationStatus ?? .notDetermined
+                currentStatus = locationManager.authorizationStatus
             } else {
                 currentStatus = CLLocationManager.authorizationStatus()
             }
@@ -84,7 +89,7 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
                 return
             }
             
-            self.locationManager?.requestWhenInUseAuthorization()
+            locationManager.requestWhenInUseAuthorization()
         }
     }
     
