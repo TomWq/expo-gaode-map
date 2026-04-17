@@ -21,9 +21,13 @@ const getNativeHeatMap = createLazyNativeViewManager<NativeHeatMapProps>('HeatMa
  * @returns 渲染高德地图原生热力图组件
  */
 function HeatMap(props: HeatMapProps) {
-  if (isHarmonyPlatform()) {
+  const harmony = isHarmonyPlatform();
+  const harmonyLayoutGuardProps = harmony
+    ? ({ collapsable: false } as { collapsable?: boolean })
+    : undefined;
+
+  if (harmony) {
     warnHarmonyOverlayUnsupported('HeatMap');
-    return null;
   }
 
   const NativeHeatMap = React.useMemo(() => getNativeHeatMap(), []);
@@ -34,7 +38,7 @@ function HeatMap(props: HeatMapProps) {
     <NativeHeatMap
       data={normalizedData}
       {...restProps}
-      collapsable={false}
+      {...harmonyLayoutGuardProps}
       pointerEvents="none"
       style={styles.hidden}
     />

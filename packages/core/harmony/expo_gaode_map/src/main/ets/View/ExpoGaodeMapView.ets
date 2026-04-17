@@ -38,13 +38,14 @@ import {
   handleTakeSnapshotCommand
 } from './internal/commands';
 import { parseColor, resolveMyLocationType, maskApiKey } from './internal/helpers';
-import { HarmonyOverlayManager } from './internal/overlays';
+import {
+  HarmonyChildOverlayManager,
+  HarmonyOverlayRegistry,
+  MARKER_EVENT_CHANNEL,
+  POLYLINE_EVENT_CHANNEL,
+} from './internal/overlays';
 import { saveSnapshotToSandbox } from './internal/snapshot';
 import {
-  HarmonyCircleOverlay,
-  HarmonyMarkerOverlay,
-  HarmonyPolygonOverlay,
-  HarmonyPolylineOverlay,
   CustomMapStyleProps,
   EVENT_CHANNEL,
   GeoLocationLike,
@@ -77,10 +78,6 @@ export interface ExpoGaodeMapViewProps extends ViewBaseProps {
   worldMapSwitchEnabled?: boolean;
   customMapStyle?: CustomMapStyleProps;
   cameraEventThrottleMs?: number;
-  harmonyMarkers?: HarmonyMarkerOverlay[];
-  harmonyPolylines?: HarmonyPolylineOverlay[];
-  harmonyPolygons?: HarmonyPolygonOverlay[];
-  harmonyCircles?: HarmonyCircleOverlay[];
 }
 
 let cachedApiKey: string | undefined = undefined;
@@ -105,6 +102,7 @@ export struct ExpoGaodeMapView {
   @State canCreateNativeMap: boolean = false;
 
   private unregisterDescriptorChangesListener?: () => void = undefined;
+  private unregisterDescriptorMutationsListener?: () => void = undefined;
   private cleanupCommandCallback?: () => void = undefined;
 
   private mapView?: MapView;
@@ -145,11 +143,7 @@ export struct ExpoGaodeMapView {
   private cameraEventThrottleMs: number = 32;
   private hasLocationEverEnabled: boolean = false;
   private hasAppliedInitialCameraPosition: boolean = false;
-  private harmonyMarkers: HarmonyMarkerOverlay[] = [];
-  private harmonyPolylines: HarmonyPolylineOverlay[] = [];
-  private harmonyPolygons: HarmonyPolygonOverlay[] = [];
-  private harmonyCircles: HarmonyCircleOverlay[] = [];
-  private overlayManager?: HarmonyOverlayManager;
+  private overlayManager?: HarmonyChildOverlayManager;
 
   private isDestroyed: boolean = false;
 
@@ -159,9 +153,11 @@ export struct ExpoGaodeMapView {
 
   aboutToAppear(): void {
     this.isDestroyed = false;
-    this.overlayManager = new HarmonyOverlayManager(this.ctx);
+    this.overlayManager = new HarmonyChildOverlayManager(this.ctx, this.tag);
+    HarmonyOverlayRegistry.registerMapManager(this.tag, this.overlayManager);
     this.descriptor = this.ctx.descriptorRegistry.getDescriptor<ExpoGaodeMapViewDescriptor>(this.tag);
     this.readProps(this.descriptor);
+    this.overlayManager.syncChildren(this.descriptor);
 
     const keyReady = this.ensureMapApiKeyReady();
     if (keyReady) {
@@ -221,6 +217,20 @@ export struct ExpoGaodeMapView {
         this.descriptor = nextDescriptor as ExpoGaodeMapViewDescriptor;
         this.readProps(this.descriptor);
         this.applyMapProps();
+        this.overlayManager?.syncChildren(this.descriptor);
+      }
+    );
+    this.unregisterDescriptorMutationsListener = this.ctx.descriptorRegistry.subscribeToDescriptorMutations(
+      this.tag,
+      () => {
+        if (!this.isValid()) {
+          return;
+        }
+        const latestDescriptor = this.ctx.descriptorRegistry.getDescriptor<ExpoGaodeMapViewDescriptor>(this.tag);
+        if (latestDescriptor) {
+          this.descriptor = latestDescriptor;
+        }
+        this.overlayManager?.syncChildren(this.descriptor);
       }
     );
 
@@ -362,12 +372,15 @@ export struct ExpoGaodeMapView {
       this.hasRegisteredMapViewCreateCallback = false;
     }
     this.unregisterDescriptorChangesListener?.();
+    this.unregisterDescriptorMutationsListener?.();
     this.cleanupCommandCallback?.();
 
     this.unregisterDescriptorChangesListener = undefined;
+    this.unregisterDescriptorMutationsListener = undefined;
     this.cleanupCommandCallback = undefined;
     this.overlayManager?.clearAll();
     this.overlayManager = undefined;
+    HarmonyOverlayRegistry.unregisterMapManager(this.tag);
 
     this.aMap?.clear();
     this.mapView?.onDestroy();
@@ -439,10 +452,6 @@ export struct ExpoGaodeMapView {
     }
     if (raw.customMapStyle !== undefined) this.customMapStyle = raw.customMapStyle;
     if (raw.cameraEventThrottleMs !== undefined) this.cameraEventThrottleMs = raw.cameraEventThrottleMs;
-    this.harmonyMarkers = raw.harmonyMarkers ?? [];
-    this.harmonyPolylines = raw.harmonyPolylines ?? [];
-    this.harmonyPolygons = raw.harmonyPolygons ?? [];
-    this.harmonyCircles = raw.harmonyCircles ?? [];
   }
 
   private applyMapProps(): void {
@@ -473,6 +482,7 @@ export struct ExpoGaodeMapView {
     this.aMap.setMaxZoomLevel(this.maxZoom);
 
     const uiSettings = this.aMap.getUiSettings();
+    uiSettings?.setIndoorSwitchEnabled(this.indoorViewEnabled);
     uiSettings?.setZoomGesturesEnabled(this.zoomGesturesEnabled);
     uiSettings?.setScrollGesturesEnabled(this.scrollGesturesEnabled);
     uiSettings?.setRotateGesturesEnabled(this.rotateGesturesEnabled);
@@ -481,7 +491,7 @@ export struct ExpoGaodeMapView {
     uiSettings?.setZoomControlsEnabled(this.zoomControlsEnabled);
     uiSettings?.setScaleControlsEnabled(this.scaleControlsEnabled);
     uiSettings?.setMyLocationButtonEnabled(this.myLocationEnabled && this.myLocationButtonEnabled);
-    this.applyHarmonyOverlays();
+    this.applyChildOverlays();
 
     if (this.initialCameraPosition && !this.hasAppliedInitialCameraPosition) {
       try {
@@ -646,18 +656,13 @@ export struct ExpoGaodeMapView {
     );
   }
 
-  private applyHarmonyOverlays(): void {
-    if (!this.aMap || !this.overlayManager) {
+  private applyChildOverlays(): void {
+    if (!this.overlayManager) {
       return;
     }
 
-    this.overlayManager.applyAll(
-      this.aMap,
-      this.harmonyMarkers,
-      this.harmonyPolylines,
-      this.harmonyPolygons,
-      this.harmonyCircles
-    );
+    this.overlayManager.setMap(this.aMap);
+    this.overlayManager.syncChildren(this.descriptor);
   }
 
   private bindMapListeners(): void {
@@ -682,18 +687,18 @@ export struct ExpoGaodeMapView {
     });
 
     this.aMap.setOnMarkerClickListener((marker: Marker): boolean => {
-      this.emitHarmonyMarkerEvent('onHarmonyMarkerPress', marker);
+      this.emitMarkerEvent('onPress', marker);
       return true;
     });
     this.aMap.setOnMarkerDragListener(
       new OnMarkerDragListener(
-        (marker: Marker) => this.emitHarmonyMarkerEvent('onHarmonyMarkerDragStart', marker),
-        (marker: Marker) => this.emitHarmonyMarkerEvent('onHarmonyMarkerDrag', marker),
-        (marker: Marker) => this.emitHarmonyMarkerEvent('onHarmonyMarkerDragEnd', marker)
+        (marker: Marker) => this.emitMarkerEvent('onDragStart', marker),
+        (marker: Marker) => this.emitMarkerEvent('onDrag', marker),
+        (marker: Marker) => this.emitMarkerEvent('onDragEnd', marker)
       )
     );
     this.aMap.setOnPolylineClickListener((polyline: Polyline) => {
-      this.emitHarmonyPolylinePress(polyline);
+      this.emitPolylinePress(polyline);
     });
 
     this.aMap.setOnCameraChangeListener(
@@ -744,32 +749,27 @@ export struct ExpoGaodeMapView {
     });
   }
 
-  private emitHarmonyMarkerEvent(
-    type: 'onHarmonyMarkerPress' | 'onHarmonyMarkerDragStart' | 'onHarmonyMarkerDrag' | 'onHarmonyMarkerDragEnd',
-    marker: Marker
-  ): void {
-    const overlayId = this.overlayManager?.resolveMarkerOverlayId(marker);
-    if (!overlayId) {
+  private emitMarkerEvent(type: 'onPress' | 'onDragStart' | 'onDrag' | 'onDragEnd', marker: Marker): void {
+    const childTag = this.overlayManager?.resolveMarkerChildTag(marker);
+    if (childTag === undefined) {
       return;
     }
 
     const position = marker.getPosition();
-    this.ctx.rnInstance.emitComponentEvent(this.tag, EVENT_CHANNEL, {
+    this.ctx.rnInstance.emitComponentEvent(childTag, MARKER_EVENT_CHANNEL, {
       type,
-      overlayId,
       latitude: Number(position?.latitude ?? 0),
       longitude: Number(position?.longitude ?? 0),
     });
   }
 
-  private emitHarmonyPolylinePress(polyline: Polyline): void {
-    const overlayId = this.overlayManager?.resolvePolylineOverlayId(polyline);
-    if (!overlayId) {
+  private emitPolylinePress(polyline: Polyline): void {
+    const childTag = this.overlayManager?.resolvePolylineChildTag(polyline);
+    if (childTag === undefined) {
       return;
     }
-    this.ctx.rnInstance.emitComponentEvent(this.tag, EVENT_CHANNEL, {
-      type: 'onHarmonyPolylinePress',
-      overlayId,
+    this.ctx.rnInstance.emitComponentEvent(childTag, POLYLINE_EVENT_CHANNEL, {
+      type: 'onPress',
     });
   }
 

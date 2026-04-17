@@ -87,3 +87,8 @@ hvigorw
 hvigorw.bat
 hvigor/hvigor-wrapper.js
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+

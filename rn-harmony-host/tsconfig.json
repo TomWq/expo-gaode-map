@@ -1,6 +1,17 @@
 {
   "compilerOptions": {
-    "jsx": "react"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "expo-gaode-map": ["../packages/core/src/index"],
+      "expo-gaode-map/*": ["../packages/core/src/*"]
+    }
   },
-  "extends": "@tsconfig/react-native/tsconfig.json"
+  "extends": "@tsconfig/react-native/tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "harmony/**/oh_modules",
+    "harmony/**/.hvigor",
+    "harmony/**/.idea"
+  ]
 }

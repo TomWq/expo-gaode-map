@@ -9,6 +9,12 @@ namespace facebook {
 namespace react {
 
 using ExpoGaodeMapViewComponentDescriptor = ConcreteComponentDescriptor<ExpoGaodeMapViewShadowNode>;
+using MarkerViewComponentDescriptor = ConcreteComponentDescriptor<MarkerViewShadowNode>;
+using PolylineViewComponentDescriptor = ConcreteComponentDescriptor<PolylineViewShadowNode>;
+using PolygonViewComponentDescriptor = ConcreteComponentDescriptor<PolygonViewShadowNode>;
+using CircleViewComponentDescriptor = ConcreteComponentDescriptor<CircleViewShadowNode>;
+using HeatMapViewComponentDescriptor = ConcreteComponentDescriptor<HeatMapViewShadowNode>;
+using MultiPointViewComponentDescriptor = ConcreteComponentDescriptor<MultiPointViewShadowNode>;
 
 } // namespace react
 } // namespace facebook

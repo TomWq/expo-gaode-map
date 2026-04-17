@@ -2,7 +2,7 @@
  * 高德地图离线地图原生模块
  */
 
-import { NativeModules, TurboModuleRegistry } from 'react-native';
+import { DeviceEventEmitter, NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 import type {
   OfflineMapInfo,
   OfflineMapDownloadConfig,
@@ -11,6 +11,11 @@ import type {
 } from './types/offline.types';
 
 type NativeModuleSubscription = { remove: () => void };
+
+const isHarmonyPlatform = (): boolean => {
+  const os = (Platform.OS as string).toLowerCase();
+  return os === 'harmony' || os === 'ohos';
+};
 
 interface OfflineEventEmitter {
   addListener<K extends keyof OfflineMapEvents>(
@@ -267,6 +272,48 @@ export default new Proxy({} as ExpoGaodeMapOfflineModule, {
   get(_target, prop) {
     const module = getNativeModule(true);
     if (module) {
+      if (prop === 'addListener') {
+        return (eventName: string, listener: (...args: unknown[]) => void): NativeModuleSubscription => {
+          if (isHarmonyPlatform()) {
+            const subscription = DeviceEventEmitter.addListener(eventName, listener);
+            return {
+              remove: () => {
+                subscription.remove();
+              },
+            };
+          }
+
+          try {
+            return module.addListener(eventName, listener);
+          } catch {
+            throw new Error(`Failed to add listener for ${eventName}`);
+          }
+        };
+      }
+
+      if (prop === 'removeAllListeners') {
+        return (eventName?: keyof OfflineMapEvents | string): void => {
+          const removeAllListeners = (module as {
+            removeAllListeners?: (name?: keyof OfflineMapEvents | string) => void;
+          }).removeAllListeners;
+          if (typeof removeAllListeners === 'function') {
+            removeAllListeners(eventName);
+            return;
+          }
+          if (typeof eventName === 'string' && isHarmonyPlatform()) {
+            DeviceEventEmitter.removeAllListeners(eventName);
+          }
+        };
+      }
+
+      if (prop === 'removeListeners') {
+        return (count: number): void => {
+          if (typeof module.removeListeners === 'function') {
+            module.removeListeners(count);
+          }
+        };
+      }
+
       return getBoundNativeValue(module, prop);
     }
 

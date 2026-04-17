@@ -15,6 +15,18 @@ enum class ExpoGaodeMapViewEventType {
   ON_LOCATION,
   ON_CAMERA_MOVE,
   ON_CAMERA_IDLE,
+  ON_COMMAND_RESULT,
+};
+
+enum class MarkerViewEventType {
+  ON_PRESS,
+  ON_DRAG_START,
+  ON_DRAG,
+  ON_DRAG_END,
+};
+
+enum class PolylineViewEventType {
+  ON_PRESS,
 };
 
 inline ExpoGaodeMapViewEventType getExpoGaodeMapViewEventType(ArkJS &arkJs, napi_value eventObject) {
@@ -38,7 +50,28 @@ inline ExpoGaodeMapViewEventType getExpoGaodeMapViewEventType(ArkJS &arkJs, napi
   if (eventType == "onCameraMove") {
     return ExpoGaodeMapViewEventType::ON_CAMERA_MOVE;
   }
+  if (eventType == "onCommandResult") {
+    return ExpoGaodeMapViewEventType::ON_COMMAND_RESULT;
+  }
   return ExpoGaodeMapViewEventType::ON_CAMERA_IDLE;
+}
+
+inline MarkerViewEventType getMarkerViewEventType(ArkJS &arkJs, napi_value eventObject) {
+  auto eventType = arkJs.getString(arkJs.getObjectProperty(eventObject, "type"));
+  if (eventType == "onPress") {
+    return MarkerViewEventType::ON_PRESS;
+  }
+  if (eventType == "onDragStart") {
+    return MarkerViewEventType::ON_DRAG_START;
+  }
+  if (eventType == "onDrag") {
+    return MarkerViewEventType::ON_DRAG;
+  }
+  return MarkerViewEventType::ON_DRAG_END;
+}
+
+inline PolylineViewEventType getPolylineViewEventType(ArkJS &, napi_value) {
+  return PolylineViewEventType::ON_PRESS;
 }
 
 class ExpoGaodeMapViewEventEmitRequestHandler : public EventEmitRequestHandler {
@@ -114,6 +147,76 @@ public:
         }
         break;
       }
+      case ExpoGaodeMapViewEventType::ON_COMMAND_RESULT:
+      {
+        auto command = arkJs.getString(arkJs.getObjectProperty(ctx.payload, "command"));
+        auto requestId = arkJs.getString(arkJs.getObjectProperty(ctx.payload, "requestId"));
+        auto status = arkJs.getString(arkJs.getObjectProperty(ctx.payload, "status"));
+        auto latitude = (double) arkJs.getDouble(arkJs.getObjectProperty(ctx.payload, "latitude"));
+        auto longitude = (double) arkJs.getDouble(arkJs.getObjectProperty(ctx.payload, "longitude"));
+        auto snapshotPath = arkJs.getString(arkJs.getObjectProperty(ctx.payload, "snapshotPath"));
+        auto message = arkJs.getString(arkJs.getObjectProperty(ctx.payload, "message"));
+        eventEmitter->onCommandResult({command, requestId, status, latitude, longitude, snapshotPath, message});
+        break;
+      }
+      default:
+        break;
+    }
+  }
+};
+
+class MarkerViewEventEmitRequestHandler : public EventEmitRequestHandler {
+public:
+  void handleEvent(EventEmitRequestHandler::Context const &ctx) override {
+    if (ctx.eventName != "MarkerView") {
+      return;
+    }
+
+    ArkJS arkJs(ctx.env);
+    auto eventEmitter = ctx.shadowViewRegistry->getEventEmitter<facebook::react::MarkerViewEventEmitter>(ctx.tag);
+    if (eventEmitter == nullptr) {
+      return;
+    }
+
+    auto latitude = (double) arkJs.getDouble(arkJs.getObjectProperty(ctx.payload, "latitude"));
+    auto longitude = (double) arkJs.getDouble(arkJs.getObjectProperty(ctx.payload, "longitude"));
+
+    switch (getMarkerViewEventType(arkJs, ctx.payload)) {
+      case MarkerViewEventType::ON_PRESS:
+        eventEmitter->onPress({latitude, longitude});
+        break;
+      case MarkerViewEventType::ON_DRAG_START:
+        eventEmitter->onDragStart({latitude, longitude});
+        break;
+      case MarkerViewEventType::ON_DRAG:
+        eventEmitter->onDrag({latitude, longitude});
+        break;
+      case MarkerViewEventType::ON_DRAG_END:
+      default:
+        eventEmitter->onDragEnd({latitude, longitude});
+        break;
+    }
+  }
+};
+
+class PolylineViewEventEmitRequestHandler : public EventEmitRequestHandler {
+public:
+  void handleEvent(EventEmitRequestHandler::Context const &ctx) override {
+    if (ctx.eventName != "PolylineView") {
+      return;
+    }
+
+    ArkJS arkJs(ctx.env);
+    auto eventEmitter = ctx.shadowViewRegistry->getEventEmitter<facebook::react::PolylineViewEventEmitter>(ctx.tag);
+    if (eventEmitter == nullptr) {
+      return;
+    }
+
+    switch (getPolylineViewEventType(arkJs, ctx.payload)) {
+      case PolylineViewEventType::ON_PRESS:
+      default:
+        eventEmitter->onPress({});
+        break;
     }
   }
 };

@@ -9,29 +9,30 @@
     "harmony": "react-native run-harmony"
   },
   "dependencies": {
-    "@react-native-oh/react-native-harmony": "0.72.119",
+    "@react-native-oh/react-native-harmony": "0.82.23",
     "expo-gaode-map": "workspace:*",
-    "react": "18.2.0",
-    "react-native": "0.72.5"
+    "expo-gaode-map-web-api": "workspace:*",
+    "react": "19.1.1",
+    "react-native": "0.82.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@babel/preset-env": "^7.20.0",
     "@babel/runtime": "^7.20.0",
-    "@react-native-community/cli": "^13.6.5",
-    "@react-native-oh/react-native-harmony-cli": "0.82.18",
-    "@react-native/eslint-config": "^0.72.2",
-    "@react-native/metro-config": "^0.72.11",
+    "@react-native-community/cli": "^20.0.2",
+    "@react-native-oh/react-native-harmony-cli": "0.82.23",
+    "@react-native/babel-preset": "^0.82.1",
+    "@react-native/eslint-config": "^0.82.1",
+    "@react-native/metro-config": "^0.82.1",
     "@tsconfig/react-native": "^3.0.0",
-    "@types/react": "^18.0.24",
-    "@types/react-test-renderer": "^18.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-test-renderer": "^19.1.0",
     "babel-jest": "^29.2.1",
     "eslint": "^8.19.0",
     "jest": "^29.2.1",
-    "metro-react-native-babel-preset": "0.76.8",
     "prettier": "^2.4.1",
-    "react-test-renderer": "18.2.0",
-    "typescript": "4.8.4"
+    "react-test-renderer": "19.1.1",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20"

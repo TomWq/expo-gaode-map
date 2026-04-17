@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { PolygonProps } from '../../types';
 import { normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
-import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
+import { isHarmonyPlatform, warnHarmonyOverlayPropUnsupported } from './harmonyOverlayFallback';
 const getNativePolygonView = createLazyNativeViewManager<PolygonProps>('PolygonView');
 
 /**
@@ -12,9 +12,21 @@ const getNativePolygonView = createLazyNativeViewManager<PolygonProps>('PolygonV
  * @returns 高德地图原生多边形视图组件
  */
 function Polygon(props: PolygonProps) {
-  if (isHarmonyPlatform()) {
-    warnHarmonyOverlayUnsupported('Polygon');
-    return null;
+  const harmony = isHarmonyPlatform();
+  const harmonyLayoutGuardProps = harmony
+    ? ({ collapsable: false } as { collapsable?: boolean })
+    : undefined;
+
+  if (harmony) {
+    if (props.onPolygonPress) {
+      warnHarmonyOverlayPropUnsupported('Polygon', ['onPolygonPress']);
+    }
+    if (props.onPolygonSimplified) {
+      warnHarmonyOverlayPropUnsupported('Polygon', ['onPolygonSimplified']);
+    }
+    if (props.simplificationTolerance != null) {
+      warnHarmonyOverlayPropUnsupported('Polygon', ['simplificationTolerance']);
+    }
   }
 
   const NativePolygonView = React.useMemo(() => getNativePolygonView(), []);
@@ -22,7 +34,7 @@ function Polygon(props: PolygonProps) {
   // 归一化坐标数组
   const normalizedPoints = normalizeLatLngList(points);
 
-  return <NativePolygonView points={normalizedPoints} {...restProps} />;
+  return <NativePolygonView points={normalizedPoints} {...harmonyLayoutGuardProps} {...restProps} />;
 }
 
 /**

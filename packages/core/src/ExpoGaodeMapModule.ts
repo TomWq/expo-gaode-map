@@ -1,4 +1,4 @@
-import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import { DeviceEventEmitter, NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 
 import {
   LatLng,
@@ -96,13 +96,61 @@ function normalizeGeoLanguage(language: GeoLanguage | string): GeoLanguage {
   }
 }
 
-function normalizeLocationResult<T extends Coordinates | ReGeocode>(location: T): T {
-  const rawLocation = location as T & { bearing?: number; heading?: number };
-  const heading = rawLocation.heading ?? rawLocation.bearing ?? 0;
+function normalizeLocationResult(
+  location: Coordinates | ReGeocode | Record<string, unknown>
+): Coordinates | ReGeocode {
+  const rawLocation = location as Partial<ReGeocode> & Record<string, unknown>;
+  const heading = Number(rawLocation.heading ?? rawLocation.bearing ?? 0);
+
+  const coordinates: Coordinates = {
+    latitude: Number(rawLocation.latitude ?? 0),
+    longitude: Number(rawLocation.longitude ?? 0),
+    altitude: Number(rawLocation.altitude ?? 0),
+    accuracy: Number(rawLocation.accuracy ?? 0),
+    heading,
+    speed: Number(rawLocation.speed ?? 0),
+    timestamp: Number(rawLocation.timestamp ?? Date.now()),
+    isAvailableCoordinate: typeof rawLocation.isAvailableCoordinate === 'boolean'
+      ? rawLocation.isAvailableCoordinate
+      : undefined,
+    address: typeof rawLocation.address === 'string' ? rawLocation.address : undefined,
+  };
+
+  const hasReGeocodeFields =
+    typeof rawLocation.address === 'string' &&
+    typeof rawLocation.country === 'string' &&
+    typeof rawLocation.province === 'string' &&
+    typeof rawLocation.city === 'string' &&
+    typeof rawLocation.district === 'string' &&
+    typeof rawLocation.cityCode === 'string' &&
+    typeof rawLocation.adCode === 'string' &&
+    typeof rawLocation.street === 'string' &&
+    typeof rawLocation.streetNumber === 'string' &&
+    typeof rawLocation.poiName === 'string' &&
+    typeof rawLocation.aoiName === 'string';
+
+  if (!hasReGeocodeFields) {
+    return coordinates;
+  }
 
   return {
-    ...rawLocation,
-    heading,
+    ...coordinates,
+    address: String(rawLocation.address),
+    country: String(rawLocation.country),
+    province: String(rawLocation.province),
+    city: String(rawLocation.city),
+    district: String(rawLocation.district),
+    cityCode: String(rawLocation.cityCode),
+    adCode: String(rawLocation.adCode),
+    street: String(rawLocation.street),
+    streetNumber: String(rawLocation.streetNumber),
+    poiName: String(rawLocation.poiName),
+    aoiName: String(rawLocation.aoiName),
+    description: typeof rawLocation.description === 'string' ? rawLocation.description : undefined,
+    coordType: rawLocation.coordType === 'GCJ02' || rawLocation.coordType === 'WGS84'
+      ? (rawLocation.coordType as 'GCJ02' | 'WGS84')
+      : undefined,
+    buildingId: typeof rawLocation.buildingId === 'string' ? rawLocation.buildingId : undefined,
   };
 }
 
@@ -420,6 +468,27 @@ function assertPrivacyReady(scene: 'map' | 'sdk' = 'sdk'): void {
   }
 }
 
+function addHarmonyDeviceEventListener(
+  eventName: 'onLocationUpdate' | 'onHeadingUpdate',
+  listener: (payload: Record<string, unknown>) => void
+): { remove: () => void } | null {
+  if (!isHarmonyPlatform()) {
+    return null;
+  }
+
+  try {
+    const subscription = DeviceEventEmitter.addListener(eventName, listener);
+    return {
+      remove: () => {
+        subscription.remove();
+      },
+    };
+  } catch (error) {
+    ErrorLogger.warn(`Harmony device event listener setup failed for ${eventName}`, { error });
+    return null;
+  }
+}
+
 // 扩展原生模块，添加便捷方法
 const helperMethods = {
 
@@ -680,6 +749,38 @@ const helperMethods = {
     }
   },
 
+  startUpdatingHeading(): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) return;
+    const startHeading = nativeModule.startUpdatingHeading;
+    if (typeof startHeading !== 'function') {
+      ErrorLogger.warn('startUpdatingHeading 在当前原生模块上不可用');
+      return;
+    }
+    try {
+      startHeading.call(nativeModule);
+    } catch (error) {
+      ErrorLogger.warn('startUpdatingHeading 失败', { error });
+    }
+  },
+
+  stopUpdatingHeading(): void {
+    assertPrivacyReady('sdk');
+    const nativeModule = getNativeModule(true);
+    if (!nativeModule) return;
+    const stopHeading = nativeModule.stopUpdatingHeading;
+    if (typeof stopHeading !== 'function') {
+      ErrorLogger.warn('stopUpdatingHeading 在当前原生模块上不可用');
+      return;
+    }
+    try {
+      stopHeading.call(nativeModule);
+    } catch (error) {
+      ErrorLogger.warn('stopUpdatingHeading 失败', { error });
+    }
+  },
+
   isStarted(): Promise<boolean> {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
@@ -881,16 +982,25 @@ const helperMethods = {
     if (!module) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
-    if (!module.addListener) {
-      ErrorLogger.warn('Native module does not support events');
-      return {
-        remove: () => { },
-      };
+
+    if (module.addListener) {
+      const subscription = module.addListener('onLocationUpdate', (location) => {
+        listener(normalizeLocationResult(location));
+      });
+      if (subscription && typeof subscription.remove === 'function') {
+        return subscription;
+      }
     }
 
-    return module.addListener('onLocationUpdate', (location) => {
+    const harmonySubscription = addHarmonyDeviceEventListener('onLocationUpdate', (location) => {
       listener(normalizeLocationResult(location));
-    }) || {
+    });
+    if (harmonySubscription) {
+      return harmonySubscription;
+    }
+
+    ErrorLogger.warn('Native module does not support events');
+    return {
       remove: () => { },
     };
   },
@@ -905,16 +1015,25 @@ const helperMethods = {
     if (!module) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
-    if (!module.addListener) {
-      ErrorLogger.warn('Native module does not support events');
-      return {
-        remove: () => { },
-      };
+
+    if (module.addListener) {
+      const subscription = module.addListener('onHeadingUpdate', (heading) => {
+        listener(normalizeHeadingEvent(heading));
+      });
+      if (subscription && typeof subscription.remove === 'function') {
+        return subscription;
+      }
     }
 
-    return module.addListener('onHeadingUpdate', (heading) => {
+    const harmonySubscription = addHarmonyDeviceEventListener('onHeadingUpdate', (heading) => {
       listener(normalizeHeadingEvent(heading));
-    }) || {
+    });
+    if (harmonySubscription) {
+      return harmonySubscription;
+    }
+
+    ErrorLogger.warn('Native module does not support events');
+    return {
       remove: () => { },
     };
   },

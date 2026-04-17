@@ -5,7 +5,7 @@
   "main": "index.ets",
   "license": "MIT",
   "dependencies": {
-    "@rnoh/react-native-openharmony": "0.72.82",
+    "@rnoh/react-native-openharmony": "0.82.23",
     "@amap/amap_lbs_map3d": ">=11.1.101",
     "@amap/amap_lbs_search": ">=11.1.101",
     "@amap/amap_lbs_location": ">=11.1.101",

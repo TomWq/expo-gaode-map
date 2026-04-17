@@ -17,15 +17,61 @@ import {
   TraceJSBundleProviderDecorator,
   RNOHCoreContext
 } from '@rnoh/react-native-openharmony';
-import { ExpoGaodeMapView } from 'expo-gaode-map';
+import {
+  CircleView,
+  ExpoGaodeMapView,
+  HeatMapView,
+  MarkerView,
+  MultiPointView,
+  PolygonView,
+  PolylineView,
+} from 'expo-gaode-map';
 import { createRNPackages } from '../RNPackagesFactory';
 
-const arkTsComponentNames: Array<string> = [ExpoGaodeMapView.NAME];
+const arkTsComponentNames: Array<string> = [
+  ExpoGaodeMapView.NAME,
+  MarkerView.NAME,
+  PolylineView.NAME,
+  PolygonView.NAME,
+  CircleView.NAME,
+  HeatMapView.NAME,
+  MultiPointView.NAME,
+];
 
 @Builder
 export function buildCustomRNComponent(ctx: ComponentBuilderContext) {
   if (ctx.componentName === ExpoGaodeMapView.NAME) {
     ExpoGaodeMapView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
+    });
+  } else if (ctx.componentName === MarkerView.NAME) {
+    MarkerView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
+    });
+  } else if (ctx.componentName === PolylineView.NAME) {
+    PolylineView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
+    });
+  } else if (ctx.componentName === PolygonView.NAME) {
+    PolygonView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
+    });
+  } else if (ctx.componentName === CircleView.NAME) {
+    CircleView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
+    });
+  } else if (ctx.componentName === HeatMapView.NAME) {
+    HeatMapView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
+    });
+  } else if (ctx.componentName === MultiPointView.NAME) {
+    MultiPointView({
       ctx: ctx.rnComponentContext,
       tag: ctx.tag,
     });

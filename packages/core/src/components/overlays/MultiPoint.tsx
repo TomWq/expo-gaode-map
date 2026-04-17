@@ -13,13 +13,17 @@ const getNativeMultiPoint = createLazyNativeViewManager<MultiPointProps>('MultiP
  * @returns 渲染原生高德地图多点标记组件
  */
 function MultiPoint(props: MultiPointProps) {
-  if (isHarmonyPlatform()) {
+  const harmony = isHarmonyPlatform();
+  const harmonyLayoutGuardProps = harmony
+    ? ({ collapsable: false } as { collapsable?: boolean })
+    : undefined;
+
+  if (harmony) {
     warnHarmonyOverlayUnsupported('MultiPoint');
-    return null;
   }
 
   const NativeMultiPoint = React.useMemo(() => getNativeMultiPoint(), []);
-  return <NativeMultiPoint {...props} />;
+  return <NativeMultiPoint {...props} {...harmonyLayoutGuardProps} />;
 }
 
 const MemoizedMultiPoint = React.memo(MultiPoint) as React.ComponentType<MultiPointProps> & {

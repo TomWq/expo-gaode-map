@@ -6,7 +6,7 @@
   "author": "",
   "license": "",
   "dependencies": {
-    "@rnoh/react-native-openharmony": "0.72.82",
+    "@rnoh/react-native-openharmony": "0.82.23",
     "expo-gaode-map": "file:../../../packages/core/harmony/expo_gaode_map"
   }
 }

@@ -1,4 +1,3 @@
-import { CameraPosition } from '@amap/amap_lbs_map3d';
 
 export interface IndoorMapFeature {
   showIndoorMap?: (enabled: boolean) => void;

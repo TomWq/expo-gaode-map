@@ -5,7 +5,7 @@ import type { MarkerProps } from '../../types';
 import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
-import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
+import { isHarmonyPlatform, warnHarmonyOverlayPropUnsupported } from './harmonyOverlayFallback';
 
 type NativeMarkerViewProps = Omit<MarkerProps, 'position'> & {
   latitude: number;
@@ -58,10 +58,7 @@ function areSmoothMovePathsEqual(
  * - 所有事件回调
  */
 function Marker(props: MarkerProps) {
-  if (isHarmonyPlatform()) {
-    warnHarmonyOverlayUnsupported('Marker');
-    return null;
-  }
+  const harmony = isHarmonyPlatform();
 
   const NativeMarkerView = React.useMemo(() => getNativeMarkerView(), []);
   const [measuredSize, setMeasuredSize] = React.useState(AUTO_SIZE_FALLBACK);
@@ -77,15 +74,29 @@ function Marker(props: MarkerProps) {
     cacheKey,
     ...restProps
   } = props;
+
+  if (harmony) {
+    if (smoothMovePath != null || props.smoothMoveDuration != null) {
+      warnHarmonyOverlayPropUnsupported('Marker', ['smoothMovePath', 'smoothMoveDuration']);
+    }
+    if (iconWidth != null || iconHeight != null) {
+      warnHarmonyOverlayPropUnsupported('Marker', ['iconWidth', 'iconHeight']);
+    }
+    if (props.icon != null && typeof props.icon !== 'string') {
+      warnHarmonyOverlayPropUnsupported('Marker', ['icon(ImageSource)']);
+    }
+  }
   
   // 归一化坐标处理
   const normalizedPosition = normalizeLatLng(position);
-  const normalizedSmoothMovePath = smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined;
+  const normalizedSmoothMovePath = harmony
+    ? undefined
+    : (smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined);
 
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
-  const shouldWrapChildrenForMeasurement = hasChildren;
-  const shouldUseAutoMeasuredSize = Platform.OS === 'ios';
+  const shouldWrapChildrenForMeasurement = hasChildren && !harmony;
+  const shouldUseAutoMeasuredSize = Platform.OS === 'ios' && !harmony;
   const resolvedCustomViewWidth = customViewWidth && customViewWidth > 0
     ? customViewWidth
     : (shouldUseAutoMeasuredSize ? measuredSize.width : 0);
@@ -191,6 +202,41 @@ function Marker(props: MarkerProps) {
     : (iconHeight && iconHeight > 0 ? iconHeight : 40);
 
   const optionalNativeProps = cacheKey != null ? { cacheKey } : undefined;
+  const iconProp = harmony && typeof props.icon !== 'string' ? undefined : props.icon;
+  const renderedChildren = hasChildren && shouldWrapChildrenForMeasurement ? (
+    <View
+      collapsable={false}
+      onLayout={Platform.OS === 'ios' ? handleAutoMeasure : undefined}
+      style={styles.measureContainer}
+    >
+      {children}
+    </View>
+  ) : children;
+
+  if (harmony) {
+    return (
+      <NativeMarkerView
+        latitude={normalizedPosition.latitude}
+        longitude={normalizedPosition.longitude}
+        title={props.title}
+        snippet={props.snippet}
+        pinColor={props.pinColor}
+        draggable={props.draggable}
+        flat={props.flat}
+        zIndex={props.zIndex}
+        opacity={props.opacity}
+        anchor={props.anchor}
+        centerOffset={props.centerOffset}
+        icon={typeof iconProp === 'string' ? iconProp : undefined}
+        onMarkerPress={props.onMarkerPress}
+        onMarkerDragStart={props.onMarkerDragStart}
+        onMarkerDrag={props.onMarkerDrag}
+        onMarkerDragEnd={props.onMarkerDragEnd}
+      >
+        {renderedChildren}
+      </NativeMarkerView>
+    );
+  }
   
   return (
     <NativeMarkerView
@@ -203,16 +249,9 @@ function Marker(props: MarkerProps) {
       smoothMovePath={normalizedSmoothMovePath}
       {...optionalNativeProps}
       {...restProps}
+      icon={iconProp}
     >
-      {hasChildren && shouldWrapChildrenForMeasurement ? (
-        <View
-          collapsable={false}
-          onLayout={Platform.OS === 'ios' ? handleAutoMeasure : undefined}
-          style={styles.measureContainer}
-        >
-          {children}
-        </View>
-      ) : children}
+      {renderedChildren}
     </NativeMarkerView>
   );
 }

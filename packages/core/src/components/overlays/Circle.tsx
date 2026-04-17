@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { CircleProps } from '../../types';
 import { normalizeLatLng } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
-import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
+import { isHarmonyPlatform, warnHarmonyOverlayPropUnsupported } from './harmonyOverlayFallback';
 
 const getNativeCircleView = createLazyNativeViewManager<CircleProps>('CircleView');
 
@@ -14,9 +14,13 @@ const getNativeCircleView = createLazyNativeViewManager<CircleProps>('CircleView
  * @returns 渲染原生圆形组件
  */
 function Circle(props: CircleProps) {
-  if (isHarmonyPlatform()) {
-    warnHarmonyOverlayUnsupported('Circle');
-    return null;
+  const harmony = isHarmonyPlatform();
+  const harmonyLayoutGuardProps = harmony
+    ? ({ collapsable: false } as { collapsable?: boolean })
+    : undefined;
+
+  if (harmony && props.onCirclePress) {
+    warnHarmonyOverlayPropUnsupported('Circle', ['onCirclePress']);
   }
 
   const NativeCircleView = React.useMemo(() => getNativeCircleView(), []);
@@ -26,6 +30,7 @@ function Circle(props: CircleProps) {
   return (
     <NativeCircleView 
       center={normalizedCenter}
+      {...harmonyLayoutGuardProps}
       {...restProps} 
     />
   );

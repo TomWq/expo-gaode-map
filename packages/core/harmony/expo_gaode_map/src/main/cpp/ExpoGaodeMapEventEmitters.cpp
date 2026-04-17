@@ -52,6 +52,20 @@ void ExpoGaodeMapViewEventEmitter::onLocation(onLocationEvent event) const {
   });
 }
 
+void ExpoGaodeMapViewEventEmitter::onCommandResult(onCommandResultEvent event) const {
+  dispatchEvent("CommandResult", [event = std::move(event)](jsi::Runtime &runtime) {
+    auto payload = jsi::Object(runtime);
+    payload.setProperty(runtime, "command", event.command);
+    payload.setProperty(runtime, "requestId", event.requestId);
+    payload.setProperty(runtime, "status", event.status);
+    payload.setProperty(runtime, "latitude", event.latitude);
+    payload.setProperty(runtime, "longitude", event.longitude);
+    payload.setProperty(runtime, "snapshotPath", event.snapshotPath);
+    payload.setProperty(runtime, "message", event.message);
+    return payload;
+  });
+}
+
 void ExpoGaodeMapViewEventEmitter::onCameraMove(onCameraEvent event) const {
   dispatchEvent("CameraMove", [event = std::move(event)](jsi::Runtime &runtime) {
     auto payload = jsi::Object(runtime);
@@ -109,6 +123,48 @@ void ExpoGaodeMapViewEventEmitter::onCameraIdle(onCameraEvent event) const {
     payload.setProperty(runtime, "latLngBounds", bounds);
 
     return payload;
+  });
+}
+
+void MarkerViewEventEmitter::onPress(onPressEvent event) const {
+  dispatchEvent("Press", [event = std::move(event)](jsi::Runtime &runtime) {
+    auto payload = jsi::Object(runtime);
+    payload.setProperty(runtime, "latitude", event.latitude);
+    payload.setProperty(runtime, "longitude", event.longitude);
+    return payload;
+  });
+}
+
+void MarkerViewEventEmitter::onDragStart(onDragStartEvent event) const {
+  dispatchEvent("DragStart", [event = std::move(event)](jsi::Runtime &runtime) {
+    auto payload = jsi::Object(runtime);
+    payload.setProperty(runtime, "latitude", event.latitude);
+    payload.setProperty(runtime, "longitude", event.longitude);
+    return payload;
+  });
+}
+
+void MarkerViewEventEmitter::onDrag(onDragEvent event) const {
+  dispatchEvent("Drag", [event = std::move(event)](jsi::Runtime &runtime) {
+    auto payload = jsi::Object(runtime);
+    payload.setProperty(runtime, "latitude", event.latitude);
+    payload.setProperty(runtime, "longitude", event.longitude);
+    return payload;
+  });
+}
+
+void MarkerViewEventEmitter::onDragEnd(onDragEndEvent event) const {
+  dispatchEvent("DragEnd", [event = std::move(event)](jsi::Runtime &runtime) {
+    auto payload = jsi::Object(runtime);
+    payload.setProperty(runtime, "latitude", event.latitude);
+    payload.setProperty(runtime, "longitude", event.longitude);
+    return payload;
+  });
+}
+
+void PolylineViewEventEmitter::onPress(onPressEvent) const {
+  dispatchEvent("Press", [](jsi::Runtime &runtime) {
+    return jsi::Object(runtime);
   });
 }
 

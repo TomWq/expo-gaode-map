@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { PolylineProps } from '../../types';
 import { normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
-import { isHarmonyPlatform, warnHarmonyOverlayUnsupported } from './harmonyOverlayFallback';
+import { isHarmonyPlatform, warnHarmonyOverlayPropUnsupported } from './harmonyOverlayFallback';
 const getNativePolylineView = createLazyNativeViewManager<PolylineProps>('PolylineView');
 
 /**
@@ -12,17 +12,20 @@ const getNativePolylineView = createLazyNativeViewManager<PolylineProps>('Polyli
  * @returns 高德地图原生折线视图组件
  */
 function Polyline(props: PolylineProps) {
-  if (isHarmonyPlatform()) {
-    warnHarmonyOverlayUnsupported('Polyline');
-    return null;
-  }
+  const harmony = isHarmonyPlatform();
+  const harmonyLayoutGuardProps = harmony
+    ? ({ collapsable: false } as { collapsable?: boolean })
+    : undefined;
 
   const NativePolylineView = React.useMemo(() => getNativePolylineView(), []);
   const { points, ...restProps } = props;
+  if (harmony && props.texture != null) {
+    warnHarmonyOverlayPropUnsupported('Polyline', ['texture']);
+  }
   // 归一化坐标数组
   const normalizedPoints = normalizeLatLngList(points);
   
-  return <NativePolylineView points={normalizedPoints} {...restProps} />;
+  return <NativePolylineView points={normalizedPoints} {...harmonyLayoutGuardProps} {...restProps} />;
 }
 
 /**

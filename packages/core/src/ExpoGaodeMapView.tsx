@@ -8,10 +8,6 @@ import type {
   LatLng,
   Point,
   LatLngPoint,
-  MarkerProps,
-  PolylineProps,
-  PolygonProps,
-  CircleProps,
 } from './types';
 import ExpoGaodeMapModule, { getSDKConfig } from './ExpoGaodeMapModule';
 
@@ -20,19 +16,14 @@ import { MapContext } from './components/MapContext';
 import { MapUI } from './components/MapUI';
 import { createLazyNativeViewManager } from './utils/lazyNativeViewManager';
 import { View, StyleSheet, Platform, UIManager, findNodeHandle } from 'react-native';
-import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
+import { normalizeLatLng } from './utils/GeoUtils';
 import type { FitToCoordinatesOptions } from './types/route-playback.types';
 import { fitCameraToCoordinates } from './utils/RouteUtils';
-import { warnHarmonyOverlayPropUnsupported } from './components/overlays/harmonyOverlayFallback';
 
 export type { MapViewRef } from './types';
 
 type HarmonyNativeMapViewProps = MapViewProps & {
   harmonyApiKey?: string;
-  harmonyMarkers?: HarmonyMarkerOverlayDescriptor[];
-  harmonyPolylines?: HarmonyPolylineOverlayDescriptor[];
-  harmonyPolygons?: HarmonyPolygonOverlayDescriptor[];
-  harmonyCircles?: HarmonyCircleOverlayDescriptor[];
   onCommandResult?: (event: {
     nativeEvent?: {
       type?: string;
@@ -45,144 +36,14 @@ type HarmonyNativeMapViewProps = MapViewProps & {
       message?: string;
     };
   }) => void;
-  onHarmonyMarkerPress?: (event: {
-    nativeEvent?: {
-      type?: string;
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => void;
-  onHarmonyMarkerDragStart?: (event: {
-    nativeEvent?: {
-      type?: string;
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => void;
-  onHarmonyMarkerDrag?: (event: {
-    nativeEvent?: {
-      type?: string;
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => void;
-  onHarmonyMarkerDragEnd?: (event: {
-    nativeEvent?: {
-      type?: string;
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => void;
-  onHarmonyPolylinePress?: (event: {
-    nativeEvent?: {
-      type?: string;
-      overlayId?: string;
-    };
-  }) => void;
   ref?: React.Ref<MapViewRef>;
 };
 const getNativeView = createLazyNativeViewManager<HarmonyNativeMapViewProps>('ExpoGaodeMapView');
 const isHarmonyPlatform = (): boolean => (Platform.OS as string) === 'harmony';
 
-type OverlayKind = 'Marker' | 'Polyline' | 'Polygon' | 'Circle' | 'HeatMap' | 'MultiPoint' | 'Cluster';
-
-type OverlayComponentLike = {
-  expoGaodeOverlayType?: OverlayKind;
-  type?: {
-    expoGaodeOverlayType?: OverlayKind;
-  };
+type ChildComponentLike = {
   isMapUI?: boolean;
 };
-
-type HarmonyMarkerOverlayDescriptor = {
-  id: string;
-  latitude: number;
-  longitude: number;
-  title?: string;
-  snippet?: string;
-  draggable?: boolean;
-  flat?: boolean;
-  zIndex?: number;
-  anchorX?: number;
-  anchorY?: number;
-  alpha?: number;
-  icon?: string;
-};
-
-type HarmonyPolylineOverlayDescriptor = {
-  id: string;
-  points: LatLng[];
-  strokeWidth?: number;
-  strokeColor?: string | number;
-  zIndex?: number;
-  colors?: Array<string | number>;
-  gradient?: boolean;
-  geodesic?: boolean;
-  dotted?: boolean;
-};
-
-type HarmonyPolygonOverlayDescriptor = {
-  id: string;
-  rings: LatLng[][];
-  strokeWidth?: number;
-  strokeColor?: string | number;
-  fillColor?: string | number;
-  zIndex?: number;
-};
-
-type HarmonyCircleOverlayDescriptor = {
-  id: string;
-  center: LatLng;
-  radius: number;
-  strokeWidth?: number;
-  strokeColor?: string | number;
-  fillColor?: string | number;
-  zIndex?: number;
-};
-
-type HarmonyMarkerCallbackRecord = {
-  onMarkerPress?: MarkerProps['onMarkerPress'];
-  onMarkerDragStart?: MarkerProps['onMarkerDragStart'];
-  onMarkerDrag?: MarkerProps['onMarkerDrag'];
-  onMarkerDragEnd?: MarkerProps['onMarkerDragEnd'];
-};
-
-type HarmonyOverlayParseResult = {
-  overlaysToRender: React.ReactNode[];
-  uiControls: React.ReactNode[];
-  markers: HarmonyMarkerOverlayDescriptor[];
-  polylines: HarmonyPolylineOverlayDescriptor[];
-  polygons: HarmonyPolygonOverlayDescriptor[];
-  circles: HarmonyCircleOverlayDescriptor[];
-  markerCallbacks: Map<string, HarmonyMarkerCallbackRecord>;
-  polylinePressCallbacks: Map<string, PolylineProps['onPolylinePress']>;
-};
-
-function getOverlayKind(childType: unknown): OverlayKind | undefined {
-  const component = childType as OverlayComponentLike | undefined;
-  if (!component) {
-    return undefined;
-  }
-  return component.expoGaodeOverlayType ?? component.type?.expoGaodeOverlayType;
-}
-
-function getOverlayStableId(kind: OverlayKind, childKey: string | number | null, index: number): string {
-  if (childKey != null && childKey !== '') {
-    return `${kind}:${String(childKey)}`;
-  }
-  return `${kind}:idx-${index}`;
-}
-
-function isNestedLatLngArray(value: LatLng[] | LatLng[][]): value is LatLng[][] {
-  if (value.length === 0) {
-    return false;
-  }
-  return Array.isArray(value[0]);
-}
 
 
 /**
@@ -222,8 +83,6 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
     reject: (reason: unknown) => void;
     timeoutId: ReturnType<typeof setTimeout>;
   }>());
-  const harmonyMarkerCallbacksRef = React.useRef(new Map<string, HarmonyMarkerCallbackRecord>());
-  const harmonyPolylinePressCallbacksRef = React.useRef(new Map<string, PolylineProps['onPolylinePress']>());
   const nextCommandRequestIdRef = React.useRef(1);
   const NativeView = React.useMemo(() => getNativeView(), []);
 
@@ -321,123 +180,6 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
 
       pending.reject(new Error(payload.message ?? 'takeSnapshot failed on Harmony native side'));
     }
-  }, []);
-
-  const handleHarmonyMarkerPress = React.useCallback((event: {
-    nativeEvent?: {
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => {
-    const payload = event.nativeEvent;
-    const overlayId = payload?.overlayId;
-    if (!overlayId) {
-      return;
-    }
-
-    const callbackRecord = harmonyMarkerCallbacksRef.current.get(overlayId);
-    if (!callbackRecord?.onMarkerPress) {
-      return;
-    }
-
-    const latitude = Number(payload.latitude ?? 0);
-    const longitude = Number(payload.longitude ?? 0);
-    callbackRecord.onMarkerPress({
-      nativeEvent: { latitude, longitude },
-    } as Parameters<NonNullable<MarkerProps['onMarkerPress']>>[0]);
-  }, []);
-
-  const handleHarmonyMarkerDragStart = React.useCallback((event: {
-    nativeEvent?: {
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => {
-    const payload = event.nativeEvent;
-    const overlayId = payload?.overlayId;
-    if (!overlayId) {
-      return;
-    }
-
-    const callbackRecord = harmonyMarkerCallbacksRef.current.get(overlayId);
-    if (!callbackRecord?.onMarkerDragStart) {
-      return;
-    }
-
-    callbackRecord.onMarkerDragStart({
-      nativeEvent: {
-        latitude: Number(payload.latitude ?? 0),
-        longitude: Number(payload.longitude ?? 0),
-      },
-    } as Parameters<NonNullable<MarkerProps['onMarkerDragStart']>>[0]);
-  }, []);
-
-  const handleHarmonyMarkerDrag = React.useCallback((event: {
-    nativeEvent?: {
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => {
-    const payload = event.nativeEvent;
-    const overlayId = payload?.overlayId;
-    if (!overlayId) {
-      return;
-    }
-
-    const callbackRecord = harmonyMarkerCallbacksRef.current.get(overlayId);
-    if (!callbackRecord?.onMarkerDrag) {
-      return;
-    }
-
-    callbackRecord.onMarkerDrag({
-      nativeEvent: {
-        latitude: Number(payload.latitude ?? 0),
-        longitude: Number(payload.longitude ?? 0),
-      },
-    } as Parameters<NonNullable<MarkerProps['onMarkerDrag']>>[0]);
-  }, []);
-
-  const handleHarmonyMarkerDragEnd = React.useCallback((event: {
-    nativeEvent?: {
-      overlayId?: string;
-      latitude?: number;
-      longitude?: number;
-    };
-  }) => {
-    const payload = event.nativeEvent;
-    const overlayId = payload?.overlayId;
-    if (!overlayId) {
-      return;
-    }
-
-    const callbackRecord = harmonyMarkerCallbacksRef.current.get(overlayId);
-    if (!callbackRecord?.onMarkerDragEnd) {
-      return;
-    }
-
-    callbackRecord.onMarkerDragEnd({
-      nativeEvent: {
-        latitude: Number(payload.latitude ?? 0),
-        longitude: Number(payload.longitude ?? 0),
-      },
-    } as Parameters<NonNullable<MarkerProps['onMarkerDragEnd']>>[0]);
-  }, []);
-
-  const handleHarmonyPolylinePress = React.useCallback((event: {
-    nativeEvent?: {
-      overlayId?: string;
-    };
-  }) => {
-    const overlayId = event.nativeEvent?.overlayId;
-    if (!overlayId) {
-      return;
-    }
-
-    const callback = harmonyPolylinePressCallbacksRef.current.get(overlayId);
-    callback?.({ nativeEvent: {} } as Parameters<NonNullable<PolylineProps['onPolylinePress']>>[0]);
   }, []);
 
   React.useEffect(() => {
@@ -695,170 +437,27 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
 
   // 分离 children：区分原生覆盖物和普通 UI 组件
   const { children, style, ...otherProps } = props;
-  const harmonyOverlayParseResult = React.useMemo<HarmonyOverlayParseResult>(() => {
-    const result: HarmonyOverlayParseResult = {
-      overlaysToRender: [],
-      uiControls: [],
-      markers: [],
-      polylines: [],
-      polygons: [],
-      circles: [],
-      markerCallbacks: new Map<string, HarmonyMarkerCallbackRecord>(),
-      polylinePressCallbacks: new Map<string, PolylineProps['onPolylinePress']>(),
-    };
+  const splitChildren = React.useMemo(() => {
+    const nativeChildren: React.ReactNode[] = [];
+    const uiControls: React.ReactNode[] = [];
 
-    React.Children.forEach(children, (child, index) => {
+    React.Children.forEach(children, (child) => {
       if (!React.isValidElement(child)) {
-        result.overlaysToRender.push(child);
+        nativeChildren.push(child);
         return;
       }
 
-      const childType = child.type as OverlayComponentLike;
+      const childType = child.type as ChildComponentLike;
       if (child.type === MapUI || childType?.isMapUI) {
-        result.uiControls.push(child);
+        uiControls.push(child);
         return;
       }
 
-      if (!isHarmonyPlatform()) {
-        result.overlaysToRender.push(child);
-        return;
-      }
-
-      const overlayKind = getOverlayKind(child.type);
-      if (!overlayKind) {
-        result.overlaysToRender.push(child);
-        return;
-      }
-
-      const overlayId = getOverlayStableId(overlayKind, child.key, index);
-
-      if (overlayKind === 'Marker') {
-        const markerProps = child.props as MarkerProps;
-        const normalizedPosition = normalizeLatLng(markerProps.position);
-        const icon = typeof markerProps.icon === 'string' ? markerProps.icon : undefined;
-
-        if (markerProps.children != null) {
-          warnHarmonyOverlayPropUnsupported('Marker', ['children']);
-        }
-        if (markerProps.smoothMovePath != null || markerProps.smoothMoveDuration != null) {
-          warnHarmonyOverlayPropUnsupported('Marker', ['smoothMovePath', 'smoothMoveDuration']);
-        }
-        if (markerProps.iconWidth != null || markerProps.iconHeight != null) {
-          warnHarmonyOverlayPropUnsupported('Marker', ['iconWidth', 'iconHeight']);
-        }
-        if (markerProps.icon != null && typeof markerProps.icon !== 'string') {
-          warnHarmonyOverlayPropUnsupported('Marker', ['icon(ImageSource)']);
-        }
-        if (markerProps.pinColor != null) {
-          warnHarmonyOverlayPropUnsupported('Marker', ['pinColor']);
-        }
-
-        result.markers.push({
-          id: overlayId,
-          latitude: normalizedPosition.latitude,
-          longitude: normalizedPosition.longitude,
-          title: markerProps.title,
-          snippet: markerProps.snippet,
-          draggable: markerProps.draggable,
-          flat: markerProps.flat,
-          zIndex: markerProps.zIndex,
-          anchorX: markerProps.anchor?.x,
-          anchorY: markerProps.anchor?.y,
-          alpha: markerProps.opacity,
-          icon,
-        });
-
-        result.markerCallbacks.set(overlayId, {
-          onMarkerPress: markerProps.onMarkerPress,
-          onMarkerDragStart: markerProps.onMarkerDragStart,
-          onMarkerDrag: markerProps.onMarkerDrag,
-          onMarkerDragEnd: markerProps.onMarkerDragEnd,
-        });
-        return;
-      }
-
-      if (overlayKind === 'Polyline') {
-        const polylineProps = child.props as PolylineProps;
-        const normalizedPoints = normalizeLatLngList(polylineProps.points) as LatLng[];
-        if (polylineProps.texture != null) {
-          warnHarmonyOverlayPropUnsupported('Polyline', ['texture']);
-        }
-
-        result.polylines.push({
-          id: overlayId,
-          points: normalizedPoints,
-          strokeWidth: polylineProps.strokeWidth,
-          strokeColor: polylineProps.strokeColor,
-          zIndex: polylineProps.zIndex,
-          colors: polylineProps.colors as Array<string | number> | undefined,
-          gradient: polylineProps.gradient,
-          geodesic: polylineProps.geodesic,
-          dotted: polylineProps.dotted,
-        });
-
-        if (polylineProps.onPolylinePress) {
-          result.polylinePressCallbacks.set(overlayId, polylineProps.onPolylinePress);
-        }
-        return;
-      }
-
-      if (overlayKind === 'Polygon') {
-        const polygonProps = child.props as PolygonProps;
-        const normalizedPoints = normalizeLatLngList(
-          polygonProps.points as LatLngPoint[] | LatLngPoint[][]
-        ) as LatLng[] | LatLng[][];
-        const rings = isNestedLatLngArray(normalizedPoints) ? normalizedPoints : [normalizedPoints];
-
-        if (polygonProps.onPolygonPress) {
-          warnHarmonyOverlayPropUnsupported('Polygon', ['onPolygonPress']);
-        }
-        if (polygonProps.onPolygonSimplified) {
-          warnHarmonyOverlayPropUnsupported('Polygon', ['onPolygonSimplified']);
-        }
-        if (polygonProps.simplificationTolerance != null) {
-          warnHarmonyOverlayPropUnsupported('Polygon', ['simplificationTolerance']);
-        }
-
-        result.polygons.push({
-          id: overlayId,
-          rings,
-          strokeWidth: polygonProps.strokeWidth,
-          strokeColor: polygonProps.strokeColor,
-          fillColor: polygonProps.fillColor,
-          zIndex: polygonProps.zIndex,
-        });
-        return;
-      }
-
-      if (overlayKind === 'Circle') {
-        const circleProps = child.props as CircleProps;
-        if (circleProps.onCirclePress) {
-          warnHarmonyOverlayPropUnsupported('Circle', ['onCirclePress']);
-        }
-
-        result.circles.push({
-          id: overlayId,
-          center: normalizeLatLng(circleProps.center),
-          radius: Number(circleProps.radius),
-          strokeWidth: circleProps.strokeWidth,
-          strokeColor: circleProps.strokeColor,
-          fillColor: circleProps.fillColor,
-          zIndex: circleProps.zIndex,
-        });
-        return;
-      }
-
-      // HeatMap / MultiPoint / Cluster 暂不支持，保留原组件路径用于输出兼容告警
-      result.overlaysToRender.push(child);
+      nativeChildren.push(child);
     });
 
-    return result;
+    return { nativeChildren, uiControls };
   }, [children]);
-
-  React.useEffect(() => {
-    harmonyMarkerCallbacksRef.current = harmonyOverlayParseResult.markerCallbacks;
-    harmonyPolylinePressCallbacksRef.current = harmonyOverlayParseResult.polylinePressCallbacks;
-  }, [harmonyOverlayParseResult.markerCallbacks, harmonyOverlayParseResult.polylinePressCallbacks]);
 
   const sdkConfig = getSDKConfig();
   const harmonyApiKey = isHarmonyPlatform()
@@ -867,15 +466,6 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   const harmonyInternalEventProps = isHarmonyPlatform()
     ? {
       onCommandResult: handleHarmonyCommandResult,
-      onHarmonyMarkerPress: handleHarmonyMarkerPress,
-      onHarmonyMarkerDragStart: handleHarmonyMarkerDragStart,
-      onHarmonyMarkerDrag: handleHarmonyMarkerDrag,
-      onHarmonyMarkerDragEnd: handleHarmonyMarkerDragEnd,
-      onHarmonyPolylinePress: handleHarmonyPolylinePress,
-      harmonyMarkers: harmonyOverlayParseResult.markers,
-      harmonyPolylines: harmonyOverlayParseResult.polylines,
-      harmonyPolygons: harmonyOverlayParseResult.polygons,
-      harmonyCircles: harmonyOverlayParseResult.circles,
     }
     : undefined;
 
@@ -891,9 +481,9 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
           onCameraMove={handleCameraMove}
           onCameraIdle={handleCameraIdle}
         >
-          {harmonyOverlayParseResult.overlaysToRender}
+          {splitChildren.nativeChildren}
         </NativeView>
-        {harmonyOverlayParseResult.uiControls}
+        {splitChildren.uiControls}
       </View>
     </MapContext.Provider>
   );

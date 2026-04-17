@@ -1,4 +1,12 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {},
-  "extends": "expo/tsconfig.base"
+  "exclude": [
+    "node_modules",
+    "android",
+    "ios",
+    "rn-harmony-host",
+    ".expo",
+    "coverage"
+  ]
 }
