@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
-declare const require: ((id: string) => unknown) | undefined;
 
 // 导出类型定义（包含所有通用类型）
 export * from './types';
@@ -90,39 +89,10 @@ type PermissionHookOptions<TGetResult, TRequestResult> = {
   requestMethod: () => Promise<TRequestResult>;
 };
 
-type CreatePermissionHook = <TGetResult, TRequestResult>(
-  options: PermissionHookOptions<TGetResult, TRequestResult>
-) => () => readonly [
-  TGetResult | null,
-  () => Promise<TRequestResult>,
-  () => Promise<TGetResult>
-];
-
-const isHarmonyPlatform = (): boolean => (Platform.OS as string) === 'harmony';
-
-function optionalRequire(moduleName: string): unknown | null {
-  const runtimeRequire = (globalThis as { __r?: (id: string) => unknown }).__r
-    ?? (typeof require === 'function' ? require : null);
-  if (typeof runtimeRequire !== 'function') {
-    return null;
-  }
-
-  try {
-    return runtimeRequire(moduleName);
-  } catch {
-    return null;
-  }
-}
-
-function resolveExpoCreatePermissionHook(): CreatePermissionHook | null {
-  const expoModulesCore = optionalRequire('expo-modules-core') as {
-    createPermissionHook?: CreatePermissionHook;
-  } | null;
-  if (typeof expoModulesCore?.createPermissionHook === 'function') {
-    return expoModulesCore.createPermissionHook;
-  }
-  return null;
-}
+const isHarmonyPlatform = (): boolean => {
+  const os = (Platform.OS as string).toLowerCase();
+  return os === 'harmony' || os === 'ohos';
+};
 
 function createHarmonyPermissionHook<TGetResult, TRequestResult>(
   options: PermissionHookOptions<TGetResult, TRequestResult>
@@ -204,19 +174,46 @@ function createHarmonyPermissionHook<TGetResult, TRequestResult>(
   };
 }
 
+function createLegacyPermissionHook<TGetResult, TRequestResult>(
+  options: PermissionHookOptions<TGetResult, TRequestResult>
+): () => readonly [
+  TGetResult | null,
+  () => Promise<TRequestResult>,
+  () => Promise<TGetResult>
+] {
+  const { getMethod, requestMethod } = options;
+
+  return () => {
+    const [status, setStatus] = React.useState<TGetResult | null>(null);
+
+    const getPermission = React.useCallback(async (): Promise<TGetResult> => {
+      const nextStatus = await getMethod();
+      setStatus(nextStatus);
+      return nextStatus;
+    }, [getMethod]);
+
+    const requestPermission = React.useCallback(async (): Promise<TRequestResult> => {
+      const requestStatus = await requestMethod();
+      await getPermission();
+      return requestStatus;
+    }, [getPermission, requestMethod]);
+
+    React.useEffect(() => {
+      void getPermission();
+    }, [getPermission]);
+
+    return [status, requestPermission, getPermission] as const;
+  };
+}
+
 function createPermissionHookCompat<TGetResult, TRequestResult>(
   options: PermissionHookOptions<TGetResult, TRequestResult>
 ) {
-  const expoCreatePermissionHook = resolveExpoCreatePermissionHook();
-  if (expoCreatePermissionHook) {
-    return expoCreatePermissionHook(options);
+  if (isHarmonyPlatform()) {
+    return createHarmonyPermissionHook(options);
   }
 
-  if (!isHarmonyPlatform()) {
-    throw new Error('expo-modules-core.createPermissionHook is required on iOS/Android');
-  }
-
-  return createHarmonyPermissionHook(options);
+  return createLegacyPermissionHook(options);
 }
 
 

@@ -144,6 +144,7 @@ export struct ExpoGaodeMapView {
   private lastCameraMoveEventAt: number = 0;
   private cameraEventThrottleMs: number = 32;
   private hasLocationEverEnabled: boolean = false;
+  private hasAppliedInitialCameraPosition: boolean = false;
   private harmonyMarkers: HarmonyMarkerOverlay[] = [];
   private harmonyPolylines: HarmonyPolylineOverlay[] = [];
   private harmonyPolygons: HarmonyPolygonOverlay[] = [];
@@ -373,6 +374,7 @@ export struct ExpoGaodeMapView {
 
     this.aMap = undefined;
     this.mapView = undefined;
+    this.hasAppliedInitialCameraPosition = false;
   }
 
   private mapViewCreateCallback = (mapView?: MapView) => {
@@ -481,9 +483,10 @@ export struct ExpoGaodeMapView {
     uiSettings?.setMyLocationButtonEnabled(this.myLocationEnabled && this.myLocationButtonEnabled);
     this.applyHarmonyOverlays();
 
-    if (this.initialCameraPosition) {
+    if (this.initialCameraPosition && !this.hasAppliedInitialCameraPosition) {
       try {
         this.aMap.moveCamera(CameraUpdateFactory.newCameraPosition(this.initialCameraPosition));
+        this.hasAppliedInitialCameraPosition = true;
       } catch (error) {
         Logger.warn(`apply initialCameraPosition failed: ${JSON.stringify(error)}`);
       }
@@ -643,6 +646,20 @@ export struct ExpoGaodeMapView {
     );
   }
 
+  private applyHarmonyOverlays(): void {
+    if (!this.aMap || !this.overlayManager) {
+      return;
+    }
+
+    this.overlayManager.applyAll(
+      this.aMap,
+      this.harmonyMarkers,
+      this.harmonyPolylines,
+      this.harmonyPolygons,
+      this.harmonyCircles
+    );
+  }
+
   private bindMapListeners(): void {
     if (!this.aMap) {
       return;
@@ -662,6 +679,21 @@ export struct ExpoGaodeMapView {
 
     this.aMap.addOnPOIClickListener((poi: Poi) => {
       this.emitPressPoi(poi);
+    });
+
+    this.aMap.setOnMarkerClickListener((marker: Marker): boolean => {
+      this.emitHarmonyMarkerEvent('onHarmonyMarkerPress', marker);
+      return true;
+    });
+    this.aMap.setOnMarkerDragListener(
+      new OnMarkerDragListener(
+        (marker: Marker) => this.emitHarmonyMarkerEvent('onHarmonyMarkerDragStart', marker),
+        (marker: Marker) => this.emitHarmonyMarkerEvent('onHarmonyMarkerDrag', marker),
+        (marker: Marker) => this.emitHarmonyMarkerEvent('onHarmonyMarkerDragEnd', marker)
+      )
+    );
+    this.aMap.setOnPolylineClickListener((polyline: Polyline) => {
+      this.emitHarmonyPolylinePress(polyline);
     });
 
     this.aMap.setOnCameraChangeListener(
@@ -709,6 +741,35 @@ export struct ExpoGaodeMapView {
       latitude: Number(location?.latitude ?? 0),
       longitude: Number(location?.longitude ?? 0),
       accuracy: Number(location?.accuracy ?? 0),
+    });
+  }
+
+  private emitHarmonyMarkerEvent(
+    type: 'onHarmonyMarkerPress' | 'onHarmonyMarkerDragStart' | 'onHarmonyMarkerDrag' | 'onHarmonyMarkerDragEnd',
+    marker: Marker
+  ): void {
+    const overlayId = this.overlayManager?.resolveMarkerOverlayId(marker);
+    if (!overlayId) {
+      return;
+    }
+
+    const position = marker.getPosition();
+    this.ctx.rnInstance.emitComponentEvent(this.tag, EVENT_CHANNEL, {
+      type,
+      overlayId,
+      latitude: Number(position?.latitude ?? 0),
+      longitude: Number(position?.longitude ?? 0),
+    });
+  }
+
+  private emitHarmonyPolylinePress(polyline: Polyline): void {
+    const overlayId = this.overlayManager?.resolvePolylineOverlayId(polyline);
+    if (!overlayId) {
+      return;
+    }
+    this.ctx.rnInstance.emitComponentEvent(this.tag, EVENT_CHANNEL, {
+      type: 'onHarmonyPolylinePress',
+      overlayId,
     });
   }
 

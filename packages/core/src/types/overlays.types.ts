@@ -12,7 +12,7 @@ import type {
 
 /**
  * 标记点属性
- * @platform harmony 当前版本暂不支持（开发中）
+ * @platform harmony 支持基础渲染与点击/拖拽事件；自定义 React 子视图、平滑移动等高级能力暂不支持
  */
 export interface MarkerProps {
   /**
@@ -29,12 +29,14 @@ export interface MarkerProps {
   /**
    * 图标宽度（像素）
    * 仅在使用 icon 属性时有效
+   * @platform harmony 暂不支持（Harmony 原生按图标资源尺寸渲染）
    */
   iconWidth?: number;
 
   /**
    * 图标高度（像素）
    * 仅在使用 icon 属性时有效
+   * @platform harmony 暂不支持（Harmony 原生按图标资源尺寸渲染）
    */
   iconHeight?: number;
 
@@ -180,7 +182,7 @@ export interface MarkerProps {
 
 /**
  * 折线属性
- * @platform harmony 当前版本暂不支持（开发中）
+ * @platform harmony 支持基础渲染与点击事件；纹理贴图暂不支持
  */
 export interface PolylineProps {
   /**
@@ -240,6 +242,7 @@ export interface PolylineProps {
   /**
    * 纹理图片
    * 支持网络图片(http/https)、本地文件(file://)或资源名称
+   * @platform harmony 暂不支持
    */
   texture?: string;
 
@@ -251,7 +254,7 @@ export interface PolylineProps {
 
 /**
  * 多边形属性
- * @platform harmony 当前版本暂不支持（开发中）
+ * @platform harmony 支持基础渲染（含孔洞）；点击事件与简化回调暂不支持
  */
 export interface PolygonProps {
   /**
@@ -284,6 +287,7 @@ export interface PolygonProps {
 
   /**
    * 点击事件
+   * @platform harmony 暂不支持
    */
   onPolygonPress?: (event: NativeSyntheticEvent<{}>) => void;
 
@@ -291,18 +295,20 @@ export interface PolygonProps {
    * 轨迹抽稀容差（米）
    * 设置大于 0 的值时启用 RDP 算法简化多边形边界
    * 建议值为 1.0 - 5.0，值越大简化程度越高
+   * @platform harmony 暂不支持
    */
   simplificationTolerance?: number;
 
   /**
    * 简化完成事件
+   * @platform harmony 暂不支持
    */
   onPolygonSimplified?: (event: NativeSyntheticEvent<{ originalCount: number; simplifiedCount: number }>) => void;
 }
 
 /**
  * 圆形属性
- * @platform harmony 当前版本暂不支持（开发中）
+ * @platform harmony 支持基础渲染；点击事件暂不支持
  */
 export interface CircleProps {
   /**
@@ -338,6 +344,7 @@ export interface CircleProps {
 
   /**
    * 点击事件
+   * @platform harmony 暂不支持
    */
   onCirclePress?: (event: NativeSyntheticEvent<{}>) => void;
 

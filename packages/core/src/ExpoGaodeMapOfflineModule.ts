@@ -2,7 +2,7 @@
  * 高德地图离线地图原生模块
  */
 
-import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import { NativeModules, TurboModuleRegistry } from 'react-native';
 import type {
   OfflineMapInfo,
   OfflineMapDownloadConfig,
@@ -25,44 +25,28 @@ interface OfflineEventEmitter {
   removeListeners?(count: number): void;
 };
 
-type ExpoRequireNativeModule = <T>(moduleName: string) => T;
-declare const require: ((id: string) => unknown) | undefined;
-const isHarmonyPlatform = (): boolean => (Platform.OS as string) === 'harmony';
-
-function optionalRequire(moduleName: string): unknown | null {
-  const runtimeRequire = (globalThis as { __r?: (id: string) => unknown }).__r
-    ?? (typeof require === 'function' ? require : null);
-  if (typeof runtimeRequire !== 'function') {
+function resolveModuleFromExpoGlobal(moduleName: string): ExpoGaodeMapOfflineModule | null {
+  const expoGlobal = (globalThis as {
+    expo?: {
+      modules?: Record<string, unknown>;
+    };
+  }).expo;
+  const modules = expoGlobal?.modules;
+  if (!modules || typeof modules !== 'object') {
     return null;
   }
 
-  try {
-    return runtimeRequire(moduleName);
-  } catch {
+  const directModule = modules[moduleName] as ExpoGaodeMapOfflineModule | undefined;
+  if (directModule) {
+    return directModule;
+  }
+
+  const nativeModulesProxy = modules.NativeModulesProxy as Record<string, unknown> | undefined;
+  if (!nativeModulesProxy || typeof nativeModulesProxy !== 'object') {
     return null;
   }
-}
 
-function resolveExpoRequireNativeModule(): ExpoRequireNativeModule | null {
-  if (isHarmonyPlatform()) {
-    return null;
-  }
-
-  const expoPackage = optionalRequire('expo') as {
-    requireNativeModule?: ExpoRequireNativeModule;
-  } | null;
-  if (typeof expoPackage?.requireNativeModule === 'function') {
-    return expoPackage.requireNativeModule;
-  }
-
-  const expoModulesCore = optionalRequire('expo-modules-core') as {
-    requireNativeModule?: ExpoRequireNativeModule;
-  } | null;
-  if (typeof expoModulesCore?.requireNativeModule === 'function') {
-    return expoModulesCore.requireNativeModule;
-  }
-
-  return null;
+  return (nativeModulesProxy[moduleName] as ExpoGaodeMapOfflineModule | undefined) ?? null;
 }
 
 /**
@@ -240,28 +224,24 @@ function getNativeModule(optional = false): ExpoGaodeMapOfflineModule | null {
     return nativeModuleCache;
   }
 
-  if (isHarmonyPlatform()) {
-    const harmonyTurboModule = TurboModuleRegistry.get('ExpoGaodeMapOffline') as
-      | ExpoGaodeMapOfflineModule
-      | null;
-    if (harmonyTurboModule) {
-      nativeModuleCache = harmonyTurboModule;
-      return nativeModuleCache;
-    }
+  let resolvedModule: ExpoGaodeMapOfflineModule | null = null;
+  try {
+    resolvedModule = TurboModuleRegistry.get('ExpoGaodeMapOffline') as ExpoGaodeMapOfflineModule | null;
+  } catch {
+    resolvedModule = null;
+  }
 
-    const harmonyLegacyModule = NativeModules.ExpoGaodeMapOffline as
-      | ExpoGaodeMapOfflineModule
-      | undefined;
-    if (harmonyLegacyModule) {
-      nativeModuleCache = harmonyLegacyModule;
-      return nativeModuleCache;
-    }
-  } else {
-    const expoRequireNativeModule = resolveExpoRequireNativeModule();
-    if (expoRequireNativeModule) {
-      nativeModuleCache = expoRequireNativeModule<ExpoGaodeMapOfflineModule>('ExpoGaodeMapOffline');
-      return nativeModuleCache;
-    }
+  if (!resolvedModule) {
+    resolvedModule = (NativeModules.ExpoGaodeMapOffline as ExpoGaodeMapOfflineModule | undefined) ?? null;
+  }
+
+  if (!resolvedModule) {
+    resolvedModule = resolveModuleFromExpoGlobal('ExpoGaodeMapOffline');
+  }
+
+  if (resolvedModule) {
+    nativeModuleCache = resolvedModule;
+    return nativeModuleCache;
   }
 
   if (optional) {

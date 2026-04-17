@@ -112,6 +112,23 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         ensureLocationManager()?.stopUpdatingHeading()
     }
 
+    func requestSingleLocation(completion: @escaping (_ location: CLLocation?, _ reGeocode: AMapLocationReGeocode?, _ error: Error?) -> Void) {
+        guard let manager = ensureLocationManager() else {
+            let error = NSError(
+                domain: "ExpoGaodeMap",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "定位管理器未初始化，请先完成隐私协议确认"]
+            )
+            completion(nil, nil, error)
+            return
+        }
+
+        manager.requestLocation(
+            withReGeocode: manager.locatingWithReGeocode,
+            completionBlock: completion
+        )
+    }
+
     // MARK: - 初始化
 
     @discardableResult
