@@ -208,8 +208,8 @@ export default function MamScreen() {
         throw new Error('定位权限未授予');
       }
 
-      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
-      ExpoGaodeMapModule.setInterval(10000);
+  
+      
       ExpoGaodeMapModule.setDistanceFilter(0);
       ExpoGaodeMapModule.setDesiredAccuracy(3);
       ExpoGaodeMapModule.startUpdatingHeading();
