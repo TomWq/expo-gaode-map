@@ -703,8 +703,13 @@ public class ExpoGaodeMapModule: Module {
             if self.permissionManager == nil {
                 self.permissionManager = PermissionManager()
             }
-            
-            self.permissionManager?.requestPermission { granted, status in
+
+            guard let permissionManager = self.permissionManager else {
+                promise.reject("PERMISSION_MANAGER_INIT_FAILED", "权限管理器初始化失败")
+                return
+            }
+
+            permissionManager.requestPermission { _, _ in
                 // 无论结果如何,都延迟后再次检查最终状态
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     let finalStatus = self.currentAuthorizationStatus()
