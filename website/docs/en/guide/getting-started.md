@@ -38,6 +38,20 @@ npm install expo-gaode-map
 
 ```
 
+### Bare React Native (non-Expo managed) projects
+
+This package uses Expo Modules. In plain React Native apps, install Expo Modules first:
+
+```bash
+npx install-expo-modules@latest
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
+npx react-native run-android
+```
+
+If Expo Modules is already integrated in your app, you can skip `install-expo-modules`.
+
 ## Get API Keys
 
 1. Visit [AMap Open Platform](https://lbs.amap.com/)

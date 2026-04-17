@@ -78,13 +78,17 @@ npx expo run:android
 
 ### 纯 React Native 项目
 
-对于纯 React Native 项目，确保已安装 `expo` 包作为依赖：
+对于纯 React Native 项目（非 Expo 托管），请先接入 Expo Modules：
 
 ```bash
-npm install expo
-# 然后重新构建应用
+npx install-expo-modules@latest
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
 npx react-native run-android
 ```
+
+如果你的项目已经接入 Expo Modules，可以跳过 `install-expo-modules` 这一步。
 
 ## 配置
 

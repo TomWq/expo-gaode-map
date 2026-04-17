@@ -99,6 +99,25 @@ npm install expo-gaode-map-web-api     # Web API
 
 > ⚠️ **重要**：`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
 
+### 纯 React Native（非 Expo 托管）项目
+
+本库基于 Expo Modules 开发。如果你的项目是纯 React Native（不是 Expo 托管项目），请先接入 Expo Modules：
+
+```bash
+npx install-expo-modules@latest
+```
+
+然后安装本库并重新构建原生工程：
+
+```bash
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
+npx react-native run-android
+```
+
+如果你的项目已经接入了 Expo Modules，可以跳过 `install-expo-modules` 这一步。
+
 ### Config Plugin 配置（推荐）
 
 在 `app.json` 中配置，自动设置原生 API Key 和权限：
