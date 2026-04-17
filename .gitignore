@@ -71,3 +71,6 @@ RELEASE_GUIDE.md
 .trae
 
 coverage
+
+# Local Harmony host workspace (generated, not part of this repo)
+rn-harmony-host/
