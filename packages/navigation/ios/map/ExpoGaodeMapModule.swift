@@ -179,7 +179,7 @@ public class ExpoGaodeMapModule: Module {
             
             if status == .authorizedAlways || status == .authorizedWhenInUse {
                 let manager = self.getLocationManager()
-                manager.locationManager?.requestLocation(withReGeocode: manager.locationManager?.locatingWithReGeocode ?? true, completionBlock: { location, regeocode, error in
+                manager.requestSingleLocation { location, regeocode, error in
                     if let error = error {
                         promise.reject("LOCATION_ERROR", error.localizedDescription)
                         return
@@ -213,7 +213,7 @@ public class ExpoGaodeMapModule: Module {
                     }
                     
                     promise.resolve(locationData)
-                })
+                }
             } else {
                 promise.reject("LOCATION_ERROR", "location unauthorized")
             }
