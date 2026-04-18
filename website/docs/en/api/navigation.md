@@ -187,6 +187,55 @@ import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
 />
 ```
 
+### EmbeddedNaviView
+
+For embedded navigation screens inside your own React Native page, prefer `EmbeddedNaviView`.
+
+It still uses the native `NaviView` underneath, but adds a reusable library HUD for the top navigation info area so Android and iOS behave more consistently in embedded layouts.
+
+```typescript
+import React, { useRef } from 'react';
+import { EmbeddedNaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+
+function EmbeddedNavigationScreen() {
+  const naviRef = useRef<NaviViewRef>(null);
+
+  return (
+    <EmbeddedNaviView
+      ref={naviRef}
+      style={{ flex: 1 }}
+      naviType={1}
+      showDefaultHud={true}
+      showExitButton={true}
+      onExitPress={() => {
+        void naviRef.current?.stopNavigation();
+      }}
+    />
+  );
+}
+```
+
+Default behavior:
+
+- On Android, `hideNativeTopInfoLayout` defaults to `true` so the native top info panel does not overlap the custom HUD
+- On iOS, the component applies embedded-friendly defaults for `driveViewEdgePadding` and `screenAnchor`
+- The built-in HUD and exit button are enabled by default
+- The actual navigation map, guidance, voice, lane info, and cross images still come from the native `NaviView`
+
+Android embedded note:
+
+- In some React Native / Expo hosts, the official embedded `NaviView` top info panel, lane information, and cross-image transitions may differ from the official AMap demo / official black-box page
+- If your goal is a stable embedded navigation page, prefer `EmbeddedNaviView`
+- If you specifically want to verify the native official embedded UI, use the `official-embedded` page in the repo's `example-navigation` example app
+
+Use the right layer for the right job:
+
+- `NaviView`: native embedded navigation view
+- `EmbeddedNaviView`: reusable custom embedded UI built on top of `NaviView`
+- `openOfficialNaviPage`: official full-screen black-box route/navigation page
+
+`EmbeddedNaviView` is for embedded pages only. It is not a replacement for the official black-box page UI.
+
 ## Driving Strategies
 
 | Strategy | Description |
@@ -246,10 +295,37 @@ const result = await ExpoGaodeMapNavigationModule.calculateDriveRoute({
 - `strategy` - Route planning strategy
 - `onCalculateRouteSuccess` - Route calculation success callback
 - `onCalculateRouteFailure` - Route calculation failure callback
+- `naviStatusBarEnabled` - Android only; enables the official AMap navigation status bar when the underlying AMap SDK exposes that API
+
+### EmbeddedNaviView Extra Props
+
+- `showDefaultHud` - Shows the built-in top HUD for embedded navigation
+- `showDefaultLaneHud` - Shows the built-in custom lane HUD
+- `hideLaneHudWhenCrossVisible` - Hides the custom lane HUD when a cross image / model cross is visible
+- `laneHudPlacement` - Places the custom lane HUD at the top or bottom
+- `laneHudScale` - Scales the custom lane HUD
+- `laneHudCrossTopOffset` - Overrides the top offset used while the cross image is visible
+- `showExitButton` - Shows the default floating exit button
+- `exitButtonText` - Custom label for the default exit button
+- `onExitPress` - Callback when the default exit button is pressed
+
+Recommended usage:
+
+- Use `showDefaultHud={false}` if you want to render your own HUD entirely from `NaviView` events
+- Use `showDefaultLaneHud={false}` if you want to disable the library lane HUD
+- Pass `hideNativeTopInfoLayout={false}` explicitly if you want to keep the native embedded top info panel instead of relying on defaults
 
 ### Map Component
 
 The navigation package includes all map component features. See [Map View API](/en/api/mapview) for details.
+
+### Android SDK Compatibility
+
+- `naviStatusBarEnabled` depends on Android AMap SDK versions that expose `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`.
+- The module now applies this setting compatibly.
+- If the resolved AMap SDK in the host app does not provide that method, the module no longer fails compilation.
+- In that case, Android skips the setting at runtime and logs a warning, so `naviStatusBarEnabled` behaves as a no-op.
+- If you need this prop to actually take effect on Android, upgrade the host app's AMap navigation SDK to a version that includes the API.
 
 ## Related Documentation
 

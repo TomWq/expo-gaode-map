@@ -200,7 +200,7 @@ export default function MamScreen() {
       );
 
       ExpoGaodeMapModule.initSDK({
-        webKey:'9f59c9453ccc5e9798983d4922afbd09'
+        webKey:''
       });
 
       const permission = await ExpoGaodeMapModule.requestLocationPermission();

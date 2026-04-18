@@ -10,6 +10,7 @@ import Foundation
 import AMapNaviKit
 
 class IndependentRouteManager {
+  static let shared = IndependentRouteManager()
   
   private var routeGroups: [Int: AMapNaviRouteGroup] = [:]
   private var nextToken: Int = 1

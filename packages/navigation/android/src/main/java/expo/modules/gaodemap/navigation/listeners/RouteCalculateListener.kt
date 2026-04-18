@@ -49,7 +49,7 @@ class RouteCalculateListener(
           Converters.convertDriveRouteResult(navi.naviPaths)
         } else {
           val path = navi.naviPath
-          if (path != null) Converters.convertNaviPath(path) else mapOf<String, Any?>()
+          if (path != null) Converters.convertNaviPath(path, 12) else mapOf<String, Any?>()
         }
       } else {
         Converters.convertDriveRouteResult(navi.naviPaths)

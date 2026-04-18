@@ -12,8 +12,7 @@ import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.gaodemap.navigation.routes.drive.DriveTruckRouteCalculator
 import expo.modules.gaodemap.navigation.routes.walkride.WalkRideRouteCalculator
 import expo.modules.gaodemap.navigation.routes.ebike.EbikeRouteCalculator
-import expo.modules.gaodemap.navigation.listeners.IndependentRouteListener
-import expo.modules.gaodemap.navigation.utils.Converters
+
 import expo.modules.gaodemap.navigation.managers.IndependentRouteManager
 import expo.modules.gaodemap.navigation.services.IndependentRouteService
 import java.util.Locale
@@ -43,7 +42,7 @@ class ExpoGaodeMapNavigationModule : Module() {
   private var ebikeCalculator: EbikeRouteCalculator? = null
 
   // 独立路径规划：在原生侧暂存路线组，委托独立管理器，避免 Module 膨胀
-  private val independentRouteManager = IndependentRouteManager()
+  private val independentRouteManager = IndependentRouteManager.shared
   private var independentRouteService: IndependentRouteService? = null
 
   @SuppressLint("SuspiciousIndentation")
@@ -213,8 +212,8 @@ class ExpoGaodeMapNavigationModule : Module() {
         val routeId = (options["routeId"] as? Number)?.toInt()
         val routeIndex = (options["routeIndex"] as? Number)?.toInt()
         val naviType = (options["naviType"] as? Number)?.toInt() ?: 0
-        val ok = independentRouteManager.start(context, token, naviType, routeId, routeIndex)
-        if (!ok) throw Exception("startNaviWithPath failed")
+        val result = independentRouteManager.start(context, token, naviType, routeId, routeIndex)
+        if (!result.success) throw Exception(result.message)
         promise.resolve(true)
       } catch (e: Exception) {
         promise.reject("START_NAVI_ERROR", e.message, e)

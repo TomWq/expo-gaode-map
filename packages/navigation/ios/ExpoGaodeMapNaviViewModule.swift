@@ -6,6 +6,7 @@
 //
 
 import ExpoModulesCore
+import UIKit
 
 public class ExpoGaodeMapNaviViewModule: Module {
   public func definition() -> ModuleDefinition {
@@ -27,7 +28,9 @@ public class ExpoGaodeMapNaviViewModule: Module {
         "onWayPointArrived",
         "onGpsStatusChanged",
         "onNavigationInfoUpdate",
-        "onGpsSignalWeak"
+        "onGpsSignalWeak",
+        "onNavigationVisualStateUpdate",
+        "onLaneInfoUpdate"
       )
       
       // 属性定义
@@ -95,6 +98,14 @@ public class ExpoGaodeMapNaviViewModule: Module {
       Prop("showTrafficButton") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.showTrafficButton = value
       }
+
+      Prop("showBackupRoute") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.showBackupRoute = value
+      }
+
+      Prop("showEagleMap") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.showEagleMap = value
+      }
       
       Prop("showUIElements") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.applyShowUIElements(value)
@@ -111,6 +122,22 @@ public class ExpoGaodeMapNaviViewModule: Module {
       Prop("showTrafficLights") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.showTrafficLights = value
       }
+
+      Prop("showCompassEnabled") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.showCompassEnabled = value
+      }
+
+      Prop("showDriveCongestion") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.showDriveCongestion = value
+      }
+
+      Prop("showTrafficLightView") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.showTrafficLightView = value
+      }
+
+      Prop("hideNativeLaneInfoLayout") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.hideNativeLaneInfoLayout = value
+      }
       
       Prop("mapViewModeType") { (view: ExpoGaodeMapNaviView, value: Int) in
         view.mapViewModeType = value
@@ -119,10 +146,28 @@ public class ExpoGaodeMapNaviViewModule: Module {
       Prop("lineWidth") { (view: ExpoGaodeMapNaviView, value: Double) in
         view.lineWidth = CGFloat(value)
       }
+
+      Prop("driveViewEdgePadding") { (view: ExpoGaodeMapNaviView, value: [String: Double]?) in
+        let top = CGFloat(value?["top"] ?? 0)
+        let left = CGFloat(value?["left"] ?? 0)
+        let bottom = CGFloat(value?["bottom"] ?? 0)
+        let right = CGFloat(value?["right"] ?? 0)
+        view.driveViewEdgePadding = UIEdgeInsets(top: top, left: left, bottom: bottom, right: right)
+      }
+
+      Prop("screenAnchor") { (view: ExpoGaodeMapNaviView, value: [String: Double]?) in
+        let x = CGFloat(value?["x"] ?? 0)
+        let y = CGFloat(value?["y"] ?? 0)
+        view.screenAnchor = CGPoint(x: x, y: y)
+      }
       
       // 方法定义
       AsyncFunction("startNavigation") { (view: ExpoGaodeMapNaviView, startLat: Double, startLng: Double, endLat: Double, endLng: Double, promise: Promise) in
         view.startNavigation(startLat: startLat, startLng: startLng, endLat: endLat, endLng: endLng, promise: promise)
+      }
+
+      AsyncFunction("startNavigationWithIndependentPath") { (view: ExpoGaodeMapNaviView, token: Int, routeId: Int?, routeIndex: Int?, naviType: Int?, promise: Promise) in
+        view.startNavigationWithIndependentPath(token: token, routeId: routeId, routeIndex: routeIndex, naviType: naviType, promise: promise)
       }
       
       AsyncFunction("stopNavigation") { (view: ExpoGaodeMapNaviView, promise: Promise) in

@@ -422,6 +422,8 @@ const result = await api.route.driving(
     waypoints: ['116.45,39.95', '116.46,39.94'], // 途经点
     strategy: DrivingStrategy.AVOID_JAM, // 躲避拥堵（新版使用33）
     show_fields: 'cost,navi,polyline', // 返回成本、导航、坐标信息
+    avoidroad: '京通快速路', // 避让道路名称
+    avoidpolygons: '116.39,39.90;116.40,39.90;116.40,39.91;116.39,39.91', // 避让区域
     plate: '京AHA322', // 车牌号（用于判断限行）
     cartype: 0, // 车辆类型：0-燃油，1-纯电，2-插混
     ferry: 0, // 是否使用轮渡：0-使用，1-不使用

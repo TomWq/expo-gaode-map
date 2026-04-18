@@ -1,3 +1,4 @@
+import type { Coordinates } from './coordinates.types';
 import type { RouteResult } from './route.types';
 
 /**
@@ -13,6 +14,102 @@ export interface IndependentRouteResult {
   mainPathIndex: number;
   routeIds: number[];
   routes: RouteResult[];
+}
+
+export interface WebPlannedRouteStep {
+  /** Web 路线分段点集 */
+  polyline?: Coordinates[];
+  /** 主动作（可选） */
+  action?: string;
+  /** 辅助动作（可选） */
+  assistantAction?: string;
+}
+
+export interface WebPlannedRoute {
+  /** Web 规划出的完整折线 */
+  polyline: Coordinates[];
+  /** 可选步骤信息 */
+  steps?: WebPlannedRouteStep[];
+}
+
+export interface BuildAnchorWaypointsOptions {
+  /** Web 路线 */
+  webRoute: WebPlannedRoute;
+  /** 最大途经点数量（不含起终点） */
+  maxViaPoints?: number;
+  /** 抽稀容差（米） */
+  simplifyTolerance?: number;
+  /** 相邻锚点的最小间距（米） */
+  minSpacingMeters?: number;
+}
+
+export interface FollowWebPlannedRouteOptions extends BuildAnchorWaypointsOptions {
+  /** 起点 */
+  from: Coordinates;
+  /** 终点 */
+  to: Coordinates;
+  /** 驾车策略 */
+  strategy?: number;
+  /** 车牌号 */
+  carNumber?: string;
+  /** 是否考虑限行 */
+  restriction?: boolean;
+  /** 避让区域元信息（可选）。当前 followWebPlannedRoute 的原生匹配阶段不会再次直接透传该参数。 */
+  avoidPolygons?: Coordinates[][];
+  /** 避让道路元信息（可选）。当前 followWebPlannedRoute 的原生匹配阶段不会再次直接透传该参数。 */
+  avoidRoad?: string;
+  /** 判定“最大允许偏差”的阈值（米） */
+  maxDeviationMeters?: number;
+  /** 是否在匹配成功后直接启动导航 */
+  startNavigation?: boolean;
+  /** 导航类型：0 GPS / 1 模拟 */
+  naviType?: number;
+}
+
+export interface FollowWebPlannedRouteCandidate {
+  /** 路线 ID（若可用） */
+  routeId?: number;
+  /** 路线索引 */
+  routeIndex: number;
+  /** 平均偏差（米） */
+  averageDeviationMeters: number;
+  /** 最大偏差（米） */
+  maxDeviationMeters: number;
+  /** 未命中的锚点数量 */
+  missedAnchorCount: number;
+  /** 综合评分，越小越接近 */
+  score: number;
+}
+
+export interface FollowWebPlannedRouteResult {
+  /** 匹配模式 */
+  mode: 'matched' | 'approximate' | 'preview_only';
+  /** 独立算路 token */
+  token: number;
+  /** 提炼出的锚点 */
+  anchorWaypoints: Coordinates[];
+  /** Web 路线长度 */
+  webDistance: number;
+  /** 选中原生路线长度 */
+  nativeDistance?: number;
+  /** 选中路线 ID */
+  selectedRouteId?: number;
+  /** 选中路线索引 */
+  selectedRouteIndex?: number;
+  /** 选中路线平均偏差 */
+  averageDeviationMeters?: number;
+  /** 选中路线最大偏差 */
+  maxDeviationMeters?: number;
+  /** 是否已启动导航 */
+  navigationStarted: boolean;
+  /** 最终用于导航的路线是否仍依赖锚点途经点 */
+  navigationUsesAnchorWaypoints: boolean;
+  /** 原生独立算路结果 */
+  independentResult: IndependentRouteResult;
+  /** 候选路线匹配结果 */
+  candidateMatches: FollowWebPlannedRouteCandidate[];
+  /** 说明 */
+  reason?: string;
 }
 
 /**

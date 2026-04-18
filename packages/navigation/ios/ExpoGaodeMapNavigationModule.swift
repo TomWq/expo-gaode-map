@@ -21,7 +21,7 @@ public class ExpoGaodeMapNavigationModule: Module {
   private var walkRideCalculator: WalkRideRouteCalculator?
   
   // 独立路径规划管理
-  private let independentRouteManager = IndependentRouteManager()
+  private let independentRouteManager = IndependentRouteManager.shared
   private var independentRouteService: IndependentRouteService?
   
   // 官方导航组件（iOS）

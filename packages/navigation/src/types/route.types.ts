@@ -377,6 +377,8 @@ export interface RouteStep {
 export interface RouteResult {
   /** 路线ID */
   id: number;
+  /** 路线ID（兼容旧版原生返回） */
+  routeId?: number;
   /** 起点坐标 */
   start: Coordinates;
   /** 终点坐标 */

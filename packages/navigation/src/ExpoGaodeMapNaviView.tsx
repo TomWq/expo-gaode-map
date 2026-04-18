@@ -1,5 +1,17 @@
 import * as React from 'react';
-import type { Coordinates, ExpoGaodeMapNaviViewProps } from './types';
+import type {
+  Coordinates,
+  ExpoGaodeMapNaviViewProps,
+  NaviArriveEvent,
+  NaviEndEvent,
+  NaviInfoUpdateEvent,
+  NaviLaneInfoEvent,
+  NaviStartEvent,
+  NaviVisualStateEvent,
+  PlayVoiceEvent,
+  ReCalculateEvent,
+} from './types';
+import { Platform, StatusBar, type NativeSyntheticEvent } from 'react-native';
 import { createLazyNativeViewManager } from './map/utils/lazyNativeViewManager';
 
 /**
@@ -10,6 +22,17 @@ export interface ExpoGaodeMapNaviViewRef {
    * 开始导航
    */
   startNavigation: (start: Coordinates | null, end: Coordinates, type: number) => Promise<void>;
+  /**
+   * 使用独立路径组启动导航
+   */
+  startNavigationWithIndependentPath: (
+    token: number,
+    options?: {
+      routeId?: number;
+      routeIndex?: number;
+      naviType?: number;
+    }
+  ) => Promise<void>;
   
   /**
    * 停止导航
@@ -24,11 +47,30 @@ interface NativeExpoGaodeMapNaviViewRef {
     endLatitude: number,
     endLongitude: number
   ) => Promise<void>;
+  startNavigationWithIndependentPath: (
+    token: number,
+    routeId?: number,
+    routeIndex?: number,
+    naviType?: number
+  ) => Promise<void>;
   stopNavigation: () => Promise<void>;
 }
 
+interface NativeExpoGaodeMapNaviViewProps
+  extends ExpoGaodeMapNaviViewProps {
+  ref?: React.Ref<NativeExpoGaodeMapNaviViewRef>;
+  onNavigationInfoUpdate?: (event: NativeSyntheticEvent<NaviInfoUpdateEvent>) => void;
+  onNavigationStarted?: (event: NativeSyntheticEvent<NaviStartEvent>) => void;
+  onNavigationEnded?: (event: NativeSyntheticEvent<NaviEndEvent>) => void;
+  onArriveDestination?: (event: NativeSyntheticEvent<NaviArriveEvent>) => void;
+  onRouteRecalculate?: (event: NativeSyntheticEvent<ReCalculateEvent>) => void;
+  onNavigationText?: (event: NativeSyntheticEvent<PlayVoiceEvent>) => void;
+  onNavigationVisualStateUpdate?: (event: NativeSyntheticEvent<NaviVisualStateEvent>) => void;
+  onLaneInfoUpdate?: (event: NativeSyntheticEvent<NaviLaneInfoEvent>) => void;
+}
+
 const getNativeView = createLazyNativeViewManager<
-  ExpoGaodeMapNaviViewProps & { ref?: React.Ref<NativeExpoGaodeMapNaviViewRef> }
+  NativeExpoGaodeMapNaviViewProps
 >('ExpoGaodeMapNaviView');
 
 /**
@@ -67,6 +109,26 @@ const getNativeView = createLazyNativeViewManager<
 export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, ExpoGaodeMapNaviViewProps>((props, ref) => {
   const nativeRef = React.useRef<NativeExpoGaodeMapNaviViewRef | null>(null);
   const NativeView = React.useMemo(() => getNativeView(), []);
+  const {
+    onNaviInfoUpdate,
+    onNaviStart,
+    onNaviEnd,
+    onArrive,
+    onReCalculate,
+    onPlayVoice,
+    onNaviVisualStateChange,
+    onLaneInfoUpdate,
+    androidStatusBarPaddingTop,
+    ...restProps
+  } = props;
+
+  const resolvedAndroidStatusBarPaddingTop =
+    Platform.OS === 'android' &&
+    androidStatusBarPaddingTop == null &&
+    props.showUIElements !== false &&
+    props.hideNativeTopInfoLayout !== true
+      ? (StatusBar.currentHeight ?? 0)
+      : androidStatusBarPaddingTop;
   
   // 创建 API 引用
   const apiRef: ExpoGaodeMapNaviViewRef = React.useMemo(() => ({
@@ -79,6 +141,15 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
       const endLng = end.longitude;
       return nativeRef.current.startNavigation(startLat, startLng, endLat, endLng);
     },
+    startNavigationWithIndependentPath: async (token, options) => {
+      if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
+      return nativeRef.current.startNavigationWithIndependentPath(
+        token,
+        options?.routeId,
+        options?.routeIndex,
+        options?.naviType
+      );
+    },
     stopNavigation: async () => {
       if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
       return nativeRef.current.stopNavigation();
@@ -88,7 +159,21 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
   // 暴露 API 给外部 ref
   React.useImperativeHandle(ref, () => apiRef, [apiRef]);
   
-  return <NativeView ref={nativeRef} {...props} />;
+  return (
+    <NativeView
+      ref={nativeRef}
+      {...restProps}
+      androidStatusBarPaddingTop={resolvedAndroidStatusBarPaddingTop}
+      onNavigationInfoUpdate={onNaviInfoUpdate}
+      onNavigationStarted={onNaviStart}
+      onNavigationEnded={onNaviEnd}
+      onArriveDestination={onArrive}
+      onRouteRecalculate={onReCalculate}
+      onNavigationText={onPlayVoice}
+      onNavigationVisualStateUpdate={onNaviVisualStateChange}
+      onLaneInfoUpdate={onLaneInfoUpdate}
+    />
+  );
 });
 
 ExpoGaodeMapNaviView.displayName = 'ExpoGaodeMapNaviView';

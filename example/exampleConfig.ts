@@ -6,7 +6,7 @@
  */
 export const EXAMPLE_WEB_API_KEY =
   process.env.EXPO_PUBLIC_AMAP_WEB_KEY?.trim() ||
-  '9f59c9453ccc5e9798983d4922afbd09';
+  '';
 
 export const EXAMPLE_ANDROID_KEY =
   process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY?.trim() || undefined;

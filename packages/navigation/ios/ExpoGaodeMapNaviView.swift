@@ -9,7 +9,26 @@ import Foundation
 import ExpoModulesCore
 import AMapNaviKit
 
+final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
+  var suppressLaneInfoUI: Bool = false
+
+  override func driveManager(_ driveManager: AMapNaviDriveManager, showLaneBackInfo laneBackInfo: String, laneSelectInfo: String) {
+    guard !suppressLaneInfoUI else {
+      return
+    }
+    super.driveManager(driveManager, showLaneBackInfo: laneBackInfo, laneSelectInfo: laneSelectInfo)
+  }
+
+  override func driveManagerHideLaneInfo(_ driveManager: AMapNaviDriveManager) {
+    guard !suppressLaneInfoUI else {
+      return
+    }
+    super.driveManagerHideLaneInfo(driveManager)
+  }
+}
+
 public class ExpoGaodeMapNaviView: ExpoView {
+  private let independentRouteManager = IndependentRouteManager.shared
   
   // MARK: - 高德 SDK 初始化检查
 
@@ -121,6 +140,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
   let onGpsStatusChanged = EventDispatcher()
   let onNavigationInfoUpdate = EventDispatcher()
   let onGpsSignalWeak = EventDispatcher()
+  let onNavigationVisualStateUpdate = EventDispatcher()
+  let onLaneInfoUpdate = EventDispatcher()
   
   // MARK: - Properties
   private var driveView: AMapNaviDriveView?
@@ -130,6 +151,17 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private var hasStartedNavi: Bool = false
   private var hasReceivedFirstNaviData: Bool = false
   private var driveManager: AMapNaviDriveManager?
+  private var lastKnownSpeed: Int = 0
+  private var lastNavigationInfoPayload: [String: Any]?
+  private var lastTurnIconType: Int?
+  private var lastNextTurnIconType: Int?
+  private var isCrossVisible: Bool = false
+  private var isLaneInfoVisible: Bool = false
+
+  private enum LaneStringKind {
+    case background
+    case selected
+  }
   
   // Props - 通用属性
   var naviType: Int = 0 // 0: GPS, 1: Emulator
@@ -180,6 +212,12 @@ public class ExpoGaodeMapNaviView: ExpoView {
   var showTrafficButton: Bool = true {
     didSet { driveView?.showTrafficButton = showTrafficButton }
   }
+  var showBackupRoute: Bool = true {
+    didSet { driveView?.showBackupRoute = showBackupRoute }
+  }
+  var showEagleMap: Bool = false {
+    didSet { driveView?.showEagleMap = showEagleMap }
+  }
   var showUIElements: Bool = true {
     didSet { applyShowUIElementsToDriveViewIfReady() }
   }
@@ -192,11 +230,35 @@ public class ExpoGaodeMapNaviView: ExpoView {
   var showTrafficLights: Bool = true {
     didSet { driveView?.showTrafficLights = showTrafficLights }
   }
+  var showCompassEnabled: Bool? {
+    didSet {
+      guard let showCompassEnabled else { return }
+      driveView?.showCompass = showCompassEnabled
+    }
+  }
+  var showDriveCongestion: Bool = true {
+    didSet { driveView?.showDriveCongestion = showDriveCongestion }
+  }
+  var showTrafficLightView: Bool = true {
+    didSet { driveView?.showTrafficLightView = showTrafficLightView }
+  }
   var mapViewModeType: Int = 0 {
     didSet { applyMapViewModeType(mapViewModeType) }
   }
   var lineWidth: CGFloat = 0 {
     didSet { driveView?.lineWidth = lineWidth }
+  }
+  var driveViewEdgePadding: UIEdgeInsets = .zero {
+    didSet {
+      driveView?.setNeedsLayout()
+      driveView?.layoutIfNeeded()
+    }
+  }
+  var screenAnchor: CGPoint = .zero {
+    didSet { driveView?.screenAnchor = screenAnchor }
+  }
+  var hideNativeLaneInfoLayout: Bool = false {
+    didSet { applyHideNativeLaneInfoLayout(hideNativeLaneInfoLayout) }
   }
 
   func applyShowUIElements(_ visible: Bool) {
@@ -238,13 +300,15 @@ public class ExpoGaodeMapNaviView: ExpoView {
     
     // 初始化驾车导航管理器
     driveManager = AMapNaviDriveManager.sharedInstance()
-    driveManager?.delegate = self
+    rebindDriveManagerToView()
     
     // 使用内置语音
     driveManager?.isUseInternalTTS = true
     
     // 初始化导航视图
-    driveView = AMapNaviDriveView(frame: bounds)
+    let customDriveView = ExpoGaodeMapCustomDriveView(frame: bounds)
+    customDriveView.suppressLaneInfoUI = hideNativeLaneInfoLayout
+    driveView = customDriveView
     driveView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     driveView?.delegate = self
     
@@ -256,13 +320,163 @@ public class ExpoGaodeMapNaviView: ExpoView {
     // 应用初始配置
     applyViewOptions()
   }
+
+  private func rebindDriveManagerToView() {
+    driveManager = AMapNaviDriveManager.sharedInstance()
+    driveManager?.delegate = self
+    driveManager?.removeDataRepresentative(self)
+    if let view = driveView {
+      driveManager?.removeDataRepresentative(view)
+      driveManager?.addDataRepresentative(view)
+    }
+    driveManager?.addDataRepresentative(self)
+  }
+
+  private func resetTransientNavigationState() {
+    lastNavigationInfoPayload = nil
+    lastTurnIconType = nil
+    lastNextTurnIconType = nil
+    isCrossVisible = false
+    isLaneInfoVisible = false
+    emitVisualStateUpdate()
+  }
+
+  private func emitVisualStateUpdate() {
+    onNavigationVisualStateUpdate([
+      "isCrossVisible": isCrossVisible,
+      "isModeCrossVisible": false,
+      "isLaneInfoVisible": isLaneInfoVisible
+    ])
+  }
+
+  private func emitNavigationInfoUpdate(_ payload: [String: Any]) {
+    var nextPayload = payload
+    if let lastTurnIconType {
+      nextPayload["iconType"] = lastTurnIconType
+      nextPayload["iconDirection"] = lastTurnIconType
+    }
+    if let lastNextTurnIconType {
+      nextPayload["nextIconType"] = lastNextTurnIconType
+    }
+    lastNavigationInfoPayload = nextPayload
+    onNavigationInfoUpdate(nextPayload)
+  }
+
+  private func reemitLastNavigationInfoIfNeeded() {
+    guard let lastNavigationInfoPayload else {
+      return
+    }
+
+    var nextPayload = lastNavigationInfoPayload
+    if let lastTurnIconType {
+      nextPayload["iconType"] = lastTurnIconType
+      nextPayload["iconDirection"] = lastTurnIconType
+    }
+    if let lastNextTurnIconType {
+      nextPayload["nextIconType"] = lastNextTurnIconType
+    } else {
+      nextPayload.removeValue(forKey: "nextIconType")
+    }
+
+    lastNavigationInfoPayload = nextPayload
+    onNavigationInfoUpdate(nextPayload)
+  }
+
+  private func splitLaneInfoString(_ value: String) -> [String] {
+    value
+      .split(separator: "|", omittingEmptySubsequences: false)
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+  }
+
+  private func parseLaneToken(_ token: String, kind: LaneStringKind) -> Int? {
+    guard !token.isEmpty else {
+      return nil
+    }
+
+    if token == "255" || token == "ff" {
+      return 255
+    }
+
+    // Older iOS callbacks may use `f` as filler / unavailable lane marker.
+    if token == "f" {
+      return kind == .background ? 255 : 255
+    }
+
+    if let decimalValue = Int(token) {
+      return decimalValue
+    }
+
+    switch token {
+    case "a":
+      return 10
+    case "b":
+      return 11
+    case "c":
+      return 12
+    case "d":
+      return 13
+    case "e":
+      return 14
+    case "g":
+      return 16
+    case "h":
+      return 17
+    case "i":
+      return 18
+    case "j":
+      return 19
+    case "k":
+      return 20
+    case "kk":
+      return 21
+    case "l":
+      return 23
+    default:
+      return Int(token, radix: 16)
+    }
+  }
+
+  private func serializeLaneInfo(laneBackInfo: String, laneSelectInfo: String) -> [String: Any]? {
+    let backgroundLane = splitLaneInfoString(laneBackInfo).map {
+      parseLaneToken($0, kind: .background) ?? 255
+    }
+    let frontLane = splitLaneInfoString(laneSelectInfo).map {
+      parseLaneToken($0, kind: .selected) ?? 255
+    }
+
+    let sentinelIndex = backgroundLane.firstIndex(of: 255)
+    let resolvedCount = [
+      sentinelIndex,
+      backgroundLane.isEmpty ? nil : backgroundLane.count,
+      frontLane.isEmpty ? nil : frontLane.count
+    ]
+      .compactMap { $0 }
+      .min() ?? 0
+
+    guard resolvedCount > 0 else {
+      return nil
+    }
+
+    let normalizedBackground = (0..<resolvedCount).map { index in
+      backgroundLane.indices.contains(index) ? backgroundLane[index] : 255
+    }
+    let normalizedFront = (0..<resolvedCount).map { index in
+      frontLane.indices.contains(index) ? frontLane[index] : 255
+    }
+
+    return [
+      "laneCount": resolvedCount,
+      "backgroundLane": normalizedBackground,
+      "frontLane": normalizedFront
+    ]
+  }
   
   private func applyViewOptions() {
     // 通用属性
     driveView?.showCamera = showCamera
     driveView?.autoSwitchShowModeToCarPositionLocked = autoLockCar
     driveView?.autoZoomMapLevel = autoChangeZoom
-    driveView?.showTrafficLayer = trafficLayerEnabled
+    driveView?.mapShowTraffic = trafficLayerEnabled
     driveView?.showCrossImage = realCrossDisplay
     driveView?.trackingMode = naviMode == 0 ? .carNorth : .mapNorth
     
@@ -273,12 +487,20 @@ public class ExpoGaodeMapNaviView: ExpoView {
     driveView?.showBrowseRouteButton = showBrowseRouteButton
     driveView?.showMoreButton = showMoreButton
     driveView?.showTrafficButton = showTrafficButton
+    driveView?.showBackupRoute = showBackupRoute
+    driveView?.showEagleMap = showEagleMap
     driveView?.showGreyAfterPass = showGreyAfterPass
     driveView?.showVectorline = showVectorline
     driveView?.showTrafficLights = showTrafficLights
+    if let showCompassEnabled {
+      driveView?.showCompass = showCompassEnabled
+    }
+    driveView?.showDriveCongestion = showDriveCongestion
+    driveView?.showTrafficLightView = showTrafficLightView
     if lineWidth > 0 {
       driveView?.lineWidth = lineWidth
     }
+    driveView?.screenAnchor = screenAnchor
 
     applyShowUIElementsToDriveViewIfReady()
   }
@@ -319,6 +541,10 @@ public class ExpoGaodeMapNaviView: ExpoView {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
   }
 
+  private func applyHideNativeLaneInfoLayout(_ hidden: Bool) {
+    (driveView as? ExpoGaodeMapCustomDriveView)?.suppressLaneInfoUI = hidden
+  }
+
   private func applyDriveViewShowUIElements(_ value: Bool, remainingAttempts: Int) {
     guard let driveView else { return }
 
@@ -354,7 +580,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   private func applyTrafficLayerEnabled(_ enabled: Bool) {
-    driveView?.showTrafficLayer = enabled
+    driveView?.mapShowTraffic = enabled
   }
   
   private func applyRealCrossDisplay(_ enabled: Bool) {
@@ -420,6 +646,9 @@ public class ExpoGaodeMapNaviView: ExpoView {
       return
     }
     
+    rebindDriveManagerToView()
+    resetTransientNavigationState()
+
     startCoordinate = AMapNaviPoint.location(withLatitude: CGFloat(startLat), longitude: CGFloat(startLng))
     endCoordinate = AMapNaviPoint.location(withLatitude: CGFloat(endLat), longitude: CGFloat(endLng))
     
@@ -446,9 +675,61 @@ public class ExpoGaodeMapNaviView: ExpoView {
       promise.reject("CALCULATE_FAILED", "启动路线规划失败")
     }
   }
+
+  func startNavigationWithIndependentPath(
+    token: Int,
+    routeId: Int?,
+    routeIndex: Int?,
+    naviType: Int?,
+    promise: Promise
+  ) {
+    do {
+      try checkPrivacyReady()
+      try checkAMapInitialization()
+      try ensureBackgroundLocationModeForNavigation()
+    } catch {
+      let nsError = error as NSError
+      let code: String
+      if nsError.domain == "ExpoGaodeMapPrivacy" {
+        code = "PRIVACY_NOT_AGREED"
+      } else if nsError.code == -1003 {
+        code = "BACKGROUND_LOCATION_NOT_ENABLED"
+      } else {
+        code = "AMAP_NOT_INITIALIZED"
+      }
+      promise.reject(code, formatError(error))
+      return
+    }
+
+    rebindDriveManagerToView()
+    resetTransientNavigationState()
+
+    if let naviType {
+      self.naviType = naviType
+    }
+
+    let ok = independentRouteManager.start(
+      token: token,
+      naviType: self.naviType,
+      routeId: routeId,
+      routeIndex: routeIndex
+    )
+
+    if ok {
+      promise.resolve([
+        "success": true,
+        "message": "独立路径导航启动中...",
+        "token": token,
+        "naviType": self.naviType
+      ])
+    } else {
+      promise.reject("START_INDEPENDENT_NAVI_FAILED", "独立路径导航启动失败")
+    }
+  }
   
   func stopNavigation(promise: Promise) {
     driveManager?.stopNavi()
+    resetTransientNavigationState()
     promise.resolve([
       "success": true,
       "message": "导航已停止"
@@ -473,6 +754,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     if let view = driveView {
       driveManager?.removeDataRepresentative(view)
     }
+    driveManager?.removeDataRepresentative(self)
     driveManager?.delegate = nil
   }
 }
@@ -521,6 +803,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   }
   
   public func driveManagerDidEndEmulatorNavi(_ driveManager: AMapNaviDriveManager) {
+    resetTransientNavigationState()
     onNavigationEnded([:])
   }
   
@@ -529,6 +812,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
       hasReceivedFirstNaviData = true
       applyShowUIElementsToDriveViewIfReady()
     }
+    lastKnownSpeed = Int(naviLocation.speed.rounded())
     onLocationUpdate([
       "latitude": naviLocation.coordinate.latitude,
       "longitude": naviLocation.coordinate.longitude,
@@ -542,13 +826,23 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
       hasReceivedFirstNaviData = true
       applyShowUIElementsToDriveViewIfReady()
     }
-    onNavigationInfoUpdate([
+    emitNavigationInfoUpdate([
+      "naviMode": naviInfo.naviMode.rawValue,
       "currentRoadName": naviInfo.currentRoadName ?? "",
       "nextRoadName": naviInfo.nextRoadName ?? "",
       "pathRetainDistance": naviInfo.routeRemainDistance,
       "pathRetainTime": naviInfo.routeRemainTime,
       "curStepRetainDistance": naviInfo.segmentRemainDistance,
-      "curStepRetainTime": naviInfo.segmentRemainTime
+      "curStepRetainTime": naviInfo.segmentRemainTime,
+      "currentSpeed": lastKnownSpeed,
+      "iconType": lastTurnIconType ?? naviInfo.iconType.rawValue,
+      "iconDirection": lastTurnIconType ?? naviInfo.iconType.rawValue,
+      "currentSegmentIndex": naviInfo.currentSegmentIndex,
+      "currentLinkIndex": naviInfo.currentLinkIndex,
+      "currentPointIndex": naviInfo.currentPointIndex,
+      "routeRemainTrafficLightCount": naviInfo.routeRemainTrafficLightCount,
+      "driveDistance": naviInfo.routeDriveDistance,
+      "driveTime": naviInfo.routeDriveTime
     ])
   }
   
@@ -594,6 +888,41 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveViewDelegate {
   }
 
   public func driveViewEdgePadding(_ driveView: AMapNaviDriveView) -> UIEdgeInsets {
-    return .zero
+    return driveViewEdgePadding
+  }
+}
+
+extension ExpoGaodeMapNaviView: AMapNaviDriveDataRepresentable {
+  public func driveManager(_ driveManager: AMapNaviDriveManager, showCrossImage crossImage: UIImage?) {
+    isCrossVisible = true
+    emitVisualStateUpdate()
+  }
+
+  public func driveManagerHideCrossImage(_ driveManager: AMapNaviDriveManager) {
+    isCrossVisible = false
+    emitVisualStateUpdate()
+  }
+
+  public func driveManager(_ driveManager: AMapNaviDriveManager, showLaneBackInfo laneBackInfo: String, laneSelectInfo: String) {
+    isLaneInfoVisible = true
+    emitVisualStateUpdate()
+    if let payload = serializeLaneInfo(laneBackInfo: laneBackInfo, laneSelectInfo: laneSelectInfo) {
+      onLaneInfoUpdate(payload)
+    }
+  }
+
+  public func driveManagerHideLaneInfo(_ driveManager: AMapNaviDriveManager) {
+    isLaneInfoVisible = false
+    emitVisualStateUpdate()
+  }
+
+  public func driveManager(_ driveManager: AMapNaviDriveManager, updateTurnIconImage turnIconImage: UIImage?, turnIconType: AMapNaviIconType) {
+    lastTurnIconType = Int(turnIconType.rawValue)
+    reemitLastNavigationInfoIfNeeded()
+  }
+
+  public func driveManager(_ driveManager: AMapNaviDriveManager, updateNextTurnIconImage turnIconImage: UIImage?, nextTurnIconType turnIconType: AMapNaviIconType) {
+    lastNextTurnIconType = Int(turnIconType.rawValue)
+    reemitLastNavigationInfoIfNeeded()
   }
 }

@@ -123,6 +123,11 @@ export interface DrivingRouteParams extends BaseRouteParams {
    */
   avoidpolygons?: string;
   /**
+   * 避让道路名称
+   * 传入道路名后，服务会尽量规避该道路。
+   */
+  avoidroad?: string;
+  /**
    * 车牌号
    * 如：京AHA322，支持6位传统车牌和7位新能源车牌
    * 用于判断限行相关

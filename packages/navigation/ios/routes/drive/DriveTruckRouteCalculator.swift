@@ -36,11 +36,17 @@ class DriveTruckRouteCalculator: NSObject {
     isInitialized = true
     NSLog("DriveTruckRouteCalculator: AMapNaviDriveManager 初始化成功")
   }
+
+  private func bindDriveManagerDelegate() {
+    driveManager = AMapNaviDriveManager.sharedInstance()
+    driveManager?.delegate = self
+  }
   
   // MARK: - 驾车路径规划
   
   func calculateDriveRoute(options: [String: Any], promise: Promise) {
     NSLog("DriveTruckRouteCalculator: 开始计算驾车路线")
+    bindDriveManagerDelegate()
     
     // 防重复调用检查
     if currentPromise != nil {
@@ -138,6 +144,7 @@ class DriveTruckRouteCalculator: NSObject {
   
   func calculateTruckRoute(options: [String: Any], promise: Promise) {
     NSLog("DriveTruckRouteCalculator: 开始计算货车路线")
+    bindDriveManagerDelegate()
     
     // 设置货车车辆信息
     let vehicleInfo = AMapNaviVehicleInfo()
@@ -223,6 +230,7 @@ extension DriveTruckRouteCalculator: AMapNaviDriveManagerDelegate {
     if let naviRoutes = driveManager.naviRoutes {
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -234,6 +242,7 @@ extension DriveTruckRouteCalculator: AMapNaviDriveManagerDelegate {
     } else if let naviRoute = driveManager.naviRoute {
       // 单路线
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,

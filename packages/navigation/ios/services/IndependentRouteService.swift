@@ -40,9 +40,25 @@ class IndependentRouteService: NSObject {
     rideManager = AMapNaviRideManager.sharedInstance()
     rideManager?.delegate = self
   }
+
+  private func bindDriveManagerDelegate() {
+    driveManager = AMapNaviDriveManager.sharedInstance()
+    driveManager?.delegate = self
+  }
+
+  private func bindWalkManagerDelegate() {
+    walkManager = AMapNaviWalkManager.sharedInstance()
+    walkManager?.delegate = self
+  }
+
+  private func bindRideManagerDelegate() {
+    rideManager = AMapNaviRideManager.sharedInstance()
+    rideManager?.delegate = self
+  }
   
   // MARK: - 独立驾车路线规划
   func independentDriveRoute(options: [String: Any], promise: Promise) {
+    bindDriveManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -98,6 +114,7 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立货车路线规划
   func independentTruckRoute(options: [String: Any], promise: Promise) {
+    bindDriveManagerDelegate()
     var truckOptions = options
     if truckOptions["carType"] == nil && (truckOptions["vehicleInfo"] as? [String: Any]) == nil {
       truckOptions["carType"] = 1
@@ -107,6 +124,7 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立步行路线规划
   func independentWalkRoute(options: [String: Any], promise: Promise) {
+    bindWalkManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -134,6 +152,7 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立骑行路线规划
   func independentRideRoute(options: [String: Any], promise: Promise) {
+    bindRideManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -161,6 +180,7 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立摩托车路线规划（使用驾车接口）
   func independentMotorcycleRoute(options: [String: Any], promise: Promise) {
+    bindDriveManagerDelegate()
     var motorcycleOptions = options
     if motorcycleOptions["carType"] == nil {
       motorcycleOptions["carType"] = 11
@@ -254,6 +274,7 @@ class IndependentRouteService: NSObject {
         let key = NSNumber(value: routeId)
         guard let route = naviRoutes[key] else { continue }
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -265,6 +286,7 @@ class IndependentRouteService: NSObject {
     } else if let route = routeGroup.naviRoute {
       let routeId = routeGroup.naviRouteID
       routes.append([
+        "id": routeId,
         "routeId": routeId,
         "distance": route.routeLength,
         "duration": route.routeTime,
@@ -326,6 +348,7 @@ extension IndependentRouteService: AMapNaviDriveManagerDelegate {
       for routeID in routeIDs {
         if let route = driveManager.naviRoutes?[routeID] {
           routes.append([
+            "id": routeID.intValue,
             "routeId": routeID.intValue,
             "distance": route.routeLength,
             "duration": route.routeTime,
@@ -365,6 +388,7 @@ extension IndependentRouteService: AMapNaviWalkManagerDelegate {
     var routes: [[String: Any]] = []
     if let naviRoute = walkManager.naviRoute {
       routes.append([
+        "id": 1,
         "routeId": 1,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
@@ -401,6 +425,7 @@ extension IndependentRouteService: AMapNaviRideManagerDelegate {
     var routes: [[String: Any]] = []
     if let naviRoute = rideManager.naviRoute {
       routes.append([
+        "id": 1,
         "routeId": 1,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,

@@ -38,10 +38,30 @@ class WalkRideRouteCalculator: NSObject {
     eleBikeDelegateHandler?.calculator = self
     eleBikeManager?.delegate = eleBikeDelegateHandler
   }
+
+  private func bindWalkManagerDelegate() {
+    walkManager = AMapNaviWalkManager.sharedInstance()
+    walkManager?.delegate = self
+  }
+
+  private func bindRideManagerDelegate() {
+    rideManager = AMapNaviRideManager.sharedInstance()
+    rideManager?.delegate = self
+  }
+
+  private func bindEleBikeManagerDelegate() {
+    eleBikeManager = AMapNaviEleBikeManager.sharedInstance()
+    if eleBikeDelegateHandler == nil {
+      eleBikeDelegateHandler = EleBikeDelegateHandler()
+      eleBikeDelegateHandler?.calculator = self
+    }
+    eleBikeManager?.delegate = eleBikeDelegateHandler
+  }
   
   // MARK: - 步行路径规划
   
   func calculateWalkRoute(options: [String: Any], promise: Promise) {
+    bindWalkManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -76,6 +96,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 骑行路线规划（坐标方式）
   /// 对应官方方法：calculateRideRouteWithStartPoint:endPoint:
   func calculateRideRoute(options: [String: Any], promise: Promise) {
+    bindRideManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -104,6 +125,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 骑行路线规划（POIInfo方式，推荐）
   /// 对应官方方法：calculateRideRouteWithStartPOIInfo:endPOIInfo:strategy:
   func calculateRideRouteWithPOI(options: [String: Any], promise: Promise) {
+    bindRideManagerDelegate()
     guard let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "to is required")
       return
@@ -138,6 +160,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 电动车路线规划（坐标方式）
   /// 对应官方方法：calculateEleBikeRouteWithStartPoint:endPoint:
   func calculateEleBikeRoute(options: [String: Any], promise: Promise) {
+    bindEleBikeManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -166,6 +189,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 电动车路线规划（POIInfo方式，推荐）
   /// 对应官方方法：calculateEleBikeRouteWithStartPOIInfo:endPOIInfo:strategy:
   func calculateEleBikeRouteWithPOI(options: [String: Any], promise: Promise) {
+    bindEleBikeManagerDelegate()
     guard let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "to is required")
       return
@@ -225,6 +249,7 @@ extension WalkRideRouteCalculator: AMapNaviWalkManagerDelegate {
       NSLog("WalkRideRouteCalculator: 步行规划返回 \(naviRoutes.count) 条路线")
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -236,6 +261,7 @@ extension WalkRideRouteCalculator: AMapNaviWalkManagerDelegate {
       // 单路线
       NSLog("WalkRideRouteCalculator: 步行规划返回单条路线")
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
@@ -274,6 +300,7 @@ extension WalkRideRouteCalculator: AMapNaviRideManagerDelegate {
       NSLog("WalkRideRouteCalculator: 骑行规划返回 \(naviRoutes.count) 条路线")
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -285,6 +312,7 @@ extension WalkRideRouteCalculator: AMapNaviRideManagerDelegate {
       // 单路线
       NSLog("WalkRideRouteCalculator: 骑行规划返回单条路线")
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
@@ -336,6 +364,7 @@ extension WalkRideRouteCalculator {
       NSLog("WalkRideRouteCalculator: 电动车规划返回 \(naviRoutes.count) 条路线")
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -347,6 +376,7 @@ extension WalkRideRouteCalculator {
       // 单路线
       NSLog("WalkRideRouteCalculator: 电动车规划返回单条路线")
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,

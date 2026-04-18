@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.navigation.routes.drive
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
@@ -64,6 +65,7 @@ class DriveTruckRouteCalculator(
   /**
    * 驾车路径规划
    */
+  @SuppressLint("SuspiciousIndentation")
   fun calculateDriveRoute(options: Map<String, Any?>, promise: Promise) {
     android.util.Log.d("DriveTruckRouteCalculator", "开始计算驾车路线，初始化状态: $isInitialized")
     

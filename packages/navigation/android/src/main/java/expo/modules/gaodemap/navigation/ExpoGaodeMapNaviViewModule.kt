@@ -10,6 +10,18 @@ class ExpoGaodeMapNaviViewModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMapNaviView")
 
+    OnActivityEntersForeground {
+      ExpoGaodeMapNaviView.resumeActiveViews()
+    }
+
+    OnActivityEntersBackground {
+      ExpoGaodeMapNaviView.pauseActiveViews()
+    }
+
+    OnActivityDestroys {
+      ExpoGaodeMapNaviView.destroyActiveViews()
+    }
+
     View(ExpoGaodeMapNaviView::class) {
       Events(
         "onNavigationReady",
@@ -24,7 +36,9 @@ class ExpoGaodeMapNaviViewModule : Module() {
         "onWayPointArrived",
         "onGpsStatusChanged",
         "onNavigationInfoUpdate",
-        "onGpsSignalWeak"
+        "onGpsSignalWeak",
+        "onNavigationVisualStateUpdate",
+        "onLaneInfoUpdate"
       )
 
       OnViewDestroys { view: ExpoGaodeMapNaviView ->
@@ -79,6 +93,10 @@ class ExpoGaodeMapNaviViewModule : Module() {
       Prop<Boolean>("showCompassEnabled") {view, enabled ->
           view.applyShowCompassEnabled(enabled)
       }
+
+      Prop<Boolean>("naviStatusBarEnabled") { view, enabled ->
+        view.applyNaviStatusBarEnabled(enabled)
+      }
       
       Prop<Map<String, Boolean>?>("routeMarkerVisible") { view, config ->
         config?.let {
@@ -94,6 +112,26 @@ class ExpoGaodeMapNaviViewModule : Module() {
       // 路线转向箭头可见性控制
       Prop<Boolean>("naviArrowVisible") { view, visible ->
         view.applyNaviArrowVisible(visible)
+      }
+
+      Prop<Boolean>("laneInfoVisible") { view, visible ->
+        view.applyLaneInfoVisible(visible)
+      }
+
+      Prop<Boolean>("modeCrossDisplay") { view, visible ->
+        view.applyModeCrossDisplay(visible)
+      }
+
+      Prop<Boolean>("eyrieCrossDisplay") { view, visible ->
+        view.applyEyrieCrossDisplay(visible)
+      }
+
+      Prop<Boolean>("secondActionVisible") { view, visible ->
+        view.applySecondActionVisible(visible)
+      }
+
+      Prop<Boolean>("backupOverlayVisible") { view, visible ->
+        view.applyBackupOverlayVisible(visible)
       }
       
       // 是否显示拥堵气泡
@@ -113,6 +151,28 @@ class ExpoGaodeMapNaviViewModule : Module() {
 
       Prop<Double?>("androidStatusBarPaddingTop") { view, topDp ->
         view.applyAndroidStatusBarPaddingTop(topDp)
+      }
+
+      Prop<Int>("lockZoom") { view, level ->
+        view.applyLockZoom(level)
+      }
+
+      Prop<Int>("lockTilt") { view, tilt ->
+        view.applyLockTilt(tilt)
+      }
+
+      Prop<Boolean>("eagleMapVisible") { view, visible ->
+        view.applyEagleMapVisible(visible)
+      }
+
+      Prop<Map<String, Double>?>("pointToCenter") { view, value ->
+        val x = value?.get("x") ?: 0.0
+        val y = value?.get("y") ?: 0.0
+        view.applyPointToCenter(x, y)
+      }
+
+      Prop<Boolean>("hideNativeTopInfoLayout") { view, hidden ->
+        view.applyHideNativeTopInfoLayout(hidden)
       }
 
       Prop<Boolean>("showCamera") { view, enabled ->
@@ -146,6 +206,10 @@ class ExpoGaodeMapNaviViewModule : Module() {
       // 方法
       AsyncFunction("startNavigation") { view: ExpoGaodeMapNaviView, startLat: Double, startLng: Double, endLat: Double, endLng: Double, promise: expo.modules.kotlin.Promise ->
         view.startNavigation(startLat, startLng, endLat, endLng, promise)
+      }
+
+      AsyncFunction("startNavigationWithIndependentPath") { view: ExpoGaodeMapNaviView, token: Int, routeId: Int?, routeIndex: Int?, naviType: Int?, promise: expo.modules.kotlin.Promise ->
+        view.startNavigationWithIndependentPath(token, routeId, routeIndex, naviType, promise)
       }
       
       AsyncFunction("stopNavigation") { view: ExpoGaodeMapNaviView, promise: expo.modules.kotlin.Promise ->

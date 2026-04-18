@@ -67,10 +67,11 @@ class IndependentRouteListener(
     for (i in 0 until count) {
       try {
         val path = group.getPath(i)
-        val converted = Converters.convertNaviPath(path)
+        val routeId = 12 + i
+        val converted = Converters.convertNaviPath(path, routeId)
         routes.add(converted)
         // 文档说明：第一条为12，第二条为13，第三条为14
-        routeIds.add(12 + i)
+        routeIds.add(routeId)
       } catch (_: Exception) {
         // 忽略单条路线转换失败，保持稳健性
       }

@@ -2,13 +2,35 @@ import { ViewProps, NativeSyntheticEvent } from "react-native";
 
 // 导航信息更新事件
 export interface NaviInfoUpdateEvent {
+  naviMode?: number;
   pathRetainDistance: number;
   pathRetainTime: number;
+  curStepRetainDistance?: number;
+  curStepRetainTime?: number;
   currentRoadName: string;
   nextRoadName: string;
-  currentSpeed: number;
-  iconType: number;
-  iconDirection: number;
+  currentSpeed?: number;
+  iconType?: number;
+  nextIconType?: number;
+  iconDirection?: number;
+  currentSegmentIndex?: number;
+  currentLinkIndex?: number;
+  currentPointIndex?: number;
+  routeRemainTrafficLightCount?: number;
+  driveDistance?: number;
+  driveTime?: number;
+}
+
+export interface NaviVisualStateEvent {
+  isCrossVisible: boolean;
+  isModeCrossVisible: boolean;
+  isLaneInfoVisible: boolean;
+}
+
+export interface NaviLaneInfoEvent {
+  laneCount: number;
+  backgroundLane: number[];
+  frontLane: number[];
 }
 
 // 导航开始事件
@@ -55,6 +77,18 @@ export interface GpsSignalWeakEvent {
   isWeak: boolean;
 }
 
+export interface NaviEdgePadding {
+  top?: number;
+  left?: number;
+  bottom?: number;
+  right?: number;
+}
+
+export interface NaviAnchorPoint {
+  x?: number;
+  y?: number;
+}
+
 // 路线重算事件
 export interface RouteRecalculateEvent {
   reason: string;
@@ -96,7 +130,8 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   autoChangeZoom?: boolean;
   
   /**
-   * 是否显示交通路况
+   * 是否显示实时交通路况线
+   * 说明：Android 对应 `isTrafficLine`，iOS 对应 `mapShowTraffic`
    * @default true
    */
   trafficLayerEnabled?: boolean;
@@ -164,20 +199,54 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * @since 6.3.0
    */
   naviArrowVisible?: boolean;
+
+  /**
+   * 是否显示车道信息
+   * @platform android
+   * @default true
+   */
+  laneInfoVisible?: boolean;
+
+  /**
+   * 是否显示 3D 路口模型
+   * @platform android
+   * @default true
+   */
+  modeCrossDisplay?: boolean;
+
+  /**
+   * 是否显示鹰眼路口图
+   * @platform android
+   * @default true
+   */
+  eyrieCrossDisplay?: boolean;
+
+  /**
+   * 是否显示辅助操作区域
+   * @platform android
+   * @default true
+   */
+  secondActionVisible?: boolean;
+
+  /**
+   * 是否显示备用路线覆盖物
+   * @platform android
+   * @default true
+   */
+  backupOverlayVisible?: boolean;
   
   /**
    * 是否显示拥堵气泡
-   * @platform android
    * @default true
-   * @since 10.0.5
+   * @since Android 10.0.5 / iOS 10.0.900
    */
   showDriveCongestion?: boolean;
   
   /**
    * 是否显示红绿灯倒计时气泡
-   * @platform android
    * @default true
-   * @since 10.0.5
+   * 提示：iOS 需开通红绿灯倒计时服务
+   * @since Android 10.0.5 / iOS 10.0.900
    */
   showTrafficLightView?: boolean;
 
@@ -185,9 +254,61 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   /**
    * 导航界面顶部与状态栏的间距（单位：dp）
    * @platform android
-   * @default 状态栏高度（单位：dp）
+   * 说明：当显示官方原生顶部信息区且未显式传值时，封装会自动补系统状态栏高度；
+   * 若你需要关闭这层自动补偿，可显式传 `0`
    */
   androidStatusBarPaddingTop?: number;
+
+  /**
+   * 是否启用导航状态栏
+   * @platform android
+   * 说明：使用高德官方导航状态栏，而不是封装层手动偏移顶部 UI
+   */
+  naviStatusBarEnabled?: boolean;
+
+  /**
+   * 锁车态缩放级别
+   * @platform android
+   * @default 18
+   */
+  lockZoom?: number;
+
+  /**
+   * 锁车态倾斜角度
+   * @platform android
+   * @default 35
+   */
+  lockTilt?: number;
+
+  /**
+   * 是否显示鹰眼小地图
+   * @platform android
+   * @default false
+   */
+  eagleMapVisible?: boolean;
+
+  /**
+   * Android 锁车态自车锚点位置
+   * @platform android
+   * 说明：取值范围 `(0,1]`，传 `0` 时回退 SDK 默认值
+   */
+  pointToCenter?: NaviAnchorPoint;
+
+  /**
+   * 是否隐藏 Android 原生顶部导航信息卡片
+   * @platform android
+   * 说明：用于只保留地图/车道/路口图，自行绘制顶部 HUD
+   * @default false
+   */
+  hideNativeTopInfoLayout?: boolean;
+
+  /**
+   * 是否隐藏 iOS 原生车道信息条
+   * @platform ios
+   * 说明：用于保留官方地图/路况等元素，但把车道信息交给 RN 自绘 HUD 统一展示
+   * @default false
+   */
+  hideNativeLaneInfoLayout?: boolean;
   
   // ========== iOS 特有属性 ==========
   
@@ -221,6 +342,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   
   /**
    * 是否显示实时交通按钮
+   * 说明：Android 对应交通图层开关按钮，iOS 对应官方交通按钮
    *
    * @default true
    */
@@ -228,7 +350,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   
   /**
    * 是否显示界面元素（设为false可完全自定义界面）
-   * 提示：ios 暂时无效，android 有效
+   * 说明：Android / iOS 均已实现；iOS 会在导航视图就绪后应用
    * @default true
    */
   showUIElements?: boolean;
@@ -256,7 +378,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
 
   /**
    * 是否显示指南针
-   * @default true
+   * 说明：Android 默认显示；iOS 仅在显式传值时覆盖官方默认行为
    */
   showCompassEnabled?: boolean;
   
@@ -282,6 +404,33 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * @platform ios
    */
   lineWidth?: number;
+
+  /**
+   * iOS 导航内容边距
+   * @platform ios
+   * 说明：用于调整导航 HUD 和地图可视区域的边距
+   */
+  driveViewEdgePadding?: NaviEdgePadding;
+
+  /**
+   * iOS 地图视图锚点
+   * @platform ios
+   * 说明：取值范围 `[0,1]`；仅在 `showUIElements=false` 时生效
+   */
+  screenAnchor?: NaviAnchorPoint;
+
+  /**
+   * 是否显示备选路线
+   * @platform ios
+   * @default true
+   */
+  showBackupRoute?: boolean;
+
+  /**
+   * 是否显示鹰眼小地图
+   * @platform ios
+   */
+  showEagleMap?: boolean;
   
   /**
    * 导航信息更新回调
@@ -332,4 +481,18 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * 路线重算回调
    */
   onRouteRecalculate?: (event: NativeSyntheticEvent<RouteRecalculateEvent>) => void;
+
+  /**
+   * 导航视觉状态回调
+   * 说明：用于感知路口大图 / 3D 路口 / 车道线显示状态，便于自绘 HUD 收窄或调整布局
+   */
+  onNaviVisualStateChange?: (event: NativeSyntheticEvent<NaviVisualStateEvent>) => void;
+
+  /**
+   * 车道信息更新回调
+   * @platform android ios
+   * 说明：用于自绘车道条。Android 直接对齐高德 `AMapLaneInfo` 核心字段；
+   * iOS 则将 `showLaneBackInfo/laneSelectInfo` 解析为同结构数据。
+   */
+  onLaneInfoUpdate?: (event: NativeSyntheticEvent<NaviLaneInfoEvent>) => void;
 }
