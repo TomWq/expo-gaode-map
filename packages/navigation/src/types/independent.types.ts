@@ -120,8 +120,8 @@ export interface FollowWebPlannedRouteResult {
  * - restriction：是否考虑限行（与 carNumber 搭配）
  */
 export interface IndependentDriveRouteOptions {
-  /** 起点坐标 */
-  from: {
+  /** 起点坐标（可选；不传时由原生 SDK 使用当前位置） */
+  from?: {
     latitude: number;
     longitude: number;
     name?: string;
@@ -155,13 +155,6 @@ export interface IndependentDriveRouteOptions {
   carNumber?: string;
   /** 是否考虑限行 */
   restriction?: boolean;
-  /** 避让区域（可选） */
-  avoidPolygons?: Array<Array<{
-    latitude: number;
-    longitude: number;
-  }>>;
-  /** 避让道路（道路名称，可选） */
-  avoidRoad?: string;
 }
 
 /**

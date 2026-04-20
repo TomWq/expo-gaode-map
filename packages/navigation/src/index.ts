@@ -811,13 +811,20 @@ export async function calculateTransitRoute(options: TransitRouteOptions): Promi
 */
 export const independentDriveRoute = (options: IndependentDriveRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentDriveRoute(options);
-
+/**
+ * 独立货车路径规划（不干扰当前导航）
+ */
 export const independentTruckRoute = (options: IndependentTruckRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentTruckRoute(options);
-
+/**
+ * 独立步行路径规划（不干扰当前导航）
+ */
 export const independentWalkRoute = (options: IndependentWalkRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentWalkRoute(options);
 
+/**
+ * 独立骑行路径规划（不干扰当前导航）
+ */
 export const independentRideRoute = (options: IndependentRideRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentRideRoute(options);
 

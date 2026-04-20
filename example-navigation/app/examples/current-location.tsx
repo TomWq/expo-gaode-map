@@ -17,6 +17,7 @@ import {
   type DemoScenario,
 } from "@/lib/gaode-demo";
 import { EmbeddedNaviView } from "@/lib/navigation-ui";
+import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 export default function CurrentLocationExampleScreen() {
   const naviRef = React.useRef<NaviViewRef>(null);
@@ -25,6 +26,8 @@ export default function CurrentLocationExampleScreen() {
   const [statusText, setStatusText] = React.useState("等待初始化");
   const [scenario, setScenario] = React.useState<DemoScenario | null>(null);
   const [showNaviView, setShowNaviView] = React.useState(false);
+
+  useHideNavigationHeader(showNaviView);
 
   React.useEffect(() => {
     if (!showNaviView || !scenario) {

@@ -92,7 +92,7 @@ class IndependentRouteService(
         }
       }
 
-      navi.independentCalculateRoute(
+      val success = navi.independentCalculateRoute(
         fromPoi,
         toPoi,
         waypointsPoi,
@@ -100,6 +100,10 @@ class IndependentRouteService(
         1, // 驾车
         listener
       )
+
+      if (!success) {
+        promise.reject("CALCULATE_ERROR", "独立驾车路线规划启动失败", null)
+      }
     } catch (e: Exception) {
       promise.reject("CALCULATE_ERROR", e.message, e)
     }

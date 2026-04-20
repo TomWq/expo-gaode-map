@@ -13,6 +13,7 @@ import {
 
 import { EXAMPLE_ANDROID_KEY, EXAMPLE_IOS_KEY, EXAMPLE_WEB_API_KEY } from "@/exampleConfig";
 import { EmbeddedNaviView } from "@/lib/navigation-ui";
+import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 type DemoPoint = NaviPoint;
 
@@ -21,7 +22,7 @@ const DEMO_DESTINATION: DemoPoint = {
   longitude: 116.39723,
 };
 
-export default function NavigationDemoScreen() {
+export default function QuickStartScreen() {
   const naviViewRef = React.useRef<NaviViewRef>(null);
   const [privacyReady, setPrivacyReady] = React.useState(false);
   const [sdkReady, setSdkReady] = React.useState(false);
@@ -29,6 +30,8 @@ export default function NavigationDemoScreen() {
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [currentLocation, setCurrentLocation] = React.useState<DemoPoint | null>(null);
   const [statusText, setStatusText] = React.useState("等待隐私确认和 SDK 初始化");
+
+  useHideNavigationHeader(showNaviView);
 
   const initSdk = React.useCallback(async () => {
     try {
@@ -167,10 +170,9 @@ export default function NavigationDemoScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.hero}>
           <Text style={styles.badge}>example-navigation</Text>
-          <Text style={styles.title}>高德导航接入验证</Text>
+          <Text style={styles.title}>快速导航接入验证</Text>
           <Text style={styles.description}>
-            这个工程直接接入本地 `packages/navigation`，用于验证底层导航能力，以及如何在示例侧基于
-            `NaviView` 事件自己拼出完整的自定义导航界面。
+            这页用于单独验证隐私确认、SDK 初始化、定位获取和 `EmbeddedNaviView` 模拟导航启动链路。
           </Text>
         </View>
 
@@ -188,9 +190,7 @@ export default function NavigationDemoScreen() {
               ? `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`
               : "尚未获取"}
           </Text>
-          <Text style={styles.cardHint}>
-            终点已固定为天安门，用于模拟导航验证。
-          </Text>
+          <Text style={styles.cardHint}>终点已固定为天安门，用于模拟导航验证。</Text>
         </View>
 
         <View style={styles.buttonGroup}>

@@ -17,6 +17,7 @@ import {
   type DemoScenario,
 } from "@/lib/gaode-demo";
 import { EmbeddedNaviView } from "@/lib/navigation-ui";
+import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 interface EventItem {
   id: string;
@@ -33,6 +34,8 @@ export default function EventsExampleScreen() {
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [statusText, setStatusText] = React.useState("等待初始化");
   const [events, setEvents] = React.useState<EventItem[]>([]);
+
+  useHideNavigationHeader(showNaviView);
 
   const appendEvent = React.useCallback((title: string, detail: string) => {
     setEvents((current) => [

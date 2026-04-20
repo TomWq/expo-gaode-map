@@ -77,7 +77,7 @@ export interface ExpoGaodeMapNavigationModule extends NativeModule {
      */
     startNaviWithIndependentPath: (options: StartNaviWithIndependentPathOptions) => Promise<boolean>
     /**
-     * 打开官方导航页（Android: AmapNaviPage.showRouteActivity）
+     * 打开官方导航页（Android: AmapNaviPage.showRouteActivity，）
      */
     openOfficialNaviPage: (options: OfficialNaviPageOptions) => Promise<boolean>
     /**

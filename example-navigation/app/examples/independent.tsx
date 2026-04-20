@@ -35,6 +35,7 @@ import {
   type DemoScenario,
 } from "@/lib/gaode-demo";
 import { EmbeddedNaviView } from "@/lib/navigation-ui";
+import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 export default function IndependentRouteExampleScreen() {
   const mapRef = React.useRef<MapViewRef>(null);
@@ -54,6 +55,8 @@ export default function IndependentRouteExampleScreen() {
   const [avoidRoadName, setAvoidRoadName] = React.useState("");
   const [previewOnlyReason, setPreviewOnlyReason] = React.useState("");
 
+  useHideNavigationHeader(showNaviView);
+
   const avoidAreaKeywords = React.useMemo(
     () => avoidAreaInputs.map((item) => item.trim()).filter(Boolean),
     [avoidAreaInputs]
@@ -64,18 +67,14 @@ export default function IndependentRouteExampleScreen() {
   }, []);
 
   const buildPlanOptions = React.useCallback(
-    (withAvoid: boolean) => ({
+    () => ({
       from: scenario!.from,
       to: scenario!.to,
       waypoints: scenario!.waypoints,
       strategy: DriveStrategy.AVOID_CONGESTION,
-      ...(withAvoid ? { avoidPolygons: scenario!.avoidPolygons } : {}),
-      ...(withAvoid && avoidRoadName.trim()
-        ? { avoidRoad: avoidRoadName.trim() }
-        : {}),
       restriction: false,
     }),
-    [avoidRoadName, scenario]
+    [scenario]
   );
 
   const buildPreviewOptions = React.useCallback(
@@ -204,56 +203,15 @@ export default function IndependentRouteExampleScreen() {
       const fallbackPreview = await calculateDriveRoute(buildPreviewOptions());
       setPreviewResult(fallbackPreview);
       setPreviewRouteIndex(fallbackPreview.mainPathIndex);
-
-      if (Platform.OS === "ios") {
-        setStatusText(
-          [
-            "已生成带避让预览路线",
-            "iOS 当前独立算路接口不会真正消费 avoidRoad / avoidPolygons。",
-            "如果你要继续测试可导航独立路线，请点击“忽略避让继续独立导航”。",
-          ].join("\n")
-        );
-        setPreviewOnlyReason(
-          "当前 iOS 原生独立算路不会真正按避让区域/道路返回可直接导航的路径组，所以这里仅展示带避让的预览结果。"
-        );
-        return;
-      }
-
-      try {
-        const nextResult = await independentDriveRoute(buildPlanOptions(true));
-        activeTokenRef.current = nextResult.token;
-        setResult(nextResult);
-        setSelectedRouteIndex(nextResult.mainPathIndex);
-        setStatusText(
-          [
-            "已生成带避让预览路线，并拿到可导航独立路径组。",
-            `独立路线数量: ${nextResult.count}，当前主路线索引: ${nextResult.mainPathIndex}`,
-            "地图上橙线是带避让预览，蓝线是实际可导航独立路线。",
-          ].join("\n")
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const isAvoidUnsupported =
-          Platform.OS === "android" &&
-          (message.includes("AVOID_NOT_SUPPORTED") ||
-            message.includes("不支持独立路径的避让参数") ||
-            message.includes("独立路径的避让参数"));
-
-        if (!isAvoidUnsupported) {
-          throw error;
-        }
-
-        setPreviewOnlyReason(
-          "当前安卓 SDK 不支持独立路径避让参数。橙线是带避让的预览结果，但它不能直接用于独立导航。"
-        );
-        setStatusText(
-          [
-            "已生成带避让预览路线，但当前 SDK 无法返回带避让的独立路径组。",
-            "地图上的橙线是预览结果，不是可直接启动的独立导航路线。",
-            "如果你要继续测试独立导航，请点击“忽略避让继续独立导航”。",
-          ].join("\n")
-        );
-      }
+      setPreviewOnlyReason(
+        "橙线来自 calculateDriveRoute 的避让预览。公开的 independentDriveRoute 已不再把 avoidRoad / avoidPolygons 视为标准参数，因此蓝线需要单独生成。"
+      );
+      setStatusText(
+        [
+          "已生成带避让预览路线。",
+          "橙线仅代表预览结果；若你要继续验证独立导航，请点击“生成可导航独立路线”。",
+        ].join("\n")
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setStatusText(`独立算路失败: ${message}`);
@@ -276,7 +234,7 @@ export default function IndependentRouteExampleScreen() {
       }
       activeTokenRef.current = null;
 
-      const nextResult = await independentDriveRoute(buildPlanOptions(false));
+      const nextResult = await independentDriveRoute(buildPlanOptions());
       activeTokenRef.current = nextResult.token;
       setResult(nextResult);
       setPreviewOnlyReason("");
@@ -284,7 +242,7 @@ export default function IndependentRouteExampleScreen() {
       setStatusText(
         [
           `已生成可导航独立路线，共 ${nextResult.count} 条`,
-          "蓝线为实际可导航独立路线；若与橙线不一致，说明当前原生独立导航无法完整复现避让预览。",
+          "蓝线为标准独立算路接口返回的实际可导航路线；若与橙线不一致，说明预览避让结果无法直接映射为标准独立导航。",
         ].join("\n")
       );
     } catch (error) {
@@ -347,7 +305,7 @@ export default function IndependentRouteExampleScreen() {
           <Text style={styles.title}>独立算路主要验证“避让预览”</Text>
           <Text style={styles.description}>
             本页不是承诺“带避让独立导航一定可用”，而是把能力边界直接摊开给你看：
-            灰线是无避让基准路线，橙线是带避让预览结果，蓝线才是当前平台真正能启动的独立导航路线。
+            灰线是无避让基准路线，橙线是带避让预览结果，蓝线才是标准独立算路接口真正返回的可导航路线。
           </Text>
         </View>
 
@@ -381,7 +339,7 @@ export default function IndependentRouteExampleScreen() {
             如果没搜到可靠坐标，才会回退为基于基准路线的示意区。
           </Text>
           <Text style={styles.cardHint}>
-            重点：这些避让区一定会参与“预览算路”，但不代表当前平台一定支持“带避让直接独立导航”。
+            重点：这些避让区一定会参与“预览算路”，但标准 `independentDriveRoute` 已不再把它们视为公开通用参数。
           </Text>
         </View>
 
@@ -400,7 +358,7 @@ export default function IndependentRouteExampleScreen() {
             disabled={!scenario || planning}
           >
             <Text style={styles.buttonText}>
-              {planning ? "处理中..." : "先生成带避让预览，再检测是否支持独立导航"}
+              {planning ? "处理中..." : "先生成带避让预览"}
             </Text>
           </Pressable>
 
@@ -415,7 +373,7 @@ export default function IndependentRouteExampleScreen() {
 
         {isPreviewOnly ? (
           <View style={[styles.card, styles.warningCard]}>
-            <Text style={styles.cardTitle}>当前平台仅支持“避让预览”，不支持带避让独立导航</Text>
+            <Text style={styles.cardTitle}>当前只有“避让预览”，尚未生成标准独立导航路线</Text>
             <Text style={styles.cardText}>{previewOnlyReason}</Text>
             <Text style={styles.cardHint}>
               如果你要尽量贴近避让结果去导航，更适合用第三个示例“跟随 Web 路线”。
@@ -426,7 +384,7 @@ export default function IndependentRouteExampleScreen() {
               disabled={planning}
             >
               <Text style={styles.buttonText}>
-                {planning ? "处理中..." : "忽略避让，仅测试原生独立导航"}
+                {planning ? "处理中..." : "生成可导航独立路线"}
               </Text>
             </Pressable>
           </View>
@@ -489,7 +447,7 @@ export default function IndependentRouteExampleScreen() {
             当前动态避让区: {(scenario?.avoidAreaLabels ?? [scenario?.avoidAreaLabel || "示例避让区"]).join(" / ")}
           </Text>
           <Text style={styles.cardHint}>
-            看图时请按这个结论理解：橙线一定代表“避让预览”，蓝线才代表“当前平台真的能拿来独立导航”。
+            看图时请按这个结论理解：橙线一定代表“避让预览”，蓝线才代表“标准独立算路接口真的返回了什么”。
           </Text>
         </View>
 
@@ -538,10 +496,10 @@ export default function IndependentRouteExampleScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>本页验证点</Text>
-          <Text style={styles.feature}>• 这个页面优先验证“避让预览”是否正确，不保证“带避让独立导航”一定可用</Text>
+          <Text style={styles.feature}>• 这个页面优先验证“避让预览”是否正确，不再把带避让独立导航当成标准公开能力</Text>
           <Text style={styles.feature}>• 灰线、橙线、蓝线分开显示，不再把“预览”和“可导航结果”混成一条</Text>
-          <Text style={styles.feature}>• `avoidPolygons` 与 `avoidRoad` 先作用在预览阶段，再判断独立导航是否真支持</Text>
-          <Text style={styles.feature}>• Android 旧版 SDK 和当前 iOS 都不会再假装“带避让独立导航已经生效”</Text>
+          <Text style={styles.feature}>• `avoidPolygons` 与 `avoidRoad` 只作用在预览阶段，不再作为标准独立算路参数公开</Text>
+          <Text style={styles.feature}>• 蓝线只代表标准独立算路接口真实返回的路线，不代表它一定复现了橙线</Text>
           <Text style={styles.feature}>• 如果你的目标是“尽量按避让后的 Web 结果去导航”，请优先看第三个示例</Text>
         </View>
       </ScrollView>

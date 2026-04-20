@@ -251,7 +251,7 @@ const truckResult = await calculateRoute({
 
 “独立路径规划”允许你先计算路线，并在地图上展示多条方案，用户选择其中一条后再开始导航。这通常比直接开始导航体验更好。
 
-注意：`independentDriveRoute` 仍然依赖导航 SDK 自身的独立算路能力，因此这里不接 Web API 的规避预览结果。若你需要“规避道路/区域后再开始导航”，建议先用 `calculateRoute` 做预览与确认，再按终点重新发起原生导航。
+注意：`independentDriveRoute` 仍然依赖导航 SDK 自身的独立算路能力，因此这里不接 Web API 的规避预览结果。`avoidRoad` / `avoidPolygons` 不再作为 `IndependentDriveRouteOptions` 的标准公开参数暴露。若你需要“规避道路/区域后再开始导航”，建议先用 `calculateRoute` 做预览与确认，再按终点重新发起原生导航。
 
 ```typescript
 import {
@@ -271,12 +271,14 @@ const result = await independentDriveRoute({
 // 2. 选择某一条路线（例如 index=1 的路线）
 // 这通常配合地图上的点击事件，高亮显示某条路线
 await selectIndependentRoute({
+  token: result.token,
   routeId: result.routes[1].id
 });
 
 // 3. 使用当前选中的路线开始导航
 await startNaviWithIndependentPath({
-  emulator: true, // 开启模拟导航
+  token: result.token,
+  naviType: 1, // 1 = 模拟导航
 });
 ```
 

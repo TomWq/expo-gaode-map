@@ -18,6 +18,7 @@ import {
   formatPoint,
   type DemoScenario,
 } from "@/lib/gaode-demo";
+import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 interface OfficialUiConfig {
   showUIElements: boolean;
@@ -108,6 +109,7 @@ export default function OfficialEmbeddedNaviExampleScreen() {
   const [scenario, setScenario] = React.useState<DemoScenario | null>(null);
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [uiConfig, setUiConfig] = React.useState<OfficialUiConfig>(DEFAULT_CONFIG);
+  useHideNavigationHeader(showNaviView);
   const visibleConfigKeys = React.useMemo(
     () =>
       (Object.keys(UI_LABELS) as Array<keyof OfficialUiConfig>).filter((key) =>

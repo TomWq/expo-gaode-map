@@ -4,7 +4,7 @@ import { Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } 
 
 import { EXAMPLE_ANDROID_KEY, EXAMPLE_IOS_KEY, EXAMPLE_WEB_API_KEY } from "@/exampleConfig";
 
-export default function SetupGuideScreen() {
+export default function ExampleCenterScreen() {
   const openDocs = React.useCallback(() => {
     void Linking.openURL("https://tomwq.github.io/expo-gaode-map/api/navigation.html");
   }, []);
@@ -22,6 +22,15 @@ export default function SetupGuideScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>示例入口</Text>
+
+          <Link href="/examples/quick-start" asChild>
+            <Pressable style={styles.linkCard}>
+              <Text style={styles.linkTitle}>快速导航接入验证</Text>
+              <Text style={styles.linkBody}>
+                单独验证隐私确认、SDK 初始化、定位获取和模拟导航启动链路，不再作为默认首页展示。
+              </Text>
+            </Pressable>
+          </Link>
 
           <Link href="/examples/official" asChild>
             <Pressable style={styles.linkCard}>
@@ -41,11 +50,20 @@ export default function SetupGuideScreen() {
             </Pressable>
           </Link>
 
-          <Link href="/examples/independent" asChild>
+          {/* <Link href="/examples/independent" asChild>
             <Pressable style={styles.linkCard}>
               <Text style={styles.linkTitle}>独立算路避让预览</Text>
               <Text style={styles.linkBody}>
                 先验证避让预览是否正确，再检测当前平台是否支持把结果真正用于独立导航。
+              </Text>
+            </Pressable>
+          </Link> */}
+
+          <Link href="/examples/independent-navigation" asChild>
+            <Pressable style={styles.linkCard}>
+              <Text style={styles.linkTitle}>独立路径规划导航</Text>
+              <Text style={styles.linkBody}>
+                专门演示 `independentDriveRoute` 和 `startNavigationWithIndependentPath` 的完整启动链路。
               </Text>
             </Pressable>
           </Link>
@@ -116,7 +134,7 @@ export default function SetupGuideScreen() {
           <Text style={styles.item}>• 本地依赖：`file:../packages/navigation`</Text>
           <Text style={styles.item}>• Config Plugin：`expo-gaode-map-navigation`</Text>
           <Text style={styles.item}>• iOS 后台定位：已在插件配置里开启</Text>
-          <Text style={styles.item}>• 快速嵌入式导航页：`app/(tabs)/index.tsx`</Text>
+          <Text style={styles.item}>• 快速接入验证页：`app/examples/quick-start.tsx`</Text>
         </View>
 
         <Pressable style={styles.button} onPress={openDocs}>

@@ -5,9 +5,13 @@ export default function ExamplesLayout() {
     <Stack
       screenOptions={{
         headerBackTitle: "返回",
-        headerShown: false,
+        // headerShown: false,
       }}
     >
+      <Stack.Screen
+        name="quick-start"
+        options={{ title: "快速导航接入验证", presentation: "card" }}
+      />
       <Stack.Screen
         name="official"
         options={{ title: "官方黑盒导航", presentation: "card" }}
@@ -16,9 +20,13 @@ export default function ExamplesLayout() {
         name="official-embedded"
         options={{ title: "纯官方嵌入式 UI", presentation: "card" }}
       />
-      <Stack.Screen
+      {/* <Stack.Screen
         name="independent"
         options={{ title: "独立算路避让预览", presentation: "card" }}
+      /> */}
+      <Stack.Screen
+        name="independent-navigation"
+        options={{ title: "独立路径规划导航", presentation: "card" }}
       />
       <Stack.Screen
         name="follow-web"

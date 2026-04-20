@@ -37,6 +37,7 @@ import {
   type DemoScenario,
 } from "@/lib/gaode-demo";
 import { EmbeddedNaviView } from "@/lib/navigation-ui";
+import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 interface WebPreview {
   distance: number;
@@ -74,6 +75,8 @@ export default function FollowWebRouteExampleScreen() {
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [avoidAreaInputs, setAvoidAreaInputs] = React.useState(["", "", ""]);
   const [avoidRoadName, setAvoidRoadName] = React.useState("");
+
+  useHideNavigationHeader(showNaviView);
 
   const avoidAreaKeywords = React.useMemo(
     () => avoidAreaInputs.map((item) => item.trim()).filter(Boolean),

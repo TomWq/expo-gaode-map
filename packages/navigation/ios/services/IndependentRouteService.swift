@@ -59,15 +59,16 @@ class IndependentRouteService: NSObject {
   // MARK: - 独立驾车路线规划
   func independentDriveRoute(options: [String: Any], promise: Promise) {
     bindDriveManagerDelegate()
-    guard let from = options["from"] as? [String: Any],
-          let to = options["to"] as? [String: Any] else {
-      promise.reject("INVALID_PARAMS", "from and to are required")
+    guard let to = options["to"] as? [String: Any] else {
+      promise.reject("INVALID_PARAMS", "to is required")
       return
     }
 
-    guard let startPOIInfo = Converters.parseNaviPOIInfo(from),
-          let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
-      promise.reject("INVALID_COORDS", "Invalid coordinates or POI info")
+    let from = options["from"] as? [String: Any]
+    let startPOIInfo = Converters.parseNaviPOIInfo(from)
+
+    guard let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
+      promise.reject("INVALID_COORDS", "Invalid destination coordinates or POI info")
       return
     }
 
@@ -82,7 +83,7 @@ class IndependentRouteService: NSObject {
 
     let strategyValue = resolveDriveStrategyValue(options: options)
     let strategy = AMapNaviDrivingStrategy(rawValue: strategyValue)
-      ?? AMapNaviDrivingStrategy.drivingStrategySingleDefault
+      ?? AMapNaviDrivingStrategy.drivingStrategyMultipleDefault
     let token = independentRouteManager.generateToken()
 
     let success = driveManager?.independentCalculateDriveRoute(

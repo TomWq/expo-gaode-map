@@ -32,23 +32,27 @@ import {
 import { EmbeddedNaviView } from "@/lib/navigation-ui";
 import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
-export default function RoutePickerExampleScreen() {
+export default function IndependentNavigationExampleScreen() {
   const mapRef = React.useRef<MapViewRef>(null);
   const naviRef = React.useRef<NaviViewRef>(null);
   const activeTokenRef = React.useRef<number | null>(null);
 
   const [loading, setLoading] = React.useState(false);
+  const [planning, setPlanning] = React.useState(false);
   const [statusText, setStatusText] = React.useState("等待初始化");
   const [scenario, setScenario] = React.useState<DemoScenario | null>(null);
   const [routeResult, setRouteResult] = React.useState<IndependentRouteResult | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = React.useState(0);
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [requestedNaviType, setRequestedNaviType] = React.useState(Platform.OS === "android" ? 0 : 1);
-  useHideNavigationHeader(showNaviView);
-  const selectedModeLabel = requestedNaviType === 1 ? "模拟导航" : "GPS 导航";
 
+  useHideNavigationHeader(showNaviView);
+
+  const naviModeLabel = Platform.OS === "android" ? "GPS 导航" : "模拟导航";
+  const selectedModeLabel = requestedNaviType === 1 ? "模拟导航" : "GPS 导航";
   const routes = routeResult?.routes ?? [];
   const selectedRoute = routes[selectedRouteIndex] ?? null;
+
   const previewPoints = React.useMemo(() => {
     if (selectedRoute) {
       return getRoutePreviewPoints(selectedRoute);
@@ -63,6 +67,7 @@ export default function RoutePickerExampleScreen() {
     if (previewPoints.length < 2) {
       return;
     }
+
     const timer = setTimeout(() => {
       void mapRef.current?.fitToCoordinates(previewPoints, {
         duration: 400,
@@ -70,6 +75,7 @@ export default function RoutePickerExampleScreen() {
         maxZoom: 17,
       });
     }, 120);
+
     return () => clearTimeout(timer);
   }, [previewPoints]);
 
@@ -82,7 +88,7 @@ export default function RoutePickerExampleScreen() {
   }, []);
 
   React.useEffect(() => {
-    if (!showNaviView || !scenario || !routeResult) {
+    if (!showNaviView || !routeResult) {
       return;
     }
 
@@ -110,7 +116,7 @@ export default function RoutePickerExampleScreen() {
     }, 360);
 
     return () => clearTimeout(timer);
-  }, [routeResult, scenario, selectedRouteIndex, showNaviView]);
+  }, [requestedNaviType, routeResult, selectedRouteIndex, showNaviView]);
 
   const prepare = React.useCallback(async () => {
     try {
@@ -129,7 +135,7 @@ export default function RoutePickerExampleScreen() {
           "SDK 已就绪",
           `起点: ${formatPoint(nextScenario.from)}`,
           `终点: ${formatPoint(nextScenario.to)}`,
-          "本页会直接调用独立路径组算路，路线卡片的选择会真正参与后续导航启动。",
+          "本页专门演示 independentDriveRoute -> startNavigationWithIndependentPath 的完整链路。",
         ].join("\n")
       );
     } catch (error) {
@@ -141,14 +147,14 @@ export default function RoutePickerExampleScreen() {
     }
   }, []);
 
-  const planRoutes = React.useCallback(async () => {
+  const planIndependentNavigation = React.useCallback(async () => {
     if (!scenario) {
       Alert.alert("尚未初始化", "请先完成 SDK 初始化");
       return;
     }
 
     try {
-      setLoading(true);
+      setPlanning(true);
       if (activeTokenRef.current != null) {
         await clearIndependentRoute({ token: activeTokenRef.current }).catch(() => {});
       }
@@ -161,25 +167,24 @@ export default function RoutePickerExampleScreen() {
         strategy: DriveStrategy.AVOID_CONGESTION,
         restriction: false,
       });
+
       activeTokenRef.current = result.token;
       setRouteResult(result);
       setSelectedRouteIndex(result.mainPathIndex);
       setStatusText(
         [
-          `已生成 ${result.count} 条可导航候选路线`,
+          `独立路径组已生成，共 ${result.count} 条候选路线`,
+          `token: ${result.token}`,
           `当前主路线索引: ${result.mainPathIndex}`,
-          `选中的路线会通过 startNavigationWithIndependentPath(routeIndex) 真正启动。当前启动方式: ${selectedModeLabel}。`,
-          ...(Platform.OS === "android"
-            ? ["Android 独立路径组在模拟导航下可能被 SDK 拒绝；若你切到模拟失败，可切回 GPS 再验证。"]
-            : []),
+          `下一步可直接通过 startNavigationWithIndependentPath(routeIndex) 启动${selectedModeLabel}。`,
         ].join("\n")
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setStatusText(`路线规划失败: ${message}`);
-      Alert.alert("路线规划失败", message);
+      setStatusText(`独立算路失败: ${message}`);
+      Alert.alert("独立算路失败", message);
     } finally {
-      setLoading(false);
+      setPlanning(false);
     }
   }, [scenario, selectedModeLabel]);
 
@@ -190,7 +195,7 @@ export default function RoutePickerExampleScreen() {
     setShowNaviView(false);
   }, []);
 
-  if (showNaviView && scenario) {
+  if (showNaviView && routeResult) {
     return (
       <EmbeddedNaviView
         ref={naviRef}
@@ -226,13 +231,16 @@ export default function RoutePickerExampleScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.badge}>route-picker</Text>
-          <Text style={styles.title}>路线选择后再导航</Text>
+          <Text style={styles.badge}>independent-navigation</Text>
+          <Text style={styles.title}>独立路径规划导航</Text>
           <Text style={styles.description}>
-            这个示例不是只做假预览。它会先拿到原生独立路径组，你手动选中的那条路线会真正用于后续导航启动。
+            这个示例专门演示“先独立算路，再按选中的独立路径启动导航”。它对应的就是
+            `independentDriveRoute` 和 `startNavigationWithIndependentPath` 这条 API 链路。
+          </Text>
+          <Text style={styles.heroHint}>
             {Platform.OS === "android"
-              ? " Android 端默认仍建议先用 GPS，但你现在也可以手动切到模拟导航验证 SDK 是否接受。"
-              : ""}
+              ? "Android 当前默认按 GPS 启动，避免某些独立路径组在模拟导航下被 SDK 直接拒绝；你也可以手动切到模拟导航做验证。"
+              : "iOS 当前默认按模拟导航启动，方便直接验证独立路径组是否能完整拉起导航。"}
           </Text>
         </View>
 
@@ -264,9 +272,9 @@ export default function RoutePickerExampleScreen() {
           <Text style={styles.modeHint}>
             {Platform.OS === "android"
               ? requestedNaviType === 1
-                ? "模拟导航下如果独立路径组被 SDK 拒绝，页面会直接提示失败原因。"
-                : "当前按 GPS 导航启动，适合先确认独立路径组和选路逻辑是否正常。"
-              : "iOS 可直接切换 GPS / 模拟，验证 routeIndex 选路后的启动表现。"}
+                ? "Android 独立路径组在模拟导航下可能被高德 SDK 直接拒绝；若失败，请切回 GPS 验证。"
+                : "当前按 GPS 导航启动，适合先确认独立路径组是否可正常进入导航态。"
+              : "iOS 一般可直接验证模拟导航；若你要接近真实场景，也可以切到 GPS。"}
           </Text>
         </View>
 
@@ -281,10 +289,10 @@ export default function RoutePickerExampleScreen() {
 
           <Pressable
             style={[styles.button, styles.secondaryButton, !scenario && styles.disabledButton]}
-            onPress={() => void planRoutes()}
-            disabled={!scenario || loading}
+            onPress={() => void planIndependentNavigation()}
+            disabled={!scenario || planning}
           >
-            <Text style={styles.buttonText}>规划候选路线</Text>
+            <Text style={styles.buttonText}>{planning ? "独立算路中..." : "执行 independentDriveRoute"}</Text>
           </Pressable>
 
           <Pressable
@@ -292,12 +300,12 @@ export default function RoutePickerExampleScreen() {
             onPress={() => setShowNaviView(true)}
             disabled={!selectedRoute}
           >
-            <Text style={styles.buttonText}>使用当前选中路线进入{selectedModeLabel}</Text>
+            <Text style={styles.buttonText}>启动选中独立路径的{selectedModeLabel}</Text>
           </Pressable>
         </View>
 
         <View style={styles.mapCard}>
-          <Text style={styles.cardTitle}>候选路线预览</Text>
+          <Text style={styles.cardTitle}>独立路径组预览</Text>
           {scenario ? (
             <MapView
               ref={mapRef}
@@ -311,7 +319,7 @@ export default function RoutePickerExampleScreen() {
             >
               {routes.map((route, index) => (
                 <Polyline
-                  key={`picker-route-${route.id}-${index}`}
+                  key={`independent-nav-route-${route.id}-${index}`}
                   points={getRoutePreviewPoints(route)}
                   strokeWidth={index === selectedRouteIndex ? 10 : 7}
                   strokeColor={index === selectedRouteIndex ? "#2563eb" : "#94a3b8"}
@@ -320,17 +328,17 @@ export default function RoutePickerExampleScreen() {
             </MapView>
           ) : (
             <View style={[styles.map, styles.mapPlaceholder]}>
-              <Text style={styles.placeholderText}>初始化后会在这里显示候选路线</Text>
+              <Text style={styles.placeholderText}>初始化后会在这里显示独立路径组</Text>
             </View>
           )}
         </View>
 
         {routes.length > 0 ? (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>手动选路</Text>
+            <Text style={styles.cardTitle}>候选路线</Text>
             {routes.map((route, index) => (
               <Pressable
-                key={`picker-card-${route.id}-${index}`}
+                key={`independent-nav-card-${route.id}-${index}`}
                 style={[
                   styles.routeCard,
                   index === selectedRouteIndex && styles.routeCardActive,
@@ -339,7 +347,7 @@ export default function RoutePickerExampleScreen() {
               >
                 <Text style={styles.routeTitle}>路线 {index + 1}</Text>
                 <Text style={styles.routeMeta}>
-                  {formatDistance(route.distance)} / {formatDuration(route.duration)}
+                  routeId: {route.id} / {formatDistance(route.distance)} / {formatDuration(route.duration)}
                 </Text>
               </Pressable>
             ))}
@@ -348,10 +356,10 @@ export default function RoutePickerExampleScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>本页验证点</Text>
-          <Text style={styles.feature}>• 多条可导航候选路线展示</Text>
-          <Text style={styles.feature}>• 用户手动选中的路线会真实参与导航启动</Text>
-          <Text style={styles.feature}>• 当前页面会明确展示实际启动方式，避免“看起来是模拟，实际底层不支持”</Text>
-          <Text style={styles.feature}>• 规划阶段和导航阶段解耦，但不再是“预览和实际导航不一致”</Text>
+          <Text style={styles.feature}>• `independentDriveRoute` 是否能返回 token 和候选路线</Text>
+          <Text style={styles.feature}>• `routeIndex` 选择是否真正参与独立路径导航启动</Text>
+          <Text style={styles.feature}>• `startNavigationWithIndependentPath` 是否能基于独立路径组直接启动导航</Text>
+          <Text style={styles.feature}>• Android / iOS 两端独立路径启动方式差异是否符合预期</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -397,6 +405,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: "#cbd5e1",
   },
+  heroHint: {
+    marginTop: 12,
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#93c5fd",
+  },
   card: {
     borderRadius: 22,
     padding: 18,
@@ -432,9 +446,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#cbd5e1",
+    backgroundColor: "#f8fafc",
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#f8fafc",
   },
   modeChipActive: {
     borderColor: "#2563eb",
