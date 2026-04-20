@@ -109,7 +109,8 @@ public class ExpoGaodeMapModule: Module {
          * @param enable 是否开启
          */
         Function("setLoadWorldVectorMap") { (enable: Bool) in
-           MAMapView.loadWorldVectorMap = enable
+        // v1 版本不支持
+        //    MAMapView.loadWorldVectorMap = enable
         }
         
         /**

@@ -2,8 +2,8 @@ PODS:
   - AMapFoundation (1.8.6)
   - AMapLocation (2.11.0):
     - AMapFoundation (>= 1.8.0)
-  - AMapNavi (11.1.000):
-    - AMapFoundation (>= 1.8.6)
+  - AMapNavi (10.0.900):
+    - AMapFoundation (>= 1.8.2)
   - EXConstants (18.0.13):
     - ExpoModulesCore
   - Expo (54.0.33):
@@ -39,10 +39,10 @@ PODS:
     - ExpoModulesCore
   - ExpoFont (14.0.11):
     - ExpoModulesCore
-  - ExpoGaodeMapNavigation (2.0.9):
+  - ExpoGaodeMapNavigation (2.0.10):
     - AMapFoundation
     - AMapLocation
-    - AMapNavi
+    - AMapNavi (= 10.0.900)
     - ExpoModulesCore
   - ExpoHead (6.0.23):
     - ExpoModulesCore
@@ -51,6 +51,9 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (8.0.11):
     - ExpoModulesCore
+  - ExpoMediaLibrary (18.2.1):
+    - ExpoModulesCore
+    - React-Core
   - ExpoModulesCore (3.0.29):
     - hermes-engine
     - RCTRequired
@@ -1985,6 +1988,7 @@ DEPENDENCIES:
   - ExpoHead (from `../node_modules/expo-router/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
+  - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
@@ -2088,6 +2092,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-keep-awake/ios"
   ExpoLinking:
     :path: "../node_modules/expo-linking/ios"
+  ExpoMediaLibrary:
+    :path: "../node_modules/expo-media-library/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
   ExpoSplashScreen:
@@ -2241,17 +2247,18 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AMapFoundation: d539ff40e882c872bef6c6682bf1e3a2d4a03026
   AMapLocation: 8c46dbe995333ad6cae147d54a7307a577020be0
-  AMapNavi: bd9b183aee79d94839e7ed8b49f1074f3ae56dfc
+  AMapNavi: fceb4715f9a3b5a25f330facebee2aa2bdba42dd
   EXConstants: fce59a631a06c4151602843667f7cfe35f81e271
   Expo: aadbcc8c6c14ff3105a9154f1683cb1424ff0d2a
   ExpoAsset: f867e55ceb428aab99e1e8c082b5aee7c159ea18
   ExpoBlur: 7a86e84e7728108fa6908d7103fa527705a3dbbf
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
   ExpoFont: f543ce20a228dd702813668b1a07b46f51878d47
-  ExpoGaodeMapNavigation: 785e0db34430322525ae217db8ca4a0bb6f9df7d
+  ExpoGaodeMapNavigation: 1a7cf772e8681569ea0140c374a71fb3c086602b
   ExpoHead: 7e19b2272edf492262acf8afb391a295198a6b23
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
   ExpoLinking: 8f0aaf69aa56f832913030503b6263dc6f647f37
+  ExpoMediaLibrary: a3093b04365b245bb23b25b6eba84eb6ab55fecb
   ExpoModulesCore: f3da4f1ab5a8375d0beafab763739dbee8446583
   ExpoSplashScreen: bc3cffefca2716e5f22350ca109badd7e50ec14d
   ExpoWebBrowser: 17b064c621789e41d4816c95c93f429b84971f52

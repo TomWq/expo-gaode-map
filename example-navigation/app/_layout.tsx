@@ -53,6 +53,7 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: true, title: '导航示例' }} />
         <Stack.Screen name="examples" options={{ headerShown: false }} />
+        <Stack.Screen name="map" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

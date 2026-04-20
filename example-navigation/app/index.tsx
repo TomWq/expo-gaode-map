@@ -112,6 +112,15 @@ export default function ExampleCenterScreen() {
               </Text>
             </Pressable>
           </Link>
+          {/* 地图演示 */}
+          <Link href="/map/ExampleHub" asChild>
+            <Pressable style={styles.linkCard}>
+              <Text style={styles.linkTitle}>地图示例</Text>
+              <Text style={styles.linkBody}>
+                展示如何使用 `MapView` 组件
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         <View style={styles.card}>
