@@ -22,7 +22,7 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = examplenavigation/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = examplenavigation/Info.plist; sourceTree = "<group>"; };
 		1B30AC30E075A10CF297B3E6 /* Pods-examplenavigation.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-examplenavigation.debug.xcconfig"; path = "Target Support Files/Pods-examplenavigation/Pods-examplenavigation.debug.xcconfig"; sourceTree = "<group>"; };
-		95DCDDDEBEBBFC6CFA1A7F97 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = examplenavigation/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		95DCDDDEBEBBFC6CFA1A7F97 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = examplenavigation/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9927F2E1EFF1204ED52F5ABC /* libPods-examplenavigation.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-examplenavigation.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = examplenavigation/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -73,7 +73,6 @@
 				1B30AC30E075A10CF297B3E6 /* Pods-examplenavigation.debug.xcconfig */,
 				058C36FC143FC5561BD71B16 /* Pods-examplenavigation.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -341,6 +340,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = examplenavigation/examplenavigation.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M64MGBNBQN;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -378,6 +378,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = examplenavigation/examplenavigation.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M64MGBNBQN;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = examplenavigation/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;

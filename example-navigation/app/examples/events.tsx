@@ -1,4 +1,4 @@
-import { EmbeddedNaviView, type NaviViewRef } from "expo-gaode-map-navigation";
+import type { NaviViewRef } from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Alert,
@@ -16,6 +16,7 @@ import {
   formatPoint,
   type DemoScenario,
 } from "@/lib/gaode-demo";
+import { EmbeddedNaviView } from "@/lib/navigation-ui";
 
 interface EventItem {
   id: string;
@@ -103,7 +104,6 @@ export default function EventsExampleScreen() {
             naviType={1}
             showCamera
             enableVoice
-            showUIElements
             showTrafficBar
             showTrafficButton
             showDriveCongestion

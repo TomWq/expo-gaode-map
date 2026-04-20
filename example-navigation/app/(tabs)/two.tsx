@@ -88,9 +88,9 @@ export default function SetupGuideScreen() {
 
           <Link href="/examples/ui-props" asChild>
             <Pressable style={styles.linkCard}>
-              <Text style={styles.linkTitle}>UI Props 调试</Text>
+              <Text style={styles.linkTitle}>自定义 UI 导航界面</Text>
               <Text style={styles.linkBody}>
-                回归 Android 顶部信息、iOS HUD 控制和两端 UI 暴露接口。
+                展示如何基于 `NaviView` 事件自绘顶部 HUD、车道 HUD、路况光柱和嵌入式地图聚焦。
               </Text>
             </Pressable>
           </Link>

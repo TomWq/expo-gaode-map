@@ -18,6 +18,7 @@
     "expo-gaode-map-web-api": "file:../packages/web-api",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.23",
+     "expo-blur": "~55.0.10",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.10",

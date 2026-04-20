@@ -30,7 +30,8 @@ public class ExpoGaodeMapNaviViewModule: Module {
         "onNavigationInfoUpdate",
         "onGpsSignalWeak",
         "onNavigationVisualStateUpdate",
-        "onLaneInfoUpdate"
+        "onLaneInfoUpdate",
+        "onTrafficStatusesUpdate"
       )
       
       // 属性定义
@@ -44,6 +45,30 @@ public class ExpoGaodeMapNaviViewModule: Module {
       
       Prop("showCamera") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.showCamera = value
+      }
+
+      Prop("carImage") { (view: ExpoGaodeMapNaviView, value: String?) in
+        view.carImageSource = value
+      }
+
+      Prop("carCompassImage") { (view: ExpoGaodeMapNaviView, value: String?) in
+        view.carCompassImageSource = value
+      }
+
+      Prop("startPointImage") { (view: ExpoGaodeMapNaviView, value: String?) in
+        view.startPointImageSource = value
+      }
+
+      Prop("wayPointImage") { (view: ExpoGaodeMapNaviView, value: String?) in
+        view.wayPointImageSource = value
+      }
+
+      Prop("endPointImage") { (view: ExpoGaodeMapNaviView, value: String?) in
+        view.endPointImageSource = value
+      }
+
+      Prop("cameraImage") { (view: ExpoGaodeMapNaviView, value: String?) in
+        view.cameraImageSource = value
       }
       
       Prop("autoLockCar") { (view: ExpoGaodeMapNaviView, value: Bool) in
@@ -85,6 +110,18 @@ public class ExpoGaodeMapNaviViewModule: Module {
       
       Prop("showTrafficBar") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.showTrafficBar = value
+      }
+
+      Prop("trafficBarFrame") { (view: ExpoGaodeMapNaviView, value: [String: Double]?) in
+        let x = CGFloat(value?["x"] ?? 0)
+        let y = CGFloat(value?["y"] ?? 0)
+        let width = CGFloat(value?["width"] ?? 0)
+        let height = CGFloat(value?["height"] ?? 0)
+        view.trafficBarFrame = CGRect(x: x, y: y, width: width, height: height)
+      }
+
+      Prop("trafficBarColors") { (view: ExpoGaodeMapNaviView, value: [String: Any]?) in
+        view.trafficBarColors = value
       }
       
       Prop("showBrowseRouteButton") { (view: ExpoGaodeMapNaviView, value: Bool) in
@@ -133,6 +170,10 @@ public class ExpoGaodeMapNaviViewModule: Module {
 
       Prop("showTrafficLightView") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.showTrafficLightView = value
+      }
+
+      Prop("hideNativeTopInfoLayout") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.hideNativeTopInfoLayout = value
       }
 
       Prop("hideNativeLaneInfoLayout") { (view: ExpoGaodeMapNaviView, value: Bool) in

@@ -1,4 +1,4 @@
-import { EmbeddedNaviView, ExpoGaodeMapModule, type NaviPoint, type NaviViewRef } from "expo-gaode-map-navigation";
+import { ExpoGaodeMapModule, type NaviPoint, type NaviViewRef } from "expo-gaode-map-navigation";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { EXAMPLE_ANDROID_KEY, EXAMPLE_IOS_KEY, EXAMPLE_WEB_API_KEY } from "@/exampleConfig";
+import { EmbeddedNaviView } from "@/lib/navigation-ui";
 
 type DemoPoint = NaviPoint;
 
@@ -125,7 +126,6 @@ export default function NavigationDemoScreen() {
           naviType={1}
           showCamera
           enableVoice
-          showUIElements
           showTrafficBar
           showTrafficButton
           showDriveCongestion
@@ -169,8 +169,8 @@ export default function NavigationDemoScreen() {
           <Text style={styles.badge}>example-navigation</Text>
           <Text style={styles.title}>高德导航接入验证</Text>
           <Text style={styles.description}>
-            这个工程直接接入本地 `packages/navigation`，用于验证隐私初始化、定位、嵌入式 `NaviView`
-            和最近补齐的导航 UI props。
+            这个工程直接接入本地 `packages/navigation`，用于验证底层导航能力，以及如何在示例侧基于
+            `NaviView` 事件自己拼出完整的自定义导航界面。
           </Text>
         </View>
 

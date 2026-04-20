@@ -2,8 +2,13 @@ package expo.modules.gaodemap.navigation
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -20,8 +25,13 @@ import expo.modules.gaodemap.navigation.managers.IndependentRouteManager
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.util.Collections
 import java.util.WeakHashMap
+import java.net.URL
 
 @SuppressLint("ViewConstructor")
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -64,6 +74,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     private val onGpsSignalWeak by EventDispatcher()
     private val onNavigationVisualStateUpdate by EventDispatcher()
     private val onLaneInfoUpdate by EventDispatcher()
+    private val onTrafficStatusesUpdate by EventDispatcher()
     
     // Props - 使用 internal 避免自动生成 setter
     internal var showCamera: Boolean = true
@@ -99,6 +110,11 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var pointToCenterY: Double = 0.0
     internal var hideNativeTopInfoLayout: Boolean = false
     internal var naviModeValue: Int = AMapNaviView.CAR_UP_MODE
+    internal var carImageUri: String? = null
+    internal var fourCornersImageUri: String? = null
+    internal var startPointImageUri: String? = null
+    internal var wayPointImageUri: String? = null
+    internal var endPointImageUri: String? = null
     private val naviView: AMapNaviView by lazy(LazyThreadSafetyMode.NONE) {
         AMapNaviView(context)
     }
@@ -111,6 +127,20 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     private var isCrossVisible = false
     private var isModeCrossVisible = false
     private var isLaneInfoCurrentlyVisible = false
+    private var currentRouteTotalLength: Int? = null
+    private var customCarBitmap: Bitmap? = null
+    private var customFourCornersBitmap: Bitmap? = null
+    private var customStartPointBitmap: Bitmap? = null
+    private var customWayPointBitmap: Bitmap? = null
+    private var customEndPointBitmap: Bitmap? = null
+    private var routeMarkerShowStartEndVia: Boolean = true
+    private var routeMarkerShowFootFerry: Boolean = true
+    private var routeMarkerShowForbidden: Boolean = true
+    private var routeMarkerShowRouteStartIcon: Boolean = true
+    private var routeMarkerShowRouteEndIcon: Boolean = true
+    private var cachedTurnIconImageUri: String? = null
+    private var cachedTurnIconContentHash: String? = null
+    private var hasLoggedMissingTurnIconBitmapApi = false
 
     private fun registerActiveView() {
         synchronized(activeViews) {
@@ -219,6 +249,111 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         options.isSensorEnable = true
         options.isAutoNaviViewNightMode = false
         options.isEagleMapVisible = isEagleMapVisible
+        applyCustomAnnotationBitmaps(options)
+    }
+
+    private fun applyBitmapOptionCompat(
+        options: AMapNaviViewOptions,
+        methodName: String,
+        bitmap: Bitmap?
+    ) {
+        try {
+            val method = options.javaClass.getMethod(methodName, Bitmap::class.java)
+            method.invoke(options, bitmap)
+        } catch (_: NoSuchMethodException) {
+            Log.w(
+                "ExpoGaodeMapNaviView",
+                "AMapNaviViewOptions#$methodName is unavailable in the current AMap SDK; skip applying custom bitmap"
+            )
+        } catch (error: Throwable) {
+            Log.w(
+                "ExpoGaodeMapNaviView",
+                "Failed to apply $methodName compatibly",
+                error
+            )
+        }
+    }
+
+    private fun applyCustomAnnotationBitmaps(options: AMapNaviViewOptions) {
+        applyBitmapOptionCompat(options, "setCarBitmap", customCarBitmap)
+        applyBitmapOptionCompat(options, "setFourCornersBitmap", customFourCornersBitmap)
+        applyBitmapOptionCompat(options, "setStartPointBitmap", customStartPointBitmap)
+        applyBitmapOptionCompat(options, "setWayPointBitmap", customWayPointBitmap)
+        applyBitmapOptionCompat(options, "setEndPointBitmap", customEndPointBitmap)
+    }
+
+    private fun refreshViewOptionsFromState(reason: String) {
+        if (isDestroyed) {
+            return
+        }
+        naviView.viewOptions = createInitialViewOptions()
+        refreshNaviUILayout(reason)
+    }
+
+    private fun loadBitmapFromSource(imagePath: String): Bitmap? {
+        return try {
+            when {
+                imagePath.startsWith("http://") || imagePath.startsWith("https://") -> {
+                    URL(imagePath).openStream().use { BitmapFactory.decodeStream(it) }
+                }
+                imagePath.startsWith("file://") -> {
+                    BitmapFactory.decodeFile(imagePath.substring(7))
+                }
+                else -> {
+                    val fileName = imagePath.substringBeforeLast('.')
+                    val resId = context.resources.getIdentifier(
+                        fileName,
+                        "drawable",
+                        context.packageName
+                    )
+                    if (resId != 0) {
+                        BitmapFactory.decodeResource(context.resources, resId)
+                    } else {
+                        BitmapFactory.decodeFile(imagePath)
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun updateCustomAnnotationBitmap(
+        uri: String?,
+        getCurrentUri: () -> String?,
+        setCurrentUri: (String?) -> Unit,
+        setBitmap: (Bitmap?) -> Unit,
+        reason: String
+    ) {
+        val normalizedUri = uri?.takeIf { it.isNotBlank() }
+        setCurrentUri(normalizedUri)
+
+        if (normalizedUri == null) {
+            setBitmap(null)
+            refreshViewOptionsFromState("clear-$reason")
+            return
+        }
+
+        Thread {
+            val bitmap = loadBitmapFromSource(normalizedUri)
+            Handler(Looper.getMainLooper()).post {
+                if (isDestroyed || getCurrentUri() != normalizedUri) {
+                    return@post
+                }
+                setBitmap(bitmap)
+                refreshViewOptionsFromState("apply-$reason")
+            }
+        }.start()
+    }
+
+    private fun applyRouteMarkerVisibleFromState() {
+        naviView.setRouteMarkerVisible(
+            routeMarkerShowStartEndVia,
+            routeMarkerShowFootFerry,
+            routeMarkerShowForbidden,
+            routeMarkerShowRouteStartIcon,
+            routeMarkerShowRouteEndIcon
+        )
     }
 
     private fun commitViewOptions(mutator: (AMapNaviViewOptions) -> Unit) {
@@ -404,6 +539,134 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             null
         }
     }
+
+    /**
+     * Android 导航 SDK 仅透出当前转向图 bitmap，且不同版本方法可见性不完全一致，
+     * 这里走反射兼容，避免因为 SDK 小版本差异导致编译直接中断。
+     */
+    private fun extractTurnIconBitmap(naviInfo: NaviInfo): Bitmap? {
+        return try {
+            val method = naviInfo.javaClass.getMethod("getIconBitmap")
+            method.invoke(naviInfo) as? Bitmap
+        } catch (_: NoSuchMethodException) {
+            if (!hasLoggedMissingTurnIconBitmapApi) {
+                hasLoggedMissingTurnIconBitmapApi = true
+                Log.w(
+                    "ExpoGaodeMapNaviView",
+                    "NaviInfo#getIconBitmap is unavailable in the current AMap SDK; turnIconImage will be omitted on Android"
+                )
+            }
+            null
+        } catch (error: Throwable) {
+            Log.w("ExpoGaodeMapNaviView", "Failed to extract turn icon bitmap", error)
+            null
+        }
+    }
+
+    private fun bitmapToPngBytes(bitmap: Bitmap): ByteArray? {
+        return try {
+            val outputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            outputStream.toByteArray()
+        } catch (error: Throwable) {
+            Log.w("ExpoGaodeMapNaviView", "Failed to serialize turn icon bitmap", error)
+            null
+        }
+    }
+
+    private fun sha1Hex(bytes: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-1").digest(bytes)
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun cacheTurnIconBitmap(bytes: ByteArray, prefix: String, contentHash: String): String? {
+        return try {
+            val directory = File(context.cacheDir, "expo_gaode_map_navigation_icons")
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+            val file = File(directory, "${prefix}_${contentHash}.png")
+            if (!file.exists()) {
+                FileOutputStream(file).use { stream ->
+                    stream.write(bytes)
+                }
+            }
+            Uri.fromFile(file).toString()
+        } catch (error: Throwable) {
+            Log.w("ExpoGaodeMapNaviView", "Failed to cache turn icon bitmap", error)
+            null
+        }
+    }
+
+    private fun deleteCachedIconFile(uriString: String?) {
+        if (uriString.isNullOrBlank()) {
+            return
+        }
+        runCatching {
+            val path = Uri.parse(uriString).path ?: return
+            File(path).delete()
+        }
+    }
+
+    private fun updateCachedTurnIconImage(naviInfo: NaviInfo): String? {
+        val bitmap = extractTurnIconBitmap(naviInfo)
+        if (bitmap == null) {
+            deleteCachedIconFile(cachedTurnIconImageUri)
+            cachedTurnIconImageUri = null
+            cachedTurnIconContentHash = null
+            return null
+        }
+
+        val bytes = bitmapToPngBytes(bitmap) ?: return cachedTurnIconImageUri
+        val contentHash = sha1Hex(bytes)
+        if (contentHash == cachedTurnIconContentHash && !cachedTurnIconImageUri.isNullOrBlank()) {
+            return cachedTurnIconImageUri
+        }
+
+        val nextUri = cacheTurnIconBitmap(bytes, "turn_icon", contentHash) ?: return cachedTurnIconImageUri
+        val previousUri = cachedTurnIconImageUri
+        cachedTurnIconImageUri = nextUri
+        cachedTurnIconContentHash = contentHash
+        if (previousUri != nextUri) {
+            deleteCachedIconFile(previousUri)
+        }
+        return nextUri
+    }
+
+    private fun emitTrafficStatusesUpdate(retainDistance: Int? = null) {
+        val trafficStatuses = try {
+            aMapNavi?.getTrafficStatuses(0, 0)
+        } catch (_: Throwable) {
+            null
+        } ?: emptyList()
+
+        val totalLength = try {
+            aMapNavi?.naviPath?.allLength
+        } catch (_: Throwable) {
+            null
+        } ?: currentRouteTotalLength
+
+        currentRouteTotalLength = totalLength ?: currentRouteTotalLength
+
+        val payload = mutableMapOf<String, Any>(
+            "items" to trafficStatuses.map { status ->
+                mapOf(
+                    "status" to status.status,
+                    "length" to status.length
+                )
+            }
+        )
+
+        if ((totalLength ?: 0) > 0) {
+            payload["totalLength"] = totalLength as Int
+        }
+
+        if (retainDistance != null) {
+            payload["retainDistance"] = retainDistance
+        }
+
+        onTrafficStatusesUpdate(payload)
+    }
     
     // 导航监听器
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -428,7 +691,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
 
         override fun onTrafficStatusUpdate() {
-            // 交通状态更新
+            emitTrafficStatusesUpdate()
         }
 
         override fun onLocationChange(location: AMapNaviLocation?) {
@@ -483,6 +746,13 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
                 // GPS 导航
                 aMapNavi?.startNavi(NaviType.GPS)
             }
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    applyRouteMarkerVisibleFromState()
+                } catch (e: Exception) {
+                    Log.e("ExpoGaodeMapNaviView", "Failed to reapply route marker visibility after route success", e)
+                }
+            }
         }
 
         override fun onCalculateRouteSuccess(result: AMapCalcRouteResult?) {
@@ -498,6 +768,13 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             } else {
                 // GPS 导航
                 aMapNavi?.startNavi(NaviType.GPS)
+            }
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    applyRouteMarkerVisibleFromState()
+                } catch (e: Exception) {
+                    Log.e("ExpoGaodeMapNaviView", "Failed to reapply route marker visibility after route success", e)
+                }
             }
         }
 
@@ -541,7 +818,13 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
 
         override fun onNaviInfoUpdate(naviInfo: NaviInfo?) {
             naviInfo?.let {
+                currentRouteTotalLength = try {
+                    aMapNavi?.naviPath?.allLength
+                } catch (_: Throwable) {
+                    null
+                } ?: currentRouteTotalLength
                 val nextIconType = resolveNextTurnIconType(it.curStep)
+                val turnIconImage = updateCachedTurnIconImage(it)
                 val payload = mutableMapOf<String, Any>(
                     "naviMode" to it.naviType,
                     "currentRoadName" to (it.currentRoadName ?: ""),
@@ -563,7 +846,11 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
                 if (nextIconType != null) {
                     payload["nextIconType"] = nextIconType
                 }
+                if (!turnIconImage.isNullOrBlank()) {
+                    payload["turnIconImage"] = turnIconImage
+                }
                 onNavigationInfoUpdate(payload)
+                emitTrafficStatusesUpdate(it.pathRetainDistance)
                 refreshNaviUILayout("onNaviInfoUpdate")
             }
         }
@@ -1093,6 +1380,56 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
     }
 
+    fun applyCarImage(uri: String?) {
+        updateCustomAnnotationBitmap(
+            uri = uri,
+            getCurrentUri = { carImageUri },
+            setCurrentUri = { carImageUri = it },
+            setBitmap = { customCarBitmap = it },
+            reason = "carBitmap"
+        )
+    }
+
+    fun applyFourCornersImage(uri: String?) {
+        updateCustomAnnotationBitmap(
+            uri = uri,
+            getCurrentUri = { fourCornersImageUri },
+            setCurrentUri = { fourCornersImageUri = it },
+            setBitmap = { customFourCornersBitmap = it },
+            reason = "fourCornersBitmap"
+        )
+    }
+
+    fun applyStartPointImage(uri: String?) {
+        updateCustomAnnotationBitmap(
+            uri = uri,
+            getCurrentUri = { startPointImageUri },
+            setCurrentUri = { startPointImageUri = it },
+            setBitmap = { customStartPointBitmap = it },
+            reason = "startPointBitmap"
+        )
+    }
+
+    fun applyWayPointImage(uri: String?) {
+        updateCustomAnnotationBitmap(
+            uri = uri,
+            getCurrentUri = { wayPointImageUri },
+            setCurrentUri = { wayPointImageUri = it },
+            setBitmap = { customWayPointBitmap = it },
+            reason = "wayPointBitmap"
+        )
+    }
+
+    fun applyEndPointImage(uri: String?) {
+        updateCustomAnnotationBitmap(
+            uri = uri,
+            getCurrentUri = { endPointImageUri },
+            setCurrentUri = { endPointImageUri = it },
+            setBitmap = { customEndPointBitmap = it },
+            reason = "endPointBitmap"
+        )
+    }
+
 
     /**
      * 设置是否显示交通信号灯
@@ -1124,8 +1461,13 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         showRouteStartIcon: Boolean,
         showRouteEndIcon: Boolean
     ) {
+        routeMarkerShowStartEndVia = showStartEndVia
+        routeMarkerShowFootFerry = showFootFerry
+        routeMarkerShowForbidden = showForbidden
+        routeMarkerShowRouteStartIcon = showRouteStartIcon
+        routeMarkerShowRouteEndIcon = showRouteEndIcon
         try {
-            naviView.setRouteMarkerVisible(showStartEndVia, showFootFerry, showForbidden, showRouteStartIcon, showRouteEndIcon)
+            applyRouteMarkerVisibleFromState()
             Log.d("ExpoGaodeMapNaviView", "Route marker visibility set - startEnd:$showStartEndVia, ferry:$showFootFerry, forbidden:$showForbidden, routeStart:$showRouteStartIcon, routeEnd:$showRouteEndIcon")
         } catch (e: Exception) {
             Log.e("ExpoGaodeMapNaviView", "Failed to set route marker visibility", e)
@@ -1238,6 +1580,9 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             naviView.onDestroy()
             aMapNavi?.stopSpeak()
             aMapNavi?.removeAMapNaviListener(naviListener)
+            deleteCachedIconFile(cachedTurnIconImageUri)
+            cachedTurnIconImageUri = null
+            cachedTurnIconContentHash = null
             // AMapNavi 是单例，不需要手动 destroy
         } catch (e: Exception) {
             Log.e("ExpoGaodeMapNaviView", "Error destroying navi view", e)

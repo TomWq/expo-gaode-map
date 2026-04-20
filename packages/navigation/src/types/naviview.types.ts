@@ -1,4 +1,24 @@
-import { ViewProps, NativeSyntheticEvent } from "react-native";
+import { ViewProps, NativeSyntheticEvent, ImageSourcePropType } from "react-native";
+
+export type NaviColorValue = string | number;
+export type NaviImageSource = string | ImageSourcePropType;
+
+export interface NaviRect {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface NaviTrafficBarColors {
+  unknown?: NaviColorValue;
+  smooth?: NaviColorValue;
+  fineOpen?: NaviColorValue;
+  slow?: NaviColorValue;
+  jam?: NaviColorValue;
+  seriousJam?: NaviColorValue;
+  defaultRoad?: NaviColorValue;
+}
 
 // 导航信息更新事件
 export interface NaviInfoUpdateEvent {
@@ -12,6 +32,10 @@ export interface NaviInfoUpdateEvent {
   currentSpeed?: number;
   iconType?: number;
   nextIconType?: number;
+  /** 当前导航动作的原生转向图标 URI，优先级高于 iconType */
+  turnIconImage?: string;
+  /** 下一导航动作的原生转向图标 URI；Android 当前通常为空 */
+  nextTurnIconImage?: string;
   iconDirection?: number;
   currentSegmentIndex?: number;
   currentLinkIndex?: number;
@@ -22,7 +46,9 @@ export interface NaviInfoUpdateEvent {
 }
 
 export interface NaviVisualStateEvent {
+  /** 是否正在显示实景路口放大图 */
   isCrossVisible: boolean;
+  /** 是否正在显示 3D 路口模型；当前仅 Android 支持，iOS 恒为 false */
   isModeCrossVisible: boolean;
   isLaneInfoVisible: boolean;
 }
@@ -31,6 +57,26 @@ export interface NaviLaneInfoEvent {
   laneCount: number;
   backgroundLane: number[];
   frontLane: number[];
+}
+
+/** 导航路线的连续路况分段，供统一自绘光柱消费 */
+export interface NaviTrafficStatusItem {
+  /** 路况状态值，跨平台统一对齐高德原始 status 枚举 */
+  status: number;
+  /** 该路况分段长度，单位米 */
+  length: number;
+  /** iOS 细粒度路况值；Android 当前无此字段 */
+  fineStatus?: number;
+}
+
+/** 当前整条引导路线的路况快照 */
+export interface NaviTrafficStatusesEvent {
+  /** 当前整条路线长度，单位米 */
+  totalLength?: number;
+  /** 当前剩余距离，单位米 */
+  retainDistance?: number;
+  /** 当前路线的连续路况分段数组 */
+  items: NaviTrafficStatusItem[];
 }
 
 // 导航开始事件
@@ -173,6 +219,55 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    */
   carOverlayVisible?: boolean;
 
+  /**
+   * 自定义导航车标图片
+   * @platform android ios
+   * 说明：iOS 对应 `setCarImage`，Android 对应 `AMapNaviViewOptions.setCarBitmap`
+   */
+  carImage?: NaviImageSource;
+
+  /**
+   * 自定义车标四角朝向图
+   * @platform android
+   * 说明：对应 `AMapNaviViewOptions.setFourCornersBitmap`
+   */
+  fourCornersImage?: NaviImageSource;
+
+  /**
+   * 自定义自车罗盘图
+   * @platform ios
+   * 说明：对应 `setCarCompassImage`
+   */
+  carCompassImage?: NaviImageSource;
+
+  /**
+   * 自定义起点标注图片
+   * @platform android ios
+   * 说明：iOS 对应 `setStartPointImage`，Android 对应 `setStartPointBitmap`
+   */
+  startPointImage?: NaviImageSource;
+
+  /**
+   * 自定义途经点标注图片
+   * @platform android ios
+   * 说明：iOS 对应 `setWayPointImage`，Android 对应 `setWayPointBitmap`
+   */
+  wayPointImage?: NaviImageSource;
+
+  /**
+   * 自定义终点标注图片
+   * @platform android ios
+   * 说明：iOS 对应 `setEndPointImage`，Android 对应 `setEndPointBitmap`
+   */
+  endPointImage?: NaviImageSource;
+
+  /**
+   * 自定义摄像头图标
+   * @platform ios
+   * 说明：对应 `setCameraImage`
+   */
+  cameraImage?: NaviImageSource;
+
   
   /**
    * 路线标记点可见性配置
@@ -210,6 +305,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   /**
    * 是否显示 3D 路口模型
    * @platform android
+   * 说明：当前仅 Android 高德导航 SDK 提供该能力，iOS 会忽略此参数
    * @default true
    */
   modeCrossDisplay?: boolean;
@@ -325,6 +421,20 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * @default true
    */
   showTrafficBar?: boolean;
+
+  /**
+   * 路况光柱图位置
+   * @platform ios
+   * 说明：基于 `AMapNaviDriveView.tmcRouteFrame`，单位为 pt
+   */
+  trafficBarFrame?: NaviRect;
+
+  /**
+   * 路况光柱图颜色
+   * @platform ios
+   * 说明：基于 `AMapNaviDriveView.tmcRouteColor`，可分别配置不同路况颜色
+   */
+  trafficBarColors?: NaviTrafficBarColors;
   
   /**
    * 是否显示全览按钮
@@ -495,4 +605,12 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * iOS 则将 `showLaneBackInfo/laneSelectInfo` 解析为同结构数据。
    */
   onLaneInfoUpdate?: (event: NativeSyntheticEvent<NaviLaneInfoEvent>) => void;
+
+  /**
+   * 路况光柱分段数据更新回调
+   * @platform android ios
+   * 说明：用于自绘路况光柱。Android 基于 `getTrafficStatuses(0, 0)`，
+   * iOS 基于 `updateTrafficStatus` 回调，对齐为统一结构。
+   */
+  onTrafficStatusesUpdate?: (event: NativeSyntheticEvent<NaviTrafficStatusesEvent>) => void;
 }

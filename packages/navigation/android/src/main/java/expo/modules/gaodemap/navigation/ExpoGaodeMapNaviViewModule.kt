@@ -38,7 +38,8 @@ class ExpoGaodeMapNaviViewModule : Module() {
         "onNavigationInfoUpdate",
         "onGpsSignalWeak",
         "onNavigationVisualStateUpdate",
-        "onLaneInfoUpdate"
+        "onLaneInfoUpdate",
+        "onTrafficStatusesUpdate"
       )
 
       OnViewDestroys { view: ExpoGaodeMapNaviView ->
@@ -52,6 +53,26 @@ class ExpoGaodeMapNaviViewModule : Module() {
       
       Prop<Boolean>("enableVoice") { view, enabled ->
         view.applyEnableVoice(enabled)
+      }
+
+      Prop<String?>("carImage") { view, uri ->
+        view.applyCarImage(uri)
+      }
+
+      Prop<String?>("fourCornersImage") { view, uri ->
+        view.applyFourCornersImage(uri)
+      }
+
+      Prop<String?>("startPointImage") { view, uri ->
+        view.applyStartPointImage(uri)
+      }
+
+      Prop<String?>("wayPointImage") { view, uri ->
+        view.applyWayPointImage(uri)
+      }
+
+      Prop<String?>("endPointImage") { view, uri ->
+        view.applyEndPointImage(uri)
       }
       
       Prop<Boolean>("autoLockCar") { view, enabled ->

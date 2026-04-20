@@ -187,54 +187,31 @@ import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
 />
 ```
 
-### EmbeddedNaviView
+Custom annotation icons are now exposed as image props:
 
-For embedded navigation screens inside your own React Native page, prefer `EmbeddedNaviView`.
+- `carImage`: custom ego vehicle icon on both iOS and Android
+- `startPointImage` / `wayPointImage` / `endPointImage`: custom route marker icons on both iOS and Android
+- `fourCornersImage`: Android-only four-corners direction bitmap
+- `carCompassImage`: iOS-only ego compass image
+- `cameraImage`: iOS-only camera icon
 
-It still uses the native `NaviView` underneath, but adds a reusable library HUD for the top navigation info area so Android and iOS behave more consistently in embedded layouts.
+These props accept either a string URI/resource name or a React Native asset source such as `require(...)`.
 
-```typescript
-import React, { useRef } from 'react';
-import { EmbeddedNaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+### Custom Embedded Navigation UI
 
-function EmbeddedNavigationScreen() {
-  const naviRef = useRef<NaviViewRef>(null);
+For embedded navigation screens inside your own React Native page, the package now exposes the low-level `NaviView`, events, and native props only. The full custom HUD / lane HUD / traffic bar reference implementation has been moved into the repo's `example-navigation` app under `example-navigation/lib/navigation-ui/*`.
 
-  return (
-    <EmbeddedNaviView
-      ref={naviRef}
-      style={{ flex: 1 }}
-      naviType={1}
-      showDefaultHud={true}
-      showExitButton={true}
-      onExitPress={() => {
-        void naviRef.current?.stopNavigation();
-      }}
-    />
-  );
-}
-```
+Recommended approach:
 
-Default behavior:
-
-- On Android, `hideNativeTopInfoLayout` defaults to `true` so the native top info panel does not overlap the custom HUD
-- On iOS, the component applies embedded-friendly defaults for `driveViewEdgePadding` and `screenAnchor`
-- The built-in HUD and exit button are enabled by default
-- The actual navigation map, guidance, voice, lane info, and cross images still come from the native `NaviView`
+- Use `NaviView` for the native navigation map, guidance, lane events, traffic-status events, and cross-image events
+- Render your own HUD from `onNaviInfoUpdate`, `onLaneInfoUpdate`, `onTrafficStatusesUpdate`, and `onNaviVisualStateChange`
+- Start from the `example-navigation` "Custom Navigation UI" example and trim it to your product needs
 
 Android embedded note:
 
 - In some React Native / Expo hosts, the official embedded `NaviView` top info panel, lane information, and cross-image transitions may differ from the official AMap demo / official black-box page
-- If your goal is a stable embedded navigation page, prefer `EmbeddedNaviView`
-- If you specifically want to verify the native official embedded UI, use the `official-embedded` page in the repo's `example-navigation` example app
-
-Use the right layer for the right job:
-
-- `NaviView`: native embedded navigation view
-- `EmbeddedNaviView`: reusable custom embedded UI built on top of `NaviView`
-- `openOfficialNaviPage`: official full-screen black-box route/navigation page
-
-`EmbeddedNaviView` is for embedded pages only. It is not a replacement for the official black-box page UI.
+- If your goal is a stable embedded navigation page, start from the custom UI example in `example-navigation`
+- If you specifically want to verify the native official embedded UI, use the `official-embedded` page in the repo's example app
 
 ## Driving Strategies
 
@@ -297,23 +274,23 @@ const result = await ExpoGaodeMapNavigationModule.calculateDriveRoute({
 - `onCalculateRouteFailure` - Route calculation failure callback
 - `naviStatusBarEnabled` - Android only; enables the official AMap navigation status bar when the underlying AMap SDK exposes that API
 
-### EmbeddedNaviView Extra Props
+### Custom UI Reference
 
-- `showDefaultHud` - Shows the built-in top HUD for embedded navigation
-- `showDefaultLaneHud` - Shows the built-in custom lane HUD
-- `hideLaneHudWhenCrossVisible` - Hides the custom lane HUD when a cross image / model cross is visible
-- `laneHudPlacement` - Places the custom lane HUD at the top or bottom
-- `laneHudScale` - Scales the custom lane HUD
-- `laneHudCrossTopOffset` - Overrides the top offset used while the cross image is visible
-- `showExitButton` - Shows the default floating exit button
-- `exitButtonText` - Custom label for the default exit button
-- `onExitPress` - Callback when the default exit button is pressed
+The package no longer exports a ready-made `EmbeddedNaviView`. Instead, the example app contains a reference implementation you can reuse:
 
-Recommended usage:
+- `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviHud.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviLaneView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviTrafficBar.tsx`
 
-- Use `showDefaultHud={false}` if you want to render your own HUD entirely from `NaviView` events
-- Use `showDefaultLaneHud={false}` if you want to disable the library lane HUD
-- Pass `hideNativeTopInfoLayout={false}` explicitly if you want to keep the native embedded top info panel instead of relying on defaults
+That example demonstrates:
+
+- full custom mode with `showUIElements={false}`
+- embedded-friendly `driveViewEdgePadding` / `screenAnchor` handling
+- a top HUD rendered from `onNaviInfoUpdate`
+- a custom lane HUD rendered from `onLaneInfoUpdate`
+- a custom traffic bar rendered from `onTrafficStatusesUpdate`
+- floating overview/lock and traffic toggle controls
 
 ### Map Component
 

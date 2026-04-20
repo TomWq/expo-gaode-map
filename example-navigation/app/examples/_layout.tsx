@@ -38,7 +38,7 @@ export default function ExamplesLayout() {
       />
       <Stack.Screen
         name="ui-props"
-        options={{ title: "UI Props 调试", presentation: "card" }}
+        options={{ title: "自定义 UI 导航界面", presentation: "card" }}
       />
     </Stack>
   );

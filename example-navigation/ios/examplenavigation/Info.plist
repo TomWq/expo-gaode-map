@@ -2,8 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
   <dict>
-  <key>AMapApiKey</key>
-	<string>7acecfa22e09c31c0ff3db8e0c7b8679</string>
+    <key>AMapApiKey</key>
+    <string>7acecfa22e09c31c0ff3db8e0c7b8679</string>
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
     <key>CFBundleDevelopmentRegion</key>

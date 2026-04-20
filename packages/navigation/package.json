@@ -34,7 +34,8 @@
     "@expo/vector-icons": "*",
     "expo": "*",
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-safe-area-context": "*"
   },
   "peerDependenciesMeta": {
     "expo": {
@@ -49,7 +50,6 @@
     "android",
     "ios",
     "shared",
-    "src/ui/assets",
     "app.plugin.js",
     "expo-module.config.json",
     "plugin/build"

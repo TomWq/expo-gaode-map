@@ -40,6 +40,8 @@ import type {
   FollowWebPlannedRouteCandidate,
   WebPlannedRoute,
   NaviInfoUpdateEvent,
+  NaviLaneInfoEvent,
+  NaviTrafficStatusesEvent,
   NaviVisualStateEvent,
   ExpoGaodeMapNaviViewProps,
   } from './types';
@@ -878,6 +880,8 @@ export type {
   FollowWebPlannedRouteCandidate,
   WebPlannedRoute,
   NaviInfoUpdateEvent,
+  NaviLaneInfoEvent,
+  NaviTrafficStatusesEvent,
   NaviVisualStateEvent,
   ExpoGaodeMapNaviViewProps,
 };
@@ -926,6 +930,3 @@ export default {
 export {
   ExpoGaodeMapNavigationModule,
 }
-
-export { EmbeddedNaviHud, EmbeddedNaviLaneView, EmbeddedNaviView } from "./ui";
-export type { EmbeddedNaviLaneViewProps, EmbeddedNaviViewProps } from "./ui";

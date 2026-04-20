@@ -1,5 +1,4 @@
 import {
-  EmbeddedNaviView,
   MapView,
   Polyline,
   clearIndependentRoute,
@@ -30,6 +29,7 @@ import {
   getRoutePreviewPoints,
   type DemoScenario,
 } from "@/lib/gaode-demo";
+import { EmbeddedNaviView } from "@/lib/navigation-ui";
 
 export default function RoutePickerExampleScreen() {
   const mapRef = React.useRef<MapViewRef>(null);
@@ -196,7 +196,6 @@ export default function RoutePickerExampleScreen() {
         naviType={requestedNaviType}
         showCamera
         enableVoice
-        showUIElements
         showTrafficBar
         showTrafficButton
         showDriveCongestion

@@ -1,3 +1,8 @@
+/**
+ * 自定义车道引导视图。
+ * 这个文件主要负责把统一的车道事件数据映射为高德车道资源图，
+ * 并支持顶部 / 底部摆放、缩放和大图场景下的位置联动。
+ */
 import React from "react";
 import {
   Image,
@@ -11,71 +16,74 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import type { NaviLaneInfoEvent } from "../types";
+import type { NaviLaneInfoEvent } from "expo-gaode-map-navigation";
 
 export interface EmbeddedNaviLaneViewProps {
   laneInfo: NaviLaneInfoEvent | null;
   visible?: boolean;
   compact?: boolean;
+  /** 顶部或底部贴边放置，和导航页其它 HUD 协同布局 */
   placement?: "top" | "bottom";
+  /** 顶部放置时的显式偏移，主要用于路口大图场景 */
   topOffset?: number;
+  /** 统一缩放整组车道图 */
   scale?: number;
   style?: StyleProp<ViewStyle>;
 }
 
 const laneAssets = {
-  landback_0: require("../../src/ui/assets/lanes/landback_0.png"),
-  landback_1: require("../../src/ui/assets/lanes/landback_1.png"),
-  landback_2: require("../../src/ui/assets/lanes/landback_2.png"),
-  landback_3: require("../../src/ui/assets/lanes/landback_3.png"),
-  landback_4: require("../../src/ui/assets/lanes/landback_4.png"),
-  landback_5: require("../../src/ui/assets/lanes/landback_5.png"),
-  landback_6: require("../../src/ui/assets/lanes/landback_6.png"),
-  landback_7: require("../../src/ui/assets/lanes/landback_7.png"),
-  landback_8: require("../../src/ui/assets/lanes/landback_8.png"),
-  landback_9: require("../../src/ui/assets/lanes/landback_9.png"),
-  landback_a: require("../../src/ui/assets/lanes/landback_a.png"),
-  landback_b: require("../../src/ui/assets/lanes/landback_b.png"),
-  landback_c: require("../../src/ui/assets/lanes/landback_c.png"),
-  landback_d: require("../../src/ui/assets/lanes/landback_d.png"),
-  landback_e: require("../../src/ui/assets/lanes/landback_e.png"),
-  landback_f: require("../../src/ui/assets/lanes/landback_f.png"),
-  landback_g: require("../../src/ui/assets/lanes/landback_g.png"),
-  landback_h: require("../../src/ui/assets/lanes/landback_h.png"),
-  landback_i: require("../../src/ui/assets/lanes/landback_i.png"),
-  landback_j: require("../../src/ui/assets/lanes/landback_j.png"),
-  landback_l: require("../../src/ui/assets/lanes/landback_l.png"),
-  landfront_0: require("../../src/ui/assets/lanes/landfront_0.png"),
-  landfront_1: require("../../src/ui/assets/lanes/landfront_1.png"),
-  landfront_3: require("../../src/ui/assets/lanes/landfront_3.png"),
-  landfront_5: require("../../src/ui/assets/lanes/landfront_5.png"),
-  landfront_8: require("../../src/ui/assets/lanes/landfront_8.png"),
-  landfront_d: require("../../src/ui/assets/lanes/landfront_d.png"),
-  landfront_kk: require("../../src/ui/assets/lanes/landfront_kk.png"),
-  landfront_20: require("../../src/ui/assets/lanes/landfront_20.png"),
-  landfront_21: require("../../src/ui/assets/lanes/landfront_21.png"),
-  landfront_40: require("../../src/ui/assets/lanes/landfront_40.png"),
-  landfront_43: require("../../src/ui/assets/lanes/landfront_43.png"),
-  landfront_61: require("../../src/ui/assets/lanes/landfront_61.png"),
-  landfront_63: require("../../src/ui/assets/lanes/landfront_63.png"),
-  landfront_70: require("../../src/ui/assets/lanes/landfront_70.png"),
-  landfront_71: require("../../src/ui/assets/lanes/landfront_71.png"),
-  landfront_73: require("../../src/ui/assets/lanes/landfront_73.png"),
-  landfront_90: require("../../src/ui/assets/lanes/landfront_90.png"),
-  landfront_95: require("../../src/ui/assets/lanes/landfront_95.png"),
-  landfront_a0: require("../../src/ui/assets/lanes/landfront_a0.png"),
-  landfront_a8: require("../../src/ui/assets/lanes/landfront_a8.png"),
-  landfront_b1: require("../../src/ui/assets/lanes/landfront_b1.png"),
-  landfront_b5: require("../../src/ui/assets/lanes/landfront_b5.png"),
-  landfront_c3: require("../../src/ui/assets/lanes/landfront_c3.png"),
-  landfront_c8: require("../../src/ui/assets/lanes/landfront_c8.png"),
-  landfront_e1: require("../../src/ui/assets/lanes/landfront_e1.png"),
-  landfront_e5: require("../../src/ui/assets/lanes/landfront_e5.png"),
-  landfront_f0: require("../../src/ui/assets/lanes/landfront_f0.png"),
-  landfront_f1: require("../../src/ui/assets/lanes/landfront_f1.png"),
-  landfront_f5: require("../../src/ui/assets/lanes/landfront_f5.png"),
-  landfront_j1: require("../../src/ui/assets/lanes/landfront_j1.png"),
-  landfront_j8: require("../../src/ui/assets/lanes/landfront_j8.png"),
+  landback_0: require("./assets/lanes/landback_0.png"),
+  landback_1: require("./assets/lanes/landback_1.png"),
+  landback_2: require("./assets/lanes/landback_2.png"),
+  landback_3: require("./assets/lanes/landback_3.png"),
+  landback_4: require("./assets/lanes/landback_4.png"),
+  landback_5: require("./assets/lanes/landback_5.png"),
+  landback_6: require("./assets/lanes/landback_6.png"),
+  landback_7: require("./assets/lanes/landback_7.png"),
+  landback_8: require("./assets/lanes/landback_8.png"),
+  landback_9: require("./assets/lanes/landback_9.png"),
+  landback_a: require("./assets/lanes/landback_a.png"),
+  landback_b: require("./assets/lanes/landback_b.png"),
+  landback_c: require("./assets/lanes/landback_c.png"),
+  landback_d: require("./assets/lanes/landback_d.png"),
+  landback_e: require("./assets/lanes/landback_e.png"),
+  landback_f: require("./assets/lanes/landback_f.png"),
+  landback_g: require("./assets/lanes/landback_g.png"),
+  landback_h: require("./assets/lanes/landback_h.png"),
+  landback_i: require("./assets/lanes/landback_i.png"),
+  landback_j: require("./assets/lanes/landback_j.png"),
+  landback_l: require("./assets/lanes/landback_l.png"),
+  landfront_0: require("./assets/lanes/landfront_0.png"),
+  landfront_1: require("./assets/lanes/landfront_1.png"),
+  landfront_3: require("./assets/lanes/landfront_3.png"),
+  landfront_5: require("./assets/lanes/landfront_5.png"),
+  landfront_8: require("./assets/lanes/landfront_8.png"),
+  landfront_d: require("./assets/lanes/landfront_d.png"),
+  landfront_kk: require("./assets/lanes/landfront_kk.png"),
+  landfront_20: require("./assets/lanes/landfront_20.png"),
+  landfront_21: require("./assets/lanes/landfront_21.png"),
+  landfront_40: require("./assets/lanes/landfront_40.png"),
+  landfront_43: require("./assets/lanes/landfront_43.png"),
+  landfront_61: require("./assets/lanes/landfront_61.png"),
+  landfront_63: require("./assets/lanes/landfront_63.png"),
+  landfront_70: require("./assets/lanes/landfront_70.png"),
+  landfront_71: require("./assets/lanes/landfront_71.png"),
+  landfront_73: require("./assets/lanes/landfront_73.png"),
+  landfront_90: require("./assets/lanes/landfront_90.png"),
+  landfront_95: require("./assets/lanes/landfront_95.png"),
+  landfront_a0: require("./assets/lanes/landfront_a0.png"),
+  landfront_a8: require("./assets/lanes/landfront_a8.png"),
+  landfront_b1: require("./assets/lanes/landfront_b1.png"),
+  landfront_b5: require("./assets/lanes/landfront_b5.png"),
+  landfront_c3: require("./assets/lanes/landfront_c3.png"),
+  landfront_c8: require("./assets/lanes/landfront_c8.png"),
+  landfront_e1: require("./assets/lanes/landfront_e1.png"),
+  landfront_e5: require("./assets/lanes/landfront_e5.png"),
+  landfront_f0: require("./assets/lanes/landfront_f0.png"),
+  landfront_f1: require("./assets/lanes/landfront_f1.png"),
+  landfront_f5: require("./assets/lanes/landfront_f5.png"),
+  landfront_j1: require("./assets/lanes/landfront_j1.png"),
+  landfront_j8: require("./assets/lanes/landfront_j8.png"),
 } as const satisfies Record<string, ImageSourcePropType>;
 
 type LaneAssetKey = keyof typeof laneAssets;
@@ -130,6 +138,7 @@ const driveWayFrontKeys: LaneAssetKey[] = [
   "landback_l",
 ];
 
+// 高德车道信息里的复杂组合并不是简单的一一映射，需要按官方素材命名做组合分发。
 function resolveComplexGuideKey(
   laneBackInfoIndex: number,
   laneSelectIndex: number
@@ -201,6 +210,7 @@ function resolveGuideKey(
 }
 
 function getVisibleLaneCount(laneInfo: NaviLaneInfoEvent): number {
+  // 255 是高德车道数组的结束哨兵，后面的位不再参与绘制。
   const sentinelIndex = laneInfo.backgroundLane.indexOf(255);
   if (sentinelIndex >= 0) {
     return sentinelIndex;

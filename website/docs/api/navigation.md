@@ -535,7 +535,7 @@ await clearIndependentRoute({
 
 `NaviView` 是高德官方提供的完整导航界面组件。
 
-如果你的场景是“把导航页嵌进自己的 React Native 页面里”，建议优先使用库里封装好的 `EmbeddedNaviView`。它底层仍然调用原生 `NaviView`，但会统一接管顶部导航信息 HUD，并处理 Android / iOS 的嵌入式显示差异。
+如果你的场景是“把导航页嵌进自己的 React Native 页面里”，库本身提供的是底层 `NaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 `example-navigation` 示例工程。
 
 ### 基础用法
 
@@ -577,74 +577,21 @@ function NavigationScreen() {
 }
 ```
 
-### EmbeddedNaviView 自定义嵌入式导航页
+### 自定义嵌入式导航 UI
 
-`EmbeddedNaviView` 是基于 `NaviView` 封装的可复用组件，适合所有嵌入式导航页统一使用。
+库不再直接导出 `EmbeddedNaviView` 这类成品 UI 组件；这部分实现已经迁移到 `example-navigation/lib/navigation-ui/*`，便于你直接查看和复制。
 
-它的目标不是复刻高德官方黑盒页，而是为“嵌入式 NaviView 页面”提供一套可控、跨端更一致的默认导航 HUD。
+推荐做法：
 
-```typescript
-import React, { useRef } from 'react';
-import { EmbeddedNaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+- 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
+- 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
+- 直接参考 `example-navigation` 里的“自定义 UI 导航界面”示例页及对应源码
 
-function EmbeddedNavigationScreen() {
-  const naviViewRef = useRef<NaviViewRef>(null);
-
-  return (
-    <EmbeddedNaviView
-      ref={naviViewRef}
-      style={{ flex: 1 }}
-      naviType={1}
-      showDefaultHud={true}
-      showExitButton={true}
-      onExitPress={() => {
-        void naviViewRef.current?.stopNavigation();
-      }}
-    />
-  );
-}
-```
-
-默认行为：
-
-- Android 默认将 `hideNativeTopInfoLayout` 视为 `true`，隐藏原生顶部信息区，避免与自定义 HUD 重叠
-- iOS 默认注入更适合嵌入式页面的 `driveViewEdgePadding` 和 `screenAnchor`
-- 默认显示库内顶部 HUD 与右下角退出按钮
-- 底层导航地图、语音、路口大图、车道线等仍然来自原生 `NaviView`
-
-Android 嵌入式说明：
+嵌入式说明：
 
 - 在部分 React Native / Expo 宿主里，官方原生嵌入式 `NaviView` 的顶部信息区、车道信息、路口大图联动效果，可能与高德官方 Demo / 官方黑盒页存在差异
-- 如果你的目标是稳定交付嵌入式导航页，优先使用 `EmbeddedNaviView`
-- 如果你只是想验证原生官方嵌入式 UI，请参考仓库里的 `example-navigation` 示例工程中的 `official-embedded` 页面
-
-适用边界：
-
-- 适合：你自己的嵌入式导航页、调试页、业务内导航流程
-- 不适合：想直接使用高德官方整页黑盒导航 UI 的场景
-- 官方黑盒页仍请使用 `openOfficialNaviPage`
-
-### EmbeddedNaviView 额外属性
-
-`EmbeddedNaviView` 继承全部 `NaviView` 属性，并额外提供：
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `showDefaultHud` | `boolean` | `true` | 是否显示库内置顶部导航 HUD |
-| `showDefaultLaneHud` | `boolean` | `true` | 是否显示库内置的自绘车道 HUD |
-| `hideLaneHudWhenCrossVisible` | `boolean` | `true` | 路口大图 / 3D 路口模型出现时，是否自动隐藏自绘车道 HUD |
-| `laneHudPlacement` | `"top" \| "bottom"` | `"top"` | 自绘车道 HUD 的停靠位置 |
-| `laneHudScale` | `number` | `0.88` | 自绘车道 HUD 的整体缩放比例 |
-| `laneHudCrossTopOffset` | `number` | 自动计算 | 路口大图显示时，自绘车道 HUD 的顶部偏移 |
-| `showExitButton` | `boolean` | `true` | 是否显示默认退出按钮 |
-| `exitButtonText` | `string` | `'退出导航'` | 默认退出按钮文案 |
-| `onExitPress` | `() => void` | - | 点击默认退出按钮回调 |
-
-使用建议：
-
-- 如果你想完全自己绘制 HUD，可传 `showDefaultHud={false}`
-- 如果你想关闭库内自绘车道条，可传 `showDefaultLaneHud={false}`
-- 如果你想尽量保留原生嵌入式信息区，请显式传 `hideNativeTopInfoLayout={false}`，不要依赖默认值
+- 如果你的目标是稳定交付嵌入式导航页，建议以示例工程里的自定义 UI 实现为起点
+- 如果你只是想验证原生官方嵌入式 UI，请参考 `example-navigation` 中的 `official-embedded` 页面
 
 ### NaviView 属性参考
 
@@ -655,6 +602,10 @@ Android 嵌入式说明：
 | `naviType` | `number` | `0` | 导航类型：`0`=GPS导航, `1`=模拟导航 |
 | `enableVoice` | `boolean` | `true` | 是否启用语音播报 |
 | `showCamera` | `boolean` | `true` | 是否显示摄像头提示 |
+| `carImage` | `string \| ImageSourcePropType` | - | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
+| `startPointImage` | `string \| ImageSourcePropType` | - | 自定义起点标注图 |
+| `wayPointImage` | `string \| ImageSourcePropType` | - | 自定义途经点标注图 |
+| `endPointImage` | `string \| ImageSourcePropType` | - | 自定义终点标注图 |
 | `autoLockCar` | `boolean` | `true` | 是否自动锁车 |
 | `autoChangeZoom` | `boolean` | `true` | 是否自动缩放地图 |
 | `trafficLayerEnabled` | `boolean` | `true` | 是否显示实时交通路况线 |
@@ -667,6 +618,8 @@ Android 嵌入式说明：
 | `showCompassEnabled` | `boolean` | `true` | 是否显示指南针；iOS 仅在显式传值时覆盖默认行为 |
 | `naviArrowVisible` | `boolean` | `true` | 是否显示路线转向箭头 |
 | `showTrafficBar` | `boolean` | `true` | 是否显示路况光柱 |
+| `trafficBarFrame` | `object` | - | iOS 路况光柱位置，格式 `{ x, y, width, height }`，底层映射 `AMapNaviDriveView.tmcRouteFrame` |
+| `trafficBarColors` | `object` | - | iOS 路况光柱颜色，可配置 `unknown / smooth / fineOpen / slow / jam / seriousJam / defaultRoad` |
 | `showBrowseRouteButton` | `boolean` | `true` | 是否显示全览按钮 |
 | `showTrafficButton` | `boolean` | `true` | Android 对应交通图层开关按钮，iOS 对应官方交通按钮 |
 | `showUIElements` | `boolean` | `true` | Android / iOS 均已实现整体 UI 显隐；iOS 会在视图就绪后应用 |
@@ -679,6 +632,7 @@ Android 嵌入式说明：
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `carOverlayVisible` | `boolean` | `true` | 是否显示自车和罗盘 |
+| `fourCornersImage` | `string \| ImageSourcePropType` | - | 自定义自车四角朝向图，映射 `AMapNaviViewOptions.setFourCornersBitmap` |
 | `routeMarkerVisible` | `object` | - | 路线标记点配置（见下文） |
 | `isNaviTravelView` | `boolean` | `false` | 设置是否为骑步行视图 |
 | `laneInfoVisible` | `boolean` | `true` | 是否显示车道信息 |
@@ -712,6 +666,8 @@ Android 嵌入式说明：
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `showRoute` | `boolean` | `true` | 是否显示路线 |
+| `carCompassImage` | `string \| ImageSourcePropType` | - | 自定义自车罗盘图，映射 `setCarCompassImage` |
+| `cameraImage` | `string \| ImageSourcePropType` | - | 自定义摄像头图标，映射 `setCameraImage` |
 | `showMoreButton` | `boolean` | `true` | 是否显示更多按钮 |
 | `mapViewModeType` | `number` | `0` | 地图样式：`0`=白天, `1`=黑夜, `2`=自动, `3`=自定义 |
 | `lineWidth` | `number` | - | 路线polyline宽度（0恢复默认） |
@@ -725,6 +681,10 @@ Android 嵌入式说明：
 已开放且两端都有实现：
 
 - `showCamera`
+- `carImage`
+- `startPointImage`
+- `wayPointImage`
+- `endPointImage`
 - `autoLockCar`
 - `autoChangeZoom`
 - `trafficLayerEnabled`
@@ -744,6 +704,7 @@ Android 嵌入式说明：
 仅 Android 已开放：
 
 - `carOverlayVisible`
+- `fourCornersImage`
 - `routeMarkerVisible`
 - `naviArrowVisible`
 - `laneInfoVisible`
@@ -769,6 +730,8 @@ Android 嵌入式说明：
 仅 iOS 已开放：
 
 - `showRoute`
+- `carCompassImage`
+- `cameraImage`
 - `showMoreButton`
 - `mapViewModeType`
 - `lineWidth`
@@ -780,14 +743,14 @@ Android 嵌入式说明：
 ### 嵌入式导航 UI 方案说明
 
 - `NaviView`：高德官方提供的原生嵌入式导航视图
-- `EmbeddedNaviView`：本库基于 `NaviView` 封装的自定义嵌入式导航 UI
+- `example-navigation/lib/navigation-ui/*`：仓库示例提供的自定义嵌入式导航 UI 参考实现
 - `openOfficialNaviPage`：高德官方黑盒路线页 / 导航页
 
 这三者是不同层次的能力，不应混淆：
 
 - 如果你要完全沿用官方整页 UI，用 `openOfficialNaviPage`
 - 如果你要把导航嵌进自己的 RN 页面，但仍保留官方原生视图能力，用 `NaviView`
-- 如果你要在嵌入式场景下统一接管顶部信息展示，优先用 `EmbeddedNaviView`
+- 如果你要在嵌入式场景下统一接管顶部信息展示，参考 `example-navigation` 里的自定义 UI 示例
 
 ### NaviView 事件
 

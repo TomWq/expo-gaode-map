@@ -6,7 +6,7 @@
 
 - 🗺️ **地图渲染**：内置完整地图能力，支持 Marker、Polyline、Polygon、Circle、Cluster、HeatMap 等覆盖物。
 - 🚗 **多模式路径规划**：支持驾车、步行、骑行、电动车、货车、摩托车等多种出行方式。
-- 🧭 **实时导航 UI**：提供 `NaviView` 官方嵌入视图，以及可复用的 `EmbeddedNaviView` 自定义嵌入式 HUD 方案。
+- 🧭 **实时导航 UI**：提供 `NaviView` 官方嵌入视图，并暴露完整事件与原生参数，方便你自行定制导航界面。
 - 🛣️ **独立路径规划**：支持“先算路、再导航”的高级模式，可实现多路线对比与选择。
 - ⚙️ **策略丰富**：支持速度优先、避让拥堵、少收费、不走高速等多种算路策略。
 - ✅ **开箱即用**：封装了 Android/iOS 原生导航 SDK，统一 JS 接口。
@@ -63,7 +63,7 @@ npx expo run:ios
 
 推荐场景：
 
-- 调试 `EmbeddedNaviView` 顶部 HUD / 车道 HUD
+- 调试 `NaviView` 与示例工程里的自定义 HUD / 车道 HUD / 路况光柱
 - 对比官方黑盒页、官方嵌入式页、自绘嵌入式页
 - 验证独立算路、多路线选择、近似跟线导航
 
@@ -159,40 +159,19 @@ export default function NavigationScreen() {
 
 ### 3. 自定义嵌入式导航 UI
 
-如果你要做“嵌入在自己页面里的导航页”，更推荐直接使用 `EmbeddedNaviView`。它底层仍然是原生 `NaviView`，但库里额外封装了一层可复用 HUD：
+如果你要做“嵌入在自己页面里的导航页”，库本身提供的是底层 `NaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md)。
 
-- Android 默认隐藏原生顶部信息区，改为显示库内自定义 HUD
-- iOS 默认补齐更适合嵌入式页面的 `driveViewEdgePadding` / `screenAnchor`
-- 默认提供退出按钮，也可以自行关闭或替换
-- 只适用于嵌入式 `NaviView` 页面，不影响 `openOfficialNaviPage` 黑盒页
+建议做法：
+
+- 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
+- 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
+- 直接参考 `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx` 及配套 UI 文件，按你的产品需求裁剪
 
 注意：
 
 - Android 官方嵌入式 `NaviView` 在部分 React Native / Expo 宿主中，顶部信息区、车道条、路口大图联动效果可能与高德官方 Demo 不完全一致
-- 如果你要交付稳定的嵌入式导航页，建议优先使用 `EmbeddedNaviView`
-- 如果你就是想验证官方嵌入式 UI 本身，请直接跑 `example-navigation` 里的 `official-embedded` 示例页做对比
-
-```tsx
-import React, { useRef } from 'react';
-import { EmbeddedNaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
-
-export default function EmbeddedNavigationScreen() {
-  const naviRef = useRef<NaviViewRef>(null);
-
-  return (
-    <EmbeddedNaviView
-      ref={naviRef}
-      style={{ flex: 1 }}
-      naviType={1}
-      showDefaultHud={true}
-      showExitButton={true}
-      onExitPress={() => {
-        void naviRef.current?.stopNavigation();
-      }}
-    />
-  );
-}
-```
+- 如果你要验证官方嵌入式 UI 本身，请直接跑 `example-navigation` 里的 `official-embedded` 示例页
+- 如果你要交付稳定的嵌入式导航页，建议以示例工程里的“自定义 UI 导航界面”作为起点
 
 ## 详细用法
 
@@ -474,29 +453,25 @@ const result = await calculateTransitRoute({
 | `AVOID_CONGESTION` (4) | 躲避拥堵 |
 | ... | 更多策略请参考类型定义 |
 
-### EmbeddedNaviView Props
+### 自定义嵌入式 UI 参考实现
 
-`EmbeddedNaviView` 在 `NaviView` 全量 props 基础上，额外提供以下便捷能力：
+库不再直接导出 `EmbeddedNaviView` 这类成品 UI 组件；这部分实现现在放在示例工程里，便于你直接查看和复制。
 
-| 属性 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `showDefaultHud` | boolean | `true` | 是否显示库内置的顶部导航 HUD |
-| `showDefaultLaneHud` | boolean | `true` | 是否显示库内置的自绘车道 HUD |
-| `hideLaneHudWhenCrossVisible` | boolean | `true` | 路口大图 / 3D 路口模型出现时，是否自动隐藏自绘车道 HUD |
-| `laneHudPlacement` | `"top" \| "bottom"` | `top` | 自绘车道 HUD 的停靠位置 |
-| `laneHudScale` | number | `0.88` | 自绘车道 HUD 的整体缩放比例 |
-| `laneHudCrossTopOffset` | number | 自动计算 | 路口大图显示时，自绘车道 HUD 的顶部偏移；不传时会自动贴近大图最底部 |
-| `showExitButton` | boolean | `true` | 是否显示右下角默认退出按钮 |
-| `exitButtonText` | string | `退出导航` | 默认退出按钮文案 |
-| `onExitPress` | function | - | 点击默认退出按钮时触发 |
+参考文件：
 
-默认行为说明：
+- `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviHud.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviLaneView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviTrafficBar.tsx`
 
-- Android：若未显式传入，只有在启用库内自绘顶部 HUD 时，`hideNativeTopInfoLayout` 才会默认按 `true` 处理；如果 `showDefaultHud={false}`，则会保留官方原生顶部信息区
-- iOS：若未显式传入，会自动给出更适合嵌入式页面的 `driveViewEdgePadding` 与 `screenAnchor`；若启用库内自绘车道 HUD，还会默认隐藏原生车道条，避免双层显示
-- 当路口大图或 3D 路口模型出现时，库内默认会自动隐藏自绘车道 HUD；如果你仍想显示，可传 `hideLaneHudWhenCrossVisible={false}`，再配合 `laneHudCrossTopOffset` 自行微调位置
-- 若不想使用库内 HUD，可传 `showDefaultHud={false}`，此时仍可继续使用原生 `NaviView` 事件自行绘制
-- `EmbeddedNaviView` 不会改变官方黑盒导航页；黑盒页仍请使用 `openOfficialNaviPage`
+这套示例实现演示了：
+
+- 默认 `showUIElements={false}` 的完整自定义 UI 模式
+- 基于 `driveViewEdgePadding` / `screenAnchor` 的嵌入式地图可视区域管理
+- 基于 `onNaviInfoUpdate` 的顶部 HUD
+- 基于 `onLaneInfoUpdate` 的自绘车道 HUD
+- 基于 `onTrafficStatusesUpdate` 的自绘路况光柱
+- “全览 / 锁车”与路况开关等浮层控制按钮
 
 ### NaviView Props
 
@@ -505,6 +480,10 @@ const result = await calculateTransitRoute({
 | `naviType` | number | 导航类型（0: GPS, 1: 模拟） |
 | `realCrossDisplay` | boolean | 是否显示路口放大图 |
 | `showCamera` | boolean | 是否显示摄像头 |
+| `carImage` | string \| ImageSourcePropType | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
+| `startPointImage` | string \| ImageSourcePropType | 自定义起点标注图 |
+| `wayPointImage` | string \| ImageSourcePropType | 自定义途经点标注图 |
+| `endPointImage` | string \| ImageSourcePropType | 自定义终点标注图 |
 | `trafficLayerEnabled` | boolean | 是否显示实时交通路况线 |
 | `showTrafficButton` | boolean | 是否显示交通按钮/交通图层开关 |
 | `showDriveCongestion` | boolean | 是否显示拥堵气泡 |
@@ -512,7 +491,7 @@ const result = await calculateTransitRoute({
 | `showUIElements` | boolean | Android / iOS 均支持整体 UI 显隐 |
 | `laneInfoVisible` | boolean | Android 是否显示官方车道信息 |
 | `hideNativeLaneInfoLayout` | boolean | iOS 是否隐藏官方车道信息条，交给 RN 自绘 |
-| `modeCrossDisplay` | boolean | Android 是否显示 3D 路口模型 |
+| `modeCrossDisplay` | boolean | Android 是否显示 3D 路口模型；iOS 当前不支持，会忽略 |
 | `eyrieCrossDisplay` | boolean | Android 是否显示鹰眼路口图 |
 | `secondActionVisible` | boolean | Android 是否显示辅助操作区域 |
 | `backupOverlayVisible` | boolean | Android 是否显示备用路线覆盖物 |
@@ -555,6 +534,7 @@ const result = await calculateTransitRoute({
 仅 Android 已开放：
 
 - `carOverlayVisible`
+- `fourCornersImage`
 - `routeMarkerVisible`
 - `naviArrowVisible`
 - `laneInfoVisible`
@@ -573,13 +553,22 @@ const result = await calculateTransitRoute({
 仅 iOS 已开放：
 
 - `hideNativeLaneInfoLayout`
-
 - `showRoute`
+- `carCompassImage`
+- `cameraImage`
+- `trafficBarFrame`
+- `trafficBarColors`
 - `showMoreButton`
 - `mapViewModeType`
 - `lineWidth`
 - `driveViewEdgePadding`
 - `screenAnchor`
+
+关于 iOS 路口放大图能力：
+
+- iOS 官方公开的是 `showCrossImage / hideCrossImage`
+- 因此库里的 `realCrossDisplay` 对应 iOS 实景路口放大图显示控制
+- Android 的 `modeCrossDisplay` 没有 iOS 对等公开接口，传入 iOS 时会被忽略
 - `showBackupRoute`
 - `showEagleMap`
 
@@ -593,7 +582,7 @@ const result = await calculateTransitRoute({
 2.  **Web API**：如果需要更灵活的 HTTP 算路（如公交跨城规划、Web端展示），推荐配合 `expo-gaode-map-web-api` 使用。
 3.  **权限**：使用导航功能前，请确保应用已获取定位权限（`ACCESS_FINE_LOCATION`）。
 4.  **Android 状态栏兼容性**：`naviStatusBarEnabled` 依赖高德 Android 导航 SDK 某些版本才提供的 `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`。当前封装已做兼容处理：若宿主工程解析到的 SDK 不包含该方法，则不会再编译失败，而是在运行时跳过该设置并输出 warning。此时该 prop 在 Android 上等价于 no-op。
-5.  **嵌入式 UI 边界**：`EmbeddedNaviView` 属于库内自定义 UI 组件，目的是改进嵌入式 `NaviView` 页面信息展示；它不是高德官方黑盒导航页的 UI 替代品。
+5.  **嵌入式 UI 边界**：库导出的是底层 `NaviView` 能力；完整自定义导航界面请参考 `example-navigation` 里的示例实现，它也不是高德官方黑盒导航页的 UI 替代品。
 
 
 ## 📚 文档与资源

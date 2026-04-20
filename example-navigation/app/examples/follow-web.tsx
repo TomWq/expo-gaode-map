@@ -1,6 +1,5 @@
 import {
   clearIndependentRoute,
-  EmbeddedNaviView,
   followWebPlannedRoute,
   MapView,
   Polygon,
@@ -37,6 +36,7 @@ import {
   getRoutePreviewPoints,
   type DemoScenario,
 } from "@/lib/gaode-demo";
+import { EmbeddedNaviView } from "@/lib/navigation-ui";
 
 interface WebPreview {
   distance: number;
@@ -283,7 +283,6 @@ export default function FollowWebRouteExampleScreen() {
           naviType={1}
           showCamera
           enableVoice
-          showUIElements
           showTrafficBar
           showTrafficButton
           showDriveCongestion
@@ -292,8 +291,8 @@ export default function FollowWebRouteExampleScreen() {
             showStartEndVia: false,
             showFootFerry: false,
             showForbidden: true,
-            showRouteStartIcon: true,
-            showRouteEndIcon: true,
+            showRouteStartIcon: false,
+            showRouteEndIcon: false,
           }}
           laneInfoVisible
           modeCrossDisplay

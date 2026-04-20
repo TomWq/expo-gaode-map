@@ -2,7 +2,6 @@ import {
   calculateDriveRoute,
   clearIndependentRoute,
   DriveStrategy,
-  EmbeddedNaviView,
   independentDriveRoute,
   MapView,
   Polygon,
@@ -35,6 +34,7 @@ import {
   getRoutePreviewPoints,
   type DemoScenario,
 } from "@/lib/gaode-demo";
+import { EmbeddedNaviView } from "@/lib/navigation-ui";
 
 export default function IndependentRouteExampleScreen() {
   const mapRef = React.useRef<MapViewRef>(null);
@@ -311,7 +311,6 @@ export default function IndependentRouteExampleScreen() {
           naviType={1}
           showCamera
           enableVoice
-          showUIElements
           showTrafficBar
           showTrafficButton
           showDriveCongestion

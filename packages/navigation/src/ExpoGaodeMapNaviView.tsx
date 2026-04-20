@@ -7,12 +7,23 @@ import type {
   NaviInfoUpdateEvent,
   NaviLaneInfoEvent,
   NaviStartEvent,
+  NaviTrafficStatusesEvent,
   NaviVisualStateEvent,
   PlayVoiceEvent,
   ReCalculateEvent,
 } from './types';
-import { Platform, StatusBar, type NativeSyntheticEvent } from 'react-native';
+import { Image, Platform, StatusBar, type NativeSyntheticEvent } from 'react-native';
 import { createLazyNativeViewManager } from './map/utils/lazyNativeViewManager';
+
+function normalizeNaviImageSource(source?: ExpoGaodeMapNaviViewProps['carImage']): string | undefined {
+  if (source == null) {
+    return undefined;
+  }
+  if (typeof source === 'string') {
+    return source;
+  }
+  return Image.resolveAssetSource(source)?.uri;
+}
 
 /**
  * ExpoGaodeMapNaviView Ref 类型
@@ -67,6 +78,9 @@ interface NativeExpoGaodeMapNaviViewProps
   onNavigationText?: (event: NativeSyntheticEvent<PlayVoiceEvent>) => void;
   onNavigationVisualStateUpdate?: (event: NativeSyntheticEvent<NaviVisualStateEvent>) => void;
   onLaneInfoUpdate?: (event: NativeSyntheticEvent<NaviLaneInfoEvent>) => void;
+  // Unified traffic-segment event used by the library traffic bar and any
+  // consumer that wants to render a fully custom traffic beam.
+  onTrafficStatusesUpdate?: (event: NativeSyntheticEvent<NaviTrafficStatusesEvent>) => void;
 }
 
 const getNativeView = createLazyNativeViewManager<
@@ -118,6 +132,14 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
     onPlayVoice,
     onNaviVisualStateChange,
     onLaneInfoUpdate,
+    onTrafficStatusesUpdate,
+    carImage,
+    fourCornersImage,
+    carCompassImage,
+    startPointImage,
+    wayPointImage,
+    endPointImage,
+    cameraImage,
     androidStatusBarPaddingTop,
     ...restProps
   } = props;
@@ -129,6 +151,22 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
     props.hideNativeTopInfoLayout !== true
       ? (StatusBar.currentHeight ?? 0)
       : androidStatusBarPaddingTop;
+  const resolvedCarImage = normalizeNaviImageSource(carImage);
+  const resolvedFourCornersImage = normalizeNaviImageSource(fourCornersImage);
+  const resolvedCarCompassImage = normalizeNaviImageSource(carCompassImage);
+  const resolvedStartPointImage = normalizeNaviImageSource(startPointImage);
+  const resolvedWayPointImage = normalizeNaviImageSource(wayPointImage);
+  const resolvedEndPointImage = normalizeNaviImageSource(endPointImage);
+  const resolvedCameraImage = normalizeNaviImageSource(cameraImage);
+  const platformSpecificImageProps =
+    Platform.OS === 'android'
+      ? {
+          fourCornersImage: resolvedFourCornersImage,
+        }
+      : {
+          carCompassImage: resolvedCarCompassImage,
+          cameraImage: resolvedCameraImage,
+        };
   
   // 创建 API 引用
   const apiRef: ExpoGaodeMapNaviViewRef = React.useMemo(() => ({
@@ -164,6 +202,11 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
       ref={nativeRef}
       {...restProps}
       androidStatusBarPaddingTop={resolvedAndroidStatusBarPaddingTop}
+      carImage={resolvedCarImage}
+      startPointImage={resolvedStartPointImage}
+      wayPointImage={resolvedWayPointImage}
+      endPointImage={resolvedEndPointImage}
+      {...platformSpecificImageProps}
       onNavigationInfoUpdate={onNaviInfoUpdate}
       onNavigationStarted={onNaviStart}
       onNavigationEnded={onNaviEnd}
@@ -172,6 +215,7 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
       onNavigationText={onPlayVoice}
       onNavigationVisualStateUpdate={onNaviVisualStateChange}
       onLaneInfoUpdate={onLaneInfoUpdate}
+      onTrafficStatusesUpdate={onTrafficStatusesUpdate}
     />
   );
 });

@@ -1,7 +1,14 @@
+/**
+ * 自定义顶部导航 HUD。
+ * 这个文件主要负责消费导航实时信息，渲染当前动作、距离、道路名、
+ * 下一步提示，并在普通态和大图场景下切换不同的顶部展示样式。
+ */
 import { MaterialIcons } from "@expo/vector-icons";
-import type { NaviInfoUpdateEvent } from "../types";
+import { BlurView } from "expo-blur";
 import React from "react";
 import {
+  Image,
+  type ImageStyle,
   type LayoutChangeEvent,
   Platform,
   StatusBar,
@@ -12,6 +19,8 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { NaviInfoUpdateEvent } from "expo-gaode-map-navigation";
 
 function formatDistance(distance?: number): string {
   if (!Number.isFinite(distance)) {
@@ -42,26 +51,6 @@ function splitDistanceParts(distance?: number): { value: string; unit: string } 
     value: `${kilometers >= 10 ? kilometers.toFixed(0) : kilometers.toFixed(1)}`,
     unit: "km",
   };
-}
-
-function formatDuration(seconds?: number): string {
-  if (!Number.isFinite(seconds)) {
-    return "--";
-  }
-
-  const safeSeconds = Math.max(0, Math.round(seconds ?? 0));
-  if (safeSeconds < 60) {
-    return "1分钟内";
-  }
-
-  const minutes = Math.round(safeSeconds / 60);
-  if (minutes < 60) {
-    return `${minutes}分钟`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const remainMinutes = minutes % 60;
-  return remainMinutes > 0 ? `${hours}小时${remainMinutes}分` : `${hours}小时`;
 }
 
 function getTurnMeta(iconType?: number): {
@@ -121,16 +110,23 @@ function getTurnMeta(iconType?: number): {
 
 function TurnIconBadge({
   iconType,
+  imageUri,
   compact = false,
   size = "large",
 }: {
   iconType?: number;
+  imageUri?: string;
   compact?: boolean;
   size?: "large" | "small";
 }) {
   const turnMeta = getTurnMeta(iconType);
   const isSmall = size === "small";
   const iconSize = isSmall ? (compact ? 18 : 20) : compact ? 42 : 56;
+  const imageStyle: StyleProp<ImageStyle> = [
+    styles.turnIconImage,
+    isSmall ? styles.turnIconImageSmall : styles.turnIconImageLarge,
+    compact && !isSmall ? styles.turnIconImageCompact : null,
+  ];
   const containerStyle: StyleProp<ViewStyle> = [
     styles.turnBadge,
     isSmall ? styles.turnBadgeSmall : styles.turnBadgeLarge,
@@ -139,8 +135,14 @@ function TurnIconBadge({
 
   return (
     <View style={containerStyle}>
-      {turnMeta.guideVariant === "arrive" ? <View style={styles.turnGuideDot} /> : null}
-      <MaterialIcons name={turnMeta.iconName} size={iconSize} color="#ffffff" />
+      {imageUri ? (
+        <Image fadeDuration={0} resizeMode="contain" source={{ uri: imageUri }} style={imageStyle} />
+      ) : (
+        <>
+          {turnMeta.guideVariant === "arrive" ? <View style={styles.turnGuideDot} /> : null}
+          <MaterialIcons name={turnMeta.iconName} size={iconSize} color="#ffffff" />
+        </>
+      )}
     </View>
   );
 }
@@ -149,33 +151,34 @@ export function EmbeddedNaviHud({
   info,
   compact = false,
   onLayout,
+  blurTarget,
 }: {
   info: NaviInfoUpdateEvent | null;
   compact?: boolean;
   onLayout?: (event: LayoutChangeEvent) => void;
+  blurTarget?: React.RefObject<React.ElementRef<typeof View> | null>;
 }) {
-  const topInset = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
+  const insets = useSafeAreaInsets();
+  const topInset = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : insets.top;
   const hasPrimaryDistance = (info?.curStepRetainDistance ?? info?.pathRetainDistance ?? 0) > 0;
   const hasRoadName = Boolean(info?.nextRoadName?.trim() || info?.currentRoadName?.trim());
-  const hasIcon = typeof info?.iconType === "number" && info.iconType > 0;
+  const hasIcon = Boolean(info?.turnIconImage) || (typeof info?.iconType === "number" && info.iconType > 0);
 
   if (!info || (!hasPrimaryDistance && !hasRoadName && !hasIcon)) {
     return null;
   }
 
   const turnMeta = getTurnMeta(info?.iconType);
+  const hasNextTurnIcon = typeof info?.nextIconType === "number" && info.nextIconType > 0;
   const nextTurnMeta = getTurnMeta(info?.nextIconType);
+  const hasNextTurnImage = Boolean(info?.nextTurnIconImage);
+  const showsNextTurnPanel = hasNextTurnImage || (Platform.OS === "android" && hasNextTurnIcon);
 
   const nextRoadName = info?.nextRoadName?.trim() || info?.currentRoadName?.trim() || "前方道路";
   const currentRoadName = info?.currentRoadName?.trim() || "当前道路信息获取中";
   const stepDistanceText = formatDistance(info?.curStepRetainDistance ?? info?.pathRetainDistance);
   const stepDistanceParts = splitDistanceParts(info?.curStepRetainDistance ?? info?.pathRetainDistance);
-  const totalDistanceText = formatDistance(info?.pathRetainDistance);
-  const totalDurationText = formatDuration(info?.pathRetainTime);
-  const nextTurnText =
-    typeof info?.nextIconType === "number" && info.nextIconType > 0
-      ? `随后${nextTurnMeta.action}`
-      : "随后保持当前路线";
+  const nextTurnText = hasNextTurnIcon ? nextTurnMeta.action : "";
   const cardStyle: StyleProp<ViewStyle> = [styles.card, compact ? styles.cardCompact : null];
   const iconBoxStyle: StyleProp<ViewStyle> = [styles.iconBox, compact ? styles.iconBoxCompact : null];
   const distanceStyle: StyleProp<TextStyle> = [styles.distance, compact ? styles.distanceCompact : null];
@@ -195,6 +198,7 @@ export function EmbeddedNaviHud({
       : null;
 
   if (compact) {
+    // 路口大图出现时切成横向紧凑 HUD，尽量不压住官方大图和地图前方视野。
     return (
       <View
         pointerEvents="none"
@@ -202,9 +206,28 @@ export function EmbeddedNaviHud({
         style={[styles.container, styles.containerCompact, { paddingTop: topInset + 2 }]}
       >
         <View style={styles.compactShell}>
+          {/* 这里直接消费外层 EmbeddedNaviView 提供的地图 blur target，保证毛玻璃真的来自地图背景。 */}
+          <BlurView
+            tint="dark"
+            intensity={90}
+            blurMethod="dimezisBlurViewSdk31Plus"
+            blurTarget={blurTarget}
+            style={styles.blurFill}
+          />
+          <View style={styles.compactOverlay} />
+
           <View style={styles.compactLeadPanel}>
             {turnMeta.guideVariant === "arrive" ? <View style={styles.compactLeadDot} /> : null}
-            <MaterialIcons name={turnMeta.iconName} size={48} color="#ffffff" />
+            {info?.turnIconImage ? (
+              <Image
+                fadeDuration={0}
+                resizeMode="contain"
+                source={{ uri: info.turnIconImage }}
+                style={styles.compactLeadImage}
+              />
+            ) : (
+              <MaterialIcons name={turnMeta.iconName} size={48} color="#ffffff" />
+            )}
           </View>
 
           <View style={styles.compactMain}>
@@ -221,14 +244,21 @@ export function EmbeddedNaviHud({
             </View>
           </View>
 
-          <View style={styles.compactTrailing}>
-            <Text style={styles.compactTrailingLabel}>随后</Text>
-            {typeof info?.nextIconType === "number" && info.nextIconType > 0 ? (
-              <MaterialIcons name={nextTurnMeta.iconName} size={24} color="#ffffff" />
-            ) : (
-              <Text style={styles.compactTrailingFallback}>直行</Text>
-            )}
-          </View>
+          {showsNextTurnPanel ? (
+            <View style={styles.compactTrailing}>
+              <Text style={styles.compactTrailingLabel}>随后</Text>
+              {hasNextTurnImage ? (
+                <Image
+                  fadeDuration={0}
+                  resizeMode="contain"
+                  source={{ uri: info?.nextTurnIconImage }}
+                  style={styles.compactTrailingImage}
+                />
+              ) : (
+                <MaterialIcons name={nextTurnMeta.iconName} size={24} color="#ffffff" />
+              )}
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -238,43 +268,63 @@ export function EmbeddedNaviHud({
     <View
       pointerEvents="none"
       onLayout={onLayout}
-      style={[styles.container, { paddingTop: topInset + 8 }]}
+        style={[styles.container, { paddingTop: topInset + 8 }]}
     >
       <View style={cardStyle}>
-        <View style={styles.primaryRow}>
-          <View style={iconBoxStyle}>
-            <TurnIconBadge iconType={info?.iconType} compact={compact} />
-          </View>
+        {/* 常态 HUD 也复用同一个 blur target，避免每张卡片自己再包一层 target 导致 blur 失效。 */}
+        <BlurView
+          tint="dark"
+          intensity={90}
+          blurMethod="dimezisBlurViewSdk31Plus"
+          blurTarget={blurTarget}
+          style={styles.blurFill}
+        />
+        <View style={styles.cardOverlay} />
 
-          <View style={styles.centerBlock}>
-            <View style={styles.headlineRow}>
-              <Text style={distanceStyle}>{stepDistanceText}</Text>
-              <Text style={actionStyle}>{turnMeta.action}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.primaryRow}>
+            <View style={iconBoxStyle}>
+              <TurnIconBadge
+                iconType={info?.iconType}
+                imageUri={info?.turnIconImage}
+                compact={compact}
+              />
             </View>
-            <Text numberOfLines={1} style={roadNameStyle}>
-              {nextRoadName}
-            </Text>
-          </View>
 
-          <View style={trailingBlockStyle}>
-            <View style={styles.nextTurnRow}>
-              <Text style={styles.nextTurnLabel}>随后</Text>
-              <TurnIconBadge iconType={info?.nextIconType} compact={compact} size="small" />
+            <View style={styles.centerBlock}>
+              <View style={styles.headlineRow}>
+                <Text style={distanceStyle}>{stepDistanceText}</Text>
+                <Text style={actionStyle}>{turnMeta.action}</Text>
+              </View>
+              <Text numberOfLines={1} style={roadNameStyle}>
+                {nextRoadName}
+              </Text>
             </View>
-            <Text numberOfLines={1} style={nextTurnTextStyle}>
-              {nextTurnText}
-            </Text>
-            <Text style={styles.trailingLabel}>全程剩余</Text>
-            <Text style={styles.trailingDistance}>{totalDistanceText}</Text>
-            <Text style={styles.trailingDuration}>{totalDurationText}</Text>
-          </View>
-        </View>
 
-        <View style={styles.secondaryRow}>
-          <Text numberOfLines={1} style={styles.secondaryText}>
-            当前: {currentRoadName}
-          </Text>
-          {trafficLightText ? <Text style={styles.secondaryBadge}>{trafficLightText}</Text> : null}
+            {showsNextTurnPanel ? (
+              <View style={trailingBlockStyle}>
+                <View style={styles.nextTurnRow}>
+                  <Text style={styles.nextTurnLabel}>随后</Text>
+                  <TurnIconBadge
+                    iconType={info?.nextIconType}
+                    imageUri={info?.nextTurnIconImage}
+                    compact={compact}
+                    size="small"
+                  />
+                </View>
+                <Text numberOfLines={1} style={nextTurnTextStyle}>
+                  {nextTurnText}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.secondaryRow}>
+            <Text numberOfLines={1} style={styles.secondaryText}>
+              当前: {currentRoadName}
+            </Text>
+            {trafficLightText ? <Text style={styles.secondaryBadge}>{trafficLightText}</Text> : null}
+          </View>
         </View>
       </View>
     </View>
@@ -294,41 +344,50 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 20,
-    backgroundColor: "rgba(25, 28, 36, 0.96)",
+    overflow: "hidden",
+    boxShadow: "0px 10px 24px rgba(0, 0, 0, 0.24)",
+  },
+  cardContent: {
     paddingHorizontal: 14,
     paddingVertical: 12,
-    shadowColor: "#000000",
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 18,
-    elevation: 18,
+  },
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 14, 22, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: 20,
   },
   cardCompact: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     borderRadius: 18,
     maxWidth: "84%",
+  },
+  blurFill: {
+    ...StyleSheet.absoluteFillObject,
   },
   compactShell: {
     minHeight: 74,
     width: "100%",
     borderRadius: 20,
-    backgroundColor: "rgba(3, 8, 18, 0.98)",
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
-    shadowColor: "#000000",
-    shadowOpacity: 0.26,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 14,
+    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.22)",
+    
+  },
+  compactOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(3, 8, 18, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: 20,
   },
   compactLeadPanel: {
     width: 62,
     alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2563eb",
+    backgroundColor: "rgba(37, 99, 235, 0.88)",
   },
   compactLeadDot: {
     position: "absolute",
@@ -337,6 +396,10 @@ const styles = StyleSheet.create({
     bottom: 16,
     borderRadius: 8,
     backgroundColor: "rgba(191, 219, 254, 0.52)",
+  },
+  compactLeadImage: {
+    width: 52,
+    height: 52,
   },
   compactMain: {
     flex: 1,
@@ -396,10 +459,17 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "800",
   },
+  compactTrailingImage: {
+    width: 24,
+    height: 24,
+  },
   compactTrailingFallback: {
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: "700",
+    maxWidth: 74,
+    textAlign: "right",
   },
   primaryRow: {
     flexDirection: "row",
@@ -429,6 +499,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
+  turnIconImage: {
+    width: "100%",
+    height: "100%",
+  },
+  turnIconImageLarge: {
+    width: 52,
+    height: 52,
+  },
+  turnIconImageSmall: {
+    width: 22,
+    height: 22,
+  },
+  turnIconImageCompact: {
+    width: 40,
+    height: 40,
+  },
   turnGuideDot: {
     position: "absolute",
     width: 16,
@@ -449,7 +535,7 @@ const styles = StyleSheet.create({
   },
   distance: {
     color: "#ffffff",
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "800",
     letterSpacing: 0.2,
   },
@@ -467,7 +553,7 @@ const styles = StyleSheet.create({
   roadName: {
     marginTop: 2,
     color: "#ffffff",
-    fontSize: 23,
+    fontSize: 18,
     fontWeight: "700",
   },
   roadNameCompact: {
@@ -493,6 +579,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0.4,
+    textAlign: "right",
   },
   nextTurnText: {
     marginTop: 2,
@@ -505,25 +592,6 @@ const styles = StyleSheet.create({
   nextTurnTextCompact: {
     maxWidth: 96,
     fontSize: 10,
-  },
-  trailingLabel: {
-    marginTop: 4,
-    color: "#8d98ac",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-  },
-  trailingDistance: {
-    marginTop: 2,
-    color: "#f8fafc",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  trailingDuration: {
-    marginTop: 2,
-    color: "#d5d9e2",
-    fontSize: 12,
-    fontWeight: "600",
   },
   secondaryRow: {
     marginTop: 10,
