@@ -29,6 +29,12 @@ npm install expo-gaode-map-navigation
 **⚠️ 重要提示：**
 如果项目中已安装 `expo-gaode-map`，请务必先卸载，否则会导致 Android 端二进制冲突（`3dmap` vs `navi-3dmap`）。`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
 
+> ⚠️ **版本兼容性说明**：
+> - 如果你的项目使用 **Expo SDK 54 及以上**，请安装 默认的 版本。
+> - 如果你的项目使用 **Expo SDK 53 及以下**（如 50, 51, 52, 53），请使用 **V1** 版本（Tag: `v1`）。
+>   ```bash
+>   npm install expo-gaode-map-navigation@1.1.8
+>   ```
 
 ### Config Plugin 配置（推荐）
 
