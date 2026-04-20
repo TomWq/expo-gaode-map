@@ -73,7 +73,7 @@ Includes complete API documentation, usage guides, and example code:
 >   ```bash
 >   npm install expo-gaode-map@v1
 >   ```
->   **Note**: Apart from lacking **World Map** functionality, the V1 version shares the same API as V2 (Latest).
+>   **Note**: V1 version does not support World Map functionality. Please upgrade to Expo SDK 54+ for World Map support.
 
 ### Option 1: Map and Location Only (Core Package)
 
