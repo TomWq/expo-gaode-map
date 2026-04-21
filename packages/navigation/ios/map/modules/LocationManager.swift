@@ -90,7 +90,16 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
                 return
             }
         }
-        ensureLocationManager()?.allowsBackgroundLocationUpdates = allows
+        guard let manager = ensureLocationManager() else {
+            return
+        }
+        manager.allowsBackgroundLocationUpdates = allows
+        if #available(iOS 11.0, *) {
+            let indicatorSelector = NSSelectorFromString("setShowsBackgroundLocationIndicator:")
+            if manager.responds(to: indicatorSelector) {
+                manager.setValue(allows, forKey: "showsBackgroundLocationIndicator")
+            }
+        }
     }
 
     func setGeoLanguage(_ language: Int) {

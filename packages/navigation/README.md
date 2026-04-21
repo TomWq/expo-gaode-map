@@ -49,7 +49,12 @@ npm install expo-gaode-map-navigation
         "expo-gaode-map-navigation", 
         {
           "androidKey": "your-android-key",
-          "iosKey": "your-ios-key"
+          "iosKey": "your-ios-key",
+          "enableBackgroundLocation": true,
+          "enableBackgroundAudio": true,
+          "enableNavigationNotification": true,
+          "enableIOSLiveActivity": true,
+          "enableIOSLiveActivityFrequentUpdates": true
         }
       ]
     ]
@@ -63,6 +68,15 @@ npx expo prebuild --clean
 npx expo run:android
 npx expo run:ios
 ```
+
+说明：
+
+- `enableNavigationNotification` 仅 Android 生效，用于注入导航前台通知所需权限与 `NavigationForegroundService` 声明。
+- `enableBackgroundAudio` 仅 iOS 生效（默认随 `enableBackgroundLocation` 自动开启），用于注入 `UIBackgroundModes: audio`，保障后台导航语音持续播报。
+- `enableIOSLiveActivity` 仅 iOS 生效，用于注入 `NSSupportsLiveActivities`。
+- `enableIOSLiveActivityFrequentUpdates` 仅 iOS 生效，用于注入 `NSSupportsLiveActivitiesFrequentUpdates`。
+- 运行时还需要在 `NaviView` 里显式传 `androidBackgroundNavigationNotificationEnabled={true}` 才会在应用退到后台后显示导航常驻通知。
+- iOS 运行时还需要在 `NaviView` 里显式传 `iosLiveActivityEnabled={true}` 才会持续更新 Live Activity。
 
 ## 示例工程
 
@@ -92,6 +106,30 @@ npm install
 npx pod-install ios
 npx expo run:ios
 ```
+
+### iOS Live Activity Widget Extension
+
+`iosLiveActivityEnabled` 只负责从导航回调里请求/更新 ActivityKit 状态。  
+真正显示在锁屏/灵动岛的 UI，需要你在 App 里提供 Widget Extension 的 `ActivityConfiguration`。
+
+仓库已提供模板：
+
+- [`packages/navigation/widget-template/README.md`](/Volumes/xinxin/expo-gaode-map/packages/navigation/widget-template/README.md)
+- [`packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift`](/Volumes/xinxin/expo-gaode-map/packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift)
+
+模板里直接使用库导出的 `NavigationLiveActivityAttributes`（`import ExpoGaodeMapNavigation`）。
+
+#### iOS Live Activity 行为说明（补充）
+
+- 导航进行中会持续推送实时状态到锁屏/灵动岛（前提是已启用 `iosLiveActivityEnabled` 且 Widget Extension 配置正确）。
+- 到达目的地后，模块会先更新卡片为“到达目的地”，再延时约 6 秒自动结束 Live Activity。
+- 为避免 ActivityKit `Payload maximum size exceeded`：
+  - 模块会优先保留转向图标，先裁剪文案字段；
+  - 如仍超限，才会降级去掉图标，确保状态更新不中断。
+- 调试日志关键字：
+  - `payload ... keeping turn icon`
+  - `payload still too large ... dropped turn icon`
+  - `arrived destination card displayed for ... stopping activity`
 
 
 ## 快速开始
@@ -158,6 +196,8 @@ export default function NavigationScreen() {
         style={{ flex: 1 }}
         showCamera={true} // 显示摄像头
         enableVoice={true} // 开启语音
+        androidBackgroundNavigationNotificationEnabled={true} // Android 后台导航常驻通知（需配合插件 enableNavigationNotification）
+        iosLiveActivityEnabled={true} // iOS Live Activity 状态更新（需配合插件 enableIOSLiveActivity + Widget Extension）
       />
     </View>
   );
@@ -490,6 +530,7 @@ const result = await calculateTransitRoute({
 | `realCrossDisplay` | boolean | 是否显示路口放大图 |
 | `showCamera` | boolean | 是否显示摄像头 |
 | `carImage` | string \| ImageSourcePropType | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
+| `carImageSize` | object | 自定义导航车标尺寸，格式 `{ width, height }`（单位 dp/pt，需同时传宽高） |
 | `startPointImage` | string \| ImageSourcePropType | 自定义起点标注图 |
 | `wayPointImage` | string \| ImageSourcePropType | 自定义途经点标注图 |
 | `endPointImage` | string \| ImageSourcePropType | 自定义终点标注图 |
@@ -497,9 +538,12 @@ const result = await calculateTransitRoute({
 | `showTrafficButton` | boolean | 是否显示交通按钮/交通图层开关 |
 | `showDriveCongestion` | boolean | 是否显示拥堵气泡 |
 | `showTrafficLightView` | boolean | 是否显示红绿灯倒计时气泡 |
+| `mapViewModeType` | number | 地图样式模式：`0` 白天、`1` 黑夜、`2` 自动、`3` 自定义（Android 当前未开放样式路径时会降级为白天） |
+| `isNightMode` | boolean | 兼容属性，等价于 `mapViewModeType` 的 `1/0`；若同时传 `mapViewModeType`，以后者为准 |
 | `showUIElements` | boolean | Android / iOS 均支持整体 UI 显隐 |
 | `laneInfoVisible` | boolean | Android 是否显示官方车道信息 |
 | `hideNativeLaneInfoLayout` | boolean | iOS 是否隐藏官方车道信息条，交给 RN 自绘 |
+| `iosLiveActivityEnabled` | boolean | iOS 是否启用导航 Live Activity 状态更新（需已配置 Widget Extension） |
 | `modeCrossDisplay` | boolean | Android 是否显示 3D 路口模型；iOS 当前不支持，会忽略 |
 | `eyrieCrossDisplay` | boolean | Android 是否显示鹰眼路口图 |
 | `secondActionVisible` | boolean | Android 是否显示辅助操作区域 |
@@ -510,6 +554,7 @@ const result = await calculateTransitRoute({
 | `lockTilt` | number | Android 锁车态倾斜角度 |
 | `eagleMapVisible` | boolean | Android 是否显示鹰眼小地图 |
 | `pointToCenter` | object | Android 锁车态自车锚点位置 |
+| `androidBackgroundNavigationNotificationEnabled` | boolean | Android 退到后台时是否启用前台服务导航常驻通知（默认 false） |
 | `driveViewEdgePadding` | object | iOS 导航内容边距 |
 | `screenAnchor` | object | iOS 地图视图锚点 |
 | `showBackupRoute` | boolean | iOS 是否显示备选路线 |
@@ -530,6 +575,7 @@ const result = await calculateTransitRoute({
 - `realCrossDisplay`
 - `naviMode`
 - `showMode`
+- `mapViewModeType`
 - `isNightMode`
 - `showTrafficBar`
 - `showTrafficButton`
@@ -568,7 +614,6 @@ const result = await calculateTransitRoute({
 - `trafficBarFrame`
 - `trafficBarColors`
 - `showMoreButton`
-- `mapViewModeType`
 - `lineWidth`
 - `driveViewEdgePadding`
 - `screenAnchor`

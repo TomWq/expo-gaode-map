@@ -39,6 +39,39 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
     private var locationManager: CLLocationManager?
     /// 权限请求回调
     private var permissionCallback: ((Bool, String) -> Void)?
+    /// 后台（始终）权限请求回调
+    private var backgroundPermissionCallback: ((Bool, String) -> Void)?
+    /// 在 notDetermined 状态下，先申请前台权限，再升级为始终权限
+    private var pendingAlwaysAuthorizationUpgrade = false
+
+    private func resolveBackgroundPermissionIfNeeded(_ status: CLAuthorizationStatus) {
+        guard let backgroundPermissionCallback else {
+            return
+        }
+        let backgroundGranted = status == .authorizedAlways
+        backgroundPermissionCallback(backgroundGranted, getAuthorizationStatusString(status))
+        self.backgroundPermissionCallback = nil
+    }
+
+    private func scheduleAlwaysAuthorizationFallback(_ manager: CLLocationManager) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self else {
+                return
+            }
+            guard self.backgroundPermissionCallback != nil else {
+                return
+            }
+
+            let latestStatus: CLAuthorizationStatus
+            if #available(iOS 14.0, *) {
+                latestStatus = manager.authorizationStatus
+            } else {
+                latestStatus = CLLocationManager.authorizationStatus()
+            }
+            self.pendingAlwaysAuthorizationUpgrade = false
+            self.resolveBackgroundPermissionIfNeeded(latestStatus)
+        }
+    }
     
     /**
      * 请求位置权限
@@ -92,6 +125,61 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
             locationManager.requestWhenInUseAuthorization()
         }
     }
+
+    /**
+     * 请求后台（始终）位置权限
+     * @param callback 权限结果回调 (granted, status)
+     */
+    func requestAlwaysPermission(callback: @escaping (Bool, String) -> Void) {
+        self.backgroundPermissionCallback = callback
+
+        DispatchQueue.main.async {
+            if self.locationManager == nil {
+                self.locationManager = CLLocationManager()
+            }
+
+            guard let locationManager = self.locationManager else {
+                self.backgroundPermissionCallback?(false, "unknown")
+                self.backgroundPermissionCallback = nil
+                self.pendingAlwaysAuthorizationUpgrade = false
+                return
+            }
+
+            locationManager.delegate = self
+
+            let currentStatus: CLAuthorizationStatus
+            if #available(iOS 14.0, *) {
+                currentStatus = locationManager.authorizationStatus
+            } else {
+                currentStatus = CLLocationManager.authorizationStatus()
+            }
+
+            if currentStatus == .authorizedAlways {
+                self.backgroundPermissionCallback?(true, self.getAuthorizationStatusString(currentStatus))
+                self.backgroundPermissionCallback = nil
+                self.pendingAlwaysAuthorizationUpgrade = false
+                return
+            }
+
+            if currentStatus == .denied || currentStatus == .restricted {
+                self.backgroundPermissionCallback?(false, self.getAuthorizationStatusString(currentStatus))
+                self.backgroundPermissionCallback = nil
+                self.pendingAlwaysAuthorizationUpgrade = false
+                return
+            }
+
+            if currentStatus == .authorizedWhenInUse {
+                self.pendingAlwaysAuthorizationUpgrade = false
+                locationManager.requestAlwaysAuthorization()
+                self.scheduleAlwaysAuthorizationFallback(locationManager)
+                return
+            }
+
+            // notDetermined: 先请求前台定位，再在回调中升级到始终权限
+            self.pendingAlwaysAuthorizationUpgrade = true
+            locationManager.requestWhenInUseAuthorization()
+        }
+    }
     
     /**
      * 权限状态变化回调 (iOS 14+)
@@ -115,6 +203,18 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         if status == .notDetermined {
             return
         }
+
+        if pendingAlwaysAuthorizationUpgrade && status == .authorizedWhenInUse {
+            pendingAlwaysAuthorizationUpgrade = false
+            if let locationManager {
+                locationManager.requestAlwaysAuthorization()
+                scheduleAlwaysAuthorizationFallback(locationManager)
+            } else {
+                resolveBackgroundPermissionIfNeeded(status)
+            }
+            return
+        }
+        pendingAlwaysAuthorizationUpgrade = false
         
         // 状态已确定(授予或拒绝),返回结果
         var granted = false
@@ -125,6 +225,8 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         }
         let statusString = getAuthorizationStatusString(status)
         
+        resolveBackgroundPermissionIfNeeded(status)
+
         permissionCallback?(granted, statusString)
         permissionCallback = nil
     }
@@ -236,6 +338,8 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         locationManager?.delegate = nil
         locationManager = nil
         permissionCallback = nil
+        backgroundPermissionCallback = nil
+        pendingAlwaysAuthorizationUpgrade = false
     }
 }
 #endif

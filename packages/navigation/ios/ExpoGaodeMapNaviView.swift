@@ -8,6 +8,7 @@
 import Foundation
 import ExpoModulesCore
 import AMapNaviKit
+import AVFAudio
 
 final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
   var suppressLaneInfoUI: Bool = false
@@ -314,8 +315,12 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private var lastNextTurnIconType: Int?
   private var lastTurnIconImageUri: String?
   private var lastNextTurnIconImageUri: String?
+  private var lastTurnIconBase64: String?
+  private var trafficBarTotalLength: Int?
   private var isCrossVisible: Bool = false
   private var isLaneInfoVisible: Bool = false
+  private var isNavigationAudioSessionActive: Bool = false
+  private var hasLoggedMissingBackgroundAudioMode: Bool = false
 
   private enum LaneStringKind {
     case background
@@ -331,6 +336,9 @@ public class ExpoGaodeMapNaviView: ExpoView {
     didSet { applyShowCamera(showCamera) }
   }
   var carImageSource: String? {
+    didSet { applyCarImageSource() }
+  }
+  var carImageSize: CGSize? {
     didSet { applyCarImageSource() }
   }
   var carCompassImageSource: String? {
@@ -404,7 +412,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   var showUIElements: Bool = true {
     didSet { applyShowUIElementsToDriveViewIfReady() }
   }
-  var showGreyAfterPass: Bool = false {
+  var showGreyAfterPass: Bool = true {
     didSet { driveView?.showGreyAfterPass = showGreyAfterPass }
   }
   var showVectorline: Bool = true {
@@ -450,6 +458,15 @@ public class ExpoGaodeMapNaviView: ExpoView {
   var hideNativeLaneInfoLayout: Bool = false {
     didSet { applyHideNativeLaneInfoLayout(hideNativeLaneInfoLayout) }
   }
+  var iosLiveActivityEnabled: Bool = false {
+    didSet {
+      if iosLiveActivityEnabled {
+        syncNavigationLiveActivityWithLastPayload()
+      } else {
+        NavigationLiveActivityManager.shared.stop()
+      }
+    }
+  }
 
   func applyShowUIElements(_ visible: Bool) {
     showUIElements = visible
@@ -494,6 +511,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     
     // 使用内置语音
     driveManager?.isUseInternalTTS = true
+    activateNavigationAudioSessionIfNeeded(reason: "setup_navi_view")
     
     // 初始化导航视图
     let customDriveView = ExpoGaodeMapCustomDriveView(frame: bounds)
@@ -515,6 +533,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private func rebindDriveManagerToView() {
     driveManager = AMapNaviDriveManager.sharedInstance()
     driveManager?.delegate = self
+    applyDriveManagerBackgroundLocationOptionsIfNeeded()
     driveManager?.removeDataRepresentative(self)
     if let view = driveView {
       driveManager?.removeDataRepresentative(view)
@@ -523,14 +542,86 @@ public class ExpoGaodeMapNaviView: ExpoView {
     driveManager?.addDataRepresentative(self)
   }
 
+  private func applyDriveManagerBackgroundLocationOptionsIfNeeded() {
+    guard let driveManager else {
+      return
+    }
+    driveManager.pausesLocationUpdatesAutomatically = false
+    let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+    if backgroundModes?.contains("location") == true {
+      driveManager.allowsBackgroundLocationUpdates = true
+    }
+  }
+
+  private func hasBackgroundAudioModeEnabled() -> Bool {
+    let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+    return backgroundModes?.contains("audio") == true
+  }
+
+  private func activateNavigationAudioSessionIfNeeded(reason: String) {
+    guard enableVoice else {
+      return
+    }
+
+    if !hasBackgroundAudioModeEnabled(), !hasLoggedMissingBackgroundAudioMode {
+      hasLoggedMissingBackgroundAudioMode = true
+      NSLog(
+        "[ExpoGaodeMapNaviView][Audio] UIBackgroundModes 缺少 audio，切后台后语音可能中断。reason=%@",
+        reason
+      )
+    }
+
+    let audioSession = AVAudioSession.sharedInstance()
+    do {
+      try audioSession.setCategory(
+        .playback,
+        mode: .voicePrompt,
+        options: [.duckOthers, .allowBluetooth, .allowBluetoothA2DP]
+      )
+      try audioSession.setActive(true)
+      isNavigationAudioSessionActive = true
+      NSLog("[ExpoGaodeMapNaviView][Audio] activated. reason=%@", reason)
+    } catch {
+      NSLog(
+        "[ExpoGaodeMapNaviView][Audio] activate failed. reason=%@ error=%@",
+        reason,
+        String(describing: error)
+      )
+    }
+  }
+
+  private func deactivateNavigationAudioSessionIfNeeded(reason: String) {
+    guard isNavigationAudioSessionActive else {
+      return
+    }
+    let audioSession = AVAudioSession.sharedInstance()
+    do {
+      try audioSession.setActive(false, options: [.notifyOthersOnDeactivation])
+      isNavigationAudioSessionActive = false
+      NSLog("[ExpoGaodeMapNaviView][Audio] deactivated. reason=%@", reason)
+    } catch {
+      NSLog(
+        "[ExpoGaodeMapNaviView][Audio] deactivate failed. reason=%@ error=%@",
+        reason,
+        String(describing: error)
+      )
+    }
+  }
+
   private func resetTransientNavigationState() {
+    hasStartedNavi = false
+    currentRouteTotalLength = nil
+    trafficBarTotalLength = nil
     lastNavigationInfoPayload = nil
     lastTurnIconType = nil
     lastNextTurnIconType = nil
+    lastTurnIconBase64 = nil
     clearCachedTurnIconUris()
     isCrossVisible = false
     isLaneInfoVisible = false
     emitVisualStateUpdate()
+    NavigationLiveActivityManager.shared.stop()
+    deactivateNavigationAudioSessionIfNeeded(reason: "reset_transient_navigation_state")
   }
 
   private func emitVisualStateUpdate() {
@@ -546,11 +637,13 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private func emitNavigationInfoUpdate(_ payload: [String: Any]) {
     (driveView as? ExpoGaodeMapCustomDriveView)?.refreshSuppressedTopInfoUIIfNeeded()
     var nextPayload = payload
-    if let lastTurnIconType {
+    let payloadIconType = payloadIntValue(nextPayload["iconType"]) ?? 0
+    if payloadIconType <= 0, let lastTurnIconType {
       nextPayload["iconType"] = lastTurnIconType
       nextPayload["iconDirection"] = lastTurnIconType
     }
-    if let lastNextTurnIconType {
+    let payloadNextIconType = payloadIntValue(nextPayload["nextIconType"]) ?? 0
+    if payloadNextIconType <= 0, let lastNextTurnIconType {
       nextPayload["nextIconType"] = lastNextTurnIconType
     }
     if let lastTurnIconImageUri {
@@ -563,15 +656,9 @@ public class ExpoGaodeMapNaviView: ExpoView {
     } else {
       nextPayload.removeValue(forKey: "nextTurnIconImage")
     }
-    if
-      let retainDistance = nextPayload["pathRetainDistance"] as? Int,
-      let driveDistance = nextPayload["driveDistance"] as? Int,
-      driveDistance > 0
-    {
-      currentRouteTotalLength = retainDistance + driveDistance
-    }
     lastNavigationInfoPayload = nextPayload
     onNavigationInfoUpdate(nextPayload)
+    syncNavigationLiveActivity(payload: nextPayload)
   }
 
   private func reemitLastNavigationInfoIfNeeded() {
@@ -600,6 +687,204 @@ public class ExpoGaodeMapNaviView: ExpoView {
 
     lastNavigationInfoPayload = nextPayload
     onNavigationInfoUpdate(nextPayload)
+    syncNavigationLiveActivity(payload: nextPayload)
+  }
+
+  private func resolveAppDisplayName() -> String {
+    let info = Bundle.main.infoDictionary
+    if let displayName = info?["CFBundleDisplayName"] as? String, !displayName.isEmpty {
+      return displayName
+    }
+    if let appName = info?["CFBundleName"] as? String, !appName.isEmpty {
+      return appName
+    }
+    return "导航"
+  }
+
+  private func payloadIntValue(_ value: Any?) -> Int? {
+    if let intValue = value as? Int {
+      return intValue
+    }
+    if let numberValue = value as? NSNumber {
+      return numberValue.intValue
+    }
+    if let doubleValue = value as? Double {
+      return Int(doubleValue)
+    }
+    if let floatValue = value as? Float {
+      return Int(floatValue)
+    }
+    return nil
+  }
+
+  private func makeLiveActivitySnapshot(payload: [String: Any]?) -> NavigationLiveActivitySnapshot? {
+    guard let payload else {
+      return nil
+    }
+
+    let remainDistance = payloadIntValue(payload["pathRetainDistance"]) ?? 0
+    let routeTotalDistance = max(
+      trafficBarTotalLength ?? 0,
+      currentRouteTotalLength ?? 0,
+      remainDistance
+    )
+    let remainTime = payloadIntValue(payload["pathRetainTime"]) ?? 0
+    let stepRemainDistance = payloadIntValue(payload["curStepRetainDistance"]) ?? 0
+    let iconType = payloadIntValue(payload["iconType"]) ?? 0
+    let currentRoadName = (payload["currentRoadName"] as? String) ?? ""
+    let nextRoadName = (payload["nextRoadName"] as? String) ?? ""
+
+    return NavigationLiveActivitySnapshot(
+      appName: resolveAppDisplayName(),
+      currentRoadName: currentRoadName,
+      nextRoadName: nextRoadName,
+      pathRetainDistance: remainDistance,
+      routeTotalDistance: routeTotalDistance,
+      pathRetainTime: remainTime,
+      curStepRetainDistance: stepRemainDistance,
+      iconType: iconType,
+      turnIconBase64: lastTurnIconBase64
+    )
+  }
+
+  private func syncNavigationLiveActivity(payload: [String: Any]?) {
+    guard iosLiveActivityEnabled else {
+      return
+    }
+    guard hasStartedNavi else {
+      return
+    }
+
+    guard let snapshot = makeLiveActivitySnapshot(payload: payload) else {
+      return
+    }
+    NavigationLiveActivityManager.shared.startOrUpdate(snapshot: snapshot)
+  }
+
+  private func syncNavigationLiveActivityWithLastPayload() {
+    syncNavigationLiveActivity(payload: lastNavigationInfoPayload)
+  }
+
+  private func normalizedTurnIconImage(_ image: UIImage) -> UIImage {
+    guard image.imageOrientation != .up else {
+      return image
+    }
+    let renderer = UIGraphicsImageRenderer(size: image.size)
+    return renderer.image { _ in
+      image.draw(in: CGRect(origin: .zero, size: image.size))
+    }
+  }
+
+  private func trimmedTransparentBoundsImage(_ image: UIImage) -> UIImage {
+    guard let cgImage = image.cgImage else {
+      return image
+    }
+    guard let dataProvider = cgImage.dataProvider, let data = dataProvider.data else {
+      return image
+    }
+
+    let bytes = CFDataGetBytePtr(data)
+    let bytesPerPixel = max(cgImage.bitsPerPixel / 8, 0)
+    let bytesPerRow = cgImage.bytesPerRow
+    let width = cgImage.width
+    let height = cgImage.height
+    guard let bytes, bytesPerPixel >= 4, width > 0, height > 0 else {
+      return image
+    }
+
+    let alphaOffset: Int
+    switch cgImage.alphaInfo {
+    case .premultipliedLast, .last, .noneSkipLast:
+      alphaOffset = 3
+    case .premultipliedFirst, .first, .noneSkipFirst:
+      alphaOffset = 0
+    default:
+      return image
+    }
+
+    var minX = width
+    var minY = height
+    var maxX = -1
+    var maxY = -1
+    let alphaThreshold: UInt8 = 8
+
+    for y in 0..<height {
+      let rowStart = y * bytesPerRow
+      for x in 0..<width {
+        let pixelStart = rowStart + x * bytesPerPixel
+        let alpha = bytes[pixelStart + alphaOffset]
+        if alpha > alphaThreshold {
+          minX = min(minX, x)
+          minY = min(minY, y)
+          maxX = max(maxX, x)
+          maxY = max(maxY, y)
+        }
+      }
+    }
+
+    guard maxX >= minX, maxY >= minY else {
+      return image
+    }
+
+    let cropRect = CGRect(
+      x: minX,
+      y: minY,
+      width: (maxX - minX + 1),
+      height: (maxY - minY + 1)
+    )
+    guard let croppedCGImage = cgImage.cropping(to: cropRect) else {
+      return image
+    }
+    return UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: .up)
+  }
+
+  private func aspectFitRect(sourceSize: CGSize, targetSize: CGSize) -> CGRect {
+    guard sourceSize.width > 0, sourceSize.height > 0, targetSize.width > 0, targetSize.height > 0 else {
+      return CGRect(origin: .zero, size: targetSize)
+    }
+    let scale = min(targetSize.width / sourceSize.width, targetSize.height / sourceSize.height)
+    let drawSize = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+    return CGRect(
+      x: (targetSize.width - drawSize.width) / 2.0,
+      y: (targetSize.height - drawSize.height) / 2.0,
+      width: drawSize.width,
+      height: drawSize.height
+    )
+  }
+
+  private func encodeTurnIconForLiveActivity(_ image: UIImage?) -> String? {
+    guard let image else {
+      return nil
+    }
+
+    let maxEncodedLength = 2600
+    let targetSizes: [CGSize] = [
+      CGSize(width: 34, height: 34),
+      CGSize(width: 30, height: 30),
+      CGSize(width: 26, height: 26),
+      CGSize(width: 28, height: 28),
+      CGSize(width: 24, height: 24),
+      CGSize(width: 20, height: 20)
+    ]
+    let preparedImage = trimmedTransparentBoundsImage(normalizedTurnIconImage(image))
+
+    for size in targetSizes {
+      let renderer = UIGraphicsImageRenderer(size: size)
+      let rendered = renderer.image { _ in
+        let rect = aspectFitRect(sourceSize: preparedImage.size, targetSize: size)
+        preparedImage.draw(in: rect)
+      }
+
+      if let pngData = rendered.pngData() {
+        let pngBase64 = pngData.base64EncodedString()
+        if pngBase64.count <= maxEncodedLength {
+          return pngBase64
+        }
+      }
+    }
+
+    NSLog("[ExpoGaodeMapNaviView][LiveActivity] turn icon dropped because encoded payload is too large")
+    return nil
   }
 
   private func cacheTurnIconImage(_ image: UIImage?, prefix: String, previousUri: String?) -> String? {
@@ -640,6 +925,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     }
     lastTurnIconImageUri = nil
     lastNextTurnIconImageUri = nil
+    lastTurnIconBase64 = nil
   }
 
   private func splitLaneInfoString(_ value: String) -> [String] {
@@ -818,14 +1104,30 @@ public class ExpoGaodeMapNaviView: ExpoView {
     apply(resolveLocalImage(source))
   }
 
+  private func resizeImageIfNeeded(_ image: UIImage?, targetSize: CGSize?) -> UIImage? {
+    guard let image else {
+      return nil
+    }
+
+    guard let targetSize, targetSize.width > 0, targetSize.height > 0 else {
+      return image
+    }
+
+    let renderer = UIGraphicsImageRenderer(size: targetSize)
+    return renderer.image { _ in
+      image.draw(in: CGRect(origin: .zero, size: targetSize))
+    }
+  }
+
   private func applyCarImageSource() {
     guard let driveView else {
       return
     }
     applyAnnotationImage(source: carImageSource, currentSource: { [weak self] in
       self?.carImageSource
-    }) { [weak driveView] image in
-      driveView?.setCarImage(image)
+    }) { [weak self, weak driveView] image in
+      let resizedImage = self?.resizeImageIfNeeded(image, targetSize: self?.carImageSize) ?? image
+      driveView?.setCarImage(resizedImage)
     }
   }
 
@@ -991,6 +1293,20 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
 
   private func emitTrafficStatusesUpdate(_ trafficStatuses: [AMapNaviTrafficStatus]?) {
+    let totalLengthFromTraffic = (trafficStatuses ?? []).reduce(0) { partial, status in
+      partial + max(status.length, 0)
+    }
+
+    if totalLengthFromTraffic > 0 {
+      if let retainDistance = lastNavigationInfoPayload?["pathRetainDistance"] as? Int {
+        if totalLengthFromTraffic >= retainDistance {
+          trafficBarTotalLength = totalLengthFromTraffic
+        }
+      } else {
+        trafficBarTotalLength = totalLengthFromTraffic
+      }
+    }
+
     // iOS 会提供 fineStatus；统一事件结构时保留它，方便 RN 自绘层按需细化颜色策略。
     let items = (trafficStatuses ?? []).map { status in
       var payload: [String: Any] = [
@@ -1005,7 +1321,12 @@ public class ExpoGaodeMapNaviView: ExpoView {
       "items": items
     ]
 
-    if let totalLength = currentRouteTotalLength, totalLength > 0 {
+    let resolvedTotalLength = max(trafficBarTotalLength ?? 0, currentRouteTotalLength ?? 0)
+    if resolvedTotalLength > 0 {
+      payload["totalLength"] = resolvedTotalLength
+    } else if totalLengthFromTraffic > 0 {
+      payload["totalLength"] = totalLengthFromTraffic
+    } else if let totalLength = currentRouteTotalLength, totalLength > 0 {
       payload["totalLength"] = totalLength
     }
 
@@ -1023,6 +1344,11 @@ public class ExpoGaodeMapNaviView: ExpoView {
   
   private func applyEnableVoice(_ enabled: Bool) {
     driveManager?.isUseInternalTTS = enabled
+    if enabled {
+      activateNavigationAudioSessionIfNeeded(reason: "enable_voice_true")
+    } else {
+      deactivateNavigationAudioSessionIfNeeded(reason: "enable_voice_false")
+    }
     // 内置语音会自动播报，不需要手动调用 startSpeak/stopSpeak
   }
   
@@ -1207,6 +1533,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   deinit {
+    NavigationLiveActivityManager.shared.stop()
+    deactivateNavigationAudioSessionIfNeeded(reason: "deinit")
     driveManager?.stopNavi()
     if let view = driveView {
       driveManager?.removeDataRepresentative(view)
@@ -1219,9 +1547,42 @@ public class ExpoGaodeMapNaviView: ExpoView {
 
 // MARK: - AMapNaviDriveManagerDelegate
 extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
+  private func makeArrivedLiveActivitySnapshot() -> NavigationLiveActivitySnapshot {
+    let remainDistance = payloadIntValue(lastNavigationInfoPayload?["pathRetainDistance"]) ?? 0
+    let routeTotalDistance = max(
+      trafficBarTotalLength ?? 0,
+      currentRouteTotalLength ?? 0,
+      remainDistance
+    )
+    return NavigationLiveActivitySnapshot(
+      appName: resolveAppDisplayName(),
+      currentRoadName: "",
+      nextRoadName: "",
+      pathRetainDistance: 0,
+      routeTotalDistance: routeTotalDistance,
+      pathRetainTime: 0,
+      curStepRetainDistance: 0,
+      iconType: 15,
+      turnIconBase64: nil
+    )
+  }
+
+  private func handleArrivedDestination(source: String) {
+    NSLog("[ExpoGaodeMapNaviView][LiveActivity] arrived destination callback received: %@", source)
+    hasStartedNavi = false
+    if iosLiveActivityEnabled {
+      let arrivedSnapshot = makeArrivedLiveActivitySnapshot()
+      NavigationLiveActivityManager.shared.showArrivedAndStop(snapshot: arrivedSnapshot, dismissAfter: 6)
+    } else {
+      NavigationLiveActivityManager.shared.stop()
+    }
+    onArriveDestination([:])
+  }
   
   public func driveManager(onCalculateRouteSuccess driveManager: AMapNaviDriveManager) {
     hasStartedNavi = true
+    applyDriveManagerBackgroundLocationOptionsIfNeeded()
+    activateNavigationAudioSessionIfNeeded(reason: "calculate_route_success")
     onRouteCalculated([
       "success": true,
       "naviType": naviType
@@ -1249,12 +1610,15 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, didStartNavi naviMode: AMapNaviMode) {
     hasStartedNavi = true
+    applyDriveManagerBackgroundLocationOptionsIfNeeded()
+    activateNavigationAudioSessionIfNeeded(reason: "did_start_navi")
     onNavigationStarted([
       "type": naviMode == .emulator ? 1 : 0,
       "isEmulator": naviMode == .emulator
     ])
 
     applyShowUIElementsToDriveViewIfReady()
+    syncNavigationLiveActivityWithLastPayload()
   }
   
   public func driveManagerNavi(_ driveManager: AMapNaviDriveManager, didArrive wayPoint: AMapNaviPoint) {
@@ -1265,18 +1629,28 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   
   public func driveManagerDidEndEmulatorNavi(_ driveManager: AMapNaviDriveManager) {
     resetTransientNavigationState()
+    deactivateNavigationAudioSessionIfNeeded(reason: "did_end_emulator_navi")
     onNavigationEnded([:])
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, playNaviSound soundString: String, soundStringType: AMapNaviSoundType) {
+    activateNavigationAudioSessionIfNeeded(reason: "play_navi_sound")
     onNavigationText([
       "type": soundStringType.rawValue,
       "text": soundString
     ])
   }
   
+  /// 兼容一部分 SDK/Swift 导入下的到达终点回调签名
   public func driveManager(onArrivedDestination driveManager: AMapNaviDriveManager) {
-    onArriveDestination([:])
+    handleArrivedDestination(source: "driveManager(onArrivedDestination:)")
+    deactivateNavigationAudioSessionIfNeeded(reason: "arrived_destination_named")
+  }
+
+  /// AMapNaviDriveManagerDelegate 官方到达终点回调
+  public func driveManagerOnArrivedDestination(_ driveManager: AMapNaviDriveManager) {
+    handleArrivedDestination(source: "driveManagerOnArrivedDestination")
+    deactivateNavigationAudioSessionIfNeeded(reason: "arrived_destination_official")
   }
   
   public func driveManagerOnReCalculateRoute(forYaw driveManager: AMapNaviDriveManager) {
@@ -1361,8 +1735,8 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveDataRepresentable {
       "curStepRetainDistance": naviInfo.segmentRemainDistance,
       "curStepRetainTime": naviInfo.segmentRemainTime,
       "currentSpeed": lastKnownSpeed,
-      "iconType": lastTurnIconType ?? naviInfo.iconType.rawValue,
-      "iconDirection": lastTurnIconType ?? naviInfo.iconType.rawValue,
+      "iconType": naviInfo.iconType.rawValue,
+      "iconDirection": naviInfo.iconType.rawValue,
       "currentSegmentIndex": naviInfo.currentSegmentIndex,
       "currentLinkIndex": naviInfo.currentLinkIndex,
       "currentPointIndex": naviInfo.currentPointIndex,
@@ -1401,6 +1775,20 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveDataRepresentable {
 
   public func driveManager(_ driveManager: AMapNaviDriveManager, updateTurnIconImage turnIconImage: UIImage?, turn turnIconType: AMapNaviIconType) {
     lastTurnIconType = Int(turnIconType.rawValue)
+    let encodedTurnIcon = encodeTurnIconForLiveActivity(turnIconImage)
+    if let encodedTurnIcon {
+      lastTurnIconBase64 = encodedTurnIcon
+    } else if turnIconImage == nil {
+      NSLog(
+        "[ExpoGaodeMapNaviView][LiveActivity] turnIconImage is nil, keep previous turn icon snapshot"
+      )
+    }
+    NSLog(
+      "[ExpoGaodeMapNaviView][LiveActivity] turnIconType=%d, incomingBase64Length=%d, effectiveBase64Length=%d",
+      Int(turnIconType.rawValue),
+      encodedTurnIcon?.count ?? 0,
+      lastTurnIconBase64?.count ?? 0
+    )
     lastTurnIconImageUri = cacheTurnIconImage(
       turnIconImage,
       prefix: "turn_icon",

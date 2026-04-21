@@ -3,7 +3,6 @@ require File.join(File.dirname(`node --print "require.resolve('react-native/pack
 
 require 'json'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
-host_arch = `uname -m`.strip
 
 def ccache_enabled?(podfile_properties)
   # Environment variable takes precedence
@@ -60,35 +59,5 @@ target 'examplenavigation' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-
-    # AMapNavi x86_64 simulator slices have unresolved fftw symbols on Apple Silicon.
-    # Force simulator builds onto arm64 instead of Rosetta/x86_64.
-    if host_arch == 'arm64'
-      installer.pods_project.targets.each do |target|
-        target.build_configurations.each do |build_config|
-          build_config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
-        end
-      end
-
-      installer.aggregate_targets.each do |aggregate_target|
-        aggregate_target.user_project.native_targets.each do |target|
-          target.build_configurations.each do |build_config|
-            build_config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
-          end
-        end
-        aggregate_target.user_project.save
-      end
-
-      Dir.glob(File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-examplenavigation', 'Pods-examplenavigation*.xcconfig')).each do |xcconfig_path|
-        next unless File.exist?(xcconfig_path)
-
-        content = File.read(xcconfig_path)
-        updated = content.gsub(
-          'EXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64',
-          'EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64'
-        )
-        File.write(xcconfig_path, updated) if updated != content
-      end
-    end
   end
 end

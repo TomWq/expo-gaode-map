@@ -49,6 +49,7 @@
     "build",
     "android",
     "ios",
+    "widget-template",
     "shared",
     "app.plugin.js",
     "expo-module.config.json",

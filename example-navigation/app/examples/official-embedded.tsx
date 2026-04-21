@@ -188,6 +188,8 @@ export default function OfficialEmbeddedNaviExampleScreen() {
           secondActionVisible={uiConfig.secondActionVisible}
           backupOverlayVisible={uiConfig.backupOverlayVisible}
           hideNativeTopInfoLayout={false}
+          androidBackgroundNavigationNotificationEnabled
+          iosLiveActivityEnabled={Platform.OS === "ios"}
           naviStatusBarEnabled={Platform.OS === "android" ? uiConfig.naviStatusBarEnabled : false}
           eagleMapVisible={false}
           onNaviEnd={() => {

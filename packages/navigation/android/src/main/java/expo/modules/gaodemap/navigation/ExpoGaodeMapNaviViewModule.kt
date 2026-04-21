@@ -59,6 +59,12 @@ class ExpoGaodeMapNaviViewModule : Module() {
         view.applyCarImage(uri)
       }
 
+      Prop<Map<String, Double>?>("carImageSize") { view, value ->
+        val width = value?.get("width")
+        val height = value?.get("height")
+        view.applyCarImageSize(width, height)
+      }
+
       Prop<String?>("fourCornersImage") { view, uri ->
         view.applyFourCornersImage(uri)
       }
@@ -101,6 +107,10 @@ class ExpoGaodeMapNaviViewModule : Module() {
       
       Prop<Boolean>("isNightMode") { view, enabled ->
         view.applyNightMode(enabled)
+      }
+
+      Prop<Int>("mapViewModeType") { view, mode ->
+        view.applyMapViewModeType(mode)
       }
       
       Prop<Boolean>("carOverlayVisible") { view, visible ->
@@ -202,6 +212,14 @@ class ExpoGaodeMapNaviViewModule : Module() {
 
       Prop<Boolean>("showUIElements") { view, visible ->
         view.applyShowUIElements(visible)
+      }
+
+      Prop<Boolean>("androidBackgroundNavigationNotificationEnabled") { view, enabled ->
+        view.applyAndroidBackgroundNavigationNotificationEnabled(enabled)
+      }
+
+      // iOS-only prop, keep a no-op mapping on Android for cross-platform prop compatibility.
+      Prop<Boolean>("iosLiveActivityEnabled") { _: ExpoGaodeMapNaviView, _: Boolean ->
       }
 
       Prop<Boolean>("showTrafficBar") { view, enabled ->

@@ -603,6 +603,7 @@ function NavigationScreen() {
 | `enableVoice` | `boolean` | `true` | 是否启用语音播报 |
 | `showCamera` | `boolean` | `true` | 是否显示摄像头提示 |
 | `carImage` | `string \| ImageSourcePropType` | - | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
+| `carImageSize` | `{ width?: number; height?: number }` | - | 自定义导航车标尺寸，单位为 RN 逻辑像素（dp/pt）；需同时传 `width` 与 `height` 才会生效 |
 | `startPointImage` | `string \| ImageSourcePropType` | - | 自定义起点标注图 |
 | `wayPointImage` | `string \| ImageSourcePropType` | - | 自定义途经点标注图 |
 | `endPointImage` | `string \| ImageSourcePropType` | - | 自定义终点标注图 |
@@ -612,7 +613,8 @@ function NavigationScreen() {
 | `realCrossDisplay` | `boolean` | `true` | 是否显示路口放大图 |
 | `naviMode` | `number` | `0` | 视角模式：`0`=车头朝上, `1`=正北朝上 |
 | `showMode` | `number` | `1` | 显示模式：`1`=锁车态, `2`=全览态, `3`=普通态 |
-| `isNightMode` | `boolean` | `false` | 是否开启夜间模式 |
+| `mapViewModeType` | `number` | `0` | 地图样式模式：`0`=白天, `1`=黑夜, `2`=自动, `3`=自定义（Android 未提供样式路径时会降级为白天） |
+| `isNightMode` | `boolean` | `false` | 兼容属性，等价于 `mapViewModeType` 的 `1/0`；若同时传 `mapViewModeType`，以后者为准 |
 | `showDriveCongestion` | `boolean` | `true` | 是否显示拥堵气泡 |
 | `showTrafficLightView` | `boolean` | `true` | 是否显示红绿灯倒计时气泡 |
 | `showCompassEnabled` | `boolean` | `true` | 是否显示指南针；iOS 仅在显式传值时覆盖默认行为 |
@@ -624,7 +626,7 @@ function NavigationScreen() {
 | `showTrafficButton` | `boolean` | `true` | Android 对应交通图层开关按钮，iOS 对应官方交通按钮 |
 | `showUIElements` | `boolean` | `true` | Android / iOS 均已实现整体 UI 显隐；iOS 会在视图就绪后应用 |
 | `showVectorline` | `boolean` | `true` | 是否显示牵引线 |
-| `showGreyAfterPass` | `boolean` | `false` | 走过的路线是否置灰 |
+| `showGreyAfterPass` | `boolean` | `true` | 走过的路线是否置灰 |
 | `showTrafficLights` | `boolean` | `true` | 是否显示红绿灯图标 |
 
 #### Android 特有属性
@@ -669,7 +671,6 @@ function NavigationScreen() {
 | `carCompassImage` | `string \| ImageSourcePropType` | - | 自定义自车罗盘图，映射 `setCarCompassImage` |
 | `cameraImage` | `string \| ImageSourcePropType` | - | 自定义摄像头图标，映射 `setCameraImage` |
 | `showMoreButton` | `boolean` | `true` | 是否显示更多按钮 |
-| `mapViewModeType` | `number` | `0` | 地图样式：`0`=白天, `1`=黑夜, `2`=自动, `3`=自定义 |
 | `lineWidth` | `number` | - | 路线polyline宽度（0恢复默认） |
 | `driveViewEdgePadding` | `object` | - | 导航内容边距，格式 `{ top, left, bottom, right }` |
 | `screenAnchor` | `object` | - | 地图视图锚点，格式 `{ x, y }` |
@@ -682,6 +683,7 @@ function NavigationScreen() {
 
 - `showCamera`
 - `carImage`
+- `carImageSize`
 - `startPointImage`
 - `wayPointImage`
 - `endPointImage`
@@ -691,6 +693,7 @@ function NavigationScreen() {
 - `realCrossDisplay`
 - `naviMode`
 - `showMode`
+- `mapViewModeType`
 - `isNightMode`
 - `showTrafficBar`
 - `showTrafficButton`
@@ -733,7 +736,6 @@ function NavigationScreen() {
 - `carCompassImage`
 - `cameraImage`
 - `showMoreButton`
-- `mapViewModeType`
 - `lineWidth`
 - `driveViewEdgePadding`
 - `screenAnchor`
@@ -779,6 +781,18 @@ onArrive={(e) => {
   console.log('已到达目的地');
 }}
 ```
+
+#### iOS Live Activity 补充说明
+
+- `iosLiveActivityEnabled` 开启后，会根据 `onNaviInfoUpdate` 的实时导航数据持续更新锁屏/灵动岛卡片。
+- 到达目的地时，模块会先把卡片更新为“到达目的地”，随后约 6 秒自动结束 Live Activity。
+- 若你在 Xcode 看到 `[api] Error updating activity content: Payload maximum size exceeded.`：
+  - 模块已内置自动降级策略（优先保留转向图标，先裁剪文案）；
+  - 极端情况下仍超限才会去掉图标，避免整个状态更新失败。
+- 可用这些日志快速排查：
+  - `payload ... keeping turn icon`
+  - `payload still too large ... dropped turn icon`
+  - `arrived destination card displayed for ... stopping activity`
 
 #### onNaviInfoUpdate - 实时导航信息
 

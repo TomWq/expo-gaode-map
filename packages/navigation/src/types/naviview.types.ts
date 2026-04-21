@@ -2,6 +2,7 @@ import { ViewProps, NativeSyntheticEvent, ImageSourcePropType } from "react-nati
 
 export type NaviColorValue = string | number;
 export type NaviImageSource = string | ImageSourcePropType;
+export type NaviMapViewModeType = 0 | 1 | 2 | 3;
 
 export interface NaviRect {
   x?: number;
@@ -135,6 +136,11 @@ export interface NaviAnchorPoint {
   y?: number;
 }
 
+export interface NaviImageSize {
+  width?: number;
+  height?: number;
+}
+
 // 路线重算事件
 export interface RouteRecalculateEvent {
   reason: string;
@@ -207,6 +213,9 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   
   /**
    * 是否开启夜间模式
+   * @deprecated 建议改用 `mapViewModeType`，跨平台表达力更完整
+   * 说明：Android 映射 `setNaviNight`（并关闭 `setAutoNaviViewNightMode`），
+   * iOS 映射 `mapViewModeType = Night/Day`；若同时传 `mapViewModeType`，以后者为准
    * @default false
    */
   isNightMode?: boolean;
@@ -225,6 +234,13 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * 说明：iOS 对应 `setCarImage`，Android 对应 `AMapNaviViewOptions.setCarBitmap`
    */
   carImage?: NaviImageSource;
+
+  /**
+   * 自定义导航车标尺寸
+   * @platform android ios
+   * 说明：单位为 RN 逻辑像素（dp/pt），需同时传 `width` 与 `height` 才会生效
+   */
+  carImageSize?: NaviImageSize;
 
   /**
    * 自定义车标四角朝向图
@@ -399,6 +415,22 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   hideNativeTopInfoLayout?: boolean;
 
   /**
+   * 是否在 Android 应用进入后台后显示导航常驻通知
+   * @platform android
+   * 说明：默认关闭；开启后会在后台通过前台服务持续更新导航进度通知
+   * @default false
+   */
+  androidBackgroundNavigationNotificationEnabled?: boolean;
+
+  /**
+   * 是否启用 iOS 导航 Live Activity（锁屏/灵动岛）
+   * @platform ios
+   * 说明：开启后会在导航信息更新时自动请求/更新 Live Activity；需同时在 Info.plist 开启 `NSSupportsLiveActivities`
+   * @default false
+   */
+  iosLiveActivityEnabled?: boolean;
+
+  /**
    * 是否隐藏 iOS 原生车道信息条
    * @platform ios
    * 说明：用于保留官方地图/路况等元素，但把车道信息交给 RN 自绘 HUD 统一展示
@@ -504,10 +536,10 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * - 1: 黑夜模式 (night)
    * - 2: 根据日出日落自动切换 (dayNightAuto)
    * - 3: 自定义地图样式 (custom)
-   * @platform ios
+   * 说明：Android 对应 `setNaviNight` / `setAutoNaviViewNightMode`；当前 Android 的 `3`（custom）需要额外样式路径支持，未配置时会降级为 day
    * @default 0
    */
-  mapViewModeType?: number;
+  mapViewModeType?: NaviMapViewModeType;
   
   /**
    * 路线polyline的宽度，设置0恢复默认宽度

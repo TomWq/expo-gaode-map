@@ -736,17 +736,31 @@ public class ExpoGaodeMapModule: Module {
                 promise.reject("FOREGROUND_PERMISSION_REQUIRED", "必须先授予前台位置权限才能请求后台位置权限")
                 return
             }
-            
-            // iOS 上后台权限通过 Info.plist 配置 + 系统设置
-            // 这里返回当前状态
-            let hasBackground = status == .authorizedAlways
-            
-            promise.resolve([
-                "granted": hasBackground,
-                "backgroundLocation": hasBackground,
-                "status": self.getAuthorizationStatusString(status),
-                "message": hasBackground ? "已授予后台权限" : "需要在系统设置中手动授予'始终'权限"
-            ])
+
+            if self.permissionManager == nil {
+                self.permissionManager = PermissionManager()
+            }
+
+            guard let permissionManager = self.permissionManager else {
+                promise.reject("PERMISSION_MANAGER_INIT_FAILED", "权限管理器初始化失败")
+                return
+            }
+
+            permissionManager.requestAlwaysPermission { _, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    let finalStatus = self.currentAuthorizationStatus()
+                    let hasBackground = finalStatus == .authorizedAlways
+
+                    promise.resolve([
+                        "granted": hasBackground,
+                        "backgroundLocation": hasBackground,
+                        "status": self.getAuthorizationStatusString(finalStatus),
+                        "message": hasBackground
+                            ? "已授予后台权限"
+                            : "后台权限未授予，请在系统设置中将定位权限改为“始终允许”"
+                    ])
+                }
+            }
         }
         
   

@@ -190,6 +190,7 @@ import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
 Custom annotation icons are now exposed as image props:
 
 - `carImage`: custom ego vehicle icon on both iOS and Android
+- `carImageSize`: custom ego vehicle icon size on both iOS and Android (`{ width, height }` in RN logical pixels)
 - `startPointImage` / `wayPointImage` / `endPointImage`: custom route marker icons on both iOS and Android
 - `fourCornersImage`: Android-only four-corners direction bitmap
 - `carCompassImage`: iOS-only ego compass image
@@ -270,9 +271,25 @@ const result = await ExpoGaodeMapNavigationModule.calculateDriveRoute({
 - `endPoint` - End coordinate
 - `waypoints` - Waypoint array (optional)
 - `strategy` - Route planning strategy
+- `carImageSize` - Custom ego vehicle icon size (`{ width, height }`)
+- `iosLiveActivityEnabled` - Enables iOS Live Activity state updates (requires Widget Extension configuration)
+- `mapViewModeType` - Cross-platform map mode (`0` day, `1` night, `2` auto, `3` custom; Android falls back to day when custom style path is unavailable)
+- `isNightMode` - Legacy compatibility prop (`true`/`false` maps to `mapViewModeType` `1/0`; `mapViewModeType` takes precedence)
 - `onCalculateRouteSuccess` - Route calculation success callback
 - `onCalculateRouteFailure` - Route calculation failure callback
 - `naviStatusBarEnabled` - Android only; enables the official AMap navigation status bar when the underlying AMap SDK exposes that API
+
+### iOS Live Activity Notes
+
+- With `iosLiveActivityEnabled`, lock screen / Dynamic Island is updated from navigation snapshots.
+- On destination arrival, the module updates the card to an "Arrived" state first, then auto-dismisses it after about 6 seconds.
+- If Xcode prints `[api] Error updating activity content: Payload maximum size exceeded.`:
+  - the module now degrades payload automatically (keep turn icon first, trim text first),
+  - and only drops the turn icon as a last fallback.
+- Useful diagnostics:
+  - `payload ... keeping turn icon`
+  - `payload still too large ... dropped turn icon`
+  - `arrived destination card displayed for ... stopping activity`
 
 ### Custom UI Reference
 

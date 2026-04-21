@@ -65,4 +65,8 @@ dependencies {
     } else {
         implementation 'com.amap.api:navi-3dmap:latest.integration'
     }
+
+    // Live Update APIs on NotificationCompat.Builder
+    // setRequestPromotedOngoing / setShortCriticalText were added in androidx.core 1.17.0.
+    implementation 'androidx.core:core-ktx:1.17.0'
 }

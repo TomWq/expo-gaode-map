@@ -51,6 +51,16 @@ public class ExpoGaodeMapNaviViewModule: Module {
         view.carImageSource = value
       }
 
+      Prop("carImageSize") { (view: ExpoGaodeMapNaviView, value: [String: Double]?) in
+        let width = CGFloat(value?["width"] ?? 0)
+        let height = CGFloat(value?["height"] ?? 0)
+        if width > 0, height > 0 {
+          view.carImageSize = CGSize(width: width, height: height)
+        } else {
+          view.carImageSize = nil
+        }
+      }
+
       Prop("carCompassImage") { (view: ExpoGaodeMapNaviView, value: String?) in
         view.carCompassImageSource = value
       }
@@ -178,6 +188,14 @@ public class ExpoGaodeMapNaviViewModule: Module {
 
       Prop("hideNativeLaneInfoLayout") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.hideNativeLaneInfoLayout = value
+      }
+
+      // Android-only prop, keep a no-op mapping on iOS for cross-platform prop compatibility.
+      Prop("androidBackgroundNavigationNotificationEnabled") { (_: ExpoGaodeMapNaviView, _: Bool) in
+      }
+
+      Prop("iosLiveActivityEnabled") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.iosLiveActivityEnabled = value
       }
       
       Prop("mapViewModeType") { (view: ExpoGaodeMapNaviView, value: Int) in

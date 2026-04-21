@@ -22,6 +22,8 @@ import com.amap.api.navi.enums.NaviType
 import com.amap.api.navi.model.*
 import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.gaodemap.navigation.managers.IndependentRouteManager
+import expo.modules.gaodemap.navigation.services.NavigationForegroundService
+import expo.modules.gaodemap.navigation.services.NavigationNotificationSnapshot
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
@@ -32,6 +34,7 @@ import java.security.MessageDigest
 import java.util.Collections
 import java.util.WeakHashMap
 import java.net.URL
+import kotlin.math.roundToInt
 
 @SuppressLint("ViewConstructor")
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -44,11 +47,11 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             synchronized(activeViews) { activeViews.toList() }
 
         fun resumeActiveViews() {
-            snapshotActiveViews().forEach { it.onResume() }
+            snapshotActiveViews().forEach { it.onHostActivityForeground() }
         }
 
         fun pauseActiveViews() {
-            snapshotActiveViews().forEach { it.onPause() }
+            snapshotActiveViews().forEach { it.onHostActivityBackground() }
         }
 
         fun destroyActiveViews() {
@@ -98,7 +101,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var isEyrieCrossDisplayVisible: Boolean = true
     internal var isSecondActionVisible: Boolean = true
     internal var isBackupOverlayVisible: Boolean = true
-    internal var isAfterRouteAutoGray: Boolean = false
+    internal var isAfterRouteAutoGray: Boolean = true
     internal var isVectorLineShow: Boolean = true
     internal var isNaviTravelView : Boolean = false
     internal var isCompassEnabled: Boolean = true
@@ -109,8 +112,12 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var pointToCenterX: Double = 0.0
     internal var pointToCenterY: Double = 0.0
     internal var hideNativeTopInfoLayout: Boolean = false
+    internal var androidBackgroundNavigationNotificationEnabled: Boolean = false
     internal var naviModeValue: Int = AMapNaviView.CAR_UP_MODE
+    internal var mapViewModeTypeValue: Int = 0
     internal var carImageUri: String? = null
+    internal var carImageWidthDp: Double? = null
+    internal var carImageHeightDp: Double? = null
     internal var fourCornersImageUri: String? = null
     internal var startPointImageUri: String? = null
     internal var wayPointImageUri: String? = null
@@ -128,6 +135,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     private var isModeCrossVisible = false
     private var isLaneInfoCurrentlyVisible = false
     private var currentRouteTotalLength: Int? = null
+    private var sourceCarBitmap: Bitmap? = null
     private var customCarBitmap: Bitmap? = null
     private var customFourCornersBitmap: Bitmap? = null
     private var customStartPointBitmap: Bitmap? = null
@@ -141,6 +149,9 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     private var cachedTurnIconImageUri: String? = null
     private var cachedTurnIconContentHash: String? = null
     private var hasLoggedMissingTurnIconBitmapApi = false
+    private var isHostActivityInBackground: Boolean = false
+    private var isNavigationRunning: Boolean = false
+    private var latestNavigationNotificationSnapshot: NavigationNotificationSnapshot? = null
 
     private fun registerActiveView() {
         synchronized(activeViews) {
@@ -152,6 +163,87 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         synchronized(activeViews) {
             activeViews.remove(this)
         }
+    }
+
+    private fun buildNavigationNotificationSnapshot(naviInfo: NaviInfo?): NavigationNotificationSnapshot {
+        if (naviInfo == null) {
+            return latestNavigationNotificationSnapshot ?: NavigationNotificationSnapshot(
+                pathRetainDistance = currentRouteTotalLength,
+                routeTotalDistance = currentRouteTotalLength,
+                turnIconImageUri = cachedTurnIconImageUri
+            )
+        }
+
+        return NavigationNotificationSnapshot(
+            currentRoadName = naviInfo.currentRoadName,
+            nextRoadName = naviInfo.nextRoadName,
+            pathRetainDistance = naviInfo.pathRetainDistance,
+            routeTotalDistance = currentRouteTotalLength,
+            pathRetainTime = naviInfo.pathRetainTime,
+            curStepRetainDistance = naviInfo.curStepRetainDistance,
+            iconType = naviInfo.iconType,
+            turnIconImageUri = cachedTurnIconImageUri
+        )
+    }
+
+    private fun shouldRunBackgroundNavigationNotification(): Boolean {
+        return androidBackgroundNavigationNotificationEnabled &&
+            isNavigationRunning &&
+            isHostActivityInBackground
+    }
+
+    private fun syncNavigationForegroundService(reason: String) {
+        val shouldRun = shouldRunBackgroundNavigationNotification()
+        Log.d(
+            "ExpoGaodeMapNaviView",
+            "syncNavigationForegroundService reason=$reason, shouldRun=$shouldRun, " +
+              "propEnabled=$androidBackgroundNavigationNotificationEnabled, " +
+              "isNavigationRunning=$isNavigationRunning, isHostActivityInBackground=$isHostActivityInBackground"
+        )
+        if (shouldRunBackgroundNavigationNotification()) {
+            val snapshot = latestNavigationNotificationSnapshot ?: buildNavigationNotificationSnapshot(null)
+            Log.d(
+                "ExpoGaodeMapNaviView",
+                "startOrUpdate notification snapshot: stepDistance=${snapshot.curStepRetainDistance}, " +
+                  "remainDistance=${snapshot.pathRetainDistance}, routeTotal=${snapshot.routeTotalDistance}, " +
+                  "remainTime=${snapshot.pathRetainTime}, " +
+                  "nextRoad=${snapshot.nextRoadName}, turnIconUri=${snapshot.turnIconImageUri}"
+            )
+            NavigationForegroundService.startOrUpdate(context, snapshot)
+            Log.d("ExpoGaodeMapNaviView", "Navigation foreground notification enabled: $reason")
+        } else {
+            NavigationForegroundService.stop(context)
+            Log.d("ExpoGaodeMapNaviView", "Navigation foreground notification disabled: $reason")
+        }
+    }
+
+    private fun updateNavigationNotification(naviInfo: NaviInfo) {
+        latestNavigationNotificationSnapshot = buildNavigationNotificationSnapshot(naviInfo)
+        Log.d(
+            "ExpoGaodeMapNaviView",
+            "updateNavigationNotification: stepDistance=${naviInfo.curStepRetainDistance}, " +
+              "remainDistance=${naviInfo.pathRetainDistance}, routeTotal=${latestNavigationNotificationSnapshot?.routeTotalDistance}, " +
+              "remainTime=${naviInfo.pathRetainTime}, " +
+              "currentRoad=${naviInfo.currentRoadName}, nextRoad=${naviInfo.nextRoadName}, " +
+              "turnIconUri=${latestNavigationNotificationSnapshot?.turnIconImageUri}"
+        )
+        if (shouldRunBackgroundNavigationNotification()) {
+            NavigationForegroundService.startOrUpdate(context, latestNavigationNotificationSnapshot)
+        }
+    }
+
+    fun onHostActivityForeground() {
+        Log.d("ExpoGaodeMapNaviView", "onHostActivityForeground")
+        isHostActivityInBackground = false
+        onResume()
+        syncNavigationForegroundService("host_foreground")
+    }
+
+    fun onHostActivityBackground() {
+        Log.d("ExpoGaodeMapNaviView", "onHostActivityBackground")
+        isHostActivityInBackground = true
+        onPause()
+        syncNavigationForegroundService("host_background")
     }
 
     private fun applyNaviStatusBarEnabledCompat(
@@ -202,6 +294,97 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
     }
 
+    private fun applyAutoNaviViewNightModeCompat(
+        options: AMapNaviViewOptions,
+        enabled: Boolean
+    ) {
+        try {
+            val method = options.javaClass.getMethod(
+                "setAutoNaviViewNightMode",
+                java.lang.Boolean.TYPE
+            )
+            method.invoke(options, enabled)
+        } catch (_: NoSuchMethodException) {
+            Log.w(
+                "ExpoGaodeMapNaviView",
+                "AMapNaviViewOptions#setAutoNaviViewNightMode is unavailable in the current AMap SDK; skip applying auto night mode"
+            )
+        } catch (error: Throwable) {
+            Log.w(
+                "ExpoGaodeMapNaviView",
+                "Failed to apply auto navi night mode compatibly",
+                error
+            )
+        }
+    }
+
+    private fun applyNaviNightCompat(
+        options: AMapNaviViewOptions,
+        enabled: Boolean
+    ) {
+        try {
+            val method = options.javaClass.getMethod(
+                "setNaviNight",
+                java.lang.Boolean.TYPE
+            )
+            method.invoke(options, enabled)
+            return
+        } catch (_: NoSuchMethodException) {
+            Log.w(
+                "ExpoGaodeMapNaviView",
+                "AMapNaviViewOptions#setNaviNight is unavailable in the current AMap SDK; fallback to setMapStyle"
+            )
+        } catch (error: Throwable) {
+            Log.w(
+                "ExpoGaodeMapNaviView",
+                "Failed to apply navi night compatibly, fallback to setMapStyle",
+                error
+            )
+        }
+
+        if (enabled) {
+            options.setMapStyle(MapStyle.NIGHT, null)
+        } else {
+            options.setMapStyle(MapStyle.DAY, null)
+        }
+    }
+
+    private fun applyMapViewModeTypeCompat(
+        options: AMapNaviViewOptions,
+        mode: Int
+    ) {
+        when (mode) {
+            0 -> {
+                applyAutoNaviViewNightModeCompat(options, false)
+                applyNaviNightCompat(options, false)
+            }
+            1 -> {
+                applyAutoNaviViewNightModeCompat(options, false)
+                applyNaviNightCompat(options, true)
+            }
+            2 -> {
+                applyAutoNaviViewNightModeCompat(options, true)
+            }
+            3 -> {
+                // Android custom map style requires style path API that is not exposed yet.
+                applyAutoNaviViewNightModeCompat(options, false)
+                applyNaviNightCompat(options, false)
+                Log.w(
+                    "ExpoGaodeMapNaviView",
+                    "mapViewModeType=3 (custom) requires custom map style path support on Android; fallback to day mode"
+                )
+            }
+            else -> {
+                applyAutoNaviViewNightModeCompat(options, false)
+                applyNaviNightCompat(options, false)
+                Log.w(
+                    "ExpoGaodeMapNaviView",
+                    "Unknown mapViewModeType=$mode; fallback to day mode"
+                )
+            }
+        }
+    }
+
     private fun createInitialViewOptions(): AMapNaviViewOptions {
         return AMapNaviViewOptions().also { options ->
             applyAllViewOptions(options)
@@ -247,7 +430,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
 
         options.isAfterRouteAutoGray = isAfterRouteAutoGray
         options.isSensorEnable = true
-        options.isAutoNaviViewNightMode = false
+        applyMapViewModeTypeCompat(options, mapViewModeTypeValue)
         options.isEagleMapVisible = isEagleMapVisible
         applyCustomAnnotationBitmaps(options)
     }
@@ -316,6 +499,25 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         } catch (_: Throwable) {
             null
         }
+    }
+
+    private fun resizeCarBitmapIfNeeded(source: Bitmap?): Bitmap? {
+        val rawBitmap = source ?: return null
+        val widthDp = carImageWidthDp?.takeIf { it > 0.0 }
+        val heightDp = carImageHeightDp?.takeIf { it > 0.0 }
+        if (widthDp == null || heightDp == null) {
+            return rawBitmap
+        }
+
+        val density = context.resources.displayMetrics.density
+        val widthPx = (widthDp * density).roundToInt().coerceAtLeast(1)
+        val heightPx = (heightDp * density).roundToInt().coerceAtLeast(1)
+
+        if (rawBitmap.width == widthPx && rawBitmap.height == heightPx) {
+            return rawBitmap
+        }
+
+        return Bitmap.createScaledBitmap(rawBitmap, widthPx, heightPx, true)
     }
 
     private fun updateCustomAnnotationBitmap(
@@ -684,6 +886,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
 
         override fun onStartNavi(type: Int) {
             Log.d("ExpoGaodeMapNaviView", "导航开始: type=$type")
+            isNavigationRunning = true
+            syncNavigationForegroundService("on_start_navi")
             onNavigationStarted(mapOf(
                 "type" to type,
                 "isEmulator" to (type == 1)
@@ -725,10 +929,14 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
 
         override fun onEndEmulatorNavi() {
+            isNavigationRunning = false
+            syncNavigationForegroundService("on_end_emulator_navi")
             onNavigationEnded(emptyMap())
         }
 
         override fun onArriveDestination() {
+            isNavigationRunning = false
+            syncNavigationForegroundService("on_arrive_destination")
             onArriveDestination(emptyMap())
         }
 
@@ -779,6 +987,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
 
         override fun onCalculateRouteFailure(errorCode: Int) {
+            isNavigationRunning = false
+            syncNavigationForegroundService("calculate_route_failure_code")
             onRouteCalculated(mapOf(
                 "success" to false,
                 "errorCode" to errorCode
@@ -786,6 +996,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
 
         override fun onCalculateRouteFailure(result: AMapCalcRouteResult?) {
+            isNavigationRunning = false
+            syncNavigationForegroundService("calculate_route_failure_result")
             onRouteCalculated(mapOf(
                 "success" to false,
                 "errorInfo" to (result?.errorDescription ?: "Unknown error")
@@ -818,11 +1030,17 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
 
         override fun onNaviInfoUpdate(naviInfo: NaviInfo?) {
             naviInfo?.let {
-                currentRouteTotalLength = try {
+                val allLength = try {
                     aMapNavi?.naviPath?.allLength
                 } catch (_: Throwable) {
                     null
-                } ?: currentRouteTotalLength
+                }
+                val safeRetainDistance = it.pathRetainDistance.coerceAtLeast(0)
+                currentRouteTotalLength = maxOf(
+                    currentRouteTotalLength ?: 0,
+                    allLength ?: 0,
+                    safeRetainDistance
+                ).takeIf { total -> total > 0 } ?: currentRouteTotalLength
                 val nextIconType = resolveNextTurnIconType(it.curStep)
                 val turnIconImage = updateCachedTurnIconImage(it)
                 val payload = mutableMapOf<String, Any>(
@@ -850,6 +1068,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
                     payload["turnIconImage"] = turnIconImage
                 }
                 onNavigationInfoUpdate(payload)
+                updateNavigationNotification(it)
                 emitTrafficStatusesUpdate(it.pathRetainDistance)
                 refreshNaviUILayout("onNaviInfoUpdate")
             }
@@ -1176,6 +1395,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     fun stopNavigation(promise: expo.modules.kotlin.Promise) {
         try {
             aMapNavi?.stopNavi()
+            isNavigationRunning = false
+            syncNavigationForegroundService("stop_navigation")
             promise.resolve(mapOf(
                 "success" to true,
                 "message" to "导航已停止"
@@ -1191,6 +1412,12 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         commitViewOptions { options ->
             options.isCameraBubbleShow = show
         }
+    }
+
+    fun applyAndroidBackgroundNavigationNotificationEnabled(enabled: Boolean) {
+        androidBackgroundNavigationNotificationEnabled = enabled
+        Log.d("ExpoGaodeMapNaviView", "applyAndroidBackgroundNavigationNotificationEnabled=$enabled")
+        syncNavigationForegroundService("prop_update")
     }
 
     fun applyNaviType(type: Int) {
@@ -1352,17 +1579,24 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     }
     
     fun applyNightMode(enabled: Boolean) {
-        // 夜间模式设置 - isNightMode 属性可能不存在
+        mapViewModeTypeValue = if (enabled) 1 else 0
         try {
             commitViewOptions { options ->
-                if(enabled){
-                    options.setMapStyle(MapStyle.NIGHT, null)
-                }else{
-                    options.setMapStyle(MapStyle.DAY, null)
-                }
+                applyMapViewModeTypeCompat(options, mapViewModeTypeValue)
             }
         } catch (e: Exception) {
             Log.e("ExpoGaodeMapNaviView", "Failed to set night mode", e)
+        }
+    }
+
+    fun applyMapViewModeType(mode: Int) {
+        mapViewModeTypeValue = mode
+        try {
+            commitViewOptions { options ->
+                applyMapViewModeTypeCompat(options, mode)
+            }
+        } catch (e: Exception) {
+            Log.e("ExpoGaodeMapNaviView", "Failed to apply mapViewModeType=$mode", e)
         }
     }
     
@@ -1385,9 +1619,19 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             uri = uri,
             getCurrentUri = { carImageUri },
             setCurrentUri = { carImageUri = it },
-            setBitmap = { customCarBitmap = it },
+            setBitmap = {
+                sourceCarBitmap = it
+                customCarBitmap = resizeCarBitmapIfNeeded(it)
+            },
             reason = "carBitmap"
         )
+    }
+
+    fun applyCarImageSize(widthDp: Double?, heightDp: Double?) {
+        carImageWidthDp = widthDp
+        carImageHeightDp = heightDp
+        customCarBitmap = resizeCarBitmapIfNeeded(sourceCarBitmap)
+        refreshViewOptionsFromState("apply-carBitmap-size")
     }
 
     fun applyFourCornersImage(uri: String?) {
@@ -1574,6 +1818,10 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             return
         }
         isDestroyed = true
+        isNavigationRunning = false
+        isHostActivityInBackground = false
+        latestNavigationNotificationSnapshot = null
+        NavigationForegroundService.stop(context)
         unregisterActiveView()
         try {
             naviView.onPause()

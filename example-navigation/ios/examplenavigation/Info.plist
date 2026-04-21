@@ -4,7 +4,7 @@
   <dict>
     <key>AMapApiKey</key>
     <string>7acecfa22e09c31c0ff3db8e0c7b8679</string>
-    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <key>7acecfa22e09c31c0ff3db8e0c7b8679</key>
     <true/>
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
@@ -53,6 +53,10 @@
     <string>需要访问您的位置信息以提供地图服务</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>需要访问您的位置信息以提供地图服务</string>
+    <key>NSSupportsLiveActivities</key>
+    <true/>
+    <key>NSSupportsLiveActivitiesFrequentUpdates</key>
+    <true/>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
@@ -62,6 +66,7 @@
     <key>UIBackgroundModes</key>
     <array>
       <string>location</string>
+      <string>audio</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>

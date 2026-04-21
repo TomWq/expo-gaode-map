@@ -7,6 +7,7 @@ import {
   type RouteResult,
 } from "expo-gaode-map-navigation";
 import { GaodeWebAPI } from "expo-gaode-map-web-api";
+import { Platform } from "react-native";
 
 import {
   EXAMPLE_ANDROID_KEY,
@@ -55,6 +56,11 @@ export async function ensureDemoSdkReady(): Promise<DemoPoint> {
   const permission = await ExpoGaodeMapModule.requestLocationPermission();
   if (!permission.granted) {
     throw new Error("定位权限未授予");
+  }
+
+  if (Platform.OS === "ios") {
+    void ExpoGaodeMapModule.requestBackgroundLocationPermission().catch(() => {});
+    ExpoGaodeMapModule.setAllowsBackgroundLocationUpdates(true);
   }
 
   return getCurrentDemoPoint();

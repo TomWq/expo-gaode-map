@@ -24,6 +24,14 @@ export type GaodeMapPluginProps = {
   locationDescription?: string;
   /** 是否启用后台定位（Android & iOS） */
   enableBackgroundLocation?: boolean;
+  /** iOS 是否启用后台音频（用于后台导航语音播报） */
+  enableBackgroundAudio?: boolean;
+  /** 是否启用后台导航常驻通知（Android） */
+  enableNavigationNotification?: boolean;
+  /** 是否启用 iOS Live Activity（锁屏/灵动岛） */
+  enableIOSLiveActivity?: boolean;
+  /** 是否启用 iOS Live Activity 高频更新能力 */
+  enableIOSLiveActivityFrequentUpdates?: boolean;
   /** 
    * 自定义高德地图 SDK 路径（例如 Google Play 版本）
    * 相对于项目根目录的路径，例如 "./libs/AMap_3DMap_V9.0.0_GooglePlay.aar"
@@ -60,7 +68,21 @@ const withGaodeMapInfoPlist: ConfigPlugin<GaodeMapPluginProps> = (config, props)
         if (!config.modResults.UIBackgroundModes.includes('location')) {
           config.modResults.UIBackgroundModes.push('location');
         }
+
+        const shouldEnableBackgroundAudio = props.enableBackgroundAudio ?? true;
+        if (shouldEnableBackgroundAudio && !config.modResults.UIBackgroundModes.includes('audio')) {
+          config.modResults.UIBackgroundModes.push('audio');
+        }
       }
+    }
+
+    if (props.enableIOSLiveActivity !== undefined) {
+      config.modResults.NSSupportsLiveActivities = !!props.enableIOSLiveActivity;
+    }
+
+    if (props.enableIOSLiveActivityFrequentUpdates !== undefined) {
+      config.modResults.NSSupportsLiveActivitiesFrequentUpdates =
+        !!props.enableIOSLiveActivityFrequentUpdates;
     }
 
     return config;
@@ -111,8 +133,11 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       }
     });
 
-    // 后台定位权限（可选，仅在 enableBackgroundLocation 为 true 时添加）
-    if (props.enableBackgroundLocation) {
+    const requiresForegroundLocationService =
+      props.enableBackgroundLocation || props.enableNavigationNotification;
+
+    // 后台定位/导航前台服务权限（可选）
+    if (requiresForegroundLocationService) {
       const backgroundPermissions = [
         'android.permission.ACCESS_BACKGROUND_LOCATION',
         'android.permission.FOREGROUND_SERVICE',
@@ -136,6 +161,26 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       });
     }
 
+    // Android 13+ 通知权限（仅在启用导航常驻通知时添加）
+    if (props.enableNavigationNotification) {
+      const notificationPermissions = [
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.POST_PROMOTED_NOTIFICATIONS',
+      ];
+
+      notificationPermissions.forEach((permission) => {
+        const hasPermission = androidManifest['uses-permission']?.some(
+          (item) => item.$?.['android:name'] === permission
+        );
+
+        if (!hasPermission) {
+          androidManifest['uses-permission']?.push({
+            $: { 'android:name': permission },
+          });
+        }
+      });
+    }
+
     // 添加前台服务（如果启用后台定位）
     const mainApplication = androidManifest.application?.[0];
     if (mainApplication && props.enableBackgroundLocation) {
@@ -145,13 +190,34 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
 
       // 检查是否已存在 LocationForegroundService
       const hasService = mainApplication['service'].some(
-        (item) => item.$?.['android:name'] === 'expo.modules.gaodemap.services.LocationForegroundService'
+        (item) => item.$?.['android:name'] === 'expo.modules.gaodemap.map.services.LocationForegroundService'
       );
 
       if (!hasService) {
         mainApplication['service'].push({
           $: {
-            'android:name': 'expo.modules.gaodemap.services.LocationForegroundService',
+            'android:name': 'expo.modules.gaodemap.map.services.LocationForegroundService',
+            'android:enabled': 'true',
+            'android:exported': 'false',
+            'android:foregroundServiceType': 'location',
+          },
+        });
+      }
+    }
+
+    if (mainApplication && props.enableNavigationNotification) {
+      if (!mainApplication['service']) {
+        mainApplication['service'] = [];
+      }
+
+      const hasNavigationService = mainApplication['service'].some(
+        (item) => item.$?.['android:name'] === 'expo.modules.gaodemap.navigation.services.NavigationForegroundService'
+      );
+
+      if (!hasNavigationService) {
+        mainApplication['service'].push({
+          $: {
+            'android:name': 'expo.modules.gaodemap.navigation.services.NavigationForegroundService',
             'android:enabled': 'true',
             'android:exported': 'false',
             'android:foregroundServiceType': 'location',

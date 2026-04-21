@@ -3,17 +3,16 @@
  * 这个文件主要负责承载原生 `NaviView`，并统一编排顶部 HUD、车道信息、
  * 底部摘要、路况光柱、全览按钮以及它们之间的布局联动。
  */
-import { MaterialIcons } from "@expo/vector-icons";
-import { BlurTargetView, BlurView } from "expo-blur";
+import { BlurTargetView } from "expo-blur";
 import React from "react";
 import {
+  Image,
   type LayoutChangeEvent,
   type NativeSyntheticEvent,
   Platform,
   Pressable,
   StatusBar,
   StyleSheet,
-  Text,
   View,
   type StyleProp,
   type ViewStyle,
@@ -37,6 +36,10 @@ import EmbeddedNaviTrafficBar from "./EmbeddedNaviTrafficBar";
 
 const defaultStartPointImage = require("./assets/markers/start-marker.png");
 const defaultEndPointImage = require("./assets/markers/end-marker.png");
+const overviewNormalButtonImage = require("./assets/markers/default_navi_browse_ver_normal.png");
+const overviewSelectedButtonImage = require("./assets/markers/default_navi_browse_ver_selected.png");
+const trafficOpenButtonImage = require("./assets/markers/default_navi_traffic_open_normal.png");
+const trafficCloseButtonImage = require("./assets/markers/default_navi_traffic_close_normal.png");
 
 export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   /** 是否显示示例内置的顶部导航 HUD */
@@ -66,80 +69,6 @@ export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   /** 自绘路况光柱外层容器样式，用于微调位置和尺寸 */
   trafficBarStyle?: StyleProp<ViewStyle>;
   onExitPress?: () => void;
-}
-
-function FloatingActionButton({
-  icon,
-  title,
-  subtitle,
-  onPress,
-  style,
-  iconColor = "#ffffff",
-  titleColor = "#ffffff",
-  subtitleColor = "rgba(226, 232, 240, 0.76)",
-  showStatusDot = false,
-  statusDotColor = "#22c55e",
-  compact = false,
-  blurTarget,
-}: {
-  icon: React.ComponentProps<typeof MaterialIcons>["name"];
-  title: string;
-  subtitle?: string;
-  onPress?: () => void;
-  style?: StyleProp<ViewStyle>;
-  iconColor?: string;
-  titleColor?: string;
-  subtitleColor?: string;
-  showStatusDot?: boolean;
-  statusDotColor?: string;
-  compact?: boolean;
-  blurTarget?: React.RefObject<React.ElementRef<typeof View> | null>;
-}) {
-  return (
-    <Pressable
-      style={[styles.floatingControlButton, compact ? styles.floatingControlButtonCompact : null, style]}
-      onPress={onPress}
-    >
-      <BlurView
-        intensity={42}
-        blurMethod="dimezisBlurViewSdk31Plus"
-        blurTarget={blurTarget}
-        tint="dark"
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.floatingControlOverlay} />
-      <View style={[styles.floatingIconShell, compact ? styles.floatingIconShellCompact : null]}>
-        <MaterialIcons name={icon} size={compact ? 16 : 18} color={iconColor} />
-      </View>
-      <View style={[styles.floatingCopyBlock, compact ? styles.floatingCopyBlockCompact : null]}>
-        <Text
-          style={[
-            styles.floatingControlTitle,
-            compact ? styles.floatingControlTitleCompact : null,
-            { color: titleColor },
-          ]}
-        >
-          {title}
-        </Text>
-        {subtitle ? (
-          <View style={[styles.floatingSubtitleRow, compact ? styles.floatingSubtitleRowCompact : null]}>
-            {showStatusDot ? (
-              <View style={[styles.statusDot, { backgroundColor: statusDotColor }]} />
-            ) : null}
-            <Text
-              style={[
-                styles.floatingControlSubtitle,
-                compact ? styles.floatingControlSubtitleCompact : null,
-                { color: subtitleColor },
-              ]}
-            >
-              {subtitle}
-            </Text>
-          </View>
-        ) : null}
-      </View>
-    </Pressable>
-  );
 }
 
 export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewProps>(
@@ -182,6 +111,8 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       showBackupRoute = true,
       showEagleMap = false,
       naviStatusBarEnabled = false,
+      androidBackgroundNavigationNotificationEnabled = Platform.OS === "android",
+      iosLiveActivityEnabled = Platform.OS === "ios",
       driveViewEdgePadding,
       trafficBarFrame,
       trafficBarColors,
@@ -413,6 +344,29 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
             height: autoTrafficBarLayout.height,
           }
         : undefined;
+    const trafficToggleButtonSize = 54;
+    const trafficToggleButtonGap = 10;
+    const shouldShowTrafficToggleButton =
+      showTrafficToggleButton &&
+      showsCustomControlButtons &&
+      showDefaultTrafficBar &&
+      showTrafficBar &&
+      !shouldHideTrafficBar;
+    const trafficToggleButtonPositionStyle =
+      autoTrafficBarLayout != null
+        ? {
+            left:
+              autoTrafficBarLayout.left +
+              Math.round((autoTrafficBarLayout.width - trafficToggleButtonSize) / 1.2),
+            top: Math.max(
+              topInset + 8,
+              autoTrafficBarLayout.top - trafficToggleButtonSize - trafficToggleButtonGap
+            ),
+          }
+        : {
+            right: 18 + rightInset,
+            top: Math.max(topInset + 80, compactBaseTop + 6),
+          };
     const resolvedDriveViewEdgePadding =
       driveViewEdgePadding ??
       (usesManagedCustomChrome
@@ -451,10 +405,14 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
             backupOverlayVisible={backupOverlayVisible}
             naviStatusBarEnabled={Platform.OS === "android" ? false : naviStatusBarEnabled}
             hideNativeTopInfoLayout={resolvedHideNativeTopInfoLayout}
+            androidBackgroundNavigationNotificationEnabled={
+              Platform.OS === "android" ? androidBackgroundNavigationNotificationEnabled : false
+            }
+            iosLiveActivityEnabled={Platform.OS === "ios" ? iosLiveActivityEnabled : false}
             driveViewEdgePadding={resolvedDriveViewEdgePadding}
             screenAnchor={resolvedScreenAnchor}
-            startPointImage={startPointImage ?? defaultStartPointImage}
-            endPointImage={endPointImage ?? defaultEndPointImage}
+            startPointImage={startPointImage}
+            endPointImage={endPointImage }
             routeMarkerVisible={resolvedRouteMarkerVisible}
             showBackupRoute={showBackupRoute}
             showEagleMap={showEagleMap}
@@ -507,12 +465,22 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
           />
         ) : null}
 
+        {shouldShowTrafficToggleButton ? (
+          <Pressable
+            style={[styles.trafficToggleButton, trafficToggleButtonPositionStyle]}
+            onPress={() => {
+              setTrafficLayerVisible((current) => !current);
+            }}
+          >
+            <Image
+              source={trafficLayerVisible ? trafficOpenButtonImage : trafficCloseButtonImage}
+              style={styles.trafficToggleButtonImage}
+            />
+          </Pressable>
+        ) : null}
+
         {showOverviewToggleButton ? (
-          <FloatingActionButton
-            icon={showsOverviewMode ? "my-location" : "alt-route"}
-            title={showsOverviewMode ? "锁车" : "全览"}
-            subtitle={undefined}
-            blurTarget={blurTargetRef}
+          <Pressable
             style={[
               styles.overviewButton,
               { right: 18 + rightInset, bottom: overviewButtonBottom },
@@ -520,7 +488,12 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
             onPress={() => {
               setCurrentShowMode((currentMode) => (currentMode === 2 ? 1 : 2));
             }}
-          />
+          >
+            <Image
+              source={showsOverviewMode ? overviewSelectedButtonImage : overviewNormalButtonImage}
+              style={styles.overviewButtonImage}
+            />
+          </Pressable>
         ) : null}
       </View>
     );
@@ -540,95 +513,23 @@ const styles = StyleSheet.create({
   blurTarget: {
     flex: 1,
   },
-  floatingControlButton: {
-    minWidth: 92,
-    minHeight: 42,
-    borderRadius: 15,
-    overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    boxShadow: "0px 6px 16px rgba(0, 0, 0, 0.18)",
-  },
-  floatingControlOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 16, 28, 0.28)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    borderRadius: 15,
-  },
-  floatingControlButtonCompact: {
-    minWidth: 42,
-    minHeight: 42,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    justifyContent: "center",
-  },
-  floatingIconShell: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-  },
-  floatingIconShellCompact: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
-    backgroundColor: "transparent",
-  },
-  floatingCopyBlock: {
-    marginLeft: 7,
-    minWidth: 0,
-  },
-  floatingCopyBlockCompact: {
-    display: "none",
-  },
-  floatingControlTitle: {
-    color: "#ffffff",
-    fontSize: 12,
-    lineHeight: 14,
-    fontWeight: "800",
-  },
-  floatingControlTitleCompact: {
-    display: "none",
-  },
-  floatingSubtitleRow: {
-    marginTop: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  floatingSubtitleRowCompact: {
-    display: "none",
-  },
-  floatingControlSubtitle: {
-    fontSize: 10,
-    lineHeight: 12,
-    fontWeight: "700",
-  },
-  floatingControlSubtitleCompact: {
-    display: "none",
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
-  },
   overviewButton: {
     position: "absolute",
-    borderRadius: 16,
+    // borderRadius: 27,
+    overflow: "hidden",
   },
-  modeButton: {
-    backgroundColor: "rgba(15, 23, 42, 0.92)",
+  overviewButtonImage: {
+    width: 54,
+    height: 54,
   },
-  trafficButtonOn: {
-    backgroundColor: "rgba(11, 93, 48, 0.95)",
+  trafficToggleButton: {
+    position: "absolute",
+    // borderRadius: 27,
+    overflow: "hidden",
   },
-  trafficButtonOff: {
-    backgroundColor: "rgba(51, 65, 85, 0.95)",
+  trafficToggleButtonImage: {
+    width: 50,
+    height: 50,
   },
 });
 

@@ -39,7 +39,7 @@ PODS:
     - ExpoModulesCore
   - ExpoFont (14.0.11):
     - ExpoModulesCore
-  - ExpoGaodeMapNavigation (2.0.9):
+  - ExpoGaodeMapNavigation (2.0.10):
     - AMapFoundation
     - AMapLocation
     - AMapNavi
@@ -2248,7 +2248,7 @@ SPEC CHECKSUMS:
   ExpoBlur: 7a86e84e7728108fa6908d7103fa527705a3dbbf
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
   ExpoFont: f543ce20a228dd702813668b1a07b46f51878d47
-  ExpoGaodeMapNavigation: 785e0db34430322525ae217db8ca4a0bb6f9df7d
+  ExpoGaodeMapNavigation: e3ebd23fbc995c2986c6226f7b741938098ef384
   ExpoHead: 7e19b2272edf492262acf8afb391a295198a6b23
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
   ExpoLinking: 8f0aaf69aa56f832913030503b6263dc6f647f37
@@ -2327,6 +2327,6 @@ SPEC CHECKSUMS:
   RNWorklets: 76fce72926e28e304afb44f0da23b2d24f2c1fa0
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
 
-PODFILE CHECKSUM: 899b4c4c9e4d10494b391b99dddbcc367bee8425
+PODFILE CHECKSUM: fc2b62efa9a9f6f5577f1fd32efb2da96cfa0337
 
 COCOAPODS: 1.16.2

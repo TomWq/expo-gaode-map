@@ -85,6 +85,7 @@ export default function UiPropsExampleScreen() {
         naviType={1}
         showCamera
         enableVoice
+        mapViewModeType={2}
         showDefaultHud
         showDefaultLaneHud
         hideLaneHudWhenCrossVisible
@@ -92,7 +93,8 @@ export default function UiPropsExampleScreen() {
         showTrafficButton
         showDriveCongestion
         showTrafficLightView
-        showCompassEnabled
+        
+        showCompassEnabled={false}
         laneInfoVisible
         realCrossDisplay
         modeCrossDisplay
@@ -101,11 +103,17 @@ export default function UiPropsExampleScreen() {
         backupOverlayVisible
         naviStatusBarEnabled={false}
         showBackupRoute
+        androidBackgroundNavigationNotificationEnabled
+        iosLiveActivityEnabled
         showEagleMap={false}
         lineWidth={10}
+        carImage={require("../../assets/images/customCar.png")}
+        carImageSize={{ width: 50/2, height: 104/2 }}
         onExitPress={() => void stopNavigation()}
         onNaviEnd={() => {
-          void stopNavigation();
+          // void stopNavigation();
+          //弹框提示导航结束
+          Alert.alert("导航已结束", "是否退出导航？", [{ text: "确定", onPress: stopNavigation }, { text: "取消" }]);
         }}
         onCalculateRouteFailure={(event) => {
           Alert.alert("导航失败", event.nativeEvent.error || "未知错误");

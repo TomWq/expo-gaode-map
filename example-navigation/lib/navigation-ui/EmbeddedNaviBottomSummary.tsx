@@ -163,10 +163,12 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     flexDirection: "row",
     alignItems: "center",
+    width: "100%",
   },
   metricBlock: {
-    minWidth: 90,
+    // minWidth: 90,
     alignItems: "center",
+    flex:1
   },
   metricLabel: {
     color: "rgba(226, 232, 240, 0.64)",
@@ -205,7 +207,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(148, 163, 184, 0.34)",
   },
   exitAction: {
-    minWidth: 74,
+    flex:1,
+    // minWidth: 74,
     paddingLeft: 2,
     alignItems: "center",
     justifyContent: "center",

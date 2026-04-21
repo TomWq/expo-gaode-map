@@ -1,7 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
-const androidKey = process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY?.trim();
-const iosKey = process.env.EXPO_PUBLIC_AMAP_IOS_KEY?.trim();
+const androidKey = "0957076b4e77112c7c194a4ebf6c03e0";
+const iosKey = "7acecfa22e09c31c0ff3db8e0c7b8679"
 
 const config: ExpoConfig = {
   name: "example-navigation",
@@ -43,6 +43,10 @@ const config: ExpoConfig = {
         ...(androidKey ? { androidKey } : {}),
         ...(iosKey ? { iosKey } : {}),
         enableBackgroundLocation: true,
+        enableBackgroundAudio: true,
+        enableNavigationNotification: true,
+        enableIOSLiveActivity: true,
+        enableIOSLiveActivityFrequentUpdates: true,
       },
     ],
   ],

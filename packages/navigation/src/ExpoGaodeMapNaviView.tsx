@@ -133,6 +133,8 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
     onNaviVisualStateChange,
     onLaneInfoUpdate,
     onTrafficStatusesUpdate,
+    isNightMode,
+    mapViewModeType,
     carImage,
     fourCornersImage,
     carCompassImage,
@@ -158,6 +160,7 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
   const resolvedWayPointImage = normalizeNaviImageSource(wayPointImage);
   const resolvedEndPointImage = normalizeNaviImageSource(endPointImage);
   const resolvedCameraImage = normalizeNaviImageSource(cameraImage);
+  const resolvedMapViewModeType = mapViewModeType ?? (isNightMode == null ? undefined : (isNightMode ? 1 : 0));
   const platformSpecificImageProps =
     Platform.OS === 'android'
       ? {
@@ -202,6 +205,7 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
       ref={nativeRef}
       {...restProps}
       androidStatusBarPaddingTop={resolvedAndroidStatusBarPaddingTop}
+      mapViewModeType={resolvedMapViewModeType}
       carImage={resolvedCarImage}
       startPointImage={resolvedStartPointImage}
       wayPointImage={resolvedWayPointImage}
