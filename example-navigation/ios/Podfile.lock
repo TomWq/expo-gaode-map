@@ -4,6 +4,8 @@ PODS:
     - AMapFoundation (>= 1.8.0)
   - AMapNavi (11.1.000):
     - AMapFoundation (>= 1.8.6)
+  - AMapSearch (9.7.4):
+    - AMapFoundation (>= 1.8.0)
   - EXConstants (18.0.13):
     - ExpoModulesCore
   - Expo (54.0.33):
@@ -43,6 +45,9 @@ PODS:
     - AMapFoundation
     - AMapLocation
     - AMapNavi
+    - ExpoModulesCore
+  - ExpoGaodeMapSearch (1.3.14):
+    - AMapSearch (~> 9.7.0)
     - ExpoModulesCore
   - ExpoHead (6.0.23):
     - ExpoModulesCore
@@ -1982,6 +1987,7 @@ DEPENDENCIES:
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
   - ExpoGaodeMapNavigation (from `../../packages/navigation/ios`)
+  - ExpoGaodeMapSearch (from `../../packages/search/ios`)
   - ExpoHead (from `../node_modules/expo-router/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
@@ -2066,6 +2072,7 @@ SPEC REPOS:
     - AMapFoundation
     - AMapLocation
     - AMapNavi
+    - AMapSearch
 
 EXTERNAL SOURCES:
   EXConstants:
@@ -2082,6 +2089,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-font/ios"
   ExpoGaodeMapNavigation:
     :path: "../../packages/navigation/ios"
+  ExpoGaodeMapSearch:
+    :path: "../../packages/search/ios"
   ExpoHead:
     :path: "../node_modules/expo-router/ios"
   ExpoKeepAwake:
@@ -2242,6 +2251,7 @@ SPEC CHECKSUMS:
   AMapFoundation: d539ff40e882c872bef6c6682bf1e3a2d4a03026
   AMapLocation: 8c46dbe995333ad6cae147d54a7307a577020be0
   AMapNavi: bd9b183aee79d94839e7ed8b49f1074f3ae56dfc
+  AMapSearch: a30e89212f55a867ac951ce71f800313cd54ad0a
   EXConstants: fce59a631a06c4151602843667f7cfe35f81e271
   Expo: aadbcc8c6c14ff3105a9154f1683cb1424ff0d2a
   ExpoAsset: f867e55ceb428aab99e1e8c082b5aee7c159ea18
@@ -2249,6 +2259,7 @@ SPEC CHECKSUMS:
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
   ExpoFont: f543ce20a228dd702813668b1a07b46f51878d47
   ExpoGaodeMapNavigation: e3ebd23fbc995c2986c6226f7b741938098ef384
+  ExpoGaodeMapSearch: a583c9c6411358fa2a4423bfe8d76b70c5f726c0
   ExpoHead: 7e19b2272edf492262acf8afb391a295198a6b23
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
   ExpoLinking: 8f0aaf69aa56f832913030503b6263dc6f647f37

@@ -4,7 +4,12 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -17,6 +22,10 @@ import com.amap.api.navi.AMapNaviListener
 import com.amap.api.navi.AMapNaviView
 import com.amap.api.navi.AMapNaviViewListener
 import com.amap.api.navi.AMapNaviViewOptions
+import com.amap.api.maps.model.BitmapDescriptorFactory
+import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.Marker
+import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.navi.enums.MapStyle
 import com.amap.api.navi.enums.NaviType
 import com.amap.api.navi.model.*
@@ -35,6 +44,13 @@ import java.util.Collections
 import java.util.WeakHashMap
 import java.net.URL
 import kotlin.math.roundToInt
+
+private data class NaviCustomWaypointMarkerModel(
+    val latitude: Double,
+    val longitude: Double,
+    val title: String,
+    val arrived: Boolean = false
+)
 
 @SuppressLint("ViewConstructor")
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -122,6 +138,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var startPointImageUri: String? = null
     internal var wayPointImageUri: String? = null
     internal var endPointImageUri: String? = null
+    private var customWaypointMarkers: List<NaviCustomWaypointMarkerModel> = emptyList()
+    private val renderedCustomWaypointMarkers = mutableListOf<Marker>()
     private val naviView: AMapNaviView by lazy(LazyThreadSafetyMode.NONE) {
         AMapNaviView(context)
     }
@@ -931,12 +949,14 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         override fun onEndEmulatorNavi() {
             isNavigationRunning = false
             syncNavigationForegroundService("on_end_emulator_navi")
+            resetCustomWaypointMarkerArrivalState()
             onNavigationEnded(emptyMap())
         }
 
         override fun onArriveDestination() {
             isNavigationRunning = false
             syncNavigationForegroundService("on_arrive_destination")
+            resetCustomWaypointMarkerArrivalState()
             onArriveDestination(emptyMap())
         }
 
@@ -957,6 +977,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             Handler(Looper.getMainLooper()).post {
                 try {
                     applyRouteMarkerVisibleFromState()
+                    refreshCustomWaypointMarkers("calculate-route-success")
                 } catch (e: Exception) {
                     Log.e("ExpoGaodeMapNaviView", "Failed to reapply route marker visibility after route success", e)
                 }
@@ -980,6 +1001,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             Handler(Looper.getMainLooper()).post {
                 try {
                     applyRouteMarkerVisibleFromState()
+                    refreshCustomWaypointMarkers("calculate-route-success-result")
                 } catch (e: Exception) {
                     Log.e("ExpoGaodeMapNaviView", "Failed to reapply route marker visibility after route success", e)
                 }
@@ -1017,6 +1039,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         }
 
         override fun onArrivedWayPoint(wayPointIndex: Int) {
+            markCustomWaypointArrived(wayPointIndex)
             onWayPointArrived(mapOf(
                 "index" to wayPointIndex
             ))
@@ -1325,6 +1348,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     fun startNavigation(startLat: Double, startLng: Double, endLat: Double, endLng: Double, promise: expo.modules.kotlin.Promise) {
         Log.d("ExpoGaodeMapNaviView", "startNavigation: $startLat, $startLng, $endLat, $endLng, naviType: $naviType")
         try {
+            resetCustomWaypointMarkerArrivalState()
             startCoordinate = NaviLatLng(startLat, startLng)
             endCoordinate = NaviLatLng(endLat, endLng)
             
@@ -1369,6 +1393,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         promise: expo.modules.kotlin.Promise
     ) {
         try {
+            resetCustomWaypointMarkerArrivalState()
             val finalNaviType = requestedNaviType ?: naviType
             val result = independentRouteManager.start(context, token, finalNaviType, routeId, routeIndex)
             if (result.success) {
@@ -1397,6 +1422,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             aMapNavi?.stopNavi()
             isNavigationRunning = false
             syncNavigationForegroundService("stop_navigation")
+            resetCustomWaypointMarkerArrivalState()
             promise.resolve(mapOf(
                 "success" to true,
                 "message" to "导航已停止"
@@ -1674,6 +1700,153 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         )
     }
 
+    fun applyCustomWaypointMarkers(markers: List<Map<String, Any?>>?) {
+        customWaypointMarkers = markers?.mapNotNull { item ->
+            val latitude = (item["latitude"] as? Number)?.toDouble() ?: return@mapNotNull null
+            val longitude = (item["longitude"] as? Number)?.toDouble() ?: return@mapNotNull null
+            val rawTitle = (item["title"] as? String)?.trim()
+            NaviCustomWaypointMarkerModel(
+                latitude = latitude,
+                longitude = longitude,
+                title = rawTitle?.takeIf { it.isNotEmpty() } ?: "途经"
+            )
+        } ?: emptyList()
+        refreshCustomWaypointMarkers("apply-custom-waypoint-markers")
+    }
+
+    private fun clearRenderedCustomWaypointMarkers() {
+        renderedCustomWaypointMarkers.forEach { marker ->
+            try {
+                marker.remove()
+            } catch (_: Throwable) {
+            }
+        }
+        renderedCustomWaypointMarkers.clear()
+    }
+
+    private fun refreshCustomWaypointMarkers(reason: String) {
+        Handler(Looper.getMainLooper()).post {
+            clearRenderedCustomWaypointMarkers()
+            if (isDestroyed || customWaypointMarkers.isEmpty()) {
+                return@post
+            }
+
+            val map = try {
+                naviView.map
+            } catch (error: Throwable) {
+                Log.w("ExpoGaodeMapNaviView", "Failed to access AMap for custom waypoint markers: $reason", error)
+                null
+            } ?: return@post
+
+            customWaypointMarkers.forEach { marker ->
+                if (marker.arrived) {
+                    return@forEach
+                }
+
+                val bitmap = createCustomWaypointBubbleBitmap(marker.title)
+                val options = MarkerOptions()
+                    .position(LatLng(marker.latitude, marker.longitude))
+                    .anchor(0.5f, 1f)
+                    .zIndex(130f)
+                    .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
+                val renderedMarker = map.addMarker(options)
+                if (renderedMarker != null) {
+                    renderedCustomWaypointMarkers.add(renderedMarker)
+                }
+            }
+        }
+    }
+
+    private fun resetCustomWaypointMarkerArrivalState() {
+        customWaypointMarkers = customWaypointMarkers.map { marker ->
+            marker.copy(arrived = false)
+        }
+        refreshCustomWaypointMarkers("reset-custom-waypoint-arrival-state")
+    }
+
+    private fun markCustomWaypointArrived(rawIndex: Int) {
+        if (customWaypointMarkers.isEmpty()) {
+            return
+        }
+
+        val resolvedIndex = when {
+            rawIndex in customWaypointMarkers.indices -> rawIndex
+            (rawIndex - 1) in customWaypointMarkers.indices -> rawIndex - 1
+            else -> null
+        } ?: return
+
+        customWaypointMarkers = customWaypointMarkers.mapIndexed { index, marker ->
+            if (index == resolvedIndex) marker.copy(arrived = true) else marker
+        }
+        refreshCustomWaypointMarkers("arrived-waypoint-$rawIndex")
+    }
+
+    private fun createCustomWaypointBubbleBitmap(title: String): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val fontSize = 16f * density
+        val horizontalPadding = 14f * density
+        val bodyHeight = 34f * density
+        val tailHeight = 14f * density
+        val strokeWidth = 2.5f * density
+        val tailWidth = 14f * density
+
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = fontSize
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+        }
+        val bodyWidth = maxOf(
+            62f * density,
+            textPaint.measureText(title) + horizontalPadding * 2
+        )
+        val width = bodyWidth.roundToInt()
+        val height = (bodyHeight + tailHeight + 2f * density).roundToInt()
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#2F67FF")
+            style = Paint.Style.FILL
+        }
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            this.strokeWidth = strokeWidth
+        }
+        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#2D15357F")
+            style = Paint.Style.FILL
+            setShadowLayer(6f * density, 0f, 3f * density, Color.parseColor("#2D15357F"))
+        }
+
+        val bodyRect = RectF(
+            strokeWidth,
+            strokeWidth,
+            width - strokeWidth,
+            bodyHeight
+        )
+        val cornerRadius = 17f * density
+        canvas.drawRoundRect(bodyRect, cornerRadius, cornerRadius, shadowPaint)
+        canvas.drawRoundRect(bodyRect, cornerRadius, cornerRadius, fillPaint)
+        canvas.drawRoundRect(bodyRect, cornerRadius, cornerRadius, strokePaint)
+
+        val centerX = width / 2f
+        val tailTop = bodyHeight - 1f * density
+        val tailPath = Path().apply {
+            moveTo(centerX, bodyHeight + tailHeight - strokeWidth)
+            lineTo(centerX - tailWidth / 2f, tailTop)
+            lineTo(centerX + tailWidth / 2f, tailTop)
+            close()
+        }
+        canvas.drawPath(tailPath, fillPaint)
+        canvas.drawPath(tailPath, strokePaint)
+
+        val textY = bodyRect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f
+        canvas.drawText(title, bodyRect.centerX(), textY, textPaint)
+        return bitmap
+    }
+
 
     /**
      * 设置是否显示交通信号灯
@@ -1823,6 +1996,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         latestNavigationNotificationSnapshot = null
         NavigationForegroundService.stop(context)
         unregisterActiveView()
+        clearRenderedCustomWaypointMarkers()
         try {
             naviView.onPause()
             naviView.onDestroy()

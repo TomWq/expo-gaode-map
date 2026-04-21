@@ -77,6 +77,10 @@ class ExpoGaodeMapNaviViewModule : Module() {
         view.applyWayPointImage(uri)
       }
 
+      Prop<List<Map<String, Any?>>?>("customWaypointMarkers") { view, markers ->
+        view.applyCustomWaypointMarkers(markers)
+      }
+
       Prop<String?>("endPointImage") { view, uri ->
         view.applyEndPointImage(uri)
       }

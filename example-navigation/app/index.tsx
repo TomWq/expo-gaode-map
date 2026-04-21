@@ -88,9 +88,9 @@ export default function ExampleCenterScreen() {
 
           <Link href="/examples/route-picker" asChild>
             <Pressable style={styles.linkCard}>
-              <Text style={styles.linkTitle}>路线选择后再导航</Text>
+              <Text style={styles.linkTitle}>自定义路线选择页</Text>
               <Text style={styles.linkBody}>
-                先拿到原生独立路径组，再手动选择其中一条真实可导航路线启动。
+                支持输入起点、终点和多个途经点，在地图上预览多条候选路线，再用选中的那条进入自定义导航页。
               </Text>
             </Pressable>
           </Link>

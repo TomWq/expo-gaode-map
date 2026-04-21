@@ -9,6 +9,7 @@ import Foundation
 import ExpoModulesCore
 import AMapNaviKit
 import AVFAudio
+import CoreLocation
 
 final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
   var suppressLaneInfoUI: Bool = false
@@ -185,6 +186,97 @@ final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
   }
 }
 
+private struct NaviCustomWaypointMarkerModel {
+  let latitude: Double
+  let longitude: Double
+  let title: String
+  var arrived: Bool = false
+}
+
+private final class NaviCustomWaypointTailView: UIView {
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    backgroundColor = .clear
+    isOpaque = false
+  }
+
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+    backgroundColor = .clear
+    isOpaque = false
+  }
+
+  override func draw(_ rect: CGRect) {
+    guard let context = UIGraphicsGetCurrentContext() else {
+      return
+    }
+
+    let fillColor = UIColor(red: 47.0 / 255.0, green: 103.0 / 255.0, blue: 255.0 / 255.0, alpha: 1)
+    let strokeColor = UIColor.white
+    let path = UIBezierPath()
+    path.move(to: CGPoint(x: rect.midX, y: rect.maxY - 1))
+    path.addLine(to: CGPoint(x: 1.5, y: 1.5))
+    path.addLine(to: CGPoint(x: rect.maxX - 1.5, y: 1.5))
+    path.close()
+
+    context.saveGState()
+    fillColor.setFill()
+    strokeColor.setStroke()
+    path.lineJoinStyle = .round
+    path.lineWidth = 2.5
+    path.fill()
+    path.stroke()
+    context.restoreGState()
+  }
+}
+
+private final class NaviCustomWaypointBubbleView: UIView {
+  init(title: String) {
+    let font = UIFont.systemFont(ofSize: 17, weight: .semibold)
+    let textWidth = ceil((title as NSString).size(withAttributes: [.font: font]).width)
+    let bodyWidth = min(max(textWidth + 28, 62), 110)
+    let size = CGSize(width: bodyWidth, height: 50)
+    super.init(frame: CGRect(origin: .zero, size: size))
+
+    backgroundColor = .clear
+    isOpaque = false
+
+    let bodyView = UIView(frame: CGRect(x: 0, y: 0, width: bodyWidth, height: 34))
+    bodyView.backgroundColor = UIColor(red: 47.0 / 255.0, green: 103.0 / 255.0, blue: 255.0 / 255.0, alpha: 1)
+    bodyView.layer.cornerRadius = 17
+    bodyView.layer.borderWidth = 2
+    bodyView.layer.borderColor = UIColor.white.cgColor
+    bodyView.layer.shadowColor = UIColor(red: 21.0 / 255.0, green: 53.0 / 255.0, blue: 127.0 / 255.0, alpha: 1).cgColor
+    bodyView.layer.shadowOpacity = 0.18
+    bodyView.layer.shadowRadius = 6
+    bodyView.layer.shadowOffset = CGSize(width: 0, height: 3)
+    addSubview(bodyView)
+
+    let label = UILabel(frame: bodyView.bounds.insetBy(dx: 10, dy: 4))
+    label.text = title
+    label.textAlignment = .center
+    label.textColor = .white
+    label.font = font
+    bodyView.addSubview(label)
+
+    let tailWidth: CGFloat = 14
+    let tailHeight: CGFloat = 14
+    let tailView = NaviCustomWaypointTailView(
+      frame: CGRect(
+        x: (bodyWidth - tailWidth) / 2,
+        y: bodyView.frame.maxY - 1,
+        width: tailWidth,
+        height: tailHeight
+      )
+    )
+    addSubview(tailView)
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+}
+
 public class ExpoGaodeMapNaviView: ExpoView {
   private let independentRouteManager = IndependentRouteManager.shared
   
@@ -321,6 +413,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private var isLaneInfoVisible: Bool = false
   private var isNavigationAudioSessionActive: Bool = false
   private var hasLoggedMissingBackgroundAudioMode: Bool = false
+  private var renderedCustomWaypointAnnotations: [AMapNaviCompositeCustomAnnotation] = []
+  private var customWaypointMarkers: [NaviCustomWaypointMarkerModel] = []
 
   private enum LaneStringKind {
     case background
@@ -349,6 +443,9 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   var wayPointImageSource: String? {
     didSet { applyWayPointImageSource() }
+  }
+  var customWaypointMarkerPayloads: [[String: Any]]? {
+    didSet { applyCustomWaypointMarkerPayloads(customWaypointMarkerPayloads) }
   }
   var endPointImageSource: String? {
     didSet { applyEndPointImageSource() }
@@ -619,6 +716,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     clearCachedTurnIconUris()
     isCrossVisible = false
     isLaneInfoVisible = false
+    resetCustomWaypointArrivalState()
     emitVisualStateUpdate()
     NavigationLiveActivityManager.shared.stop()
     deactivateNavigationAudioSessionIfNeeded(reason: "reset_transient_navigation_state")
@@ -1060,6 +1158,100 @@ public class ExpoGaodeMapNaviView: ExpoView {
     applyWayPointImageSource()
     applyEndPointImageSource()
     applyCameraImageSource()
+  }
+
+  private func applyCustomWaypointMarkerPayloads(_ payloads: [[String: Any]]?) {
+    customWaypointMarkers = (payloads ?? []).compactMap { item in
+      guard
+        let latitude = item["latitude"] as? Double,
+        let longitude = item["longitude"] as? Double
+      else {
+        return nil
+      }
+
+      let title = (item["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      return NaviCustomWaypointMarkerModel(
+        latitude: latitude,
+        longitude: longitude,
+        title: (title?.isEmpty == false ? title : nil) ?? "途经"
+      )
+    }
+
+    refreshCustomWaypointAnnotations()
+  }
+
+  private func clearCustomWaypointAnnotations() {
+    guard let driveView else {
+      renderedCustomWaypointAnnotations.removeAll()
+      return
+    }
+
+    for annotation in renderedCustomWaypointAnnotations {
+      driveView.remove(annotation)
+    }
+    renderedCustomWaypointAnnotations.removeAll()
+  }
+
+  private func refreshCustomWaypointAnnotations() {
+    clearCustomWaypointAnnotations()
+
+    guard let driveView else {
+      return
+    }
+
+    renderedCustomWaypointAnnotations = customWaypointMarkers.compactMap { marker in
+      guard !marker.arrived else {
+        return nil
+      }
+
+      let coordinate = CLLocationCoordinate2D(
+        latitude: marker.latitude,
+        longitude: marker.longitude
+      )
+      let bubbleView = NaviCustomWaypointBubbleView(title: marker.title)
+      guard let annotation = AMapNaviCompositeCustomAnnotation(
+        coordinate: coordinate,
+        view: bubbleView
+      ) else {
+        return nil
+      }
+
+      driveView.add(annotation)
+      return annotation
+    }
+  }
+
+  private func resetCustomWaypointArrivalState() {
+    customWaypointMarkers = customWaypointMarkers.map { marker in
+      var nextMarker = marker
+      nextMarker.arrived = false
+      return nextMarker
+    }
+    refreshCustomWaypointAnnotations()
+  }
+
+  private func markNearestCustomWaypointArrived(_ point: AMapNaviPoint) {
+    guard !customWaypointMarkers.isEmpty else {
+      return
+    }
+
+    let targetLatitude = Double(point.latitude)
+    let targetLongitude = Double(point.longitude)
+    let nextIndex = customWaypointMarkers.enumerated()
+      .filter { !$0.element.arrived }
+      .min { lhs, rhs in
+        let lhsDistance = abs(lhs.element.latitude - targetLatitude) + abs(lhs.element.longitude - targetLongitude)
+        let rhsDistance = abs(rhs.element.latitude - targetLatitude) + abs(rhs.element.longitude - targetLongitude)
+        return lhsDistance < rhsDistance
+      }?
+      .offset
+
+    guard let nextIndex else {
+      return
+    }
+
+    customWaypointMarkers[nextIndex].arrived = true
+    refreshCustomWaypointAnnotations()
   }
 
   private func resolveLocalImage(_ source: String) -> UIImage? {
@@ -1536,6 +1728,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     NavigationLiveActivityManager.shared.stop()
     deactivateNavigationAudioSessionIfNeeded(reason: "deinit")
     driveManager?.stopNavi()
+    clearCustomWaypointAnnotations()
     if let view = driveView {
       driveManager?.removeDataRepresentative(view)
     }
@@ -1598,6 +1791,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
     applyShowUIElementsToDriveViewIfReady()
     DispatchQueue.main.async { [weak self] in
       self?.applyCustomAnnotationImages()
+      self?.refreshCustomWaypointAnnotations()
     }
   }
   
@@ -1618,10 +1812,12 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
     ])
 
     applyShowUIElementsToDriveViewIfReady()
+    refreshCustomWaypointAnnotations()
     syncNavigationLiveActivityWithLastPayload()
   }
   
   public func driveManagerNavi(_ driveManager: AMapNaviDriveManager, didArrive wayPoint: AMapNaviPoint) {
+    markNearestCustomWaypointArrived(wayPoint)
     onWayPointArrived([
       "index": 0
     ])
@@ -1679,6 +1875,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveViewDelegate {
   public func driveViewDidLoad(_ driveView: AMapNaviDriveView) {
     applyViewOptions()
     applyShowUIElementsToDriveViewIfReady()
+    refreshCustomWaypointAnnotations()
     scheduleOverviewRouteVisibleRegionRefresh()
     onNavigationReady([:])
   }

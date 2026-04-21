@@ -141,6 +141,12 @@ export interface NaviImageSize {
   height?: number;
 }
 
+export interface NaviCustomWaypointMarker {
+  latitude: number;
+  longitude: number;
+  title?: string;
+}
+
 // 路线重算事件
 export interface RouteRecalculateEvent {
   reason: string;
@@ -269,6 +275,14 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * 说明：iOS 对应 `setWayPointImage`，Android 对应 `setWayPointBitmap`
    */
   wayPointImage?: NaviImageSource;
+
+  /**
+   * 导航态自定义途经点气泡
+   * @platform android ios
+   * 说明：会额外挂载在导航地图上，而不是替换 SDK 默认途经点 icon。
+   * 适用于需要更醒目的“途经”气泡或自定义文案的场景。
+   */
+  customWaypointMarkers?: NaviCustomWaypointMarker[];
 
   /**
    * 自定义终点标注图片

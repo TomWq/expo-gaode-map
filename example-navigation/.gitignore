@@ -52,3 +52,4 @@ yarn-error.*
 /ios/build/
 /ios/*.xcworkspace
 /ios/.xcode.env.local
+.env.example

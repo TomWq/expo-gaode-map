@@ -118,6 +118,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       trafficBarColors,
       screenAnchor,
       startPointImage,
+      wayPointImage,
       endPointImage,
       routeMarkerVisible,
       onNaviInfoUpdate,
@@ -412,6 +413,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
             driveViewEdgePadding={resolvedDriveViewEdgePadding}
             screenAnchor={resolvedScreenAnchor}
             startPointImage={startPointImage}
+            wayPointImage={wayPointImage}
             endPointImage={endPointImage }
             routeMarkerVisible={resolvedRouteMarkerVisible}
             showBackupRoute={showBackupRoute}

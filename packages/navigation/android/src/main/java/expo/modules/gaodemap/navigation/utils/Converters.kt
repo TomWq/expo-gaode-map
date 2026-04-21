@@ -135,7 +135,7 @@ object Converters {
       "duration" to path.allTime,
       "tollDistance" to 0,
       "tollCost" to path.tollCost,
-      "trafficLightCount" to 0,
+      "trafficLightCount" to path.trafficLightCount,
       "steps" to convertSteps(path.steps),
       "polyline" to convertCoords(path.coordList)
     )
@@ -169,7 +169,7 @@ object Converters {
         "distance" to path.allLength,
         "duration" to path.allTime,
         "tollCost" to path.tollCost,
-        "trafficLightCount" to 0,
+        "trafficLightCount" to path.trafficLightCount,
         "strategyDesc" to ""
       )
     } ?: emptyList()

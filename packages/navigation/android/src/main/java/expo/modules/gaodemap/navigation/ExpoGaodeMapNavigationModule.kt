@@ -5,6 +5,7 @@ import android.content.Context
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
 import com.amap.api.navi.model.AMapNaviPathGroup
+import expo.modules.core.arguments.ReadableArguments
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -135,7 +136,7 @@ class ExpoGaodeMapNavigationModule : Module() {
     // 使用 AMapNavi.independentCalculateRoute，不影响当前导航状态
     // 委托给 IndependentRouteService 处理，避免 Module 文件臃肿
     
-    AsyncFunction("independentDriveRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentDriveRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentDriveRoute(options, promise)
       } catch (e: Exception) {
@@ -143,7 +144,7 @@ class ExpoGaodeMapNavigationModule : Module() {
       }
     }
 
-    AsyncFunction("independentTruckRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentTruckRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentTruckRoute(options, promise)
       } catch (e: Exception) {
@@ -151,7 +152,7 @@ class ExpoGaodeMapNavigationModule : Module() {
       }
     }
 
-    AsyncFunction("independentWalkRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentWalkRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentWalkRoute(options, promise)
       } catch (e: Exception) {
@@ -159,7 +160,7 @@ class ExpoGaodeMapNavigationModule : Module() {
       }
     }
 
-    AsyncFunction("independentRideRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentRideRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentRideRoute(options, promise)
       } catch (e: Exception) {
@@ -168,7 +169,7 @@ class ExpoGaodeMapNavigationModule : Module() {
     }
 
     // 独立摩托车 路线规划（与驾车一致，依赖车辆信息 carType=11）
-    AsyncFunction("independentMotorcycleRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentMotorcycleRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentMotorcycleRoute(options, promise)
       } catch (e: Exception) {

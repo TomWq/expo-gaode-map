@@ -73,6 +73,10 @@ public class ExpoGaodeMapNaviViewModule: Module {
         view.wayPointImageSource = value
       }
 
+      Prop("customWaypointMarkers") { (view: ExpoGaodeMapNaviView, value: [[String: Any]]?) in
+        view.customWaypointMarkerPayloads = value
+      }
+
       Prop("endPointImage") { (view: ExpoGaodeMapNaviView, value: String?) in
         view.endPointImageSource = value
       }

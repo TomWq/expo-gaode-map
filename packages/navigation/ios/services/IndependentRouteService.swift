@@ -280,6 +280,7 @@ class IndependentRouteService: NSObject {
           "distance": route.routeLength,
           "duration": route.routeTime,
           "tollCost": route.routeTollCost,
+          "trafficLightCount": route.routeTrafficLightCount,
           "strategy": "推荐路线",
           "polyline": extractCoordinates(from: route)
         ])
@@ -292,6 +293,7 @@ class IndependentRouteService: NSObject {
         "distance": route.routeLength,
         "duration": route.routeTime,
         "tollCost": route.routeTollCost,
+        "trafficLightCount": route.routeTrafficLightCount,
         "strategy": "推荐路线",
         "polyline": extractCoordinates(from: route)
       ])
@@ -354,6 +356,7 @@ extension IndependentRouteService: AMapNaviDriveManagerDelegate {
             "distance": route.routeLength,
             "duration": route.routeTime,
             "tollCost": route.routeTollCost,
+            "trafficLightCount": route.routeTrafficLightCount,
             "strategy": "推荐路线",
             "polyline": extractCoordinates(from: route)
           ])
