@@ -96,7 +96,7 @@ npm install expo-gaode-map-search
 - 建议使用真机测试，模拟器可能不支持地图功能，会出现黑屏或闪退等异常情况
 :::
 
-查看完整示例 → [快速开始指南](/guide/getting-started) · [示例仓库](https://github.com/TomWq/expo-gaode-map-example)
+查看完整示例 → [快速开始指南](/guide/getting-started) · 导航相关示例请直接查看仓库内 `example-navigation/`
 
 ## 核心功能模块
 

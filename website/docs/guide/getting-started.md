@@ -3,7 +3,7 @@
 本指南将帮助你快速开始使用 expo-gaode-map。
 
 ::: tip 完整示例代码
-📦 查看完整的可运行示例：[expo-gaode-map-example](https://github.com/TomWq/expo-gaode-map-example)
+📦 导航相关的可运行示例已收敛到仓库内 `example-navigation/`；入口说明见 `example-navigation/README.md`
 :::
 
 ::: tip 🚀 AI 提效助手
@@ -456,7 +456,7 @@ export default function App() {
 - [配置插件](/guide/config-plugin) - Config Plugin 详细配置
 - [架构说明](/guide/architecture) - Monorepo 架构和模块说明
 - [API 文档](/api/) - 完整的 API 参考
-- [完整示例仓库](https://github.com/TomWq/expo-gaode-map-example) - 可运行的完整示例代码
+- `example-navigation/README.md` - 仓库内可运行的导航示例工程说明
 
 
 ### 地图不显示？

@@ -207,10 +207,12 @@ Recommended approach:
 - Use `NaviView` for the native navigation map, guidance, lane events, traffic-status events, and cross-image events
 - Render your own HUD from `onNaviInfoUpdate`, `onLaneInfoUpdate`, `onTrafficStatusesUpdate`, and `onNaviVisualStateChange`
 - Start from the `example-navigation` "Custom Navigation UI" example and trim it to your product needs
+- If you need route picking plus start/end/multi-waypoint input, start from the `route-picker` example inside `example-navigation`
 
 Android embedded note:
 
 - In some React Native / Expo hosts, the official embedded `NaviView` top info panel, lane information, and cross-image transitions may differ from the official AMap demo / official black-box page
+- On Android, the pure official embedded UI is more likely to show incomplete top panels, overlay glitches, or inconsistent styling across hosts/devices; treat it as a boundary-check page rather than a production UI baseline
 - If your goal is a stable embedded navigation page, start from the custom UI example in `example-navigation`
 - If you specifically want to verify the native official embedded UI, use the `official-embedded` page in the repo's example app
 
@@ -299,6 +301,9 @@ The package no longer exports a ready-made `EmbeddedNaviView`. Instead, the exam
 - `example-navigation/lib/navigation-ui/EmbeddedNaviHud.tsx`
 - `example-navigation/lib/navigation-ui/EmbeddedNaviLaneView.tsx`
 - `example-navigation/lib/navigation-ui/EmbeddedNaviTrafficBar.tsx`
+- `example-navigation/app/examples/ui-props.tsx`
+- `example-navigation/app/examples/route-picker.tsx`
+- `example-navigation/app/examples/official-embedded.tsx`
 
 That example demonstrates:
 

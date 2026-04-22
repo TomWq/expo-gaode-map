@@ -586,10 +586,12 @@ function NavigationScreen() {
 - 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
 - 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
 - 直接参考 `example-navigation` 里的“自定义 UI 导航界面”示例页及对应源码
+- 需要路线选择、起终点 / 多途经点输入时，直接参考 `example-navigation` 里的“自定义路线选择页”示例
 
 嵌入式说明：
 
 - 在部分 React Native / Expo 宿主里，官方原生嵌入式 `NaviView` 的顶部信息区、车道信息、路口大图联动效果，可能与高德官方 Demo / 官方黑盒页存在差异
+- Android 上纯官方嵌入式 UI 更容易出现顶部信息区显示不全、叠层异常、局部样式跑偏等问题；这类页面更适合做边界验证，不建议直接作为业务成品
 - 如果你的目标是稳定交付嵌入式导航页，建议以示例工程里的自定义 UI 实现为起点
 - 如果你只是想验证原生官方嵌入式 UI，请参考 `example-navigation` 中的 `official-embedded` 页面
 
@@ -746,6 +748,9 @@ function NavigationScreen() {
 
 - `NaviView`：高德官方提供的原生嵌入式导航视图
 - `example-navigation/lib/navigation-ui/*`：仓库示例提供的自定义嵌入式导航 UI 参考实现
+- `example-navigation/app/examples/ui-props.tsx`：自定义 UI 导航界面示例页
+- `example-navigation/app/examples/route-picker.tsx`：自定义路线选择页示例
+- `example-navigation/app/examples/official-embedded.tsx`：纯官方嵌入式 UI 边界验证页
 - `openOfficialNaviPage`：高德官方黑盒路线页 / 导航页
 
 这三者是不同层次的能力，不应混淆：
