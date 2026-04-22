@@ -214,7 +214,7 @@ export function EmbeddedNaviHud({
             blurTarget={blurTarget}
             style={styles.blurFill}
           />
-          <View style={styles.compactOverlay} />
+          {/* <View style={styles.compactOverlay} /> */}
 
           <View style={styles.compactLeadPanel}>
             {turnMeta.guideVariant === "arrive" ? <View style={styles.compactLeadDot} /> : null}
@@ -366,13 +366,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   compactShell: {
-    minHeight: 74,
+    minHeight: 44,
     width: "100%",
-    borderRadius: 20,
+    // borderRadius: 20,
+    borderTopLeftRadius:10,
+    borderTopRightRadius:10,
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
-    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.22)",
+    // boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.22)",
     
   },
   compactOverlay: {
@@ -387,7 +389,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(37, 99, 235, 0.88)",
+    // backgroundColor: "rgba(37, 99, 235, 0.88)",
   },
   compactLeadDot: {
     position: "absolute",
@@ -398,8 +400,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(191, 219, 254, 0.52)",
   },
   compactLeadImage: {
-    width: 52,
-    height: 52,
+    width: 32,
+    height: 32,
   },
   compactMain: {
     flex: 1,
@@ -421,7 +423,7 @@ const styles = StyleSheet.create({
   },
   compactDistanceValue: {
     color: "#ffffff",
-    fontSize: 36,
+    fontSize: 26,
     lineHeight: 40,
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
@@ -438,7 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 14,
     lineHeight: 22,
     fontWeight: "800",
     flexShrink: 1,

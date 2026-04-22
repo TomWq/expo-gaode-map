@@ -237,6 +237,8 @@ export interface MotorcycleRouteOptions {
   prioritiseHighway?: boolean;
   /** 车牌号（可选） */
   carNumber?: string;
+  /** 是否考虑限行 */
+  restriction?: boolean;
   /** 摩托车排量（单位：cc，可选） */
   motorcycleCC?: number;
 }
@@ -281,6 +283,8 @@ export interface IndependentMotorcycleRouteOptions {
   prioritiseHighway?: boolean;
   /** 车牌号（可选） */
   carNumber?: string;
+  /** 是否考虑限行 */
+  restriction?: boolean;
   /** 摩托车排量（单位：cc，可选） */
   motorcycleCC?: number;
 }
@@ -308,7 +312,7 @@ export interface IndependentWalkRouteOptions {
     name?: string;
     poiId?: string;
   };
-  /** 途经点列表。是否生效取决于当前原生端对应场景的支持情况。 */
+  /** 途经点列表。算路结果支持传入；若后续进入嵌入式导航，iOS 骑步行场景当前不支持像驾车那样额外挂载自定义文案气泡。 */
   waypoints?: Array<{
     latitude: number;
     longitude: number;
@@ -344,7 +348,7 @@ export interface IndependentRideRouteOptions {
     name?: string;
     poiId?: string;
   };
-  /** 途经点列表。是否生效取决于当前原生端对应场景的支持情况。 */
+  /** 途经点列表。算路结果支持传入；若后续进入嵌入式导航，iOS 骑步行场景当前不支持像驾车那样额外挂载自定义文案气泡。 */
   waypoints?: Array<{
     latitude: number;
     longitude: number;

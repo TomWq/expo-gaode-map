@@ -1,6 +1,7 @@
 package expo.modules.gaodemap.navigation.managers
 
 import android.content.Context
+import android.util.Log
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.enums.NaviType
 import com.amap.api.navi.model.AMapNaviPathGroup
@@ -12,6 +13,11 @@ import com.amap.api.navi.model.AMapNaviPathGroup
  * - 提供线程安全的 token 管理
  */
 class IndependentRouteManager {
+  companion object {
+    val shared: IndependentRouteManager by lazy { IndependentRouteManager() }
+    private const val TAG = "IndependentRouteManager"
+  }
+
   data class StartResult(
     val success: Boolean,
     val message: String,
@@ -21,10 +27,6 @@ class IndependentRouteManager {
     val pathCount: Int,
     val mainPathIndex: Int
   )
-
-  companion object {
-    val shared: IndependentRouteManager by lazy { IndependentRouteManager() }
-  }
 
   private val groups = mutableMapOf<Int, AMapNaviPathGroup>()
   private var nextToken = 1
@@ -76,14 +78,27 @@ class IndependentRouteManager {
     }
   }
 
+  private fun logGroupPathState(group: AMapNaviPathGroup, reason: String) {
+    val mainPath = group.mainPath
+    Log.d(
+      TAG,
+      "groupState[$reason]: pathCount=${group.pathCount} mainPathIndex=${group.mainPathIndex} mainLength=${mainPath?.allLength} mainTime=${mainPath?.allTime} labels=${mainPath?.labels} labelId=${mainPath?.labelId} waypointCount=${mainPath?.wayPoint?.size ?: 0} waypointIndexCount=${mainPath?.wayPointIndex?.size ?: 0}"
+    )
+  }
+
   @Synchronized
   fun start(context: Context, token: Int, naviType: Int, routeId: Int?, routeIndex: Int?): StartResult {
     try {
       val group = get(token)
       val navi = AMapNavi.getInstance(context)
+      logGroupPathState(group, "before-start")
 
       val resolvedRouteId = resolveRouteId(group, routeId, routeIndex)
       val sdkNaviType = resolveSdkNaviType(naviType)
+      Log.d(
+        TAG,
+        "startNaviWithPath request: token=$token requestedNaviType=$naviType sdkNaviType=$sdkNaviType routeId=$routeId routeIndex=$routeIndex resolvedRouteId=$resolvedRouteId pathCount=${group.pathCount} mainPathIndex=${group.mainPathIndex}"
+      )
 
       if (resolvedRouteId == Int.MIN_VALUE) {
         return StartResult(
@@ -99,6 +114,8 @@ class IndependentRouteManager {
 
       if (resolvedRouteId != null) {
         val selected = group.selectRouteWithIndex(resolvedRouteId)
+        Log.d(TAG, "selectRouteWithIndex($resolvedRouteId) => $selected")
+        logGroupPathState(group, "after-select")
         if (!selected) {
           return StartResult(
             success = false,
@@ -114,8 +131,8 @@ class IndependentRouteManager {
 
       val result = navi.startNaviWithPath(sdkNaviType, group)
       if (!result) {
-        android.util.Log.e(
-          "IndependentRouteManager",
+        Log.e(
+          TAG,
           "startNaviWithPath failed: token=$token requestedNaviType=$naviType sdkNaviType=$sdkNaviType routeId=$resolvedRouteId pathCount=${group.pathCount} mainPathIndex=${group.mainPathIndex}"
         )
         return StartResult(
@@ -139,7 +156,7 @@ class IndependentRouteManager {
         mainPathIndex = group.mainPathIndex
       )
     } catch (e: Exception) {
-      android.util.Log.e("IndependentRouteManager", "Start navigation failed", e)
+      Log.e(TAG, "Start navigation failed", e)
       return StartResult(
         success = false,
         message = "独立路径导航启动失败：${e.message ?: "unknown"}",

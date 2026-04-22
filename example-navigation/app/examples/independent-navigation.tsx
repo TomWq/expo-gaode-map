@@ -52,6 +52,17 @@ export default function IndependentNavigationExampleScreen() {
   const selectedModeLabel = requestedNaviType === 1 ? "模拟导航" : "GPS 导航";
   const routes = routeResult?.routes ?? [];
   const selectedRoute = routes[selectedRouteIndex] ?? null;
+  const selectedWaypointMarkers = React.useMemo(
+    () =>
+      (scenario?.waypoints ?? []).map((point, index) => ({
+        latitude: point.latitude,
+        longitude: point.longitude,
+        title: `途经${index + 1}`,
+      })),
+    [scenario]
+  );
+  const shouldUseCustomWaypointMarkersOnAndroid =
+    Platform.OS === "android" && selectedWaypointMarkers.length > 0;
 
   const previewPoints = React.useMemo(() => {
     if (selectedRoute) {
@@ -93,8 +104,15 @@ export default function IndependentNavigationExampleScreen() {
     }
 
     const timer = setTimeout(() => {
+      const selectedRouteId =
+        typeof selectedRoute?.routeId === "number"
+          ? selectedRoute.routeId
+          : typeof selectedRoute?.id === "number"
+            ? selectedRoute.id
+            : undefined;
       void naviRef.current
         ?.startNavigationWithIndependentPath(routeResult.token, {
+          routeId: selectedRouteId,
           routeIndex: selectedRouteIndex,
           naviType: requestedNaviType,
         })
@@ -116,7 +134,7 @@ export default function IndependentNavigationExampleScreen() {
     }, 360);
 
     return () => clearTimeout(timer);
-  }, [requestedNaviType, routeResult, selectedRouteIndex, showNaviView]);
+  }, [requestedNaviType, routeResult, selectedRoute, selectedRouteIndex, showNaviView]);
 
   const prepare = React.useCallback(async () => {
     try {
@@ -201,6 +219,20 @@ export default function IndependentNavigationExampleScreen() {
         ref={naviRef}
         style={styles.naviContainer}
         naviType={requestedNaviType}
+        customWaypointMarkers={
+          shouldUseCustomWaypointMarkersOnAndroid ? selectedWaypointMarkers : undefined
+        }
+        routeMarkerVisible={
+          shouldUseCustomWaypointMarkersOnAndroid
+            ? {
+                showStartEndVia: false,
+                showFootFerry: true,
+                showForbidden: true,
+                showRouteStartIcon: false,
+                showRouteEndIcon: false,
+              }
+            : undefined
+        }
         showCamera
         enableVoice
         showTrafficBar
@@ -211,7 +243,8 @@ export default function IndependentNavigationExampleScreen() {
         modeCrossDisplay
         eyrieCrossDisplay
         secondActionVisible
-        backupOverlayVisible
+        backupOverlayVisible={false}
+        showBackupRoute={false}
         naviStatusBarEnabled={false}
         driveViewEdgePadding={{ top: 12, left: 0, right: 0, bottom: 120 }}
         screenAnchor={{ x: 0.5, y: 0.78 }}

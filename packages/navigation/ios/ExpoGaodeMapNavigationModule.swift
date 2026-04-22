@@ -309,8 +309,11 @@ public class ExpoGaodeMapNavigationModule: Module {
     AsyncFunction("calculateMotorcycleRoute") { (options: [String: Any], promise: Promise) in
       do {
         try self.ensureInitialized()
-        // 摩托车复用驾车算路
-        self.ensureDriveTruck().calculateDriveRoute(options: options, promise: promise)
+        var motorcycleOptions = options
+        if motorcycleOptions["carType"] == nil && motorcycleOptions["type"] == nil {
+          motorcycleOptions["carType"] = 11
+        }
+        self.ensureDriveTruck().calculateDriveRoute(options: motorcycleOptions, promise: promise)
       } catch {
         self.rejectInitializationError(promise, error: error)
       }
@@ -321,8 +324,7 @@ public class ExpoGaodeMapNavigationModule: Module {
     AsyncFunction("calculateEBikeRoute") { (options: [String: Any], promise: Promise) in
       do {
         try self.ensureInitialized()
-        // 电动车复用骑行算路
-        self.ensureWalkRide().calculateRideRoute(options: options, promise: promise)
+        self.ensureWalkRide().calculateResolvedEleBikeRoute(options: options, promise: promise)
       } catch {
         self.rejectInitializationError(promise, error: error)
       }

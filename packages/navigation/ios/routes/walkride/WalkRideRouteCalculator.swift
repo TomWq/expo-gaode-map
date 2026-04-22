@@ -57,6 +57,60 @@ class WalkRideRouteCalculator: NSObject {
     }
     eleBikeManager?.delegate = eleBikeDelegateHandler
   }
+
+  private func boolValue(_ raw: Any?) -> Bool? {
+    if let value = raw as? Bool { return value }
+    if let value = raw as? NSNumber { return value.boolValue }
+    if let value = raw as? String {
+      switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+      case "true", "1", "yes":
+        return true
+      case "false", "0", "no":
+        return false
+      default:
+        return nil
+      }
+    }
+    return nil
+  }
+
+  private func intValue(_ raw: Any?) -> Int? {
+    if let value = raw as? Int { return value }
+    if let value = raw as? NSNumber { return value.intValue }
+    if let value = raw as? String { return Int(value) }
+    return nil
+  }
+
+  private func shouldUsePOICalculation(options: [String: Any]) -> Bool {
+    if boolValue(options["usePoi"]) == true {
+      return true
+    }
+
+    let pointDictionaries = [
+      options["from"] as? [String: Any],
+      options["to"] as? [String: Any]
+    ]
+
+    return pointDictionaries.contains { point in
+      guard let point else {
+        return false
+      }
+      let name = (point["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      let poiId = (point["poiId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      let mid = (point["mid"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      return !(name?.isEmpty ?? true) || !(poiId?.isEmpty ?? true) || !(mid?.isEmpty ?? true)
+    }
+  }
+
+  private func resolveTravelStrategy(options: [String: Any]) -> AMapNaviTravelStrategy {
+    if let raw = intValue(options["travelStrategy"]) {
+      return raw == 1001 ? .multipleDefault : .singleDefault
+    }
+    if boolValue(options["multiple"]) == true {
+      return .multipleDefault
+    }
+    return .singleDefault
+  }
   
   // MARK: - 步行路径规划
   
@@ -208,10 +262,52 @@ class WalkRideRouteCalculator: NSObject {
       promise.reject("INVALID_PARAMS", "Invalid end POI info")
       return
     }
-    let strategy = AMapNaviTravelStrategy(rawValue: options["strategy"] as? Int ?? 0) ?? .multipleDefault
+    let strategy = resolveTravelStrategy(options: options)
     
     let success = eleBikeManager?.calculateEleBikeRoute(withStart: startPOIInfo, end: endPOIInfo, strategy: strategy) ?? false
     
+    if !success {
+      currentPromise = nil
+      promise.reject("CALCULATE_FAILED", "电动车路线规划启动失败")
+    }
+  }
+
+  func calculateResolvedEleBikeRoute(options: [String: Any], promise: Promise) {
+    if shouldUsePOICalculation(options: options) {
+      calculateEleBikeRouteWithPOI(options: options, promise: promise)
+      return
+    }
+
+    bindEleBikeManagerDelegate()
+    guard let to = options["to"] as? [String: Any] else {
+      promise.reject("INVALID_PARAMS", "to is required")
+      return
+    }
+
+    scene = "eleBike"
+    currentPromise = promise
+
+    if let from = options["from"] as? [String: Any] {
+      guard let start = Converters.parseNaviPoint(from),
+            let end = Converters.parseNaviPoint(to) else {
+        currentPromise = nil
+        promise.reject("INVALID_COORDS", "Invalid coordinates")
+        return
+      }
+      let success = eleBikeManager?.calculateEleBikeRoute(withStart: start, end: end) ?? false
+      if !success {
+        currentPromise = nil
+        promise.reject("CALCULATE_FAILED", "电动车路线规划启动失败")
+      }
+      return
+    }
+
+    guard let end = Converters.parseNaviPoint(to) else {
+      currentPromise = nil
+      promise.reject("INVALID_COORDS", "Invalid coordinates")
+      return
+    }
+    let success = eleBikeManager?.calculateEleBikeRoute(withEnd: end) ?? false
     if !success {
       currentPromise = nil
       promise.reject("CALCULATE_FAILED", "电动车路线规划启动失败")

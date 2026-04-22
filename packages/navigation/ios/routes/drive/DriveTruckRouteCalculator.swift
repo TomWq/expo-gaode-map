@@ -41,6 +41,133 @@ class DriveTruckRouteCalculator: NSObject {
     driveManager = AMapNaviDriveManager.sharedInstance()
     driveManager?.delegate = self
   }
+
+  private func resolveScene(options: [String: Any]) -> String {
+    let carType = intValue(options["carType"]) ?? intValue(options["type"])
+    switch carType {
+    case 11:
+      return "motorcycle"
+    case 1, 3, 5:
+      return "truck"
+    default:
+      return "drive"
+    }
+  }
+
+  private func resolveDrivingStrategy(options: [String: Any]) -> AMapNaviDrivingStrategy {
+    let strategyValue: Int
+    if let rawStrategy = intValue(options["strategy"]) {
+      strategyValue = rawStrategy
+    } else {
+      strategyValue = Converters.convertDrivingPreferenceToStrategy(
+        multipleRoute: true,
+        avoidCongestion: boolValue(options["avoidCongestion"]) ?? false,
+        avoidHighway: boolValue(options["avoidHighway"]) ?? false,
+        avoidCost: boolValue(options["avoidCost"]) ?? false,
+        prioritiseHighway: boolValue(options["prioritiseHighway"]) ?? false
+      )
+    }
+    return AMapNaviDrivingStrategy(rawValue: strategyValue)
+      ?? AMapNaviDrivingStrategy.drivingStrategyMultipleDefault
+  }
+
+  private func applyVehicleInfoIfNeeded(options: [String: Any]) {
+    let vehicleInfo = buildVehicleInfo(options: options)
+    _ = driveManager?.setVehicleInfo(vehicleInfo)
+  }
+
+  private func buildVehicleInfo(options: [String: Any]) -> AMapNaviVehicleInfo? {
+    let vehicleInfo = AMapNaviVehicleInfo()
+    var hasAnyValue = false
+
+    if let vehicleId = nonEmptyString(options["carNumber"]) {
+      vehicleInfo.vehicleId = vehicleId
+      hasAnyValue = true
+    }
+    if let restriction = boolValue(options["restriction"]) {
+      vehicleInfo.isETARestriction = restriction
+      hasAnyValue = true
+    }
+    if let type = intValue(options["carType"]) ?? intValue(options["type"]) {
+      vehicleInfo.type = type
+      hasAnyValue = true
+    }
+    if let motorcycleCC = intValue(options["motorcycleCC"]) {
+      vehicleInfo.motorcycleCC = motorcycleCC
+      hasAnyValue = true
+    }
+    if let size = intValue(options["size"]) ?? intValue(options["vehicleSize"]) {
+      vehicleInfo.size = size
+      hasAnyValue = true
+    }
+    if let width = doubleValue(options["width"]) ?? doubleValue(options["vehicleWidth"]) {
+      vehicleInfo.width = width
+      hasAnyValue = true
+    }
+    if let height = doubleValue(options["height"]) ?? doubleValue(options["vehicleHeight"]) {
+      vehicleInfo.height = height
+      hasAnyValue = true
+    }
+    if let length = doubleValue(options["length"]) ?? doubleValue(options["vehicleLength"]) {
+      vehicleInfo.length = length
+      hasAnyValue = true
+    }
+    if let load = doubleValue(options["load"]) ?? doubleValue(options["vehicleLoad"]) {
+      vehicleInfo.load = load
+      hasAnyValue = true
+    }
+    if let weight = doubleValue(options["weight"]) ?? doubleValue(options["vehicleWeight"]) {
+      vehicleInfo.weight = weight
+      hasAnyValue = true
+    }
+    if let axisNums = intValue(options["axis"]) ?? intValue(options["axisNums"]) ?? intValue(options["vehicleAxis"]) {
+      vehicleInfo.axisNums = axisNums
+      hasAnyValue = true
+    }
+    if let isLoadIgnore = boolValue(options["isLoadIgnore"]) {
+      vehicleInfo.isLoadIgnore = isLoadIgnore
+      hasAnyValue = true
+    }
+
+    return hasAnyValue ? vehicleInfo : nil
+  }
+
+  private func boolValue(_ raw: Any?) -> Bool? {
+    if let value = raw as? Bool { return value }
+    if let value = raw as? NSNumber { return value.boolValue }
+    if let value = raw as? String {
+      switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+      case "true", "1", "yes":
+        return true
+      case "false", "0", "no":
+        return false
+      default:
+        return nil
+      }
+    }
+    return nil
+  }
+
+  private func intValue(_ raw: Any?) -> Int? {
+    if let value = raw as? Int { return value }
+    if let value = raw as? NSNumber { return value.intValue }
+    if let value = raw as? String { return Int(value) }
+    return nil
+  }
+
+  private func doubleValue(_ raw: Any?) -> Double? {
+    if let value = raw as? Double { return value }
+    if let value = raw as? Float { return Double(value) }
+    if let value = raw as? NSNumber { return value.doubleValue }
+    if let value = raw as? String { return Double(value) }
+    return nil
+  }
+
+  private func nonEmptyString(_ raw: Any?) -> String? {
+    guard let value = raw as? String else { return nil }
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
+  }
   
   // MARK: - 驾车路径规划
   
@@ -62,20 +189,19 @@ class DriveTruckRouteCalculator: NSObject {
     }
     
     // 解析途经点
-    var wayPoints: [AMapNaviPoint]? = nil
-    if let waypointsArray = options["waypoints"] as? [[String: Any]] {
-      wayPoints = waypointsArray.compactMap { Converters.parseNaviPoint($0) }
+    let wayPoints = Converters.parseWaypoints(options["waypoints"] as? [[String: Any]])
+    let wayPOIInfos = Converters.parseNaviPOIInfos(options["waypoints"] as? [[String: Any]])
+    let wayPointPOIIds = (options["waypoints"] as? [[String: Any]])?.compactMap { point in
+      nonEmptyString(point["poiId"]) ?? nonEmptyString(point["mid"])
     }
-    
-    // 解析策略 (0-20 对应 AMapNaviDrivingStrategy)
-    // 10-20 是多路径策略,0-9 是单路径策略
-    let strategyValue = (options["strategy"] as? Int) ?? 10 // 默认使用多路径策略
-    let strategy: AMapNaviDrivingStrategy = AMapNaviDrivingStrategy(rawValue: strategyValue) ?? AMapNaviDrivingStrategy.drivingStrategyMultipleDefault
-    
-    NSLog("DriveTruckRouteCalculator: 使用策略值: \(strategyValue), strategy: \(strategy.rawValue)")
-    
-    scene = "drive"
+
+    let strategy = resolveDrivingStrategy(options: options)
+
+    NSLog("DriveTruckRouteCalculator: 使用策略值: \(strategy.rawValue), strategy: \(strategy.rawValue)")
+
+    scene = resolveScene(options: options)
     currentPromise = promise
+    applyVehicleInfoIfNeeded(options: options)
     
     var success = false
     
@@ -87,20 +213,14 @@ class DriveTruckRouteCalculator: NSObject {
       success = driveManager?.calculateDriveRoute(
         withStartPointPOIId: fromMid,
         endPointPOIId: toMid,
-        wayPointsPOIId: nil,
+        wayPointsPOIId: wayPointPOIIds,
         drivingStrategy: strategy
       ) ?? false
     } else if let fromInfo = Converters.parseNaviPOIInfo(from),
               let toInfo = Converters.parseNaviPOIInfo(to) {
       // 使用 POIInfo 算路（支持起点角度）
       NSLog("DriveTruckRouteCalculator: 使用 POIInfo 算路")
-      
-      // 解析途经点 POIInfo
-      var wayPOIInfos: [AMapNaviPOIInfo]? = nil
-      if let waypointsArray = options["waypoints"] as? [[String: Any]] {
-        wayPOIInfos = waypointsArray.compactMap { Converters.parseNaviPOIInfo($0) }
-      }
-      
+
       // 官方方法：calculateDriveRouteWithStart:end:wayPOIInfos:drivingStrategy:
       success = driveManager?.calculateDriveRoute(
         withStart: fromInfo,
@@ -144,63 +264,11 @@ class DriveTruckRouteCalculator: NSObject {
   
   func calculateTruckRoute(options: [String: Any], promise: Promise) {
     NSLog("DriveTruckRouteCalculator: 开始计算货车路线")
-    bindDriveManagerDelegate()
-    
-    // 设置货车车辆信息
-    let vehicleInfo = AMapNaviVehicleInfo()
-    
-    // 车牌号
-    if let vehicleId = options["carNumber"] as? String {
-      vehicleInfo.vehicleId = vehicleId
+    var truckOptions = options
+    if truckOptions["carType"] == nil && truckOptions["type"] == nil {
+      truckOptions["carType"] = 1
     }
-    
-    // 车辆类型：1/3/5 为货车
-    vehicleInfo.type = 1
-    
-    // 货车尺寸类型
-    if let size = options["size"] as? Int {
-      vehicleInfo.size = size
-    } else {
-      vehicleInfo.size = 4 // 默认
-    }
-    
-    // 货车宽度（米）
-    if let width = options["width"] as? Double {
-      vehicleInfo.width = width
-    }
-    
-    // 货车高度（米）
-    if let height = options["height"] as? Double {
-      vehicleInfo.height = height
-    }
-    
-    // 货车长度（米）
-    if let length = options["length"] as? Double {
-      vehicleInfo.length = length
-    }
-    
-    // 货车总重（吨）
-    if let load = options["load"] as? Double {
-      vehicleInfo.load = load
-    }
-    
-    // 货车核定载重（吨）
-    if let weight = options["weight"] as? Double {
-      vehicleInfo.weight = weight
-    }
-    
-    // 货车轴数
-    if let axisNums = options["axisNums"] as? Int {
-      vehicleInfo.axisNums = axisNums
-    }
-    
-    // 设置车辆信息
-    driveManager?.setVehicleInfo(vehicleInfo)
-    
-    scene = "truck"
-    
-    // 复用驾车算路逻辑
-    calculateDriveRoute(options: options, promise: promise)
+    calculateDriveRoute(options: truckOptions, promise: promise)
   }
   
   func destroy() {
@@ -235,7 +303,7 @@ extension DriveTruckRouteCalculator: AMapNaviDriveManagerDelegate {
           "distance": route.routeLength,
           "duration": route.routeTime,
           "tollCost": route.routeTollCost,
-          "strategy": scene == "truck" ? "货车路线" : getStrategyName(routeId: routeId as? Int ?? 0),
+          "strategy": routeTitle(routeId: routeId as? Int ?? 0),
           "polyline": extractCoordinates(from: route)
         ])
       }
@@ -247,7 +315,7 @@ extension DriveTruckRouteCalculator: AMapNaviDriveManagerDelegate {
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
         "tollCost": naviRoute.routeTollCost,
-        "strategy": scene == "truck" ? "货车路线" : "推荐路线",
+        "strategy": routeTitle(routeId: 12),
         "polyline": extractCoordinates(from: naviRoute)
       ])
     }
@@ -276,6 +344,17 @@ extension DriveTruckRouteCalculator: AMapNaviDriveManagerDelegate {
     case 14: return "距离最短"
     case 15: return "躲避拥堵"
     default: return "路线\(routeId - 11)"
+    }
+  }
+
+  private func routeTitle(routeId: Int) -> String {
+    switch scene {
+    case "truck":
+      return "货车路线"
+    case "motorcycle":
+      return "摩托车路线"
+    default:
+      return getStrategyName(routeId: routeId)
     }
   }
   

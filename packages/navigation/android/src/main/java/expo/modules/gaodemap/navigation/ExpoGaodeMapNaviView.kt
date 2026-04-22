@@ -139,6 +139,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     internal var endPointImageUri: String? = null
     private var customWaypointMarkers: List<NaviCustomWaypointMarkerModel> = emptyList()
     private val renderedCustomWaypointMarkers = mutableListOf<Marker>()
+    private var activeIndependentRouteId: Int? = null
     private val naviView: AMapNaviView by lazy(LazyThreadSafetyMode.NONE) {
         AMapNaviView(context)
     }
@@ -590,6 +591,43 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         refreshNaviUILayout("commitViewOptions")
     }
 
+    private fun logCurrentNaviPathState(reason: String) {
+        val naviPath = aMapNavi?.naviPath
+        val waypointCount = naviPath?.wayPoint?.size ?: 0
+        val waypointIndexCount = naviPath?.wayPointIndex?.size ?: 0
+        Log.d(
+            "ExpoGaodeMapNaviView",
+            "pathState[$reason]: routeType=${naviPath?.routeType} length=${naviPath?.allLength} time=${naviPath?.allTime} labels=${naviPath?.labels} labelId=${naviPath?.labelId} waypointCount=$waypointCount waypointIndexCount=$waypointIndexCount start=${naviPath?.startPoint} end=${naviPath?.endPoint}"
+        )
+    }
+
+    private fun stabilizeIndependentRouteRendering(reason: String) {
+        val routeId = activeIndependentRouteId ?: return
+        val delays = longArrayOf(0L, 180L, 420L)
+        delays.forEach { delayMillis ->
+            naviView.postDelayed({
+                if (isDestroyed) {
+                    return@postDelayed
+                }
+                try {
+                    val selected = aMapNavi?.selectRouteId(routeId)
+                    Log.d(
+                        "ExpoGaodeMapNaviView",
+                        "stabilizeIndependentRouteRendering[$reason/$delayMillis]: routeId=$routeId selected=$selected"
+                    )
+                    applyRouteMarkerVisibleFromState()
+                    logCurrentNaviPathState("stabilize-$reason-$delayMillis")
+                } catch (error: Exception) {
+                    Log.e(
+                        "ExpoGaodeMapNaviView",
+                        "Failed to stabilize independent route rendering: reason=$reason delay=$delayMillis routeId=$routeId",
+                        error
+                    )
+                }
+            }, delayMillis)
+        }
+    }
+
     private fun refreshNaviUILayout(reason: String) {
         if (isDestroyed) {
             return
@@ -601,14 +639,23 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             }
 
             updateTopInsetPadding()
-            naviView.requestLayout()
-            naviView.forceLayout()
-            naviView.invalidate()
-            naviView.postInvalidateOnAnimation()
-            requestLayout()
-            invalidate()
-            postInvalidateOnAnimation()
             updateNativeTopInfoLayoutVisibility()
+
+            val needsAggressiveRefresh =
+                hideNativeTopInfoLayout ||
+                !showUIElements ||
+                androidStatusBarPaddingTopDp != null
+
+            if (needsAggressiveRefresh) {
+                naviView.requestLayout()
+                naviView.forceLayout()
+                naviView.invalidate()
+                naviView.postInvalidateOnAnimation()
+                requestLayout()
+                invalidate()
+                postInvalidateOnAnimation()
+            }
+
             Log.d("ExpoGaodeMapNaviView", "refreshNaviUILayout: $reason")
         }
     }
@@ -624,8 +671,12 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             return
         }
 
+        if (!hideNativeTopInfoLayout) {
+            return
+        }
+
         val queue = ArrayDeque<View>()
-        val targetVisibility = if (hideNativeTopInfoLayout) View.GONE else View.VISIBLE
+        val targetVisibility = View.GONE
         queue.add(naviView)
 
         while (queue.isNotEmpty()) {
@@ -913,6 +964,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             Log.d("ExpoGaodeMapNaviView", "导航开始: type=$type")
             isNavigationRunning = true
             syncNavigationForegroundService("on_start_navi")
+            logCurrentNaviPathState("onStartNavi")
+            stabilizeIndependentRouteRendering("onStartNavi")
             onNavigationStarted(mapOf(
                 "type" to type,
                 "isEmulator" to (type == 1)
@@ -957,6 +1010,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             isNavigationRunning = false
             syncNavigationForegroundService("on_end_emulator_navi")
             resetCustomWaypointMarkerArrivalState()
+            activeIndependentRouteId = null
             onNavigationEnded(emptyMap())
         }
 
@@ -964,6 +1018,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             isNavigationRunning = false
             syncNavigationForegroundService("on_arrive_destination")
             resetCustomWaypointMarkerArrivalState()
+            activeIndependentRouteId = null
             onArriveDestination(emptyMap())
         }
 
@@ -1404,6 +1459,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             val finalNaviType = requestedNaviType ?: naviType
             val result = independentRouteManager.start(context, token, finalNaviType, routeId, routeIndex)
             if (result.success) {
+                activeIndependentRouteId = result.resolvedRouteId
                 promise.resolve(
                     mapOf(
                         "success" to true,
@@ -1417,9 +1473,11 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
                     )
                 )
             } else {
+                activeIndependentRouteId = null
                 promise.reject("START_INDEPENDENT_NAVI_FAILED", result.message, null)
             }
         } catch (e: Exception) {
+            activeIndependentRouteId = null
             promise.reject("START_INDEPENDENT_NAVI_ERROR", e.message, e)
         }
     }

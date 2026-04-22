@@ -78,6 +78,11 @@ export interface ExpoGaodeMapNaviViewRef {
    * 停止导航
    */
   stopNavigation: () => Promise<void>;
+
+  /**
+   * 播放自定义 TTS
+   */
+  playCustomTTS: (text: string, forcePlay?: boolean) => Promise<void>;
 }
 
 interface NativeExpoGaodeMapNaviViewRef {
@@ -94,6 +99,7 @@ interface NativeExpoGaodeMapNaviViewRef {
     naviType?: number
   ) => Promise<void>;
   stopNavigation: () => Promise<void>;
+  playCustomTTS: (text: string, forcePlay?: boolean) => Promise<void>;
 }
 
 interface NativeExpoGaodeMapNaviViewProps
@@ -242,6 +248,10 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
     stopNavigation: async () => {
       if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
       return nativeRef.current.stopNavigation();
+    },
+    playCustomTTS: async (text, forcePlay = false) => {
+      if (!nativeRef.current) throw new Error('ExpoGaodeMapNaviView not initialized');
+      return nativeRef.current.playCustomTTS(text, forcePlay);
     },
   }), []);
   

@@ -35,7 +35,7 @@ export interface NaviInfoUpdateEvent {
   nextIconType?: number;
   /** 当前导航动作的原生转向图标 URI，优先级高于 iconType */
   turnIconImage?: string;
-  /** 下一导航动作的原生转向图标 URI；Android 当前通常为空 */
+  /** 下一导航动作的原生转向图标 URI；当前主要由 iOS 驾车场景提供，Android 与 iOS 骑步行场景通常为空 */
   nextTurnIconImage?: string;
   iconDirection?: number;
   currentSegmentIndex?: number;
@@ -144,6 +144,7 @@ export interface NaviImageSize {
 export interface NaviCustomWaypointMarker {
   latitude: number;
   longitude: number;
+  /** 气泡文案；iOS 当前仅驾车场景支持真正的自定义气泡视图，骑步行场景会回退为 SDK 默认途经点表现 */
   title?: string;
 }
 
@@ -280,7 +281,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * 导航态自定义途经点气泡
    * @platform android ios
    * 说明：会额外挂载在导航地图上，而不是替换 SDK 默认途经点 icon。
-   * 适用于需要更醒目的“途经”气泡或自定义文案的场景。
+   * Android 当前可用于驾车/骑行/步行；iOS 当前仅驾车场景支持真正的自定义气泡，骑步行场景会忽略该气泡并保留默认途经点表现。
    */
   customWaypointMarkers?: NaviCustomWaypointMarker[];
 
@@ -363,6 +364,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   
   /**
    * 是否显示拥堵气泡
+   * 说明：当前主要用于驾车导航场景
    * @default true
    * @since Android 10.0.5 / iOS 10.0.900
    */
@@ -370,6 +372,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   
   /**
    * 是否显示红绿灯倒计时气泡
+   * 说明：当前主要用于驾车导航场景
    * @default true
    * 提示：iOS 需开通红绿灯倒计时服务
    * @since Android 10.0.5 / iOS 10.0.900
@@ -441,6 +444,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
    * 是否启用 iOS 导航 Live Activity（锁屏/灵动岛）
    * @platform ios
    * 说明：开启后会在导航信息更新时自动请求/更新 Live Activity；需同时在 Info.plist 开启 `NSSupportsLiveActivities`
+   * 说明：驾车场景可直接使用 SDK 回调的转向图；骑步行场景当前回退为根据 `iconType` 生成的图标，不保证能拿到与驾车完全一致的原生素材
    * @default false
    */
   iosLiveActivityEnabled?: boolean;
@@ -529,6 +533,7 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   /**
    * 设置是否为骑步行视图
    * @platform android
+   * 说明：对应高德 Android 文档里的 `setIsNaviTravelView(true)` 兼容开关；驾车传 `false`，骑行/步行传 `true`
    * @default false
    */
   isNaviTravelView?:boolean

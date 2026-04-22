@@ -258,6 +258,19 @@ class ExpoGaodeMapNaviViewModule : Module() {
       AsyncFunction("stopNavigation") { view: ExpoGaodeMapNaviView, promise: expo.modules.kotlin.Promise ->
         view.stopNavigation(promise)
       }
+
+      AsyncFunction("playCustomTTS") { view: ExpoGaodeMapNaviView, text: String, forcePlay: Boolean, promise: expo.modules.kotlin.Promise ->
+        val success = view.playCustomTTS(text, forcePlay)
+        if (success) {
+          promise.resolve(
+            mapOf(
+              "success" to true
+            )
+          )
+        } else {
+          promise.reject("PLAY_TTS_FAILED", "当前场景暂不支持或正在播报其他导航语音", null)
+        }
+      }
     }
   }
 }

@@ -19,6 +19,12 @@ final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
       setNeedsLayout()
     }
   }
+  var suppressBottomRightUI: Bool = false {
+    didSet {
+      scheduleTopInfoSuppressionPasses()
+      setNeedsLayout()
+    }
+  }
   private let topInfoCoverView: UIView = {
     let view = UIView()
     view.isHidden = true
@@ -71,6 +77,12 @@ final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
     for candidate in topCandidates {
       candidate.isHidden = suppressTopInfoUI
       candidate.alpha = suppressTopInfoUI ? 0.0 : 1.0
+    }
+
+    let bottomRightCandidates = collectBottomRightCandidates()
+    for candidate in bottomRightCandidates {
+      candidate.isHidden = suppressBottomRightUI
+      candidate.alpha = suppressBottomRightUI ? 0.0 : 1.0
     }
 
     guard suppressTopInfoUI, !topCandidates.isEmpty else {
@@ -145,6 +157,58 @@ final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
     }
   }
 
+  private func collectBottomRightCandidates() -> [UIView] {
+    guard suppressBottomRightUI || !subviews.isEmpty else {
+      return []
+    }
+
+    let protectedClassNameFragments = [
+      "MAMap",
+      "Lane",
+      "Cross",
+      "Eagle",
+      "TrafficBar",
+      "Compass",
+      "Zoom",
+      "Scale",
+      "Logo",
+    ]
+
+    return allDescendantSubviews(of: self).filter { view in
+      guard view !== self, view !== topInfoCoverView else {
+        return false
+      }
+
+      let frame = view.convert(view.bounds, to: self)
+      guard !frame.isEmpty else {
+        return false
+      }
+
+      let className = NSStringFromClass(type(of: view))
+      if protectedClassNameFragments.contains(where: { className.localizedCaseInsensitiveContains($0) }) {
+        return false
+      }
+
+      guard frame.minX >= bounds.width * 0.76 || frame.maxX >= bounds.width - 10 else {
+        return false
+      }
+
+      guard frame.minY >= bounds.height * 0.46 else {
+        return false
+      }
+
+      guard frame.width >= 18 && frame.width <= 110 else {
+        return false
+      }
+
+      guard frame.height >= 18 && frame.height <= 240 else {
+        return false
+      }
+
+      return true
+    }
+  }
+
   private func allDescendantSubviews(of root: UIView) -> [UIView] {
     root.subviews.flatMap { subview in
       [subview] + allDescendantSubviews(of: subview)
@@ -159,8 +223,8 @@ final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
   }
 
   private func scheduleTopInfoSuppressionPasses() {
-    scheduledSuppressionPasses = suppressTopInfoUI ? 18 : 0
-    guard suppressTopInfoUI else {
+    scheduledSuppressionPasses = (suppressTopInfoUI || suppressBottomRightUI) ? 18 : 0
+    guard suppressTopInfoUI || suppressBottomRightUI else {
       topInfoCoverView.isHidden = true
       return
     }
@@ -179,7 +243,7 @@ final class ExpoGaodeMapCustomDriveView: AMapNaviDriveView {
   }
 
   func refreshSuppressedTopInfoUIIfNeeded() {
-    guard suppressTopInfoUI else {
+    guard suppressTopInfoUI || suppressBottomRightUI else {
       return
     }
     applySuppressedChromeVisibility()
@@ -575,6 +639,17 @@ public class ExpoGaodeMapNaviView: ExpoView {
       return walkView
     case .ride:
       return rideView
+    }
+  }
+
+  private func currentNaviManager() -> AMapNaviBaseManager? {
+    switch activeScene {
+    case .drive:
+      return driveManager
+    case .walk:
+      return walkManager
+    case .ride:
+      return rideManager
     }
   }
 
@@ -1323,6 +1398,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     guard let driveView else {
       return
     }
+    (driveView as? ExpoGaodeMapCustomDriveView)?.suppressBottomRightUI = showUIElements == false
     driveView.showUIElements = pendingShowUIElements ?? showUIElements
     driveView.showCamera = showCamera
     driveView.autoSwitchShowModeToCarPositionLocked = autoLockCar
@@ -1631,6 +1707,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
 
     switch activeScene {
     case .drive:
+      (driveView as? ExpoGaodeMapCustomDriveView)?.suppressBottomRightUI = value == false
       driveView?.showUIElements = value
     case .walk:
       walkView?.showUIElements = value
@@ -1643,6 +1720,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
 
   private func applyCustomUILayoutOptionsIfNeeded() {
     guard showUIElements == false else {
+      (driveView as? ExpoGaodeMapCustomDriveView)?.suppressBottomRightUI = false
       return
     }
 
@@ -1651,6 +1729,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
       guard let driveView else {
         return
       }
+      (driveView as? ExpoGaodeMapCustomDriveView)?.suppressBottomRightUI = true
       driveView.showCrossImage = realCrossDisplay
       driveView.showTrafficBar = showTrafficBar
       applyTrafficBarFrame(trafficBarFrame)
@@ -1724,7 +1803,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
       return
     }
 
-    guard frame.width > 0, frame.height > 0 else {
+    guard showTrafficBar, frame.width > 0, frame.height > 0 else {
+      driveView.tmcRouteFrame = .zero
       return
     }
 
@@ -2217,10 +2297,18 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   func playCustomTTS(text: String, forcePlay: Bool, promise: Promise) {
-    // iOS 使用内置 TTS，会自动播报导航语音
-    promise.resolve([
-      "success": true
-    ])
+    guard let manager = currentNaviManager() else {
+      promise.reject("NAVI_MANAGER_UNAVAILABLE", "导航管理器尚未初始化")
+      return
+    }
+    let success = manager.playTTS(text, forcePlay: forcePlay)
+    if success {
+      promise.resolve([
+        "success": true
+      ])
+    } else {
+      promise.reject("PLAY_TTS_FAILED", "当前场景暂不支持或正在播报其他导航语音")
+    }
   }
   
   // MARK: - Lifecycle

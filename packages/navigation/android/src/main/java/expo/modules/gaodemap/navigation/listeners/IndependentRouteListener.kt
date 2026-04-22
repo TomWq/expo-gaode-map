@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.navigation.listeners
 
+import android.util.Log
 import com.amap.api.navi.AMapNaviIndependentRouteListener
 import com.amap.api.navi.model.AMapCalcRouteResult
 import com.amap.api.navi.model.AMapNaviPathGroup
@@ -17,6 +18,9 @@ class IndependentRouteListener(
   private val module: ExpoGaodeMapNavigationModule,
   private val promise: Promise
 ) : AMapNaviIndependentRouteListener {
+  companion object {
+    private const val TAG = "IndependentRouteListener"
+  }
 
   override fun onIndependentCalculateSuccess(group: AMapNaviPathGroup?) {
     try {
@@ -28,6 +32,7 @@ class IndependentRouteListener(
 
       // 将路径组存储在模块内，返回一个可供后续操作（选路/启动导航/清理）的 token
       val token = module.storeIndependentGroup(group)
+      logGroupSummary(group, token)
 
       val result = convertGroupToResult(group).toMutableMap().apply {
         put("token", token)
@@ -42,9 +47,28 @@ class IndependentRouteListener(
 
   override fun onIndependentCalculateFail(routeResult: AMapCalcRouteResult?) {
     val errorCode = routeResult?.errorCode ?: -1
+    Log.e(TAG, "independentCalculateRoute failed: errorCode=$errorCode result=$routeResult")
     val errorMsg = "Independent route calculation failed with code: $errorCode"
     promise.reject("INDEPENDENT_CALCULATE_ERROR", errorMsg, null)
     module.sendEvent("onCalculateRouteFailure", mapOf("errorCode" to errorCode))
+  }
+
+  private fun logGroupSummary(group: AMapNaviPathGroup, token: Int) {
+    val count = try { group.pathCount } catch (_: Exception) { -1 }
+    val mainIndex = try { group.mainPathIndex } catch (_: Exception) { -1 }
+    Log.d(TAG, "independentCalculateRoute success: token=$token pathCount=$count mainPathIndex=$mainIndex")
+
+    for (index in 0 until maxOf(count, 0)) {
+      try {
+        val path = group.getPath(index)
+        Log.d(
+          TAG,
+          "path[$index]: routeId=${12 + index} length=${path.allLength} time=${path.allTime} toll=${path.tollCost} trafficLights=${path.trafficLightCount} coordCount=${path.coordList?.size ?: 0}"
+        )
+      } catch (error: Exception) {
+        Log.e(TAG, "failed to inspect path[$index]", error)
+      }
+    }
   }
 
   /**

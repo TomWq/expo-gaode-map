@@ -45,7 +45,7 @@ const DEFAULT_CONFIG: OfficialUiConfig = {
   showCompassEnabled: true,
   laneInfoVisible: true,
   realCrossDisplay: true,
-  modeCrossDisplay: Platform.OS === "android",
+  modeCrossDisplay: false,
   eyrieCrossDisplay: true,
   secondActionVisible: true,
   backupOverlayVisible: true,
@@ -115,6 +115,24 @@ export default function OfficialEmbeddedNaviExampleScreen() {
       (Object.keys(UI_LABELS) as Array<keyof OfficialUiConfig>).filter((key) =>
         Platform.OS === "android" ? true : key !== "modeCrossDisplay"
       ),
+    []
+  );
+
+  const updateUiConfig = React.useCallback(
+    (key: keyof OfficialUiConfig, value: boolean) => {
+      setUiConfig((current) => {
+        const next = { ...current, [key]: value };
+        if (Platform.OS === "android") {
+          if (key === "realCrossDisplay" && value) {
+            next.modeCrossDisplay = false;
+          }
+          if (key === "modeCrossDisplay" && value) {
+            next.realCrossDisplay = false;
+          }
+        }
+        return next;
+      });
+    },
     []
   );
 
@@ -231,6 +249,18 @@ export default function OfficialEmbeddedNaviExampleScreen() {
           </Text>
         </View>
 
+        {Platform.OS === "android" ? (
+          <View style={[styles.card, styles.dangerCard]}>
+            <Text style={styles.dangerTitle}>Android 明显警告</Text>
+            <Text style={styles.dangerText}>
+              纯官方嵌入式 UI 在 Android 上经常会出现元素显示不全、叠层异常、样式跑偏、不同机型表现不一致等问题。
+            </Text>
+            <Text style={styles.dangerText}>
+              这个页面只适合验证官方控件边界，不建议直接作为业务成品。正式接入请优先使用“自定义 UI 导航界面”或“自定义路线选择页”。
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.card}>
           <Text style={styles.cardTitle}>状态</Text>
           <Text style={styles.cardText}>{statusText}</Text>
@@ -278,14 +308,19 @@ export default function OfficialEmbeddedNaviExampleScreen() {
               iOS 官方 SDK 仅提供实景路口放大图 `showCrossImage / hideCrossImage`，这里不再展示
               Android 专属的 3D 路口模型开关。
             </Text>
-          ) : null}
+          ) : (
+            <Text style={styles.cardHint}>
+              Android 官方嵌入式 UI 里，`实景路口大图` 和 `3D 路口模型` 同时开启时，某些宿主会出现重复叠层或异常放大的官方控件。
+              这里默认只开一套；如果你手动打开另一套，会自动把前一套关掉。
+            </Text>
+          )}
           {visibleConfigKeys.map((key) => (
             <ConfigSwitchRow
               key={key}
               label={UI_LABELS[key]}
               value={uiConfig[key]}
               onValueChange={(value) => {
-                setUiConfig((current) => ({ ...current, [key]: value }));
+                updateUiConfig(key, value);
               }}
             />
           ))}
@@ -352,6 +387,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff7ed",
     borderColor: "#fdba74",
   },
+  dangerCard: {
+    backgroundColor: "#fff1f2",
+    borderColor: "#fda4af",
+  },
   cardTitle: {
     marginBottom: 10,
     fontSize: 17,
@@ -369,6 +408,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     color: "#9a3412",
+  },
+  dangerTitle: {
+    marginBottom: 10,
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#9f1239",
+  },
+  dangerText: {
+    marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#881337",
   },
   cardText: {
     fontSize: 14,

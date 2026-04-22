@@ -2,7 +2,6 @@ package expo.modules.gaodemap.navigation
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
 import com.amap.api.navi.model.AMapNaviPathGroup
 import expo.modules.core.arguments.ReadableArguments
@@ -263,26 +262,13 @@ class ExpoGaodeMapNavigationModule : Module() {
     AsyncFunction("calculateMotorcycleRoute") { options: Map<String, Any?>, promise: Promise ->
       try {
         ensureNavigationPrivacyReady()
-        // 设置摩托车车辆信息（车牌可选、排量可选）
-        try {
-          val carNumber = options["carNumber"] as? String
-          val motorcycleCC = (options["motorcycleCC"] as? Number)?.toInt()
-          val carInfo = AMapCarInfo().apply {
-            if (carNumber != null) setCarNumber(carNumber)
-              carType = "11" // 11 = 摩托车
-            if (motorcycleCC != null) {
-              try {
-                  this.motorcycleCC = motorcycleCC
-              } catch (_: Exception) {}
-            }
-          }
-          AMapNavi.getInstance(context).setCarInfo(carInfo)
-        } catch (_: Exception) {
-          // ignore
+        val motorcycleOptions = options.toMutableMap()
+        if (motorcycleOptions["carType"] == null) {
+          motorcycleOptions["carType"] = "11"
         }
 
         // 复用驾车算路逻辑（含 strategyConvert / 途经点等）
-        ensureDriveTruck().calculateDriveRoute(options, promise)
+        ensureDriveTruck().calculateDriveRoute(motorcycleOptions, promise)
       } catch (e: Exception) {
         promise.reject("CALCULATE_ERROR", e.message, e)
       }

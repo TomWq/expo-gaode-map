@@ -589,8 +589,15 @@ export default function RoutePickerExampleScreen() {
     }
 
     const timer = setTimeout(() => {
+      const selectedRouteId =
+        typeof selectedRoute?.routeId === "number"
+          ? selectedRoute.routeId
+          : typeof selectedRoute?.id === "number"
+            ? selectedRoute.id
+            : undefined;
       void naviRef.current
         ?.startNavigationWithIndependentPath(routeResult.token, {
+          routeId: selectedRouteId,
           routeIndex: selectedRouteIndex,
           naviType: requestedNaviType,
         })
@@ -612,7 +619,7 @@ export default function RoutePickerExampleScreen() {
     }, 360);
 
     return () => clearTimeout(timer);
-  }, [requestedNaviType, routeResult, selectedRouteIndex, showNaviView]);
+  }, [requestedNaviType, routeResult, selectedRoute, selectedRouteIndex, showNaviView]);
 
   React.useEffect(() => {
     const initialize = async () => {
@@ -895,13 +902,15 @@ export default function RoutePickerExampleScreen() {
   const selectedWaypointMarkers = waypoints
     .map((item) => item.selected)
     .filter((item): item is RouteFieldValue => Boolean(item?.point))
-    .map((item) => ({
+    .map((item, index) => ({
       latitude: item.point.latitude,
       longitude: item.point.longitude,
-      title: "途经",
+      title: `途经${index + 1}`,
     }));
   const selectedWaypointCount = selectedWaypointMarkers.length;
   const previewMarkerRevision = routeResult?.token ?? "draft";
+  const shouldUseCustomWaypointMarkersOnAndroid =
+    Platform.OS === "android" && routeScene === "drive" && selectedWaypointMarkers.length > 0;
 
   if (showNaviView && routeResult) {
     return (
@@ -910,14 +919,20 @@ export default function RoutePickerExampleScreen() {
         style={styles.naviContainer}
         naviType={requestedNaviType}
         isNaviTravelView={usesTravelView}
-        customWaypointMarkers={selectedWaypointMarkers}
-        routeMarkerVisible={{
-          showStartEndVia: selectedWaypointMarkers.length === 0,
-          showFootFerry: true,
-          showForbidden: true,
-          showRouteStartIcon: true,
-          showRouteEndIcon: true,
-        }}
+        customWaypointMarkers={
+          shouldUseCustomWaypointMarkersOnAndroid ? selectedWaypointMarkers : undefined
+        }
+        routeMarkerVisible={
+          shouldUseCustomWaypointMarkersOnAndroid
+            ? {
+                showStartEndVia: false,
+                showFootFerry: true,
+                showForbidden: true,
+                showRouteStartIcon: false,
+                showRouteEndIcon: false,
+              }
+            : undefined
+        }
         showCamera
         enableVoice
         showTrafficBar={routeScene === "drive"}
@@ -928,7 +943,8 @@ export default function RoutePickerExampleScreen() {
         modeCrossDisplay={routeScene === "drive"}
         eyrieCrossDisplay={routeScene === "drive"}
         secondActionVisible={routeScene === "drive"}
-        backupOverlayVisible={routeScene === "drive"}
+        backupOverlayVisible={false}
+        showBackupRoute={false}
         naviStatusBarEnabled={false}
         driveViewEdgePadding={{ top: 12, left: 0, right: 0, bottom: 120 }}
         screenAnchor={{ x: 0.5, y: 0.78 }}

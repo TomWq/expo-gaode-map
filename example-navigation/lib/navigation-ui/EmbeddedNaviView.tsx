@@ -102,6 +102,8 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       showDriveCongestion = true,
       showTrafficLightView = true,
       showCompassEnabled = true,
+      showBrowseRouteButton,
+      showMoreButton,
       laneInfoVisible = true,
       realCrossDisplay = true,
       modeCrossDisplay = true,
@@ -336,6 +338,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       usesManagedTrafficBar && !trafficBarFrame ? autoTrafficBarFrame : trafficBarFrame;
     // 开启自绘光柱时，把官方光柱关掉，避免双层渲染和平台视觉不一致。
     const nativeTrafficBarVisible = showDefaultTrafficBar ? false : resolvedShowTrafficBar;
+    const nativeTrafficBarFrame = nativeTrafficBarVisible ? resolvedTrafficBarFrame : undefined;
     const defaultTrafficBarStyle =
       showDefaultTrafficBar && autoTrafficBarLayout
         ? {
@@ -392,12 +395,14 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
             showCamera={showCamera}
             enableVoice={enableVoice}
             showTrafficBar={nativeTrafficBarVisible}
-            trafficBarFrame={resolvedTrafficBarFrame}
+            trafficBarFrame={nativeTrafficBarFrame}
             trafficBarColors={trafficBarColors}
             showTrafficButton={showTrafficButton}
             showDriveCongestion={showDriveCongestion}
             showTrafficLightView={showTrafficLightView}
             showCompassEnabled={showCompassEnabled}
+            showBrowseRouteButton={showBrowseRouteButton}
+            showMoreButton={showMoreButton}
             laneInfoVisible={laneInfoVisible}
             hideNativeLaneInfoLayout={resolvedHideNativeLaneInfoLayout}
             modeCrossDisplay={resolvedModeCrossDisplay}
