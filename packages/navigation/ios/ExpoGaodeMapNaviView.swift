@@ -346,11 +346,22 @@ public class ExpoGaodeMapNaviView: ExpoView {
   let onTrafficStatusesUpdate = EventDispatcher()
   
   // MARK: - Properties
+  private enum NaviScene: String {
+    case drive
+    case walk
+    case ride
+  }
+
+  private var activeScene: NaviScene = .drive
   private var driveView: AMapNaviDriveView?
+  private var walkView: AMapNaviWalkView?
+  private var rideView: AMapNaviRideView?
   private var pendingShowUIElements: Bool?
   private var hasStartedNavi: Bool = false
   private var hasReceivedFirstNaviData: Bool = false
   private var driveManager: AMapNaviDriveManager?
+  private var walkManager: AMapNaviWalkManager?
+  private var rideManager: AMapNaviRideManager?
   private var lastKnownSpeed: Int = 0
   private var currentRouteTotalLength: Int?
   private var lastNavigationInfoPayload: [String: Any]?
@@ -431,7 +442,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     didSet { driveView?.showRoute = showRoute }
   }
   var showTurnArrow: Bool = true {
-    didSet { driveView?.showTurnArrow = showTurnArrow }
+    didSet { applyShowTurnArrow(showTurnArrow) }
   }
   var showTrafficBar: Bool = true {
     didSet { driveView?.showTrafficBar = showTrafficBar }
@@ -443,10 +454,10 @@ public class ExpoGaodeMapNaviView: ExpoView {
     didSet { applyTrafficBarColors(trafficBarColors) }
   }
   var showBrowseRouteButton: Bool = true {
-    didSet { driveView?.showBrowseRouteButton = showBrowseRouteButton }
+    didSet { applyShowBrowseRouteButton(showBrowseRouteButton) }
   }
   var showMoreButton: Bool = true {
-    didSet { driveView?.showMoreButton = showMoreButton }
+    didSet { applyShowMoreButton(showMoreButton) }
   }
   var showTrafficButton: Bool = true {
     didSet { driveView?.showTrafficButton = showTrafficButton }
@@ -458,10 +469,10 @@ public class ExpoGaodeMapNaviView: ExpoView {
     didSet { driveView?.showEagleMap = showEagleMap }
   }
   var showUIElements: Bool = true {
-    didSet { applyShowUIElementsToDriveViewIfReady() }
+    didSet { applyShowUIElementsToActiveViewIfReady() }
   }
   var showGreyAfterPass: Bool = true {
-    didSet { driveView?.showGreyAfterPass = showGreyAfterPass }
+    didSet { applyShowGreyAfterPass(showGreyAfterPass) }
   }
   var showVectorline: Bool = true {
     didSet { driveView?.showVectorline = showVectorline }
@@ -472,7 +483,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   var showCompassEnabled: Bool? {
     didSet {
       guard let showCompassEnabled else { return }
-      driveView?.showCompass = showCompassEnabled
+      applyShowCompassEnabled(showCompassEnabled)
     }
   }
   var showDriveCongestion: Bool = true {
@@ -485,18 +496,18 @@ public class ExpoGaodeMapNaviView: ExpoView {
     didSet { applyMapViewModeType(mapViewModeType) }
   }
   var lineWidth: CGFloat = 0 {
-    didSet { driveView?.lineWidth = lineWidth }
+    didSet { applyLineWidth(lineWidth) }
   }
   var driveViewEdgePadding: UIEdgeInsets = .zero {
     didSet {
-      driveView?.setNeedsLayout()
-      driveView?.layoutIfNeeded()
+      currentNaviView()?.setNeedsLayout()
+      currentNaviView()?.layoutIfNeeded()
       scheduleOverviewRouteVisibleRegionRefresh()
     }
   }
   var screenAnchor: CGPoint = .zero {
     didSet {
-      driveView?.screenAnchor = screenAnchor
+      applyScreenAnchor(screenAnchor)
       scheduleOverviewRouteVisibleRegionRefresh()
     }
   }
@@ -552,42 +563,185 @@ public class ExpoGaodeMapNaviView: ExpoView {
       }
       return
     }
-    
-    // 初始化驾车导航管理器
-    driveManager = AMapNaviDriveManager.sharedInstance()
-    rebindDriveManagerToView()
-    
-    // 使用内置语音
-    driveManager?.isUseInternalTTS = true
-    activateNavigationAudioSessionIfNeeded(reason: "setup_navi_view")
-    
-    // 初始化导航视图
+
+    switchToScene(.drive)
+  }
+
+  private func currentNaviView() -> UIView? {
+    switch activeScene {
+    case .drive:
+      return driveView
+    case .walk:
+      return walkView
+    case .ride:
+      return rideView
+    }
+  }
+
+  private func setupDriveViewIfNeeded() {
+    guard driveView == nil else {
+      return
+    }
     let customDriveView = ExpoGaodeMapCustomDriveView(frame: bounds)
+    customDriveView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    customDriveView.delegate = self
     customDriveView.suppressTopInfoUI = hideNativeTopInfoLayout
     customDriveView.suppressLaneInfoUI = hideNativeLaneInfoLayout
     driveView = customDriveView
-    driveView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-    driveView?.delegate = self
-    
-    if let view = driveView {
-      addSubview(view)
-      driveManager?.addDataRepresentative(view)
+  }
+
+  private func setupWalkViewIfNeeded() {
+    guard walkView == nil else {
+      return
     }
-    
-    // 应用初始配置
+    let view = AMapNaviWalkView(frame: bounds)
+    view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.delegate = self
+    walkView = view
+  }
+
+  private func setupRideViewIfNeeded() {
+    guard rideView == nil else {
+      return
+    }
+    let view = AMapNaviRideView(frame: bounds)
+    view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.delegate = self
+    rideView = view
+  }
+
+  private func attachActiveView(_ targetView: UIView?) {
+    let knownViews = [driveView, walkView, rideView].compactMap { $0 }
+    for view in knownViews where view !== targetView {
+      if view.superview === self {
+        view.removeFromSuperview()
+      }
+    }
+
+    guard let targetView else {
+      return
+    }
+    targetView.frame = bounds
+    if targetView.superview !== self {
+      addSubview(targetView)
+    }
+    sendSubviewToBack(targetView)
+  }
+
+  private func switchToScene(_ scene: NaviScene) {
+    teardownManagers(except: scene)
+    activeScene = scene
+
+    switch scene {
+    case .drive:
+      setupDriveViewIfNeeded()
+      rebindDriveManagerToView()
+      attachActiveView(driveView)
+    case .walk:
+      setupWalkViewIfNeeded()
+      rebindWalkManagerToView()
+      attachActiveView(walkView)
+    case .ride:
+      setupRideViewIfNeeded()
+      rebindRideManagerToView()
+      attachActiveView(rideView)
+    }
+
     applyViewOptions()
+    applyShowUIElementsToActiveViewIfReady()
+    DispatchQueue.main.async { [weak self] in
+      self?.onNavigationReady([:])
+    }
+  }
+
+  private func teardownManagers(except scene: NaviScene) {
+    if scene != .drive {
+      destroyDriveManagerIfNeeded()
+    }
+    if scene != .walk {
+      destroyWalkManagerIfNeeded()
+    }
+    if scene != .ride {
+      destroyRideManagerIfNeeded()
+    }
+  }
+
+  private func destroyDriveManagerIfNeeded() {
+    guard let driveManager else {
+      return
+    }
+    if let view = driveView {
+      driveManager.removeDataRepresentative(view)
+    }
+    driveManager.removeDataRepresentative(self)
+    driveManager.delegate = nil
+    self.driveManager = nil
+    _ = AMapNaviDriveManager.destroyInstance()
+  }
+
+  private func destroyWalkManagerIfNeeded() {
+    guard let walkManager else {
+      return
+    }
+    if let view = walkView {
+      walkManager.removeDataRepresentative(view)
+    }
+    walkManager.removeDataRepresentative(self)
+    walkManager.delegate = nil
+    self.walkManager = nil
+    _ = AMapNaviWalkManager.destroyInstance()
+  }
+
+  private func destroyRideManagerIfNeeded() {
+    guard let rideManager else {
+      return
+    }
+    if let view = rideView {
+      rideManager.removeDataRepresentative(view)
+    }
+    rideManager.removeDataRepresentative(self)
+    rideManager.delegate = nil
+    self.rideManager = nil
+    _ = AMapNaviRideManager.destroyInstance()
   }
 
   private func rebindDriveManagerToView() {
     driveManager = AMapNaviDriveManager.sharedInstance()
     driveManager?.delegate = self
     applyDriveManagerBackgroundLocationOptionsIfNeeded()
+    driveManager?.isUseInternalTTS = enableVoice
     driveManager?.removeDataRepresentative(self)
     if let view = driveView {
       driveManager?.removeDataRepresentative(view)
       driveManager?.addDataRepresentative(view)
     }
     driveManager?.addDataRepresentative(self)
+  }
+
+  private func rebindWalkManagerToView() {
+    walkManager = AMapNaviWalkManager.sharedInstance()
+    walkManager?.delegate = self
+    applyWalkManagerBackgroundLocationOptionsIfNeeded()
+    walkManager?.isUseInternalTTS = enableVoice
+    walkManager?.removeDataRepresentative(self)
+    if let view = walkView {
+      walkManager?.removeDataRepresentative(view)
+      walkManager?.addDataRepresentative(view)
+    }
+    walkManager?.addDataRepresentative(self)
+  }
+
+  private func rebindRideManagerToView() {
+    rideManager = AMapNaviRideManager.sharedInstance()
+    rideManager?.delegate = self
+    applyRideManagerBackgroundLocationOptionsIfNeeded()
+    rideManager?.isUseInternalTTS = enableVoice
+    rideManager?.removeDataRepresentative(self)
+    if let view = rideView {
+      rideManager?.removeDataRepresentative(view)
+      rideManager?.addDataRepresentative(view)
+    }
+    rideManager?.addDataRepresentative(self)
   }
 
   private func applyDriveManagerBackgroundLocationOptionsIfNeeded() {
@@ -598,6 +752,28 @@ public class ExpoGaodeMapNaviView: ExpoView {
     let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
     if backgroundModes?.contains("location") == true {
       driveManager.allowsBackgroundLocationUpdates = true
+    }
+  }
+
+  private func applyWalkManagerBackgroundLocationOptionsIfNeeded() {
+    guard let walkManager else {
+      return
+    }
+    walkManager.pausesLocationUpdatesAutomatically = false
+    let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+    if backgroundModes?.contains("location") == true {
+      walkManager.allowsBackgroundLocationUpdates = true
+    }
+  }
+
+  private func applyRideManagerBackgroundLocationOptionsIfNeeded() {
+    guard let rideManager else {
+      return
+    }
+    rideManager.pausesLocationUpdatesAutomatically = false
+    let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+    if backgroundModes?.contains("location") == true {
+      rideManager.allowsBackgroundLocationUpdates = true
     }
   }
 
@@ -658,6 +834,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
 
   private func resetTransientNavigationState() {
     hasStartedNavi = false
+    hasReceivedFirstNaviData = false
+    lastKnownSpeed = 0
     currentRouteTotalLength = nil
     trafficBarTotalLength = nil
     lastNavigationInfoPayload = nil
@@ -936,6 +1114,68 @@ public class ExpoGaodeMapNaviView: ExpoView {
     return nil
   }
 
+  private func fallbackTurnSymbolName(for iconType: Int) -> String {
+    switch iconType {
+    case 2:
+      return "arrow.turn.up.left"
+    case 3:
+      return "arrow.turn.up.right"
+    case 4:
+      return "arrow.up.left"
+    case 5:
+      return "arrow.up.right"
+    case 6:
+      return "arrow.down.left"
+    case 7:
+      return "arrow.down.right"
+    case 8:
+      return "arrow.uturn.left"
+    case 9, 20:
+      return "arrow.up"
+    case 11, 12:
+      return "arrow.clockwise.circle"
+    case 15:
+      return "flag.checkered"
+    case 19:
+      return "arrow.uturn.right"
+    case 65:
+      return "arrow.left.circle"
+    case 66:
+      return "arrow.right.circle"
+    default:
+      return "arrow.up"
+    }
+  }
+
+  private func fallbackTurnIconImage(iconType: Int) -> UIImage? {
+    let config = UIImage.SymbolConfiguration(pointSize: 36, weight: .bold)
+    return UIImage(systemName: fallbackTurnSymbolName(for: iconType), withConfiguration: config)?
+      .withTintColor(.white, renderingMode: .alwaysOriginal)
+  }
+
+  private func resolveTravelTurnIconImage(iconType: Int) -> UIImage? {
+    let iconEnum = AMapNaviIconType(rawValue: iconType) ?? .none
+    if activeScene == .ride {
+      return AMapNaviRideView.rideViewTurnIconImage(with: iconEnum)
+    }
+    return fallbackTurnIconImage(iconType: iconType)
+  }
+
+  private func updateCachedTurnIconForTravelSceneIfNeeded(iconType: Int) {
+    guard activeScene != .drive else {
+      return
+    }
+    let image = resolveTravelTurnIconImage(iconType: iconType)
+    if let encoded = encodeTurnIconForLiveActivity(image) {
+      lastTurnIconBase64 = encoded
+    }
+    lastTurnIconImageUri = cacheTurnIconImage(
+      image,
+      prefix: "travel_turn_icon",
+      previousUri: lastTurnIconImageUri
+    )
+  }
+
   private func cacheTurnIconImage(_ image: UIImage?, prefix: String, previousUri: String?) -> String? {
     guard let image, let data = image.pngData() else {
       if let previousUri {
@@ -1067,39 +1307,89 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   private func applyViewOptions() {
-    // 通用属性
-    driveView?.showUIElements = showUIElements
-    driveView?.showCamera = showCamera
-    driveView?.autoSwitchShowModeToCarPositionLocked = autoLockCar
-    driveView?.autoZoomMapLevel = autoChangeZoom
-    driveView?.mapShowTraffic = trafficLayerEnabled
-    driveView?.showCrossImage = realCrossDisplay
-    driveView?.trackingMode = naviMode == 0 ? .carNorth : .mapNorth
-    
-    // iOS 特有属性
-    driveView?.showRoute = showRoute
-    driveView?.showTurnArrow = showTurnArrow
-    driveView?.showTrafficBar = showTrafficBar
-    applyTrafficBarFrame(trafficBarFrame)
-    applyTrafficBarColors(trafficBarColors)
-    driveView?.showBrowseRouteButton = showBrowseRouteButton
-    driveView?.showMoreButton = showMoreButton
-    driveView?.showTrafficButton = showTrafficButton
-    driveView?.showBackupRoute = showBackupRoute
-    driveView?.showEagleMap = showEagleMap
-    driveView?.showGreyAfterPass = showGreyAfterPass
-    driveView?.showVectorline = showVectorline
-    driveView?.showTrafficLights = showTrafficLights
-    if let showCompassEnabled {
-      driveView?.showCompass = showCompassEnabled
-    }
-    driveView?.showDriveCongestion = showDriveCongestion
-    driveView?.showTrafficLightView = showTrafficLightView
-    if lineWidth > 0 {
-      driveView?.lineWidth = lineWidth
+    switch activeScene {
+    case .drive:
+      applyDriveViewOptions()
+    case .walk:
+      applyWalkViewOptions()
+    case .ride:
+      applyRideViewOptions()
     }
     applyCustomAnnotationImages()
     applyCustomUILayoutOptionsIfNeeded()
+  }
+
+  private func applyDriveViewOptions() {
+    guard let driveView else {
+      return
+    }
+    driveView.showUIElements = pendingShowUIElements ?? showUIElements
+    driveView.showCamera = showCamera
+    driveView.autoSwitchShowModeToCarPositionLocked = autoLockCar
+    driveView.autoZoomMapLevel = autoChangeZoom
+    driveView.mapShowTraffic = trafficLayerEnabled
+    driveView.showCrossImage = realCrossDisplay
+    driveView.showRoute = showRoute
+    driveView.showTrafficBar = showTrafficBar
+    driveView.showTrafficButton = showTrafficButton
+    driveView.showBackupRoute = showBackupRoute
+    driveView.showEagleMap = showEagleMap
+    driveView.showVectorline = showVectorline
+    driveView.showTrafficLights = showTrafficLights
+    driveView.showDriveCongestion = showDriveCongestion
+    driveView.showTrafficLightView = showTrafficLightView
+    applyNaviMode(naviMode)
+    applyShowMode(showMode)
+    applyShowTurnArrow(showTurnArrow)
+    applyShowBrowseRouteButton(showBrowseRouteButton)
+    applyShowMoreButton(showMoreButton)
+    applyShowGreyAfterPass(showGreyAfterPass)
+    if let showCompassEnabled {
+      applyShowCompassEnabled(showCompassEnabled)
+    }
+    applyLineWidth(lineWidth)
+    applyScreenAnchor(screenAnchor)
+    applyMapViewModeType(mapViewModeType)
+    applyTrafficBarFrame(trafficBarFrame)
+    applyTrafficBarColors(trafficBarColors)
+  }
+
+  private func applyWalkViewOptions() {
+    guard let walkView else {
+      return
+    }
+    walkView.showUIElements = pendingShowUIElements ?? showUIElements
+    applyNaviMode(naviMode)
+    applyShowMode(showMode)
+    applyShowTurnArrow(showTurnArrow)
+    applyShowBrowseRouteButton(showBrowseRouteButton)
+    applyShowMoreButton(showMoreButton)
+    applyShowGreyAfterPass(showGreyAfterPass)
+    if let showCompassEnabled {
+      applyShowCompassEnabled(showCompassEnabled)
+    }
+    applyLineWidth(lineWidth)
+    applyScreenAnchor(screenAnchor)
+    applyMapViewModeType(mapViewModeType)
+  }
+
+  private func applyRideViewOptions() {
+    guard let rideView else {
+      return
+    }
+    rideView.showUIElements = pendingShowUIElements ?? showUIElements
+    applyNaviMode(naviMode)
+    applyShowMode(showMode)
+    applyShowTurnArrow(showTurnArrow)
+    applyShowBrowseRouteButton(showBrowseRouteButton)
+    applyShowMoreButton(showMoreButton)
+    applyShowGreyAfterPass(showGreyAfterPass)
+    if let showCompassEnabled {
+      applyShowCompassEnabled(showCompassEnabled)
+    }
+    applyLineWidth(lineWidth)
+    applyScreenAnchor(screenAnchor)
+    applyMapViewModeType(mapViewModeType)
   }
 
   private func applyCustomAnnotationImages() {
@@ -1146,7 +1436,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private func refreshCustomWaypointAnnotations() {
     clearCustomWaypointAnnotations()
 
-    guard let driveView else {
+    guard activeScene == .drive, let driveView else {
       return
     }
 
@@ -1263,58 +1553,60 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
 
   private func applyCarImageSource() {
-    guard let driveView else {
-      return
-    }
     applyAnnotationImage(source: carImageSource, currentSource: { [weak self] in
       self?.carImageSource
-    }) { [weak self, weak driveView] image in
+    }) { [weak self, weak driveView, weak walkView, weak rideView] image in
       let resizedImage = self?.resizeImageIfNeeded(image, targetSize: self?.carImageSize) ?? image
       driveView?.setCarImage(resizedImage)
+      walkView?.setCarImage(resizedImage)
+      if let resizedImage {
+        rideView?.setCarImageWithSize(resizedImage)
+      } else {
+        rideView?.setCarImage(nil)
+      }
     }
   }
 
   private func applyCarCompassImageSource() {
-    guard let driveView else {
-      return
-    }
     applyAnnotationImage(source: carCompassImageSource, currentSource: { [weak self] in
       self?.carCompassImageSource
-    }) { [weak driveView] image in
+    }) { [weak driveView, weak walkView, weak rideView] image in
       driveView?.setCarCompassImage(image)
+      walkView?.setCarCompassImage(image)
+      rideView?.setCarCompassImage(image)
     }
   }
 
   private func applyStartPointImageSource() {
-    guard let driveView else {
-      return
-    }
     applyAnnotationImage(source: startPointImageSource, currentSource: { [weak self] in
       self?.startPointImageSource
-    }) { [weak driveView] image in
+    }) { [weak driveView, weak walkView, weak rideView] image in
       driveView?.setStartPointImage(image)
+      walkView?.setStartPointImage(image)
+      rideView?.setStartPointImage(image)
     }
   }
 
   private func applyWayPointImageSource() {
-    guard let driveView else {
+    guard let source = wayPointImageSource?.trimmingCharacters(in: .whitespacesAndNewlines), !source.isEmpty else {
       return
     }
     applyAnnotationImage(source: wayPointImageSource, currentSource: { [weak self] in
       self?.wayPointImageSource
-    }) { [weak driveView] image in
+    }) { [weak driveView, weak walkView, weak rideView] image in
       driveView?.setWayPointImage(image)
+      walkView?.setWayPointImage(image)
+      rideView?.setWayPointImage(image)
     }
   }
 
   private func applyEndPointImageSource() {
-    guard let driveView else {
-      return
-    }
     applyAnnotationImage(source: endPointImageSource, currentSource: { [weak self] in
       self?.endPointImageSource
-    }) { [weak driveView] image in
+    }) { [weak driveView, weak walkView, weak rideView] image in
       driveView?.setEndPointImage(image)
+      walkView?.setEndPointImage(image)
+      rideView?.setEndPointImage(image)
     }
   }
 
@@ -1329,54 +1621,90 @@ public class ExpoGaodeMapNaviView: ExpoView {
     }
   }
 
-  private func applyShowUIElementsToDriveViewIfReady() {
-    guard let driveView else {
+  private func applyShowUIElementsToActiveViewIfReady() {
+    guard currentNaviView() != nil else {
       pendingShowUIElements = showUIElements
       return
     }
     let value = pendingShowUIElements ?? showUIElements
     pendingShowUIElements = nil
-    driveView.showUIElements = value
+
+    switch activeScene {
+    case .drive:
+      driveView?.showUIElements = value
+    case .walk:
+      walkView?.showUIElements = value
+    case .ride:
+      rideView?.showUIElements = value
+    }
+
     applyCustomUILayoutOptionsIfNeeded()
   }
 
   private func applyCustomUILayoutOptionsIfNeeded() {
-    guard let driveView else {
-      return
-    }
-
     guard showUIElements == false else {
       return
     }
 
-    // In custom UI mode, these properties are controlled independently from
-    // the built-in widget layer and should be re-applied after toggling it off.
-    driveView.showCrossImage = realCrossDisplay
-    driveView.showTrafficBar = showTrafficBar
-    applyTrafficBarFrame(trafficBarFrame)
-    applyTrafficBarColors(trafficBarColors)
-    driveView.screenAnchor = screenAnchor
-    driveView.setNeedsLayout()
-    driveView.layoutIfNeeded()
+    switch activeScene {
+    case .drive:
+      guard let driveView else {
+        return
+      }
+      driveView.showCrossImage = realCrossDisplay
+      driveView.showTrafficBar = showTrafficBar
+      applyTrafficBarFrame(trafficBarFrame)
+      applyTrafficBarColors(trafficBarColors)
+      driveView.screenAnchor = screenAnchor
+      driveView.setNeedsLayout()
+      driveView.layoutIfNeeded()
+    case .walk:
+      guard let walkView else {
+        return
+      }
+      walkView.screenAnchor = screenAnchor
+      walkView.setNeedsLayout()
+      walkView.layoutIfNeeded()
+    case .ride:
+      guard let rideView else {
+        return
+      }
+      rideView.screenAnchor = screenAnchor
+      rideView.setNeedsLayout()
+      rideView.layoutIfNeeded()
+    }
+
     scheduleOverviewRouteVisibleRegionRefresh()
   }
 
   private func refreshOverviewRouteVisibleRegionIfNeeded() {
-    guard showUIElements == false, let driveView else {
+    guard showUIElements == false else {
       return
     }
 
-    guard driveView.showMode == .overview else {
-      return
+    switch activeScene {
+    case .drive:
+      guard let driveView, driveView.showMode == .overview else {
+        return
+      }
+      driveView.updateRoutePolylineInTheVisualRangeWhenTheShowModeIsOverview()
+    case .walk:
+      guard let walkView, walkView.showMode == .overview else {
+        return
+      }
+      walkView.updateRoutePolylineInTheVisualRangeWhenTheShowModeIsOverview()
+    case .ride:
+      guard let rideView, rideView.showMode == .overview else {
+        return
+      }
+      rideView.updateRoutePolylineInTheVisualRangeWhenTheShowModeIsOverview()
     }
-
-    driveView.updateRoutePolylineInTheVisualRangeWhenTheShowModeIsOverview()
   }
 
   private func scheduleOverviewRouteVisibleRegionRefresh() {
     DispatchQueue.main.async { [weak self] in
-      self?.driveView?.setNeedsLayout()
-      self?.driveView?.layoutIfNeeded()
+      self?.currentNaviView()?.setNeedsLayout()
+      self?.currentNaviView()?.layoutIfNeeded()
       self?.refreshOverviewRouteVisibleRegionIfNeeded()
     }
   }
@@ -1487,6 +1815,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
   
   private func applyEnableVoice(_ enabled: Bool) {
     driveManager?.isUseInternalTTS = enabled
+    walkManager?.isUseInternalTTS = enabled
+    rideManager?.isUseInternalTTS = enabled
     if enabled {
       activateNavigationAudioSessionIfNeeded(reason: "enable_voice_true")
     } else {
@@ -1512,42 +1842,259 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   private func applyNaviMode(_ mode: Int) {
-    driveView?.trackingMode = mode == 0 ? .carNorth : .mapNorth
+    let trackingMode: AMapNaviViewTrackingMode = mode == 0 ? .carNorth : .mapNorth
+    switch activeScene {
+    case .drive:
+      driveView?.trackingMode = trackingMode
+    case .walk:
+      walkView?.trackingMode = trackingMode
+    case .ride:
+      rideView?.trackingMode = trackingMode
+    }
   }
   
   private func applyShowMode(_ mode: Int) {
-    // 1: 锁车态, 2: 全览态, 3: 普通态
-    switch mode {
-    case 1:
-      driveView?.showMode = .carPositionLocked
-    case 2:
-      driveView?.showMode = .overview
-    case 3:
-      driveView?.showMode = .normal
-    default:
-      break
+    switch activeScene {
+    case .drive:
+      switch mode {
+      case 1:
+        driveView?.showMode = .carPositionLocked
+      case 2:
+        driveView?.showMode = .overview
+      case 3:
+        driveView?.showMode = .normal
+      default:
+        break
+      }
+    case .walk:
+      switch mode {
+      case 1:
+        walkView?.showMode = .carPositionLocked
+      case 2:
+        walkView?.showMode = .overview
+      case 3:
+        walkView?.showMode = .normal
+      default:
+        break
+      }
+    case .ride:
+      switch mode {
+      case 1:
+        rideView?.showMode = .carPositionLocked
+      case 2:
+        rideView?.showMode = .overview
+      case 3:
+        rideView?.showMode = .normal
+      default:
+        break
+      }
     }
     scheduleOverviewRouteVisibleRegionRefresh()
   }
   
   private func applyNightMode(_ enabled: Bool) {
-    driveView?.mapViewModeType = enabled ? .night : .day
+    applyMapViewModeType(enabled ? 1 : 0)
   }
   
   private func applyMapViewModeType(_ type: Int) {
-    // 0: 白天, 1: 黑夜, 2: 自动切换, 3: 自定义
+    let resolvedMode: AMapNaviViewMapModeType
     switch type {
     case 0:
-      driveView?.mapViewModeType = .day
+      resolvedMode = .day
     case 1:
-      driveView?.mapViewModeType = .night
+      resolvedMode = .night
     case 2:
-      driveView?.mapViewModeType = .dayNightAuto
+      resolvedMode = .dayNightAuto
     case 3:
-      driveView?.mapViewModeType = .custom
+      resolvedMode = .custom
     default:
-      break
+      return
     }
+
+    switch activeScene {
+    case .drive:
+      driveView?.mapViewModeType = resolvedMode
+    case .walk:
+      walkView?.mapViewModeType = resolvedMode
+    case .ride:
+      rideView?.mapViewModeType = resolvedMode
+    }
+  }
+
+  private func applyShowTurnArrow(_ visible: Bool) {
+    switch activeScene {
+    case .drive:
+      driveView?.showTurnArrow = visible
+    case .walk:
+      walkView?.showTurnArrow = visible
+    case .ride:
+      rideView?.showTurnArrow = visible
+    }
+  }
+
+  private func applyShowBrowseRouteButton(_ visible: Bool) {
+    switch activeScene {
+    case .drive:
+      driveView?.showBrowseRouteButton = visible
+    case .walk:
+      walkView?.showBrowseRouteButton = visible
+    case .ride:
+      rideView?.showBrowseRouteButton = visible
+    }
+  }
+
+  private func applyShowMoreButton(_ visible: Bool) {
+    switch activeScene {
+    case .drive:
+      driveView?.showMoreButton = visible
+    case .walk:
+      walkView?.showMoreButton = visible
+    case .ride:
+      rideView?.showMoreButton = visible
+    }
+  }
+
+  private func applyShowGreyAfterPass(_ enabled: Bool) {
+    switch activeScene {
+    case .drive:
+      driveView?.showGreyAfterPass = enabled
+    case .walk:
+      walkView?.showGreyAfterPass = enabled
+    case .ride:
+      rideView?.showGreyAfterPass = enabled
+    }
+  }
+
+  private func applyShowCompassEnabled(_ enabled: Bool) {
+    switch activeScene {
+    case .drive:
+      driveView?.showCompass = enabled
+    case .walk:
+      walkView?.showCompass = enabled
+    case .ride:
+      rideView?.showCompass = enabled
+    }
+  }
+
+  private func applyLineWidth(_ width: CGFloat) {
+    switch activeScene {
+    case .drive:
+      driveView?.lineWidth = width
+    case .walk:
+      walkView?.lineWidth = width
+    case .ride:
+      rideView?.lineWidth = width
+    }
+  }
+
+  private func applyScreenAnchor(_ anchor: CGPoint) {
+    switch activeScene {
+    case .drive:
+      driveView?.screenAnchor = anchor
+    case .walk:
+      walkView?.screenAnchor = anchor
+    case .ride:
+      rideView?.screenAnchor = anchor
+    }
+  }
+
+  private func applyBackgroundLocationOptionsForActiveScene() {
+    switch activeScene {
+    case .drive:
+      applyDriveManagerBackgroundLocationOptionsIfNeeded()
+    case .walk:
+      applyWalkManagerBackgroundLocationOptionsIfNeeded()
+    case .ride:
+      applyRideManagerBackgroundLocationOptionsIfNeeded()
+    }
+  }
+
+  private func handleNavigationStarted(_ naviMode: AMapNaviMode) {
+    hasStartedNavi = true
+    applyBackgroundLocationOptionsForActiveScene()
+    activateNavigationAudioSessionIfNeeded(reason: "did_start_navi")
+    onNavigationStarted([
+      "type": naviMode == .emulator ? 1 : 0,
+      "isEmulator": naviMode == .emulator
+    ])
+    applyShowUIElementsToActiveViewIfReady()
+    refreshCustomWaypointAnnotations()
+    syncNavigationLiveActivityWithLastPayload()
+  }
+
+  private func handleNavigationLocationUpdate(_ naviLocation: AMapNaviLocation) {
+    if !hasReceivedFirstNaviData {
+      hasReceivedFirstNaviData = true
+      applyShowUIElementsToActiveViewIfReady()
+    }
+    lastKnownSpeed = Int(naviLocation.speed)
+    onLocationUpdate([
+      "latitude": naviLocation.coordinate.latitude,
+      "longitude": naviLocation.coordinate.longitude,
+      "speed": naviLocation.speed,
+      "bearing": naviLocation.heading
+    ])
+  }
+
+  private func navigationInfoPayload(from naviInfo: AMapNaviInfo) -> [String: Any] {
+    [
+      "naviMode": naviInfo.naviMode.rawValue,
+      "currentRoadName": naviInfo.currentRoadName ?? "",
+      "nextRoadName": naviInfo.nextRoadName ?? "",
+      "pathRetainDistance": naviInfo.routeRemainDistance,
+      "pathRetainTime": naviInfo.routeRemainTime,
+      "curStepRetainDistance": naviInfo.segmentRemainDistance,
+      "curStepRetainTime": naviInfo.segmentRemainTime,
+      "currentSpeed": lastKnownSpeed,
+      "iconType": naviInfo.iconType.rawValue,
+      "iconDirection": naviInfo.iconType.rawValue,
+      "currentSegmentIndex": naviInfo.currentSegmentIndex,
+      "currentLinkIndex": naviInfo.currentLinkIndex,
+      "currentPointIndex": naviInfo.currentPointIndex,
+      "routeRemainTrafficLightCount": naviInfo.routeRemainTrafficLightCount,
+      "driveDistance": naviInfo.routeDriveDistance,
+      "driveTime": naviInfo.routeDriveTime
+    ]
+  }
+
+  private func handleNavigationInfoUpdate(_ naviInfo: AMapNaviInfo) {
+    if !hasReceivedFirstNaviData {
+      hasReceivedFirstNaviData = true
+      applyShowUIElementsToActiveViewIfReady()
+    }
+    updateCachedTurnIconForTravelSceneIfNeeded(iconType: Int(naviInfo.iconType.rawValue))
+    emitNavigationInfoUpdate(navigationInfoPayload(from: naviInfo))
+  }
+
+  private func handleNavigationSound(_ soundString: String, soundStringType: AMapNaviSoundType) {
+    activateNavigationAudioSessionIfNeeded(reason: "play_navi_sound")
+    onNavigationText([
+      "type": soundStringType.rawValue,
+      "text": soundString
+    ])
+  }
+
+  private func handleGpsSignalUpdate(_ gpsSignalStrength: AMapNaviGPSSignalStrength) {
+    let rawValue = gpsSignalStrength.rawValue
+    let isWeak = rawValue == AMapNaviGPSSignalStrength.weak.rawValue || rawValue == 0
+    onGpsSignalWeak([
+      "isWeak": isWeak
+    ])
+  }
+
+  private func handleWayPointArrived(index: Int, point: AMapNaviPoint? = nil) {
+    if let point {
+      markNearestCustomWaypointArrived(point)
+    }
+    onWayPointArrived([
+      "index": index
+    ])
+  }
+
+  private func handleDidEndEmulatorNavi(reason: String) {
+    resetTransientNavigationState()
+    deactivateNavigationAudioSessionIfNeeded(reason: reason)
+    onNavigationEnded([:])
   }
   
   // MARK: - Public Methods
@@ -1570,8 +2117,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
       promise.reject(code, formatError(error))
       return
     }
-    
-    rebindDriveManagerToView()
+
+    switchToScene(.drive)
     resetTransientNavigationState()
 
     startCoordinate = AMapNaviPoint.location(withLatitude: CGFloat(startLat), longitude: CGFloat(startLng))
@@ -1626,7 +2173,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
       return
     }
 
-    rebindDriveManagerToView()
+    let scene = NaviScene(rawValue: independentRouteManager.scene(for: token) ?? "") ?? .drive
+    switchToScene(scene)
     resetTransientNavigationState()
 
     if let naviType {
@@ -1653,7 +2201,14 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   func stopNavigation(promise: Promise) {
-    driveManager?.stopNavi()
+    switch activeScene {
+    case .drive:
+      driveManager?.stopNavi()
+    case .walk:
+      walkManager?.stopNavi()
+    case .ride:
+      rideManager?.stopNavi()
+    }
     resetTransientNavigationState()
     promise.resolve([
       "success": true,
@@ -1672,6 +2227,8 @@ public class ExpoGaodeMapNaviView: ExpoView {
   public override func layoutSubviews() {
     super.layoutSubviews()
     driveView?.frame = bounds
+    walkView?.frame = bounds
+    rideView?.frame = bounds
     scheduleOverviewRouteVisibleRegionRefresh()
   }
   
@@ -1679,12 +2236,12 @@ public class ExpoGaodeMapNaviView: ExpoView {
     NavigationLiveActivityManager.shared.stop()
     deactivateNavigationAudioSessionIfNeeded(reason: "deinit")
     driveManager?.stopNavi()
+    walkManager?.stopNavi()
+    rideManager?.stopNavi()
     clearCustomWaypointAnnotations()
-    if let view = driveView {
-      driveManager?.removeDataRepresentative(view)
-    }
-    driveManager?.removeDataRepresentative(self)
-    driveManager?.delegate = nil
+    destroyDriveManagerIfNeeded()
+    destroyWalkManagerIfNeeded()
+    destroyRideManagerIfNeeded()
     clearCachedTurnIconUris()
   }
 }
@@ -1739,7 +2296,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
       driveManager.startGPSNavi()
     }
 
-    applyShowUIElementsToDriveViewIfReady()
+    applyShowUIElementsToActiveViewIfReady()
     DispatchQueue.main.async { [weak self] in
       self?.applyCustomAnnotationImages()
       self?.refreshCustomWaypointAnnotations()
@@ -1754,38 +2311,19 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, didStartNavi naviMode: AMapNaviMode) {
-    hasStartedNavi = true
-    applyDriveManagerBackgroundLocationOptionsIfNeeded()
-    activateNavigationAudioSessionIfNeeded(reason: "did_start_navi")
-    onNavigationStarted([
-      "type": naviMode == .emulator ? 1 : 0,
-      "isEmulator": naviMode == .emulator
-    ])
-
-    applyShowUIElementsToDriveViewIfReady()
-    refreshCustomWaypointAnnotations()
-    syncNavigationLiveActivityWithLastPayload()
+    handleNavigationStarted(naviMode)
   }
   
   public func driveManagerNavi(_ driveManager: AMapNaviDriveManager, didArrive wayPoint: AMapNaviPoint) {
-    markNearestCustomWaypointArrived(wayPoint)
-    onWayPointArrived([
-      "index": 0
-    ])
+    handleWayPointArrived(index: 0, point: wayPoint)
   }
   
   public func driveManagerDidEndEmulatorNavi(_ driveManager: AMapNaviDriveManager) {
-    resetTransientNavigationState()
-    deactivateNavigationAudioSessionIfNeeded(reason: "did_end_emulator_navi")
-    onNavigationEnded([:])
+    handleDidEndEmulatorNavi(reason: "did_end_emulator_navi")
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, playNaviSound soundString: String, soundStringType: AMapNaviSoundType) {
-    activateNavigationAudioSessionIfNeeded(reason: "play_navi_sound")
-    onNavigationText([
-      "type": soundStringType.rawValue,
-      "text": soundString
-    ])
+    handleNavigationSound(soundString, soundStringType: soundStringType)
   }
   
   /// 兼容一部分 SDK/Swift 导入下的到达终点回调签名
@@ -1800,23 +2338,20 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveManagerDelegate {
     deactivateNavigationAudioSessionIfNeeded(reason: "arrived_destination_official")
   }
   
-  public func driveManagerOnReCalculateRoute(forYaw driveManager: AMapNaviDriveManager) {
+  public func driveManagerNeedRecalculateRoute(forYaw driveManager: AMapNaviDriveManager) {
     onRouteRecalculate([
       "reason": "yaw"
     ])
   }
   
-  public func driveManagerOnReCalculateRoute(forTrafficJam driveManager: AMapNaviDriveManager) {
+  public func driveManagerNeedRecalculateRoute(forTrafficJam driveManager: AMapNaviDriveManager) {
     onRouteRecalculate([
       "reason": "traffic"
     ])
   }
   
   public func driveManager(_ driveManager: AMapNaviDriveManager, update gpsSignalStrength: AMapNaviGPSSignalStrength) {
-    let isWeak = gpsSignalStrength == .weak || gpsSignalStrength == .none
-    onGpsSignalWeak([
-      "isWeak": isWeak
-    ])
+    handleGpsSignalUpdate(gpsSignalStrength)
   }
 }
 
@@ -1825,7 +2360,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveViewDelegate {
   
   public func driveViewDidLoad(_ driveView: AMapNaviDriveView) {
     applyViewOptions()
-    applyShowUIElementsToDriveViewIfReady()
+    applyShowUIElementsToActiveViewIfReady()
     refreshCustomWaypointAnnotations()
     scheduleOverviewRouteVisibleRegionRefresh()
     onNavigationReady([:])
@@ -1853,45 +2388,14 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveDataRepresentable {
     guard let naviLocation else {
       return
     }
-    if !hasReceivedFirstNaviData {
-      hasReceivedFirstNaviData = true
-      applyShowUIElementsToDriveViewIfReady()
-    }
-    lastKnownSpeed = Int(naviLocation.speed)
-    onLocationUpdate([
-      "latitude": naviLocation.coordinate.latitude,
-      "longitude": naviLocation.coordinate.longitude,
-      "speed": naviLocation.speed,
-      "bearing": naviLocation.heading
-    ])
+    handleNavigationLocationUpdate(naviLocation)
   }
 
   public func driveManager(_ driveManager: AMapNaviDriveManager, update naviInfo: AMapNaviInfo?) {
     guard let naviInfo else {
       return
     }
-    if !hasReceivedFirstNaviData {
-      hasReceivedFirstNaviData = true
-      applyShowUIElementsToDriveViewIfReady()
-    }
-    emitNavigationInfoUpdate([
-      "naviMode": naviInfo.naviMode.rawValue,
-      "currentRoadName": naviInfo.currentRoadName ?? "",
-      "nextRoadName": naviInfo.nextRoadName ?? "",
-      "pathRetainDistance": naviInfo.routeRemainDistance,
-      "pathRetainTime": naviInfo.routeRemainTime,
-      "curStepRetainDistance": naviInfo.segmentRemainDistance,
-      "curStepRetainTime": naviInfo.segmentRemainTime,
-      "currentSpeed": lastKnownSpeed,
-      "iconType": naviInfo.iconType.rawValue,
-      "iconDirection": naviInfo.iconType.rawValue,
-      "currentSegmentIndex": naviInfo.currentSegmentIndex,
-      "currentLinkIndex": naviInfo.currentLinkIndex,
-      "currentPointIndex": naviInfo.currentPointIndex,
-      "routeRemainTrafficLightCount": naviInfo.routeRemainTrafficLightCount,
-      "driveDistance": naviInfo.routeDriveDistance,
-      "driveTime": naviInfo.routeDriveTime
-    ])
+    handleNavigationInfoUpdate(naviInfo)
   }
 
   public func driveManager(_ driveManager: AMapNaviDriveManager, showCross crossImage: UIImage?) {
@@ -1953,5 +2457,157 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveDataRepresentable {
       previousUri: lastNextTurnIconImageUri
     )
     reemitLastNavigationInfoIfNeeded()
+  }
+}
+
+// MARK: - AMapNaviWalkManagerDelegate
+extension ExpoGaodeMapNaviView: AMapNaviWalkManagerDelegate {
+  public func walkManager(_ walkManager: AMapNaviWalkManager, didStartNavi naviMode: AMapNaviMode) {
+    handleNavigationStarted(naviMode)
+  }
+
+  public func walkManagerDidEndEmulatorNavi(_ walkManager: AMapNaviWalkManager) {
+    handleDidEndEmulatorNavi(reason: "walk_did_end_emulator_navi")
+  }
+
+  public func walkManager(_ walkManager: AMapNaviWalkManager, playNaviSound soundString: String, soundStringType: AMapNaviSoundType) {
+    handleNavigationSound(soundString, soundStringType: soundStringType)
+  }
+
+  public func walkManager(onArrivedDestination walkManager: AMapNaviWalkManager) {
+    handleArrivedDestination(source: "walkManagerOnArrivedDestination")
+    deactivateNavigationAudioSessionIfNeeded(reason: "walk_arrived_destination")
+  }
+
+  public func walkManagerNeedRecalculateRoute(forYaw walkManager: AMapNaviWalkManager) {
+    onRouteRecalculate([
+      "reason": "yaw"
+    ])
+  }
+
+  public func walkManager(_ walkManager: AMapNaviWalkManager, update gpsSignalStrength: AMapNaviGPSSignalStrength) {
+    handleGpsSignalUpdate(gpsSignalStrength)
+  }
+
+  public func walkManager(_ walkManager: AMapNaviWalkManager, onArrivedWayPoint wayPointIndex: Int32) {
+    handleWayPointArrived(index: Int(wayPointIndex))
+  }
+
+  public func walkManager(_ walkManager: AMapNaviWalkManager, onCalculateRouteFailure error: Error) {
+    onRouteCalculated([
+      "success": false,
+      "errorInfo": error.localizedDescription
+    ])
+  }
+}
+
+// MARK: - AMapNaviWalkViewDelegate
+extension ExpoGaodeMapNaviView: AMapNaviWalkViewDelegate {
+  public func walkViewEdgePadding(_ walkView: AMapNaviWalkView) -> UIEdgeInsets {
+    driveViewEdgePadding
+  }
+
+  public func walkView(_ walkView: AMapNaviWalkView, didChange showMode: AMapNaviWalkViewShowMode) {
+    if showMode == .overview {
+      scheduleOverviewRouteVisibleRegionRefresh()
+    }
+  }
+}
+
+extension ExpoGaodeMapNaviView: AMapNaviWalkDataRepresentable {
+  public func walkManager(_ walkManager: AMapNaviWalkManager, update naviRoute: AMapNaviRoute?) {
+    if let routeLength = naviRoute?.routeLength, routeLength > 0 {
+      currentRouteTotalLength = routeLength
+    }
+  }
+
+  public func walkManager(_ walkManager: AMapNaviWalkManager, update naviLocation: AMapNaviLocation?) {
+    guard let naviLocation else {
+      return
+    }
+    handleNavigationLocationUpdate(naviLocation)
+  }
+
+  public func walkManager(_ walkManager: AMapNaviWalkManager, update naviInfo: AMapNaviInfo?) {
+    guard let naviInfo else {
+      return
+    }
+    handleNavigationInfoUpdate(naviInfo)
+  }
+}
+
+// MARK: - AMapNaviRideManagerDelegate
+extension ExpoGaodeMapNaviView: AMapNaviRideManagerDelegate {
+  public func rideManager(_ rideManager: AMapNaviRideManager, didStartNavi naviMode: AMapNaviMode) {
+    handleNavigationStarted(naviMode)
+  }
+
+  public func rideManagerDidEndEmulatorNavi(_ rideManager: AMapNaviRideManager) {
+    handleDidEndEmulatorNavi(reason: "ride_did_end_emulator_navi")
+  }
+
+  public func rideManager(_ rideManager: AMapNaviRideManager, playNaviSound soundString: String, soundStringType: AMapNaviSoundType) {
+    handleNavigationSound(soundString, soundStringType: soundStringType)
+  }
+
+  public func rideManager(onArrivedDestination rideManager: AMapNaviRideManager) {
+    handleArrivedDestination(source: "rideManagerOnArrivedDestination")
+    deactivateNavigationAudioSessionIfNeeded(reason: "ride_arrived_destination")
+  }
+
+  public func rideManagerNeedRecalculateRoute(forYaw rideManager: AMapNaviRideManager) {
+    onRouteRecalculate([
+      "reason": "yaw"
+    ])
+  }
+
+  public func rideManager(_ rideManager: AMapNaviRideManager, update gpsSignalStrength: AMapNaviGPSSignalStrength) {
+    handleGpsSignalUpdate(gpsSignalStrength)
+  }
+
+  public func rideManager(_ rideManager: AMapNaviRideManager, onArrivedWayPoint wayPointIndex: Int32) {
+    handleWayPointArrived(index: Int(wayPointIndex))
+  }
+
+  public func rideManager(_ rideManager: AMapNaviRideManager, onCalculateRouteFailure error: Error) {
+    onRouteCalculated([
+      "success": false,
+      "errorInfo": error.localizedDescription
+    ])
+  }
+}
+
+// MARK: - AMapNaviRideViewDelegate
+extension ExpoGaodeMapNaviView: AMapNaviRideViewDelegate {
+  public func rideViewEdgePadding(_ rideView: AMapNaviRideView) -> UIEdgeInsets {
+    driveViewEdgePadding
+  }
+
+  public func rideView(_ rideView: AMapNaviRideView, didChange showMode: AMapNaviRideViewShowMode) {
+    if showMode == .overview {
+      scheduleOverviewRouteVisibleRegionRefresh()
+    }
+  }
+}
+
+extension ExpoGaodeMapNaviView: AMapNaviRideDataRepresentable {
+  public func rideManager(_ rideManager: AMapNaviRideManager, update naviRoute: AMapNaviRoute?) {
+    if let routeLength = naviRoute?.routeLength, routeLength > 0 {
+      currentRouteTotalLength = routeLength
+    }
+  }
+
+  public func rideManager(_ rideManager: AMapNaviRideManager, update naviLocation: AMapNaviLocation?) {
+    guard let naviLocation else {
+      return
+    }
+    handleNavigationLocationUpdate(naviLocation)
+  }
+
+  public func rideManager(_ rideManager: AMapNaviRideManager, update naviInfo: AMapNaviInfo?) {
+    guard let naviInfo else {
+      return
+    }
+    handleNavigationInfoUpdate(naviInfo)
   }
 }

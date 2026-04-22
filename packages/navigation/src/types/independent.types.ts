@@ -289,7 +289,9 @@ export interface IndependentMotorcycleRouteOptions {
  * 独立步行路径规划参数
  *
  * 说明：
+ * - 这是“独立算路”参数：只负责生成可预览/可选路的独立路径组，不会自动开始导航
  * - 通过 travelStrategy 指定 SINGLE/MULTIPLE；或使用 multiple=true 开启多路线
+ * - 生成结果后，可继续调用模块级 startNaviWithIndependentPath，或在嵌入式导航视图 ref 上调用 startNavigationWithIndependentPath
  */
 export interface IndependentWalkRouteOptions {
   /** 起点坐标 */
@@ -306,7 +308,7 @@ export interface IndependentWalkRouteOptions {
     name?: string;
     poiId?: string;
   };
-  /** 途经点列表 */
+  /** 途经点列表。是否生效取决于当前原生端对应场景的支持情况。 */
   waypoints?: Array<{
     latitude: number;
     longitude: number;
@@ -323,7 +325,9 @@ export interface IndependentWalkRouteOptions {
  * 独立骑行路径规划参数
  *
  * 说明：
+ * - 这是“独立算路”参数：只负责生成可预览/可选路的独立路径组，不会自动开始导航
  * - 通过 travelStrategy 指定 SINGLE/MULTIPLE；或使用 multiple=true 开启多路线
+ * - 生成结果后，可继续调用模块级 startNaviWithIndependentPath，或在嵌入式导航视图 ref 上调用 startNavigationWithIndependentPath
  */
 export interface IndependentRideRouteOptions {
   /** 起点坐标 */
@@ -340,7 +344,7 @@ export interface IndependentRideRouteOptions {
     name?: string;
     poiId?: string;
   };
-  /** 途经点列表 */
+  /** 途经点列表。是否生效取决于当前原生端对应场景的支持情况。 */
   waypoints?: Array<{
     latitude: number;
     longitude: number;
@@ -357,6 +361,7 @@ export interface IndependentRideRouteOptions {
  * 选择独立路径组中的主路线参数
  * - token: 独立算路返回的 token
  * - routeId/routeIndex: 选路（优先使用 routeId；未提供则保持当前主路线）
+ * - 仅切换独立路径组里的“当前主路线”，本身不会开始导航
  */
 export interface SelectIndependentRouteOptions {
   token: number;
@@ -365,10 +370,14 @@ export interface SelectIndependentRouteOptions {
 }
 
 /**
- * 使用独立路径组启动导航参数
+ * 使用独立路径组启动导航参数（模块级 API）
  * - token: 独立算路返回的 token
  * - naviType: 0=GPS; 1=EMULATOR（默认 0）
  * - routeId/routeIndex: 启动前可选路
+ *
+ * 说明：
+ * - 这是模块级启动入口，不依赖某个 ExpoGaodeMapNaviView 实例
+ * - 若你已经持有嵌入式导航视图 ref，更适合调用 ref.startNavigationWithIndependentPath(...)
  */
 export interface StartNaviWithIndependentPathOptions {
   token: number;
@@ -379,6 +388,8 @@ export interface StartNaviWithIndependentPathOptions {
 
 /**
  * 清理独立路径组
+ * - token: 独立算路返回的 token
+ * - 当页面只需要预览、不再需要后续选路/导航时，建议主动清理
  */
 export interface ClearIndependentRouteOptions {
   token: number;

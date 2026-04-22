@@ -807,41 +807,64 @@ export async function calculateTransitRoute(options: TransitRouteOptions): Promi
 }
 
 /**
-* 独立路径规划（不会影响当前导航；适合路线预览/行前选路）
-*/
+ * 独立驾车路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路、自定义路线选择页
+ * - 后续可配合 selectIndependentRoute / startNaviWithIndependentPath 使用
+ */
 export const independentDriveRoute = (options: IndependentDriveRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentDriveRoute(options);
 /**
- * 独立货车路径规划（不干扰当前导航）
+ * 独立货车路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
  */
 export const independentTruckRoute = (options: IndependentTruckRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentTruckRoute(options);
 /**
- * 独立步行路径规划（不干扰当前导航）
+ * 独立步行路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
  */
 export const independentWalkRoute = (options: IndependentWalkRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentWalkRoute(options);
 
 /**
- * 独立骑行路径规划（不干扰当前导航）
+ * 独立骑行路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
  */
 export const independentRideRoute = (options: IndependentRideRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentRideRoute(options);
 
 /**
- * 独立摩托车路径规划（不干扰当前导航）
+ * 独立摩托车路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
  */
 export const independentMotorcycleRoute = (options: IndependentMotorcycleRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentMotorcycleRoute(options);
 
 /**
  * 独立路径组：选主路线
+ *
+ * - 仅切换 token 对应路径组里的当前主路线
+ * - 本身不会开始导航
  */
 export const selectIndependentRoute = (options: SelectIndependentRouteOptions) => 
   ExpoGaodeMapNavigationModule.selectIndependentRoute(options);
 
 /**
  * 独立路径组：使用指定路线启动导航
+ *
+ * - 这是模块级启动入口，不依赖 ExpoGaodeMapNaviView ref
+ * - 适合工具函数、流程封装、非嵌入式页面场景
+ * - 若你已经持有嵌入式导航视图 ref，更适合调用 ref.startNavigationWithIndependentPath(...)
  */
 export const startNaviWithIndependentPath = (options: StartNaviWithIndependentPathOptions) => 
   ExpoGaodeMapNavigationModule.startNaviWithIndependentPath(options);
@@ -854,6 +877,9 @@ export const openOfficialNaviPage = (options: OfficialNaviPageOptions) =>
 
 /**
  * 独立路径组：清理
+ *
+ * - 释放 independentXXXRoute 生成的 token 对应缓存
+ * - 当页面只保留路线预览、不再需要后续选路/导航时，建议主动清理
  */
 export const clearIndependentRoute = (options: ClearIndependentRouteOptions) => 
   ExpoGaodeMapNavigationModule.clearIndependentRoute(options);

@@ -59,7 +59,11 @@ export interface ExpoGaodeMapNaviViewRef {
    */
   startNavigation: (start: Coordinates | null, end: Coordinates, type: number) => Promise<void>;
   /**
-   * 使用独立路径组启动导航
+   * 在当前嵌入式导航视图中，使用独立路径组启动导航
+   *
+   * - 依赖当前 ExpoGaodeMapNaviView 实例
+   * - 适合“路线选择页 -> 进入嵌入式导航页”这类页面内流程
+   * - 若不依赖嵌入式导航视图，可改用模块级 startNaviWithIndependentPath(...)
    */
   startNavigationWithIndependentPath: (
     token: number,

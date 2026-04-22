@@ -2,6 +2,8 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   clearIndependentRoute,
   independentDriveRoute,
+  independentRideRoute,
+  independentWalkRoute,
   MapView,
   Marker,
   Polyline,
@@ -56,6 +58,7 @@ type WaypointField = {
   selected: RouteFieldValue | null;
 };
 
+type RouteScene = "drive" | "ride" | "walk";
 type RouteTone = "primary" | "success" | "warm" | "neutral";
 
 const MAX_WAYPOINTS = 5;
@@ -67,6 +70,21 @@ const FALLBACK_START_POINT: NaviPoint = {
   latitude: 39.908823,
   longitude: 116.39747,
 };
+const ROUTE_SCENE_OPTIONS: Array<{ key: RouteScene; label: string; icon: keyof typeof FontAwesome.glyphMap }> = [
+  { key: "drive", label: "驾车", icon: "car" },
+  { key: "ride", label: "骑行", icon: "bicycle" },
+  { key: "walk", label: "步行", icon: "male" },
+];
+
+function getRouteSceneLabel(scene: RouteScene): string {
+  if (scene === "ride") {
+    return "骑行";
+  }
+  if (scene === "walk") {
+    return "步行";
+  }
+  return "驾车";
+}
 
 function createWaypointField(index: number): WaypointField {
   return {
@@ -159,9 +177,20 @@ async function resolvePointPresentation(
   }
 }
 
-function getRouteTone(route: RouteResult, mainPathIndex: number, index: number): RouteTone {
+function getRouteTone(
+  route: RouteResult,
+  mainPathIndex: number,
+  index: number,
+  scene: RouteScene
+): RouteTone {
   if (index === mainPathIndex) {
     return "primary";
+  }
+  if (scene !== "drive") {
+    if (route.distance <= 4000) {
+      return "warm";
+    }
+    return "neutral";
   }
   if (route.trafficLightCount != null && route.trafficLightCount <= 6) {
     return "success";
@@ -177,10 +206,17 @@ function buildRouteLabel(
   index: number,
   mainPathIndex: number,
   shortestDistanceIndex: number,
-  fewestLightsIndex: number
+  fewestLightsIndex: number,
+  scene: RouteScene
 ): string {
   if (index === mainPathIndex) {
     return "推荐";
+  }
+  if (scene !== "drive") {
+    if (index === shortestDistanceIndex) {
+      return "距离短";
+    }
+    return `备选${index + 1}`;
   }
   if (index === fewestLightsIndex) {
     return "红绿灯少";
@@ -244,7 +280,7 @@ function getRouteLineStyle(
   if (variant === "selected") {
     return {
       haloColor: "rgba(255,255,255,0.96)",
-      mainColor: "#4f7dff",
+      mainColor: "#5b8cff",
       coreColor: null,
       haloWidth: compact.selectedHaloWidth,
       mainWidth: compact.selectedMainWidth,
@@ -339,6 +375,7 @@ export default function RoutePickerExampleScreen() {
   const [selectedRouteIndex, setSelectedRouteIndex] = React.useState(0);
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [previewZoom, setPreviewZoom] = React.useState(13.2);
+  const [routeScene, setRouteScene] = React.useState<RouteScene>("drive");
   const [requestedNaviType, setRequestedNaviType] = React.useState(
     Platform.OS === "android" ? 0 : 1
   );
@@ -347,8 +384,11 @@ export default function RoutePickerExampleScreen() {
 
   useHideNavigationHeader(true);
 
+  const routeSceneLabel = React.useMemo(() => getRouteSceneLabel(routeScene), [routeScene]);
   const routes = routeResult?.routes ?? [];
   const selectedRoute = routes[selectedRouteIndex] ?? null;
+  const supportsEmbeddedNavigation = true;
+  const usesTravelView = Platform.OS === "android" && routeScene !== "drive";
   const selectedPoints = React.useMemo(() => {
     const points: NaviPoint[] = [];
     if (fromSelection?.point) {
@@ -658,6 +698,19 @@ export default function RoutePickerExampleScreen() {
     setSelectedRouteIndex(0);
   }, []);
 
+  const handleRouteSceneChange = React.useCallback(
+    (nextScene: RouteScene) => {
+      if (nextScene === routeScene) {
+        return;
+      }
+      setShowNaviView(false);
+      void resetRoutePreview();
+      setRouteScene(nextScene);
+      setStatusText(`已切换到${getRouteSceneLabel(nextScene)}模式，请重新规划路线。`);
+    },
+    [resetRoutePreview, routeScene]
+  );
+
   const applySelectedField = React.useCallback(
     (fieldId: string, value: RouteFieldValue) => {
       Keyboard.dismiss();
@@ -758,7 +811,7 @@ export default function RoutePickerExampleScreen() {
       setPlanning(true);
       await resetRoutePreview();
 
-      const result = await independentDriveRoute({
+      const routePoints = {
         from: {
           ...fromSelection.point,
           name: fromSelection.label,
@@ -777,17 +830,36 @@ export default function RoutePickerExampleScreen() {
             name: item.label,
             poiId: item.poiId,
           })),
-        avoidCongestion: true,
-        restriction: false,
-      });
+      };
+
+      const result =
+        routeScene === "drive"
+          ? await independentDriveRoute({
+              ...routePoints,
+              avoidCongestion: true,
+              restriction: false,
+            })
+          : routeScene === "ride"
+            ? await independentRideRoute({
+                ...routePoints,
+                multiple: true,
+              })
+            : await independentWalkRoute({
+                ...routePoints,
+                multiple: true,
+              });
 
       activeTokenRef.current = result.token;
       setRouteResult(result);
       setSelectedRouteIndex(result.mainPathIndex);
+      const sceneSpecificHint =
+        Platform.OS === "android" && routeScene !== "drive"
+            ? "Android 开始导航时会切到 TravelView 兼容模式。"
+            : "";
       setStatusText(
         result.count > 1
-          ? `已生成 ${result.count} 条候选路线。底部卡片切换的是实际可导航路线，点击“开始导航”会按当前选中的 routeIndex 启动。`
-          : "当前只返回 1 条候选路线。通常是因为途经点较多或路径约束较强，SDK 没有给出更多可选方案。"
+          ? `已生成 ${result.count} 条${routeSceneLabel}候选路线。底部卡片切换的是实际可导航路线。${sceneSpecificHint}`
+          : `当前只返回 1 条${routeSceneLabel}路线。通常是因为路径约束较强或 SDK 没给出更多备选。${sceneSpecificHint}`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -796,7 +868,15 @@ export default function RoutePickerExampleScreen() {
     } finally {
       setPlanning(false);
     }
-  }, [fromSelection, resetRoutePreview, toSelection, waypoints]);
+  }, [
+    fromSelection,
+    resetRoutePreview,
+    routeScene,
+    routeSceneLabel,
+    supportsEmbeddedNavigation,
+    toSelection,
+    waypoints,
+  ]);
 
   const stopNavigation = React.useCallback(async () => {
     try {
@@ -804,6 +884,13 @@ export default function RoutePickerExampleScreen() {
     } catch {}
     setShowNaviView(false);
   }, []);
+
+  const handleStartNavigation = React.useCallback(() => {
+    if (!selectedRoute) {
+      return;
+    }
+    setShowNaviView(true);
+  }, [selectedRoute]);
 
   const selectedWaypointMarkers = waypoints
     .map((item) => item.selected)
@@ -822,6 +909,7 @@ export default function RoutePickerExampleScreen() {
         ref={naviRef}
         style={styles.naviContainer}
         naviType={requestedNaviType}
+        isNaviTravelView={usesTravelView}
         customWaypointMarkers={selectedWaypointMarkers}
         routeMarkerVisible={{
           showStartEndVia: selectedWaypointMarkers.length === 0,
@@ -832,15 +920,15 @@ export default function RoutePickerExampleScreen() {
         }}
         showCamera
         enableVoice
-        showTrafficBar
-        showTrafficButton
-        showDriveCongestion
-        showTrafficLightView
-        laneInfoVisible
-        modeCrossDisplay
-        eyrieCrossDisplay
-        secondActionVisible
-        backupOverlayVisible
+        showTrafficBar={routeScene === "drive"}
+        showTrafficButton={routeScene === "drive"}
+        showDriveCongestion={routeScene === "drive"}
+        showTrafficLightView={routeScene === "drive"}
+        laneInfoVisible={routeScene === "drive"}
+        modeCrossDisplay={routeScene === "drive"}
+        eyrieCrossDisplay={routeScene === "drive"}
+        secondActionVisible={routeScene === "drive"}
+        backupOverlayVisible={routeScene === "drive"}
         naviStatusBarEnabled={false}
         driveViewEdgePadding={{ top: 12, left: 0, right: 0, bottom: 120 }}
         screenAnchor={{ x: 0.5, y: 0.78 }}
@@ -981,18 +1069,40 @@ export default function RoutePickerExampleScreen() {
           }}
         >
           <View style={styles.formCard}>
-            <View style={styles.formCardHeader}>
-              <Pressable style={styles.inlineBackButton} onPress={() => router.back()} hitSlop={8}>
-                <FontAwesome name="angle-left" size={18} color="#0f3c83" />
-                <Text style={styles.inlineBackText}>返回</Text>
-              </Pressable>
+              <View style={styles.formCardHeader}>
+                <Pressable style={styles.inlineBackButton} onPress={() => router.back()} hitSlop={8}>
+                  <FontAwesome name="angle-left" size={18} color="#0f3c83" />
+                  <Text style={styles.inlineBackText}>返回</Text>
+                </Pressable>
               <Text style={styles.formTitle}>自定义路线选择</Text>
-              <Pressable style={styles.swapButton} onPress={handleSwap}>
-                <FontAwesome name="exchange" size={14} color="#0f3c83" />
-              </Pressable>
-            </View>
+                <Pressable style={styles.swapButton} onPress={handleSwap}>
+                  <FontAwesome name="exchange" size={14} color="#0f3c83" />
+                </Pressable>
+              </View>
 
-            <View style={styles.fieldRow}>
+              <View style={styles.sceneSwitchRow}>
+                {ROUTE_SCENE_OPTIONS.map((option) => {
+                  const isActive = option.key === routeScene;
+                  return (
+                    <Pressable
+                      key={option.key}
+                      style={[styles.sceneChip, isActive && styles.sceneChipActive]}
+                      onPress={() => handleRouteSceneChange(option.key)}
+                    >
+                      <FontAwesome
+                        name={option.icon}
+                        size={12}
+                        color={isActive ? "#ffffff" : "#5a7188"}
+                      />
+                      <Text style={[styles.sceneChipText, isActive && styles.sceneChipTextActive]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={styles.fieldRow}>
               <View style={[styles.fieldDot, styles.startDot]} />
               <TextInput
                 value={fromInput}
@@ -1141,40 +1251,52 @@ export default function RoutePickerExampleScreen() {
                 </Text>
               </View>
 
-              <View style={styles.compactModeRow}>
-                <Pressable
-                  style={[styles.compactModeChip, requestedNaviType === 0 && styles.modeChipActive]}
-                  onPress={() => setRequestedNaviType(0)}
-                >
-                  <Text
-                    style={[styles.compactModeText, requestedNaviType === 0 && styles.modeChipTextActive]}
+              {supportsEmbeddedNavigation ? (
+                <View style={styles.compactModeRow}>
+                  <Pressable
+                    style={[styles.compactModeChip, requestedNaviType === 0 && styles.modeChipActive]}
+                    onPress={() => setRequestedNaviType(0)}
                   >
-                    GPS
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.compactModeChip, requestedNaviType === 1 && styles.modeChipActive]}
-                  onPress={() => setRequestedNaviType(1)}
-                >
-                  <Text
-                    style={[styles.compactModeText, requestedNaviType === 1 && styles.modeChipTextActive]}
+                    <Text
+                      style={[styles.compactModeText, requestedNaviType === 0 && styles.modeChipTextActive]}
+                    >
+                      GPS
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.compactModeChip, requestedNaviType === 1 && styles.modeChipActive]}
+                    onPress={() => setRequestedNaviType(1)}
                   >
-                    模拟
-                  </Text>
-                </Pressable>
-              </View>
+                    <Text
+                      style={[styles.compactModeText, requestedNaviType === 1 && styles.modeChipTextActive]}
+                    >
+                      模拟
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.previewOnlyHint}>
+                  <Text style={styles.previewOnlyHintText}>当前模式先提供预览</Text>
+                </View>
+              )}
             </View>
 
             {routes.length > 0 ? (
               <View style={styles.routeCardRow}>
                 {routes.slice(0, 3).map((route, index) => {
-                  const tone = getRouteTone(route, routeResult?.mainPathIndex ?? 0, index);
+                  const tone = getRouteTone(
+                    route,
+                    routeResult?.mainPathIndex ?? 0,
+                    index,
+                    routeScene
+                  );
                   const label = buildRouteLabel(
                     route,
                     index,
                     routeResult?.mainPathIndex ?? 0,
                     shortestDistanceIndex,
-                    fewestLightsIndex
+                    fewestLightsIndex,
+                    routeScene
                   );
 
                   return (
@@ -1213,31 +1335,45 @@ export default function RoutePickerExampleScreen() {
                     selectedRouteIndex,
                     routeResult?.mainPathIndex ?? 0,
                     shortestDistanceIndex,
-                    fewestLightsIndex
+                    fewestLightsIndex,
+                    routeScene
                   )}` : "未开始规划"}
                 </Text>
                 <Text style={styles.routeMetaText}>
                   {selectedRoute
-                    ? [
-                        selectedRoute.trafficLightCount != null
-                          ? `红绿灯 ${selectedRoute.trafficLightCount} 个`
-                          : null,
-                        selectedRoute.tollCost != null
-                          ? `收费约 ${selectedRoute.tollCost.toFixed(0)} 元`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || "该路线暂无额外摘要"
+                    ? routeScene === "drive"
+                      ? [
+                          selectedRoute.trafficLightCount != null
+                            ? `红绿灯 ${selectedRoute.trafficLightCount} 个`
+                            : null,
+                          selectedRoute.tollCost != null
+                            ? `收费约 ${selectedRoute.tollCost.toFixed(0)} 元`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "该路线暂无额外摘要"
+                      : [
+                          `${routeSceneLabel}独立路径预览`,
+                          supportsEmbeddedNavigation
+                            ? "可继续进入当前页嵌入式导航"
+                            : "当前页先支持预览，导航链路待补齐",
+                        ].join(" · ")
                     : "请先规划路线，然后选择一条方案开始导航。"}
                 </Text>
               </View>
 
               <Pressable
-                style={[styles.startButton, !selectedRoute && styles.disabledButton]}
-                onPress={() => setShowNaviView(true)}
+                style={[
+                  styles.startButton,
+                  !selectedRoute && styles.disabledButton,
+                  selectedRoute && !supportsEmbeddedNavigation && styles.previewOnlyButton,
+                ]}
+                onPress={handleStartNavigation}
                 disabled={!selectedRoute}
               >
-                <Text style={styles.startButtonText}>开始导航</Text>
+                <Text style={styles.startButtonText}>
+                  {selectedRoute && !supportsEmbeddedNavigation ? "仅预览" : "开始导航"}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -1287,6 +1423,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 2,
+  },
+  sceneSwitchRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 4,
+  },
+  sceneChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: "#f3f7fb",
+  },
+  sceneChipActive: {
+    backgroundColor: "#1269ff",
+  },
+  sceneChipText: {
+    color: "#5a7188",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  sceneChipTextActive: {
+    color: "#ffffff",
   },
   inlineBackButton: {
     flexDirection: "row",
@@ -1503,6 +1664,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6,
   },
+  previewOnlyHint: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#eef3f8",
+  },
+  previewOnlyHintText: {
+    color: "#5a7188",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   compactModeChip: {
     minWidth: 54,
     borderRadius: 14,
@@ -1606,6 +1778,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#1269ff",
+  },
+  previewOnlyButton: {
+    backgroundColor: "#6d86ad",
   },
   startButtonText: {
     color: "#ffffff",
