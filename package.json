@@ -36,7 +36,6 @@
     "publish:search:beta": "cd packages/search && npm publish --access public --tag beta",
     "publish:navigation:beta": "cd packages/navigation && npm publish --access public --tag beta",
     "publish:web-api:beta": "cd packages/web-api && npm publish --access public --tag beta",
-    "zip:skills": "bash scripts/zip-skills.sh",
     "npm:login": "npm login --auth-type=web",
     "publish:interactive": "bash scripts/publish.sh",
     "version:core": "cd packages/core && npm version",

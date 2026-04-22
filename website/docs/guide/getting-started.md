@@ -6,10 +6,6 @@
 📦 导航相关的可运行示例已收敛到仓库内 `example-navigation/`；入口说明见 `example-navigation/README.md`
 :::
 
-::: tip 🚀 AI 提效助手
-使用 Cursor 或 Trae 开发？下载我们的 [AI 技能包](/guide/ai-skills)，让 AI 成为您的高德地图专家！
-:::
-
 ## 项目架构
 
 expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：

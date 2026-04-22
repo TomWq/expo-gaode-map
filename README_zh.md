@@ -60,7 +60,6 @@
 - ✅ 原生实现精简，生命周期更清晰，便于稳定维护
 - ✅ 几何运算（距离/面积、点在圆/多边形、质心/边界、路径长度/抽稀、GeoHash、瓦片/像素坐标转换、最近点、热力网格等，由 C++ 实现）
 - ✅ 丰富的使用案例
-- ✅ 提供AI编程助手，帮助开发者快速集成和使用（https://TomWq.github.io/expo-gaode-map/guide/ai-skills.html）
 - ✅ 更多内容和功能请查看 [完整文档](https://TomWq.github.io/expo-gaode-map/)
 
 ### 可选模块
