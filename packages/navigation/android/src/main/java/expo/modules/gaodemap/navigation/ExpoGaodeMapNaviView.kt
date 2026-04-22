@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
@@ -167,6 +166,8 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
     private var cachedTurnIconImageUri: String? = null
     private var cachedTurnIconContentHash: String? = null
     private var hasLoggedMissingTurnIconBitmapApi = false
+    private var hasLoggedMissingNaviStatusBarApi = false
+    private var hasLoggedMissingNaviModeApi = false
     private var isHostActivityInBackground: Boolean = false
     private var isNavigationRunning: Boolean = false
     private var latestNavigationNotificationSnapshot: NavigationNotificationSnapshot? = null
@@ -275,10 +276,13 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             )
             method.invoke(options, enabled)
         } catch (_: NoSuchMethodException) {
-            Log.w(
-                "ExpoGaodeMapNaviView",
-                "AMapNaviViewOptions#setNaviStatusBarEnabled is unavailable in the current AMap SDK; skip applying naviStatusBarEnabled"
-            )
+            if (!hasLoggedMissingNaviStatusBarApi) {
+                hasLoggedMissingNaviStatusBarApi = true
+                Log.w(
+                    "ExpoGaodeMapNaviView",
+                    "AMapNaviViewOptions#setNaviStatusBarEnabled is unavailable in the current AMap SDK; skip applying naviStatusBarEnabled"
+                )
+            }
         } catch (error: Throwable) {
             Log.w(
                 "ExpoGaodeMapNaviView",
@@ -299,10 +303,13 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             )
             method.invoke(options, mode)
         } catch (_: NoSuchMethodException) {
-            Log.w(
-                "ExpoGaodeMapNaviView",
-                "AMapNaviViewOptions#setNaviMode is unavailable in the current AMap SDK; skip applying naviMode on options"
-            )
+            if (!hasLoggedMissingNaviModeApi) {
+                hasLoggedMissingNaviModeApi = true
+                Log.w(
+                    "ExpoGaodeMapNaviView",
+                    "AMapNaviViewOptions#setNaviMode is unavailable in the current AMap SDK; skip applying naviMode on options"
+                )
+            }
         } catch (error: Throwable) {
             Log.w(
                 "ExpoGaodeMapNaviView",
@@ -1786,9 +1793,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         val fontSize = 16f * density
         val horizontalPadding = 14f * density
         val bodyHeight = 34f * density
-        val tailHeight = 14f * density
         val strokeWidth = 2.5f * density
-        val tailWidth = 14f * density
 
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -1801,7 +1806,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             textPaint.measureText(title) + horizontalPadding * 2
         )
         val width = bodyWidth.roundToInt()
-        val height = (bodyHeight + tailHeight + 2f * density).roundToInt()
+        val height = (bodyHeight + 2f * density).roundToInt()
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -1830,17 +1835,6 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
         canvas.drawRoundRect(bodyRect, cornerRadius, cornerRadius, shadowPaint)
         canvas.drawRoundRect(bodyRect, cornerRadius, cornerRadius, fillPaint)
         canvas.drawRoundRect(bodyRect, cornerRadius, cornerRadius, strokePaint)
-
-        val centerX = width / 2f
-        val tailTop = bodyHeight - 1f * density
-        val tailPath = Path().apply {
-            moveTo(centerX, bodyHeight + tailHeight - strokeWidth)
-            lineTo(centerX - tailWidth / 2f, tailTop)
-            lineTo(centerX + tailWidth / 2f, tailTop)
-            close()
-        }
-        canvas.drawPath(tailPath, fillPaint)
-        canvas.drawPath(tailPath, strokePaint)
 
         val textY = bodyRect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f
         canvas.drawText(title, bodyRect.centerX(), textY, textPaint)

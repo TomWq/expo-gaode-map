@@ -113,6 +113,7 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       'android.permission.ACCESS_NETWORK_STATE',
       'android.permission.ACCESS_WIFI_STATE',
       'android.permission.READ_PHONE_STATE',
+      'android.permission.WAKE_LOCK',
       'android.permission.BLUETOOTH',
       'android.permission.BLUETOOTH_ADMIN',
     ];

@@ -4,34 +4,34 @@
  * 底部摘要、路况光柱、全览按钮以及它们之间的布局联动。
  */
 import { BlurTargetView } from "expo-blur";
+import type {
+  ExpoGaodeMapNaviViewProps,
+  NaviInfoUpdateEvent,
+  NaviLaneInfoEvent,
+  NaviTrafficStatusesEvent,
+  NaviVisualStateEvent,
+} from "expo-gaode-map-navigation";
+import {
+  NaviView,
+  type NaviViewRef,
+} from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Image,
-  type LayoutChangeEvent,
-  type NativeSyntheticEvent,
   Platform,
   Pressable,
   StatusBar,
   StyleSheet,
   View,
+  type LayoutChangeEvent,
+  type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  NaviView,
-  type NaviViewRef,
-} from "expo-gaode-map-navigation";
-import type {
-  ExpoGaodeMapNaviViewProps,
-  NaviLaneInfoEvent,
-  NaviTrafficStatusesEvent,
-  NaviInfoUpdateEvent,
-  NaviVisualStateEvent,
-} from "expo-gaode-map-navigation";
+import EmbeddedNaviBottomSummary from "./EmbeddedNaviBottomSummary";
 import EmbeddedNaviHud from "./EmbeddedNaviHud";
 import EmbeddedNaviLaneView from "./EmbeddedNaviLaneView";
-import EmbeddedNaviBottomSummary from "./EmbeddedNaviBottomSummary";
 import EmbeddedNaviTrafficBar from "./EmbeddedNaviTrafficBar";
 
 const defaultStartPointImage = require("./assets/markers/start-marker.png");

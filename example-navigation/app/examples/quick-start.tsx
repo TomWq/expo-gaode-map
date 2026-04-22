@@ -4,11 +4,10 @@ import React from "react";
 import {
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 
 import { EXAMPLE_ANDROID_KEY, EXAMPLE_IOS_KEY, EXAMPLE_WEB_API_KEY } from "@/exampleConfig";
@@ -165,7 +164,7 @@ export default function QuickStartScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.hero}>
@@ -230,7 +229,7 @@ export default function QuickStartScreen() {
           <Text style={styles.feature}>• iOS `driveViewEdgePadding` / `screenAnchor` / `showBackupRoute`</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

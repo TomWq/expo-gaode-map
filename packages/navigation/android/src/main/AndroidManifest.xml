@@ -16,6 +16,7 @@
     
     <!-- 设备信息权限 - SDK 初始化必需 -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     
     <!-- 蓝牙权限 - 用于室内定位 (可选) -->
     <uses-permission android:name="android.permission.BLUETOOTH" />

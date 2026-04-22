@@ -124,18 +124,12 @@ class NavigationForegroundService : Service() {
     createNotificationChannel()
   }
 
-  @RequiresApi(Build.VERSION_CODES.TIRAMISU)
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     Log.d(TAG, "onStartCommand action=${intent?.action}, startId=$startId, flags=$flags")
     if (intent?.action != ACTION_START_OR_UPDATE) {
       Log.d(TAG, "Ignoring action=${intent?.action}")
       return START_NOT_STICKY
     }
-
-    // --- 新增防护：检查运行时权限 ---
-    // 如果没有通知权限，我们不能启动前台服务（否则会崩溃），只能作为后台服务运行（但后台服务无法显示持续通知）
-    // 这里的策略是：如果没有权限，只更新数据，不显示通知
-    val hasPermission = hasNotificationPermission(this)
 
     latestSnapshot = latestSnapshot.mergeFrom(intent)
     Log.d(
@@ -146,36 +140,30 @@ class NavigationForegroundService : Service() {
         "currentRoad=${latestSnapshot.currentRoadName}, nextRoad=${latestSnapshot.nextRoadName}, " +
         "turnIconUri=${latestSnapshot.turnIconImageUri}"
     )
-    // 简单方案：如果有权限，正常构建；如果没有，构建一个最简通知（或者抛出日志）
-    val notification = if (hasPermission) {
-      buildNotification(latestSnapshot) // 原有逻辑
-    } else {
-      // 构建一个最基础的通知，避免崩溃
-      // 注意：如果完全没有权限，连这个通知也发不出去，startForeground 会崩溃。
-      // 所以，如果没有权限，我们不应该调用 startForeground。
-      // 但是，如果不调用 startForeground，服务会在 5 秒后被系统杀死。
-
-      // 最佳实践：如果没有权限，不要启动前台服务，只做数据处理。
-      // 但为了代码演示，我们假设用户至少在 Android 12 及以下不需要运行时权限。
-      // 在 Android 13+ 且无权限时，我们只能放弃前台服务。
-
-      // 这里为了防止崩溃，我们直接返回，不启动前台服务。
-      // 请在调用 startOrUpdate 的地方处理权限逻辑。
-      Log.e(TAG, "No POST_NOTIFICATIONS permission, cannot start foreground service.")
-      return START_STICKY // 服务会很快被杀死
+    // Android 13+ forbids posting most notifications without POST_NOTIFICATIONS,
+    // but foreground services still must call startForeground() in time.
+    // If the permission is denied, the ongoing notice is still surfaced in Task Manager
+    // even though it may be hidden from the notification drawer.
+    val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+      hasNotificationPermission(this)
+    if (!hasPermission) {
+      Log.w(
+        TAG,
+        "POST_NOTIFICATIONS not granted; foreground service notification may be hidden from the drawer."
+      )
     }
 
+    val notification = buildNotification(latestSnapshot)
 
-    // --- 保持原有逻辑 ---
     if (!isForeground) {
       try {
         startForeground(NOTIFICATION_ID, notification)
         isForeground = true
         Log.d(TAG, "startForeground success, notificationId=$NOTIFICATION_ID")
       } catch (e: Exception) {
-        // 如果因为权限问题导致 startForeground 失败（例如 Android 13+ 未授权）
         Log.e(TAG, "Failed to start foreground service: ${e.message}", e)
-        // 可能需要回退到后台逻辑，或者提示用户去设置页面
+        stopSelf()
+        return START_NOT_STICKY
       }
     } else {
       getNotificationManager().notify(NOTIFICATION_ID, notification)

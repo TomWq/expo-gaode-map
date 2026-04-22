@@ -1,23 +1,23 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useRouter } from "expo-router";
 import {
-  getInputTips,
-  initSearch,
-  reGeocode,
-  type InputTip,
-} from "expo-gaode-map-search";
-import {
+  clearIndependentRoute,
+  independentDriveRoute,
   MapView,
   Marker,
   Polyline,
-  clearIndependentRoute,
-  independentDriveRoute,
   type IndependentRouteResult,
   type MapViewRef,
   type NaviPoint,
   type NaviViewRef,
   type RouteResult,
 } from "expo-gaode-map-navigation";
+import {
+  getInputTips,
+  initSearch,
+  reGeocode,
+  type InputTip,
+} from "expo-gaode-map-search";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
@@ -28,6 +28,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,7 +62,7 @@ const MAX_WAYPOINTS = 5;
 const DEFAULT_CITY = "北京";
 const PREVIEW_EDGE_MARKER_SIZE = 32;
 const PREVIEW_WAYPOINT_MARKER_WIDTH = 56;
-const PREVIEW_WAYPOINT_MARKER_HEIGHT = 42;
+const PREVIEW_WAYPOINT_MARKER_HEIGHT = 36;
 const FALLBACK_START_POINT: NaviPoint = {
   latitude: 39.908823,
   longitude: 116.39747,
@@ -211,49 +212,112 @@ function resolveTipSubtitle(tip: InputTip): string {
   return [tip.address, tip.adName, tip.cityName].filter(Boolean).join(" · ");
 }
 
-function getRouteLineStyle(selected: boolean, zoom: number) {
+function getRouteLineStyle(
+  variant: "selected" | "other",
+  zoom: number
+) {
   const compact =
     zoom < 11.8
       ? {
-          selectedOuterWidth: 9,
-          selectedInnerWidth: 5,
-          fallbackOuterWidth: 6,
-          fallbackInnerWidth: 3,
+          selectedHaloWidth: 11.5,
+          selectedMainWidth: 8.2,
+          selectedCoreWidth: 5,
+          fallbackHaloWidth: 4.8,
+          fallbackMainWidth: 2.6,
         }
       : zoom < 12.8
         ? {
-            selectedOuterWidth: 11,
-            selectedInnerWidth: 7,
-            fallbackOuterWidth: 7,
-            fallbackInnerWidth: 4,
+            selectedHaloWidth: 13.5,
+            selectedMainWidth: 9.6,
+            selectedCoreWidth: 5.9,
+            fallbackHaloWidth: 5.4,
+            fallbackMainWidth: 3.1,
           }
         : {
-            selectedOuterWidth: 13,
-            selectedInnerWidth: 9,
-            fallbackOuterWidth: 9,
-            fallbackInnerWidth: 5,
+            selectedHaloWidth: 15.5,
+            selectedMainWidth: 11.4,
+            selectedCoreWidth: 7,
+            fallbackHaloWidth: 6.2,
+            fallbackMainWidth: 3.6,
           };
 
-  if (selected) {
+  if (variant === "selected") {
     return {
-      outerColor: "#0b6b36",
-      innerColor: "#18b558",
-      outerWidth: compact.selectedOuterWidth,
-      innerWidth: compact.selectedInnerWidth,
+      haloColor: "rgba(255,255,255,0.96)",
+      mainColor: "#4f7dff",
+      coreColor: null,
+      haloWidth: compact.selectedHaloWidth,
+      mainWidth: compact.selectedMainWidth,
+      coreWidth: 0,
     };
   }
 
   return {
-    outerColor: "rgba(148,163,184,0.7)",
-    innerColor: "rgba(255,255,255,0.9)",
-    outerWidth: compact.fallbackOuterWidth,
-    innerWidth: compact.fallbackInnerWidth,
+    haloColor: "rgba(255,255,255,0.42)",
+    mainColor: "rgba(148,163,184,0.58)",
+    coreColor: null,
+    haloWidth: compact.fallbackHaloWidth,
+    mainWidth: compact.fallbackMainWidth,
+    coreWidth: 0,
+  };
+}
+
+function getPreviewFitOptions(selectedRoute: RouteResult | null) {
+  if (!selectedRoute) {
+    return {
+      duration: 380,
+      paddingFactor: 0.62,
+      minZoom: 11.7,
+      maxZoom: 14.2,
+      singlePointZoom: 15.8,
+    };
+  }
+
+  const distance = selectedRoute.distance ?? 0;
+
+  if (distance >= 18000) {
+    return {
+      duration: 460,
+      paddingFactor: 0.9,
+      minZoom: 9.6,
+      maxZoom: 16.6,
+      singlePointZoom: 15.2,
+    };
+  }
+
+  if (distance >= 12000) {
+    return {
+      duration: 460,
+      paddingFactor: 0.78,
+      minZoom: 10.4,
+      maxZoom: 16.9,
+      singlePointZoom: 15.4,
+    };
+  }
+
+  if (distance >= 7000) {
+    return {
+      duration: 460,
+      paddingFactor: 0.62,
+      minZoom: 11.2,
+      maxZoom: 17,
+      singlePointZoom: 15.6,
+    };
+  }
+
+  return {
+    duration: 460,
+    paddingFactor: 0.5,
+    minZoom: 12.2,
+    maxZoom: 14.2,
+    singlePointZoom: 15.8,
   };
 }
 
 export default function RoutePickerExampleScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const mapRef = React.useRef<MapViewRef>(null);
   const naviRef = React.useRef<NaviViewRef>(null);
   const activeTokenRef = React.useRef<number | null>(null);
@@ -278,6 +342,8 @@ export default function RoutePickerExampleScreen() {
   const [requestedNaviType, setRequestedNaviType] = React.useState(
     Platform.OS === "android" ? 0 : 1
   );
+  const [topPanelHeight, setTopPanelHeight] = React.useState(0);
+  const [bottomPanelHeight, setBottomPanelHeight] = React.useState(0);
 
   useHideNavigationHeader(true);
 
@@ -354,22 +420,94 @@ export default function RoutePickerExampleScreen() {
     };
   }, []);
 
+  const compensatePreviewViewport = React.useCallback(async () => {
+    if (!mapRef.current || windowWidth <= 0 || windowHeight <= 0) {
+      return;
+    }
+
+    const topBlocked = Math.max(insets.top, 12) + topPanelHeight + 10;
+    const bottomBlocked = Math.max(insets.bottom, 14) + bottomPanelHeight + 10;
+    const visibleHeight = windowHeight - topBlocked - bottomBlocked;
+
+    if (visibleHeight <= 120) {
+      return;
+    }
+
+    const screenCenterY = windowHeight / 2;
+    const visibleCenterY = topBlocked + visibleHeight / 2;
+    const rawDeltaY = visibleCenterY - screenCenterY;
+    const dampedDeltaY = Math.max(-72, Math.min(72, rawDeltaY * 0.38));
+
+    if (Math.abs(dampedDeltaY) < 18) {
+      return;
+    }
+
+    const compensatedPoint = {
+      x: windowWidth / 2,
+      y: screenCenterY + dampedDeltaY,
+    };
+
+    try {
+      const [target, camera] = await Promise.all([
+        mapRef.current.getLatLng(compensatedPoint),
+        mapRef.current.getCameraPosition(),
+      ]);
+
+      await mapRef.current.moveCamera(
+        {
+          target,
+          zoom: camera.zoom,
+          bearing: camera.bearing,
+          tilt: camera.tilt,
+        },
+        220
+      );
+    } catch {
+      // ignore camera compensation failures and keep the fitted result
+    }
+  }, [
+    bottomPanelHeight,
+    insets.bottom,
+    insets.top,
+    topPanelHeight,
+    windowHeight,
+    windowWidth,
+  ]);
+
   React.useEffect(() => {
     if (previewPoints.length < 2) {
       return;
     }
 
+    const shouldCompensateViewport = Boolean(routeResult && selectedRoute);
+    let cancelled = false;
+
     const timer = setTimeout(() => {
-      void mapRef.current?.fitToCoordinates(previewPoints, {
-        duration: 420,
-        paddingFactor: 1.28,
-        minZoom: 12.1,
-        maxZoom: 17,
-      });
+      void (async () => {
+        try {
+          await mapRef.current?.fitToCoordinates(
+            previewPoints,
+            getPreviewFitOptions(selectedRoute)
+          );
+
+          if (cancelled) {
+            return;
+          }
+
+          if (shouldCompensateViewport) {
+            await compensatePreviewViewport();
+          }
+        } catch {
+          // keep silent; planning UI already handles route errors elsewhere
+        }
+      })();
     }, 160);
 
-    return () => clearTimeout(timer);
-  }, [previewPoints]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [compensatePreviewViewport, previewPoints, routeResult, selectedRoute]);
 
   React.useEffect(() => {
     if (!activeFieldId) {
@@ -738,23 +876,36 @@ export default function RoutePickerExampleScreen() {
         }}
       >
         {routes.map((route, index) => {
-          const line = getRouteLineStyle(index === selectedRouteIndex, previewZoom);
+          const isSelectedRoute = index === selectedRouteIndex;
+          const line = getRouteLineStyle(
+            isSelectedRoute ? "selected" : "other",
+            previewZoom
+          );
           const points = getRoutePreviewPoints(route);
+          const zBase = isSelectedRoute ? 24 : 8;
 
           return (
             <React.Fragment key={`route-${route.id}-${index}`}>
               <Polyline
                 points={points}
-                strokeWidth={line.outerWidth}
-                strokeColor={line.outerColor}
-                zIndex={index === selectedRouteIndex ? 20 : 10}
+                strokeWidth={line.haloWidth}
+                strokeColor={line.haloColor}
+                zIndex={zBase}
               />
               <Polyline
                 points={points}
-                strokeWidth={line.innerWidth}
-                strokeColor={line.innerColor}
-                zIndex={index === selectedRouteIndex ? 21 : 11}
+                strokeWidth={line.mainWidth}
+                strokeColor={line.mainColor}
+                zIndex={zBase + 1}
               />
+              {line.coreColor ? (
+                <Polyline
+                  points={points}
+                  strokeWidth={line.coreWidth}
+                  strokeColor={line.coreColor}
+                  zIndex={zBase + 2}
+                />
+              ) : null}
             </React.Fragment>
           );
         })}
@@ -792,7 +943,6 @@ export default function RoutePickerExampleScreen() {
                     {selectedWaypointCount > 1 ? `途${index + 1}` : "途经"}
                   </Text>
                 </View>
-                <View style={styles.waypointBadgeTail} />
               </View>
             </Marker>
           ) : null
@@ -814,7 +964,6 @@ export default function RoutePickerExampleScreen() {
           </Marker>
         ) : null}
       </MapView>
-
       <View
         pointerEvents="box-none"
         style={[
@@ -825,7 +974,12 @@ export default function RoutePickerExampleScreen() {
           },
         ]}
       >
-        <View style={styles.topPanel}>
+        <View
+          style={styles.topPanel}
+          onLayout={(event) => {
+            setTopPanelHeight(event.nativeEvent.layout.height);
+          }}
+        >
           <View style={styles.formCard}>
             <View style={styles.formCardHeader}>
               <Pressable style={styles.inlineBackButton} onPress={() => router.back()} hitSlop={8}>
@@ -922,7 +1076,7 @@ export default function RoutePickerExampleScreen() {
 
               <Pressable
                 style={[styles.primaryAction, planning && styles.disabledButton]}
-                onPress={() => void planRoutes()}
+                onPress={() =>  planRoutes()}
                 disabled={planning}
               >
                 <FontAwesome name="road" size={13} color="#ffffff" />
@@ -972,8 +1126,12 @@ export default function RoutePickerExampleScreen() {
             </View>
           ) : null}
         </View>
-
-        <View style={styles.bottomPanel}>
+        <View
+          style={styles.bottomPanel}
+          onLayout={(event) => {
+            setBottomPanelHeight(event.nativeEvent.layout.height);
+          }}
+        >
           <View style={styles.routeSheet}>
             <View style={styles.routeSheetHeader}>
               <View style={styles.inlineStatus}>
@@ -1104,7 +1262,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topPanel: {
-    gap: 8,
+    gap: 6,
   },
   swapButton: {
     width: 30,
@@ -1117,22 +1275,18 @@ const styles = StyleSheet.create({
     borderColor: "#d3e3fb",
   },
   formCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     backgroundColor: "rgba(255,255,255,0.94)",
     gap: 2,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    boxShadow: "0px 10px 24px rgba(15, 23, 42, 0.08)",
   },
   formCardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 2,
   },
   inlineBackButton: {
     flexDirection: "row",
@@ -1142,21 +1296,21 @@ const styles = StyleSheet.create({
   },
   inlineBackText: {
     color: "#0f3c83",
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "800",
   },
   formTitle: {
     flex: 1,
     textAlign: "center",
     color: "#0f172a",
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
   },
   fieldRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    minHeight: 42,
+    gap: 8,
+    // minHeight: 38,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#d5e1ef",
   },
@@ -1176,41 +1330,41 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 13,
     color: "#0f172a",
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   inlineAction: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#eaf2ff",
   },
   inlineActionPlaceholder: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
   },
   formActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 8,
+    marginTop: 6,
   },
   cityChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    minWidth: 74,
-    borderRadius: 14,
+    minWidth: 68,
+    borderRadius: 13,
     backgroundColor: "#f3f7fb",
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   cityInput: {
     minWidth: 36,
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "600",
     color: "#294867",
   },
@@ -1218,14 +1372,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderRadius: 14,
+    borderRadius: 13,
     backgroundColor: "#f3f7fb",
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   secondaryActionText: {
     color: "#0f3c83",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   primaryAction: {
@@ -1233,14 +1387,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginLeft: "auto",
-    borderRadius: 14,
+    borderRadius: 15,
     backgroundColor: "#1269ff",
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
   primaryActionText: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "800",
   },
   disabledButton: {
@@ -1249,11 +1403,11 @@ const styles = StyleSheet.create({
   suggestionCard: {
     borderRadius: 18,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     backgroundColor: "rgba(247,251,255,0.96)",
   },
   tipList: {
-    maxHeight: 220,
+    maxHeight: 180,
   },
   tipListContent: {
     paddingBottom: 2,
@@ -1262,22 +1416,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   suggestionTitle: {
     color: "#0f172a",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
   },
   suggestionHint: {
     color: "#5f7590",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   tipRow: {
     flexDirection: "row",
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#dbe7f5",
   },
@@ -1291,19 +1445,19 @@ const styles = StyleSheet.create({
   },
   tipTitle: {
     color: "#10233d",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
   },
   tipSubtitle: {
     marginTop: 3,
     color: "#60758d",
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
   },
   emptySuggestionText: {
     color: "#60758d",
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     paddingVertical: 6,
   },
   bottomPanel: {
@@ -1320,11 +1474,7 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: "rgba(255,255,255,0.96)",
     gap: 10,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    boxShadow: "0px 12px 28px rgba(15, 23, 42, 0.1)",
   },
   routeSheetHeader: {
     flexDirection: "row",
@@ -1340,13 +1490,13 @@ const styles = StyleSheet.create({
   },
   inlineStatusLabel: {
     color: "#9fc7ff",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
   },
   inlineStatusText: {
     marginTop: 2,
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   compactModeRow: {
@@ -1363,7 +1513,7 @@ const styles = StyleSheet.create({
   },
   compactModeText: {
     color: "#45627f",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   routeCardRow: {
@@ -1373,7 +1523,7 @@ const styles = StyleSheet.create({
   routeCard: {
     flex: 1,
     borderRadius: 16,
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingHorizontal: 8,
     backgroundColor: "#eef3f8",
     borderWidth: 1,
@@ -1390,29 +1540,25 @@ const styles = StyleSheet.create({
   },
   routeCardSelected: {
     borderColor: "#1269ff",
-    shadowColor: "#0b4fc2",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    boxShadow: "0px 10px 24px rgba(11, 79, 194, 0.16)",
   },
   routeLabel: {
     color: "#50667c",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     textAlign: "center",
   },
   routeDuration: {
     marginTop: 8,
     color: "#12243c",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
     textAlign: "center",
   },
   routeDistance: {
     marginTop: 4,
     color: "#5c7288",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     textAlign: "center",
   },
@@ -1424,14 +1570,14 @@ const styles = StyleSheet.create({
   },
   routePlaceholderTitle: {
     color: "#10233d",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
   },
   routePlaceholderBody: {
     marginTop: 6,
     color: "#60758d",
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
   },
   footerRow: {
     flexDirection: "row",
@@ -1443,27 +1589,27 @@ const styles = StyleSheet.create({
   },
   routeMetaTitle: {
     color: "#10233d",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
   },
   routeMetaText: {
     marginTop: 4,
     color: "#60758d",
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 11,
+    lineHeight: 16,
   },
   startButton: {
     minWidth: 116,
     borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    // paddingHorizontal: 18,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#1269ff",
   },
   startButtonText: {
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "800",
   },
   mapMarker: {
@@ -1478,7 +1624,7 @@ const styles = StyleSheet.create({
   },
   mapMarkerText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
   },
   startMarker: {
@@ -1501,25 +1647,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#2f67ff",
     borderWidth: 2,
     borderColor: "#ffffff",
-    shadowColor: "#15357f",
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    boxShadow: "0px 4px 10px rgba(21, 53, 127, 0.18)",
   },
   waypointBadgeText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
-  },
-  waypointBadgeTail: {
-    width: 8,
-    height: 8,
-    marginTop: -2,
-    backgroundColor: "#2f67ff",
-    transform: [{ rotate: "45deg" }],
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: "#ffffff",
   },
 });

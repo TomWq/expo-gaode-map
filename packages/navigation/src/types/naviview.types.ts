@@ -431,7 +431,8 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   /**
    * 是否在 Android 应用进入后台后显示导航常驻通知
    * @platform android
-   * 说明：默认关闭；开启后会在后台通过前台服务持续更新导航进度通知
+   * 说明：默认关闭；开启后会在后台通过前台服务持续更新导航进度通知。
+   * Android 13+ 下封装会自动检查并请求 `POST_NOTIFICATIONS`，避免业务侧遗漏运行时权限申请。
    * @default false
    */
   androidBackgroundNavigationNotificationEnabled?: boolean;

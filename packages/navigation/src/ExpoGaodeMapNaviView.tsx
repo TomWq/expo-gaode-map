@@ -12,7 +12,13 @@ import type {
   PlayVoiceEvent,
   ReCalculateEvent,
 } from './types';
-import { Image, Platform, StatusBar, type NativeSyntheticEvent } from 'react-native';
+import {
+  Image,
+  PermissionsAndroid,
+  Platform,
+  StatusBar,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { createLazyNativeViewManager } from './map/utils/lazyNativeViewManager';
 
 function normalizeNaviImageSource(source?: ExpoGaodeMapNaviViewProps['carImage']): string | undefined {
@@ -23,6 +29,25 @@ function normalizeNaviImageSource(source?: ExpoGaodeMapNaviViewProps['carImage']
     return source;
   }
   return Image.resolveAssetSource(source)?.uri;
+}
+
+async function ensureAndroidNavigationNotificationPermission(enabled: boolean): Promise<void> {
+  if (!enabled || Platform.OS !== 'android' || Platform.Version < 33) {
+    return;
+  }
+
+  try {
+    const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+    const granted = await PermissionsAndroid.check(permission);
+    if (!granted) {
+      await PermissionsAndroid.request(permission);
+    }
+  } catch (error) {
+    console.warn(
+      '[expo-gaode-map-navigation] Failed to request POST_NOTIFICATIONS permission automatically.',
+      error
+    );
+  }
 }
 
 /**
@@ -122,6 +147,7 @@ const getNativeView = createLazyNativeViewManager<
  */
 export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, ExpoGaodeMapNaviViewProps>((props, ref) => {
   const nativeRef = React.useRef<NativeExpoGaodeMapNaviViewRef | null>(null);
+  const hasRequestedAndroidNotificationPermissionRef = React.useRef(false);
   const NativeView = React.useMemo(() => getNativeView(), []);
   const {
     onNaviInfoUpdate,
@@ -170,6 +196,24 @@ export const ExpoGaodeMapNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Ex
           carCompassImage: resolvedCarCompassImage,
           cameraImage: resolvedCameraImage,
         };
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    if (!props.androidBackgroundNavigationNotificationEnabled) {
+      hasRequestedAndroidNotificationPermissionRef.current = false;
+      return;
+    }
+
+    if (hasRequestedAndroidNotificationPermissionRef.current) {
+      return;
+    }
+
+    hasRequestedAndroidNotificationPermissionRef.current = true;
+    void ensureAndroidNavigationNotificationPermission(true);
+  }, [props.androidBackgroundNavigationNotificationEnabled]);
   
   // 创建 API 引用
   const apiRef: ExpoGaodeMapNaviViewRef = React.useMemo(() => ({

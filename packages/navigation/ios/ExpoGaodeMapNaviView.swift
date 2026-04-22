@@ -193,55 +193,18 @@ private struct NaviCustomWaypointMarkerModel {
   var arrived: Bool = false
 }
 
-private final class NaviCustomWaypointTailView: UIView {
-  override init(frame: CGRect) {
-    super.init(frame: frame)
-    backgroundColor = .clear
-    isOpaque = false
-  }
-
-  required init?(coder: NSCoder) {
-    super.init(coder: coder)
-    backgroundColor = .clear
-    isOpaque = false
-  }
-
-  override func draw(_ rect: CGRect) {
-    guard let context = UIGraphicsGetCurrentContext() else {
-      return
-    }
-
-    let fillColor = UIColor(red: 47.0 / 255.0, green: 103.0 / 255.0, blue: 255.0 / 255.0, alpha: 1)
-    let strokeColor = UIColor.white
-    let path = UIBezierPath()
-    path.move(to: CGPoint(x: rect.midX, y: rect.maxY - 1))
-    path.addLine(to: CGPoint(x: 1.5, y: 1.5))
-    path.addLine(to: CGPoint(x: rect.maxX - 1.5, y: 1.5))
-    path.close()
-
-    context.saveGState()
-    fillColor.setFill()
-    strokeColor.setStroke()
-    path.lineJoinStyle = .round
-    path.lineWidth = 2.5
-    path.fill()
-    path.stroke()
-    context.restoreGState()
-  }
-}
-
 private final class NaviCustomWaypointBubbleView: UIView {
   init(title: String) {
     let font = UIFont.systemFont(ofSize: 17, weight: .semibold)
     let textWidth = ceil((title as NSString).size(withAttributes: [.font: font]).width)
     let bodyWidth = min(max(textWidth + 28, 62), 110)
-    let size = CGSize(width: bodyWidth, height: 50)
+    let size = CGSize(width: bodyWidth, height: 34)
     super.init(frame: CGRect(origin: .zero, size: size))
 
     backgroundColor = .clear
     isOpaque = false
 
-    let bodyView = UIView(frame: CGRect(x: 0, y: 0, width: bodyWidth, height: 34))
+    let bodyView = UIView(frame: bounds)
     bodyView.backgroundColor = UIColor(red: 47.0 / 255.0, green: 103.0 / 255.0, blue: 255.0 / 255.0, alpha: 1)
     bodyView.layer.cornerRadius = 17
     bodyView.layer.borderWidth = 2
@@ -258,18 +221,6 @@ private final class NaviCustomWaypointBubbleView: UIView {
     label.textColor = .white
     label.font = font
     bodyView.addSubview(label)
-
-    let tailWidth: CGFloat = 14
-    let tailHeight: CGFloat = 14
-    let tailView = NaviCustomWaypointTailView(
-      frame: CGRect(
-        x: (bodyWidth - tailWidth) / 2,
-        y: bodyView.frame.maxY - 1,
-        width: tailWidth,
-        height: tailHeight
-      )
-    )
-    addSubview(tailView)
   }
 
   required init?(coder: NSCoder) {
