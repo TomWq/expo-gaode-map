@@ -474,6 +474,46 @@ await openOfficialNaviPage({
 
 `NaviView` 是高德官方提供的完整导航界面组件。
 
+如果你要做业务成品页，建议同时参考仓库内 `example-navigation` 的两个示例：
+
+- `app/examples/ui-props.tsx`：自定义嵌入式导航 UI
+- `app/examples/route-picker.tsx`：自定义路线选择页 / 多路线规划
+
+### 效果示例
+
+下面这组截图用于快速对比官方默认嵌入式导航样式和自定义 UI 导航样式：
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>官方默认 1</strong><br />
+      <img src="/images/navigation/official-default-1.jpg" alt="官方默认导航样式 1" width="260" />
+    </td>
+    <td align="center">
+      <strong>官方默认 2</strong><br />
+      <img src="/images/navigation/official-default-2.jpg" alt="官方默认导航样式 2" width="260" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <strong>自定义 UI 1</strong><br />
+      <img src="/images/navigation/custom-ui-1.jpg" alt="自定义导航样式 1" width="260" />
+    </td>
+    <td align="center">
+      <strong>自定义 UI 2</strong><br />
+      <img src="/images/navigation/custom-ui-2.jpg" alt="自定义导航样式 2" width="260" />
+    </td>
+  </tr>
+</table>
+
+### 多路线规划示例
+
+如果你需要起点 / 终点 / 多途经点输入，以及底部多条候选路线切换，可以参考“自定义路线选择页”：
+
+<p align="center">
+  <img src="/images/navigation/route-picker-multi-route.jpg" alt="多路线规划示例" width="320" />
+</p>
+
 ### 基础用法
 
 ```typescript

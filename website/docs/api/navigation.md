@@ -595,6 +595,41 @@ function NavigationScreen() {
 - 如果你的目标是稳定交付嵌入式导航页，建议以示例工程里的自定义 UI 实现为起点
 - 如果你只是想验证原生官方嵌入式 UI，请参考 `example-navigation` 中的 `official-embedded` 页面
 
+### 样式效果对比
+
+下图是示例工程里两种导航 UI 方案的实际效果截图，方便直接对比：
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>官方默认 1</strong><br />
+      <img src="/images/navigation/official-default-1.jpg" alt="官方默认导航样式 1" width="260" />
+    </td>
+    <td align="center">
+      <strong>官方默认 2</strong><br />
+      <img src="/images/navigation/official-default-2.jpg" alt="官方默认导航样式 2" width="260" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <strong>自定义 UI 1</strong><br />
+      <img src="/images/navigation/custom-ui-1.jpg" alt="自定义导航样式 1" width="260" />
+    </td>
+    <td align="center">
+      <strong>自定义 UI 2</strong><br />
+      <img src="/images/navigation/custom-ui-2.jpg" alt="自定义导航样式 2" width="260" />
+    </td>
+  </tr>
+</table>
+
+### 多路线规划示例
+
+如果你需要起点 / 终点 / 多途经点输入，以及底部多条候选路线切换，可以参考 `example-navigation` 里的“自定义路线选择页”：
+
+<p align="center">
+  <img src="/images/navigation/route-picker-multi-route.jpg" alt="多路线规划示例" width="320" />
+</p>
+
 ### NaviView 属性参考
 
 #### 核心属性
