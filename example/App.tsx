@@ -200,7 +200,7 @@ export default function MamScreen() {
       );
 
       ExpoGaodeMapModule.initSDK({
-        webKey:'9f59c9453ccc5e9798983d4922afbd09'
+        webKey:''
       });
 
       const permission = await ExpoGaodeMapModule.requestLocationPermission();
@@ -208,8 +208,8 @@ export default function MamScreen() {
         throw new Error('定位权限未授予');
       }
 
-      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
-      ExpoGaodeMapModule.setInterval(10000);
+  
+      
       ExpoGaodeMapModule.setDistanceFilter(0);
       ExpoGaodeMapModule.setDesiredAccuracy(3);
       ExpoGaodeMapModule.startUpdatingHeading();

@@ -32,7 +32,6 @@
 - ✅ 默认实现了优化地图加载，减少内存占用
 - ✅ 几何运算（距离/面积、点在圆/多边形、质心/边界、路径长度/抽稀、GeoHash、瓦片/像素坐标转换、最近点、热力网格等，由 C++ 实现）
 - ✅ 丰富的使用案例
-- ✅ 提供AI编程助手，帮助开发者快速集成和使用（https://TomWq.github.io/expo-gaode-map/guide/ai-skills.html）
 - ✅ 更多内容和功能请查看 [完整文档](https://TomWq.github.io/expo-gaode-map/)
 
 
@@ -48,9 +47,9 @@
 > - 如果你的项目使用 **Expo SDK 54 及以上**，请安装 默认的 版本。
 > - 如果你的项目使用 **Expo SDK 53 及以下**（如 50, 51, 52, 53），请使用 **V1** 版本（Tag: `v1`）。
 >   ```bash
->   npm install expo-gaode-map@v1
+>   npm install expo-gaode-map@v1.2.3
 >   ```
->   **说明**：V1 版本除了不支持**世界地图**功能外，其余 API 与 V2 (Latest) 版本完全一致。
+>   **说明**：V1 版本不支持世界地图，只是为了兼容佬项目使用，请尽快升级你的 expo 版本到 54 及以上，使用最新的 V2 版本。
 
 ### 方案一：仅使用地图和定位（核心包）
 
@@ -252,4 +251,4 @@ MIT
 - 📝 提交 [GitHub Issue](https://github.com/TomWq/expo-gaode-map/issues)
 - 💬 参与 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
 - ⭐ 给项目点个 Star 支持一下
-- 群：952241387 （欢迎加入，交流使用经验、问题反馈等）
+- QQ：582752848 

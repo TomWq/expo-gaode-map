@@ -71,9 +71,9 @@ Includes complete API documentation, usage guides, and example code:
 > - If you are using **Expo SDK 54+**, please install the **Latest** version.
 > - If you are using **Expo SDK 53 or lower** (e.g., 50, 51, 52, 53), please use the **V1** version (Tag: `v1`).
 >   ```bash
->   npm install expo-gaode-map@v1
+>   npm install expo-gaode-map@v1.2.3
 >   ```
->   **Note**: Apart from lacking **World Map** functionality, the V1 version shares the same API as V2 (Latest).
+>   **Note**: V1 version does not support World Map functionality. Please upgrade to Expo SDK 54+ for World Map support.
 
 ### Option 1: Map and Location Only (Core Package)
 
@@ -95,6 +95,25 @@ npm install expo-gaode-map-web-api     # Web API
 ```
 
 > ⚠️ **Important**: `expo-gaode-map` and `expo-gaode-map-navigation` cannot be installed simultaneously due to SDK conflicts. Choose one.
+
+### Bare React Native (Non-Expo) Projects
+
+This library is built with Expo Modules. If your app is a plain React Native project (not Expo managed), install Expo Modules first:
+
+```bash
+npx install-expo-modules@latest
+```
+
+Then install this package and rebuild native projects:
+
+```bash
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
+npx react-native run-android
+```
+
+If your project already has Expo Modules integrated, you can skip `install-expo-modules`.
 
 ### Config Plugin Configuration (Recommended)
 

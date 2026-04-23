@@ -105,6 +105,8 @@ export interface DriveRouteOptions extends BaseRouteOptions {
   strategy?: DriveStrategy;
   /** 车牌号（用于限行策略，可选） */
   carNumber?: string;
+  /** 是否考虑限行 */
+  restriction?: boolean;
   /** 避让区域（可选） */
   avoidPolygons?: Coordinates[][];
   /** 避让道路（道路名称，可选） */
@@ -162,12 +164,18 @@ export interface TransitRouteOptions extends BaseRouteOptions {
  */
 export interface TruckRouteOptions extends BaseRouteOptions {
   type: RouteType.TRUCK;
+  /** 车牌号（可选） */
+  carNumber?: string;
+  /** 是否考虑限行 */
+  restriction?: boolean;
   /** 货车大小 */
   size: TruckSize;
   /** 货车高度（米） */
   height?: number;
   /** 货车宽度（米） */
   width?: number;
+  /** 货车长度（米） */
+  length?: number;
   /** 货车载重（吨） */
   load?: number;
   /** 货车重量（吨） */
@@ -199,7 +207,7 @@ export interface OfficialNaviPageOptions {
   >;
   /** 页面类型：`ROUTE` 路线页 / `NAVI` 导航页 */
   pageType?: 'ROUTE' | 'NAVI' | string;
-  /** 算路类型：`DRIVER` / `WALK` / `RIDE` / `MOTORCYCLE`（当前主要用于驾车） */
+  /** 算路类型：`DRIVER` / `WALK` / `RIDE` / `MOTORCYCLE`。Android 官方页会使用该值；iOS 官方组件当前主要仍按官方综合路线页能力处理 */
   officialNaviType?: 'DRIVER' | 'WALK' | 'RIDE' | 'MOTORCYCLE' | string;
   /** 组件主题：`BLUE`（默认）/ `WHITE` / `BLACK` */
   theme?: 'BLUE' | 'WHITE' | 'BLACK' | string;
@@ -207,7 +215,7 @@ export interface OfficialNaviPageOptions {
   routeStrategy?: number;
   /** 是否直接进入导航页（iOS 对应 `setStartNaviDirectly`） */
   startNaviDirectly?: boolean;
-  /** 直接导航模式（仅直接进导航页时生效）：1 实时 / 2 模拟（iOS 官方组件当前不支持模拟） */
+  /** 直接导航模式（仅直接进导航页时生效）：1 实时 / 2 模拟（iOS 官方组件当前不支持模拟，传 2 会直接报错） */
   naviMode?: number;
   needCalculateRouteWhenPresent?: boolean;
   /** 退出导航页时是否销毁 DriveManager 实例，默认 false */
@@ -377,6 +385,8 @@ export interface RouteStep {
 export interface RouteResult {
   /** 路线ID */
   id: number;
+  /** 路线ID（兼容旧版原生返回） */
+  routeId?: number;
   /** 起点坐标 */
   start: Coordinates;
   /** 终点坐标 */

@@ -60,7 +60,6 @@
 - ✅ 原生实现精简，生命周期更清晰，便于稳定维护
 - ✅ 几何运算（距离/面积、点在圆/多边形、质心/边界、路径长度/抽稀、GeoHash、瓦片/像素坐标转换、最近点、热力网格等，由 C++ 实现）
 - ✅ 丰富的使用案例
-- ✅ 提供AI编程助手，帮助开发者快速集成和使用（https://TomWq.github.io/expo-gaode-map/guide/ai-skills.html）
 - ✅ 更多内容和功能请查看 [完整文档](https://TomWq.github.io/expo-gaode-map/)
 
 ### 可选模块
@@ -74,9 +73,9 @@
 > - 如果你的项目使用 **Expo SDK 54 及以上**，请安装 默认的 版本。
 > - 如果你的项目使用 **Expo SDK 53 及以下**（如 50, 51, 52, 53），请使用 **V1** 版本（Tag: `v1`）。
 >   ```bash
->   npm install expo-gaode-map@v1
+>   npm install expo-gaode-map@v1.2.3
 >   ```
->   **说明**：V1 版本除了不支持**世界地图**功能外，其余 API 与 V2 (Latest) 版本完全一致。
+>   **说明**：V1 版本不支持世界地图，只是为了兼容佬项目使用，请尽快升级你的 expo 版本到 54 及以上，使用最新的 V2 版本。
 
 ### 方案一：仅使用地图和定位（核心包）
 
@@ -98,6 +97,25 @@ npm install expo-gaode-map-web-api     # Web API
 ```
 
 > ⚠️ **重要**：`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
+
+### 纯 React Native（非 Expo 托管）项目
+
+本库基于 Expo Modules 开发。如果你的项目是纯 React Native（不是 Expo 托管项目），请先接入 Expo Modules：
+
+```bash
+npx install-expo-modules@latest
+```
+
+然后安装本库并重新构建原生工程：
+
+```bash
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
+npx react-native run-android
+```
+
+如果你的项目已经接入了 Expo Modules，可以跳过 `install-expo-modules` 这一步。
 
 ### Config Plugin 配置（推荐）
 

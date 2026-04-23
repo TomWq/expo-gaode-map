@@ -96,6 +96,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private var uiManager: UIManager!
     /// 地图是否已加载完成
     private var isMapLoaded = false
+    /// 初始相机是否已应用（仅应用一次，避免与运行时相机控制冲突）
+    private var hasAppliedInitialCameraPosition = false
     /// 是否正在处理 annotation 选择事件
     private var isHandlingAnnotationSelect = false
     /// MarkerView 的隐藏容器（用于渲染 children）
@@ -380,9 +382,10 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
 
         uiManager.setMapType(mapType)
         
-        // 如果有初始位置，设置相机位置
-        if let position = initialCameraPosition {
+        // initialCameraPosition 只应用一次，避免每次 props 更新重置相机导致操作延迟感
+        if !hasAppliedInitialCameraPosition, let position = initialCameraPosition {
             cameraManager.setInitialCameraPosition(position)
+            hasAppliedInitialCameraPosition = true
         }
         
         uiManager.setShowsScale(showsScale)
@@ -856,6 +859,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
 
         mapView = resolvedMapView
         super.addSubview(resolvedMapView)
+        isMapLoaded = false
+        hasAppliedInitialCameraPosition = false
 
         cameraManager = CameraManager(mapView: resolvedMapView)
         uiManager = UIManager(mapView: resolvedMapView)
@@ -921,6 +926,12 @@ extension ExpoGaodeMapView {
     public func mapViewDidFinishLoadingMap(_ mapView: MAMapView) {
         guard !isMapLoaded else { return }
         isMapLoaded = true
+
+        // 兜底：若初始化阶段尚未生效，在加载完成后应用一次初始相机
+        if !hasAppliedInitialCameraPosition, let position = initialCameraPosition {
+            cameraManager?.setInitialCameraPosition(position)
+            hasAppliedInitialCameraPosition = true
+        }
         
         // 地图加载完成后，应用自定义样式
         if let styleData = customMapStyleData {

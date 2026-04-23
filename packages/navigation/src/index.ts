@@ -1,4 +1,5 @@
 import ExpoGaodeMapNavigationModule from './ExpoGaodeMapNavigationModule';
+import { ExpoGaodeMapModule } from './map';
 
 // 重新导出地图模块的所有内容
 export * from './map';
@@ -33,7 +34,17 @@ import type {
   ClearIndependentRouteOptions,
   MotorcycleRouteOptions,
   IndependentMotorcycleRouteOptions,
-} from './types';
+  BuildAnchorWaypointsOptions,
+  FollowWebPlannedRouteOptions,
+  FollowWebPlannedRouteResult,
+  FollowWebPlannedRouteCandidate,
+  WebPlannedRoute,
+  NaviInfoUpdateEvent,
+  NaviLaneInfoEvent,
+  NaviTrafficStatusesEvent,
+  NaviVisualStateEvent,
+  ExpoGaodeMapNaviViewProps,
+  } from './types';
 
 function parsePolyline(polyline?: string): NaviPoint[] {
   if (!polyline?.trim()) {
@@ -58,7 +69,173 @@ function parsePolyline(polyline?: string): NaviPoint[] {
     .filter((point): point is NaviPoint => point !== null);
 }
 
-async function loadWebApiTransitFallback() {
+function dedupeAdjacentPoints(points: NaviPoint[]): NaviPoint[] {
+  return points.filter((point, index) => {
+    if (index === 0) {
+      return true;
+    }
+
+    const previous = points[index - 1];
+    return (
+      previous.latitude !== point.latitude ||
+      previous.longitude !== point.longitude
+    );
+  });
+}
+
+function haversineDistance(pointA: NaviPoint, pointB: NaviPoint): number {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const earthRadiusMeters = 6371000;
+  const latitudeDelta = toRadians(pointB.latitude - pointA.latitude);
+  const longitudeDelta = toRadians(pointB.longitude - pointA.longitude);
+  const latitudeA = toRadians(pointA.latitude);
+  const latitudeB = toRadians(pointB.latitude);
+
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(latitudeA) * Math.cos(latitudeB) * Math.sin(longitudeDelta / 2) ** 2;
+
+  return 2 * earthRadiusMeters * Math.asin(Math.sqrt(a));
+}
+
+function distanceBetweenCoordinatesSafe(pointA: NaviPoint, pointB: NaviPoint): number {
+  try {
+    return ExpoGaodeMapModule.distanceBetweenCoordinates(pointA, pointB);
+  } catch {
+    return haversineDistance(pointA, pointB);
+  }
+}
+
+function calculatePathLengthSafe(points: NaviPoint[]): number {
+  try {
+    return ExpoGaodeMapModule.calculatePathLength(points);
+  } catch {
+    let total = 0;
+    for (let index = 1; index < points.length; index += 1) {
+      total += distanceBetweenCoordinatesSafe(points[index - 1], points[index]);
+    }
+    return total;
+  }
+}
+
+function simplifyPolylineSafe(points: NaviPoint[], tolerance: number): NaviPoint[] {
+  if (points.length <= 2) {
+    return points;
+  }
+
+  try {
+    const simplified = ExpoGaodeMapModule.simplifyPolyline(points, tolerance);
+    return simplified.length >= 2 ? simplified : points;
+  } catch {
+    return points;
+  }
+}
+
+function getDistanceToPathSafe(path: NaviPoint[], target: NaviPoint): number {
+  if (path.length === 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  try {
+    const nearest = ExpoGaodeMapModule.getNearestPointOnPath(path, target);
+    if (nearest) {
+      return nearest.distanceMeters;
+    }
+  } catch {
+    // ignore and fallback to point-to-point scan
+  }
+
+  return path.reduce((minimum, point) => {
+    const distance = distanceBetweenCoordinatesSafe(point, target);
+    return distance < minimum ? distance : minimum;
+  }, Number.POSITIVE_INFINITY);
+}
+
+function samplePolyline(points: NaviPoint[], targetSamples = 36): NaviPoint[] {
+  if (points.length <= targetSamples) {
+    return points;
+  }
+
+  const step = Math.max(1, Math.floor(points.length / targetSamples));
+  const samples = points.filter((_, index) => index % step === 0);
+  const lastPoint = points[points.length - 1];
+  const lastSample = samples[samples.length - 1];
+  if (
+    !lastSample ||
+    lastSample.latitude !== lastPoint.latitude ||
+    lastSample.longitude !== lastPoint.longitude
+  ) {
+    samples.push(lastPoint);
+  }
+  return samples;
+}
+
+function selectEvenlySpacedPoints(points: NaviPoint[], count: number): NaviPoint[] {
+  if (count <= 0 || points.length <= count) {
+    return points;
+  }
+
+  return Array.from({ length: count }, (_, index) => {
+    const rawIndex = Math.round(((index + 1) * (points.length + 1)) / (count + 1)) - 1;
+    const boundedIndex = Math.min(points.length - 1, Math.max(0, rawIndex));
+    return points[boundedIndex];
+  });
+}
+
+function normalizeWebRoutePolyline(webRoute: WebPlannedRoute): NaviPoint[] {
+  const directPolyline = dedupeAdjacentPoints(webRoute.polyline ?? []);
+  if (directPolyline.length > 1) {
+    return directPolyline;
+  }
+
+  const stepPolyline = dedupeAdjacentPoints(
+    (webRoute.steps ?? []).flatMap((step) => step.polyline ?? [])
+  );
+  return stepPolyline;
+}
+
+export function buildAnchorWaypointsFromWebRoute(
+  options: BuildAnchorWaypointsOptions
+): NaviPoint[] {
+  const {
+    webRoute,
+    maxViaPoints = 8,
+    simplifyTolerance = 80,
+    minSpacingMeters = 800,
+  } = options;
+
+  const polyline = normalizeWebRoutePolyline(webRoute);
+  if (polyline.length <= 2) {
+    return [];
+  }
+
+  const simplified = dedupeAdjacentPoints(
+    simplifyPolylineSafe(polyline, simplifyTolerance)
+  );
+  const candidatePoints = simplified.length > 2 ? simplified : polyline;
+  const interiorPoints = candidatePoints.slice(1, -1);
+
+  const spacedPoints: NaviPoint[] = [];
+  let previousPoint = polyline[0];
+
+  for (const point of interiorPoints) {
+    if (distanceBetweenCoordinatesSafe(previousPoint, point) < minSpacingMeters) {
+      continue;
+    }
+    spacedPoints.push(point);
+    previousPoint = point;
+  }
+
+  const waypoints = spacedPoints.length > 0
+    ? spacedPoints
+    : candidatePoints.length > 2
+      ? [candidatePoints[Math.floor(candidatePoints.length / 2)]]
+      : [];
+
+  return dedupeAdjacentPoints(selectEvenlySpacedPoints(waypoints, maxViaPoints));
+}
+
+async function loadWebApiFallback(feature: '公交路径规划' | '规避路线预览') {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const webApi = require('expo-gaode-map-web-api');
@@ -68,9 +245,393 @@ async function loadWebApiTransitFallback() {
     return webApi;
   } catch {
     throw new Error(
-      '公交路径规划依赖 expo-gaode-map-web-api。请安装该包，并在 ExpoGaodeMapModule.initSDK 中提供 webKey。'
+      `${feature}依赖 expo-gaode-map-web-api。请安装该包，并在 ExpoGaodeMapModule.initSDK 中提供 webKey。`
     );
   }
+}
+
+function normalizeAvoidPolygons(polygons?: DriveRouteOptions['avoidPolygons']): string | undefined {
+  if (!polygons?.length) {
+    return undefined;
+  }
+
+  const normalized = polygons
+    .map((polygon) =>
+      polygon
+        .map((point) => `${point.longitude},${point.latitude}`)
+        .join(';')
+    )
+    .filter(Boolean)
+    .join('|');
+
+  return normalized || undefined;
+}
+
+function normalizeDrivingStrategy(
+  strategy?: DriveStrategy
+): number | undefined {
+  // 导航 SDK 与 Web API 的策略枚举不完全一致。
+  // 这里做“尽量等价”的映射，主要用于带规避参数时的路线预览。
+  switch (strategy) {
+    case DriveStrategy.FASTEST:
+      return 38;
+    case DriveStrategy.FEE_FIRST:
+      return 1;
+    case DriveStrategy.SHORTEST:
+      return 2;
+    case DriveStrategy.NO_EXPRESSWAYS:
+      return 37;
+    case DriveStrategy.AVOID_CONGESTION:
+      return 33;
+    case DriveStrategy.NO_HIGHWAY:
+      return 35;
+    case DriveStrategy.NO_HIGHWAY_AVOID_CONGESTION:
+      return 40;
+    case DriveStrategy.AVOID_COST_CONGESTION:
+    case DriveStrategy.AVOID_CONGESTION_COST:
+      return 41;
+    case DriveStrategy.NO_HIGHWAY_AVOID_COST_CONGESTION:
+      return 43;
+    default:
+      return undefined;
+  }
+}
+
+function normalizeDrivingRouteResult(
+  options: DriveRouteOptions,
+  result: any
+): DriveRouteResult {
+  const paths = result?.route?.paths ?? [];
+  const routes = paths.map((path: any, index: number) => {
+    const segments = (path?.steps ?? []).map((step: any) => ({
+      instruction: step?.instruction ?? '',
+      orientation: step?.orientation,
+      road: step?.road_name,
+      distance: Number(step?.step_distance ?? 0),
+      duration: Number(step?.cost?.duration ?? 0),
+      polyline: parsePolyline(step?.polyline),
+      assistantAction: step?.assistant_action,
+      tollDistance: step?.cost?.toll_distance ? Number(step.cost.toll_distance) : undefined,
+      tollCost: step?.cost?.tolls ? Number(step.cost.tolls) : undefined,
+    }));
+
+    const restrictionCode = path?.restriction != null ? Number(path.restriction) : undefined;
+
+    return {
+      id: index,
+      start: options.from,
+      end: options.to,
+      distance: Number(path?.distance ?? 0),
+      duration: Number(path?.cost?.duration ?? path?.duration ?? 0),
+      segments,
+      polyline: segments.flatMap((segment: { polyline: NaviPoint[] }) => segment.polyline),
+      tollDistance: path?.cost?.toll_distance ? Number(path.cost.toll_distance) : undefined,
+      tollCost: path?.cost?.tolls ? Number(path.cost.tolls) : undefined,
+      trafficLightCount: path?.cost?.traffic_lights ? Number(path.cost.traffic_lights) : undefined,
+      restrictionCode,
+      restrictionInfo:
+        restrictionCode === 0
+          ? '限行已规避或未限行'
+          : restrictionCode === 1
+            ? '限行无法规避'
+            : undefined,
+      strategy: options.strategy,
+    };
+  });
+
+  return {
+    count: Number(result?.count ?? routes.length),
+    mainPathIndex: 0,
+    routeIds: routes.map((route: RouteResult) => route.id),
+    routes,
+    taxiCost: result?.route?.taxi_cost ? Number(result.route.taxi_cost) : undefined,
+  };
+}
+
+function shouldUseAvoidPreviewFallback(options: DriveRouteOptions): boolean {
+  return Boolean(options.avoidRoad?.trim() || options.avoidPolygons?.length);
+}
+
+type RouteLike = RouteResult & {
+  routeId?: number;
+  steps?: Array<{ polyline?: NaviPoint[] }>;
+};
+
+function extractRoutePolyline(route: RouteLike): NaviPoint[] {
+  if (Array.isArray(route.polyline) && route.polyline.length > 0) {
+    return route.polyline;
+  }
+
+  const segments = Array.isArray(route.segments) ? route.segments : [];
+  if (segments.length > 0) {
+    return dedupeAdjacentPoints(
+      segments.flatMap((segment) => segment.polyline ?? [])
+    );
+  }
+
+  const steps = Array.isArray(route.steps) ? route.steps : [];
+  if (steps.length > 0) {
+    return dedupeAdjacentPoints(
+      steps.flatMap((step) => step.polyline ?? [])
+    );
+  }
+
+  return [];
+}
+
+function resolveIndependentRouteId(
+  result: IndependentRouteResult,
+  route: RouteLike,
+  routeIndex: number
+): number | undefined {
+  if (typeof route.id === 'number') {
+    return route.id;
+  }
+  if (typeof route.routeId === 'number') {
+    return route.routeId;
+  }
+  return result.routeIds?.[routeIndex];
+}
+
+function scoreIndependentRouteAgainstWebPolyline(
+  result: IndependentRouteResult,
+  route: RouteLike,
+  routeIndex: number,
+  webPolyline: NaviPoint[],
+  anchorWaypoints: NaviPoint[],
+  thresholdMeters: number
+): FollowWebPlannedRouteCandidate | null {
+  const nativePolyline = extractRoutePolyline(route);
+  if (nativePolyline.length === 0 || webPolyline.length === 0) {
+    return null;
+  }
+
+  const sampledNativePoints = samplePolyline(nativePolyline);
+  const pointDistances = sampledNativePoints.map((point) =>
+    getDistanceToPathSafe(webPolyline, point)
+  );
+  const averageDeviationMeters =
+    pointDistances.reduce((total, distance) => total + distance, 0) / pointDistances.length;
+  const maxDeviationMeters = Math.max(...pointDistances);
+
+  const missedAnchorCount = anchorWaypoints.reduce((count, point) => (
+    getDistanceToPathSafe(nativePolyline, point) > thresholdMeters ? count + 1 : count
+  ), 0);
+
+  return {
+    routeId: resolveIndependentRouteId(result, route, routeIndex),
+    routeIndex,
+    averageDeviationMeters,
+    maxDeviationMeters,
+    missedAnchorCount,
+    score:
+      averageDeviationMeters +
+      maxDeviationMeters * 0.35 +
+      missedAnchorCount * thresholdMeters * 0.5,
+  };
+}
+
+function evaluateIndependentResultAgainstWebRoute(
+  independentResult: IndependentRouteResult,
+  webPolyline: NaviPoint[],
+  anchorWaypoints: NaviPoint[],
+  maxDeviationMeters: number
+) {
+  const candidateMatches = independentResult.routes
+    .map((route, routeIndex) =>
+      scoreIndependentRouteAgainstWebPolyline(
+        independentResult,
+        route as RouteLike,
+        routeIndex,
+        webPolyline,
+        anchorWaypoints,
+        maxDeviationMeters
+      )
+    )
+    .filter((candidate): candidate is FollowWebPlannedRouteCandidate => candidate !== null)
+    .sort((routeA, routeB) => routeA.score - routeB.score);
+
+  const bestMatch = candidateMatches[0];
+  const selectedRoute = bestMatch
+    ? independentResult.routes[bestMatch.routeIndex] as RouteLike
+    : undefined;
+  const nativePolyline = selectedRoute ? extractRoutePolyline(selectedRoute) : [];
+
+  let mode: FollowWebPlannedRouteResult['mode'] = 'preview_only';
+  let reason = '未找到足够接近 Web 规划线的原生路线';
+
+  if (bestMatch) {
+    if (
+      bestMatch.averageDeviationMeters <= maxDeviationMeters / 2 &&
+      bestMatch.maxDeviationMeters <= maxDeviationMeters &&
+      bestMatch.missedAnchorCount === 0
+    ) {
+      mode = 'matched';
+      reason = '原生路线与 Web 规划线高度接近，可直接按近似结果导航';
+    } else if (
+      bestMatch.averageDeviationMeters <= maxDeviationMeters &&
+      bestMatch.maxDeviationMeters <= maxDeviationMeters * 2
+    ) {
+      mode = 'approximate';
+      reason = '原生路线与 Web 规划线接近，但仍存在可见偏差';
+    }
+  }
+
+  return {
+    candidateMatches,
+    bestMatch,
+    selectedRoute,
+    nativePolyline,
+    mode,
+    reason,
+  };
+}
+
+export async function followWebPlannedRoute(
+  options: FollowWebPlannedRouteOptions
+): Promise<FollowWebPlannedRouteResult> {
+  const {
+    from,
+    to,
+    webRoute,
+    strategy,
+    carNumber,
+    restriction,
+    maxDeviationMeters = 120,
+    startNavigation = false,
+    naviType = 0,
+  } = options;
+
+  const webPolyline = normalizeWebRoutePolyline(webRoute);
+  if (webPolyline.length < 2) {
+    throw new Error('webRoute.polyline 至少需要 2 个点');
+  }
+
+  const anchorWaypoints = buildAnchorWaypointsFromWebRoute(options);
+  const anchoredIndependentResult = await independentDriveRoute({
+    from,
+    to,
+    strategy,
+    carNumber,
+    restriction,
+    waypoints: anchorWaypoints,
+  });
+
+  let independentResult = anchoredIndependentResult;
+  let evaluation = evaluateIndependentResultAgainstWebRoute(
+    anchoredIndependentResult,
+    webPolyline,
+    anchorWaypoints,
+    maxDeviationMeters
+  );
+  let navigationUsesAnchorWaypoints = anchorWaypoints.length > 0;
+
+  if (evaluation.bestMatch && evaluation.mode !== 'preview_only' && anchorWaypoints.length > 0) {
+    try {
+      const directIndependentResult = await independentDriveRoute({
+        from,
+        to,
+        strategy,
+        carNumber,
+        restriction,
+      });
+
+      const directEvaluation = evaluateIndependentResultAgainstWebRoute(
+        directIndependentResult,
+        webPolyline,
+        [],
+        maxDeviationMeters
+      );
+      const anchoredBest = evaluation.bestMatch;
+      const directBest = directEvaluation.bestMatch;
+
+      const canSwitchToDirectNavigation =
+        Boolean(directBest) &&
+        directEvaluation.mode !== 'preview_only' &&
+        directBest!.averageDeviationMeters <= Math.max(
+          anchoredBest.averageDeviationMeters + 45,
+          anchoredBest.averageDeviationMeters * 1.45
+        ) &&
+        directBest!.maxDeviationMeters <= Math.max(
+          anchoredBest.maxDeviationMeters + 90,
+          anchoredBest.maxDeviationMeters * 1.45
+        );
+
+      if (canSwitchToDirectNavigation) {
+        ExpoGaodeMapNavigationModule.clearIndependentRoute({
+          token: anchoredIndependentResult.token,
+        }).catch(() => {});
+        independentResult = directIndependentResult;
+        evaluation = directEvaluation;
+        navigationUsesAnchorWaypoints = false;
+        evaluation.reason =
+          directEvaluation.mode === 'matched'
+            ? '已切换为无途经点导航结果，且与 Web 规划线高度接近'
+            : '已切换为无途经点导航结果，但与 Web 规划线仍存在轻微偏差';
+      } else {
+        ExpoGaodeMapNavigationModule.clearIndependentRoute({
+          token: directIndependentResult.token,
+        }).catch(() => {});
+        evaluation.reason = `${evaluation.reason}；最终导航仍需依赖锚点途经点逼近 Web 线路`;
+      }
+    } catch {
+      evaluation.reason = `${evaluation.reason}；无途经点重算失败，最终导航仍需依赖锚点途经点`;
+    }
+  }
+
+  let navigationStarted = false;
+  if (startNavigation && evaluation.bestMatch && evaluation.mode !== 'preview_only') {
+    navigationStarted = await startNaviWithIndependentPath({
+      token: independentResult.token,
+      naviType,
+      routeId: evaluation.bestMatch.routeId,
+      routeIndex:
+        evaluation.bestMatch.routeId == null ? evaluation.bestMatch.routeIndex : undefined,
+    });
+  }
+
+  return {
+    mode: evaluation.mode,
+    token: independentResult.token,
+    anchorWaypoints,
+    webDistance: calculatePathLengthSafe(webPolyline),
+    nativeDistance:
+      evaluation.nativePolyline.length > 1
+        ? calculatePathLengthSafe(evaluation.nativePolyline)
+        : undefined,
+    selectedRouteId: evaluation.bestMatch?.routeId,
+    selectedRouteIndex: evaluation.bestMatch?.routeIndex,
+    averageDeviationMeters: evaluation.bestMatch?.averageDeviationMeters,
+    maxDeviationMeters: evaluation.bestMatch?.maxDeviationMeters,
+    navigationStarted,
+    navigationUsesAnchorWaypoints,
+    independentResult,
+    candidateMatches: evaluation.candidateMatches,
+    reason: evaluation.reason,
+  };
+}
+
+async function calculateDriveRouteWithAvoidPreview(
+  options: DriveRouteOptions
+): Promise<DriveRouteResult> {
+  const { GaodeWebAPI } = await loadWebApiFallback('规避路线预览');
+  const api = new GaodeWebAPI();
+  const result = await api.route.driving(
+    `${options.from.longitude},${options.from.latitude}`,
+    `${options.to.longitude},${options.to.latitude}`,
+    {
+      strategy: normalizeDrivingStrategy(options.strategy),
+      waypoints: options.waypoints?.map(
+        (point) => `${point.longitude},${point.latitude}`
+      ),
+      avoidpolygons: normalizeAvoidPolygons(options.avoidPolygons),
+      avoidroad: options.avoidRoad?.trim() || undefined,
+      plate: options.carNumber,
+      show_fields: 'cost,navi,polyline',
+    }
+  );
+
+  return normalizeDrivingRouteResult(options, result);
 }
 
 function normalizeTransitRouteResult(
@@ -178,8 +739,20 @@ export async function calculateRoute(
 /**
  * 驾车路径规划
  */
-export const calculateDriveRoute = (options: DriveRouteOptions) => 
-  ExpoGaodeMapNavigationModule.calculateDriveRoute(options);
+export async function calculateDriveRoute(
+  options: DriveRouteOptions
+): Promise<DriveRouteResult> {
+  if (shouldUseAvoidPreviewFallback(options)) {
+    try {
+      return await calculateDriveRouteWithAvoidPreview(options);
+    } catch {
+      // 若未安装 Web API 包，则保持现有原生逻辑不变。
+      // 这样不会破坏当前依赖 Android 反射重载的项目。
+    }
+  }
+
+  return ExpoGaodeMapNavigationModule.calculateDriveRoute(options);
+}
 
 /**
  * 步行路径规划
@@ -216,7 +789,7 @@ export const calculateMotorcycleRoute = (options: MotorcycleRouteOptions) =>
  */
 export async function calculateTransitRoute(options: TransitRouteOptions): Promise<DriveRouteResult> {
   // 运行时按需加载，避免把 navigation 包和 web-api 包在构建期强绑定。
-  const { GaodeWebAPI, TransitStrategy } = await loadWebApiTransitFallback();
+  const { GaodeWebAPI, TransitStrategy } = await loadWebApiFallback('公交路径规划');
   const api = new GaodeWebAPI();
   const result = await api.route.transit(
     `${options.from.longitude},${options.from.latitude}`,
@@ -234,34 +807,64 @@ export async function calculateTransitRoute(options: TransitRouteOptions): Promi
 }
 
 /**
-* 独立路径规划（不会影响当前导航；适合路线预览/行前选路）
-*/
+ * 独立驾车路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路、自定义路线选择页
+ * - 后续可配合 selectIndependentRoute / startNaviWithIndependentPath 使用
+ */
 export const independentDriveRoute = (options: IndependentDriveRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentDriveRoute(options);
-
+/**
+ * 独立货车路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
+ */
 export const independentTruckRoute = (options: IndependentTruckRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentTruckRoute(options);
-
+/**
+ * 独立步行路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
+ */
 export const independentWalkRoute = (options: IndependentWalkRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentWalkRoute(options);
 
+/**
+ * 独立骑行路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
+ */
 export const independentRideRoute = (options: IndependentRideRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentRideRoute(options);
 
 /**
- * 独立摩托车路径规划（不干扰当前导航）
+ * 独立摩托车路径规划
+ *
+ * - 只负责生成独立路径组，不会自动开始导航
+ * - 适合路线预览、行前选路
  */
 export const independentMotorcycleRoute = (options: IndependentMotorcycleRouteOptions) => 
   ExpoGaodeMapNavigationModule.independentMotorcycleRoute(options);
 
 /**
  * 独立路径组：选主路线
+ *
+ * - 仅切换 token 对应路径组里的当前主路线
+ * - 本身不会开始导航
  */
 export const selectIndependentRoute = (options: SelectIndependentRouteOptions) => 
   ExpoGaodeMapNavigationModule.selectIndependentRoute(options);
 
 /**
  * 独立路径组：使用指定路线启动导航
+ *
+ * - 这是模块级启动入口，不依赖 ExpoGaodeMapNaviView ref
+ * - 适合工具函数、流程封装、非嵌入式页面场景
+ * - 若你已经持有嵌入式导航视图 ref，更适合调用 ref.startNavigationWithIndependentPath(...)
  */
 export const startNaviWithIndependentPath = (options: StartNaviWithIndependentPathOptions) => 
   ExpoGaodeMapNavigationModule.startNaviWithIndependentPath(options);
@@ -274,6 +877,9 @@ export const openOfficialNaviPage = (options: OfficialNaviPageOptions) =>
 
 /**
  * 独立路径组：清理
+ *
+ * - 释放 independentXXXRoute 生成的 token 对应缓存
+ * - 当页面只保留路线预览、不再需要后续选路/导航时，建议主动清理
  */
 export const clearIndependentRoute = (options: ClearIndependentRouteOptions) => 
   ExpoGaodeMapNavigationModule.clearIndependentRoute(options);
@@ -301,6 +907,16 @@ export type {
   ClearIndependentRouteOptions,
   MotorcycleRouteOptions,
   IndependentMotorcycleRouteOptions,
+  BuildAnchorWaypointsOptions,
+  FollowWebPlannedRouteOptions,
+  FollowWebPlannedRouteResult,
+  FollowWebPlannedRouteCandidate,
+  WebPlannedRoute,
+  NaviInfoUpdateEvent,
+  NaviLaneInfoEvent,
+  NaviTrafficStatusesEvent,
+  NaviVisualStateEvent,
+  ExpoGaodeMapNaviViewProps,
 };
 
 export {
@@ -327,6 +943,8 @@ export default {
   calculateTransitRoute,
   calculateTruckRoute,
   calculateMotorcycleRoute,
+  buildAnchorWaypointsFromWebRoute,
+  followWebPlannedRoute,
 
   // 独立路径规划
   independentDriveRoute,

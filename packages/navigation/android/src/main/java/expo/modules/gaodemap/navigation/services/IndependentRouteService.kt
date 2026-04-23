@@ -5,6 +5,7 @@ import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
 import com.amap.api.navi.model.NaviLatLng
 import com.amap.api.navi.model.NaviPoi
+import expo.modules.core.arguments.ReadableArguments
 import expo.modules.gaodemap.navigation.ExpoGaodeMapNavigationModule
 import expo.modules.gaodemap.navigation.listeners.IndependentRouteListener
 import expo.modules.gaodemap.navigation.utils.Converters
@@ -25,32 +26,33 @@ class IndependentRouteService(
   }
 
   // 驾车（小客车）
-  fun independentDriveRoute(options: Map<String, Any?>, promise: Promise) {
+  fun independentDriveRoute(options: ReadableArguments, promise: Promise) {
     try {
+      val rawOptions = options.toPlainMap()
       val navi = AMapNavi.getInstance(context)
 
       @Suppress("UNCHECKED_CAST")
-      val from = options["from"] as? Map<String, Any?>
+      val from = rawOptions["from"] as? Map<String, Any?>
       @Suppress("UNCHECKED_CAST")
-      val to = options["to"] as? Map<String, Any?> ?: throw Exception("to is required")
+      val to = rawOptions["to"] as? Map<String, Any?> ?: throw Exception("to is required")
 
       val fromPoi = from?.let { Converters.parseNaviPoi(it) }
       val toPoi = Converters.parseNaviPoi(to)
       @Suppress("UNCHECKED_CAST")
-      val waypointsRaw = options["waypoints"] as? List<Map<String, Any?>>
+      val waypointsRaw = rawOptions["waypoints"] as? List<Map<String, Any?>>
       val waypointsPoi = Converters.parseWaypoints(waypointsRaw)
 
-      val strategy = resolveDriveStrategy(navi, options)
+      val strategy = resolveDriveStrategy(navi, rawOptions)
 
-      val carNumber = options["carNumber"] as? String
-      val restriction = options["restriction"] as? Boolean
+      val carNumber = rawOptions["carNumber"] as? String
+      val restriction = rawOptions["restriction"] as? Boolean
       if (carNumber != null || restriction != null) {
         setCarInfo(navi, "0", carNumber, restriction)
       }
 
       val listener = IndependentRouteListener(module, promise)
-      val avoidPolygons = Converters.parseAvoidPolygons(options["avoidPolygons"])
-      val avoidRoad = (options["avoidRoad"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+      val avoidPolygons = Converters.parseAvoidPolygons(rawOptions["avoidPolygons"])
+      val avoidRoad = (rawOptions["avoidRoad"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
       val hasAvoidPolygon = avoidPolygons.isNotEmpty()
       val hasAvoidRoad = !avoidRoad.isNullOrBlank()
 
@@ -92,7 +94,7 @@ class IndependentRouteService(
         }
       }
 
-      navi.independentCalculateRoute(
+      val success = navi.independentCalculateRoute(
         fromPoi,
         toPoi,
         waypointsPoi,
@@ -100,31 +102,36 @@ class IndependentRouteService(
         1, // 驾车
         listener
       )
+
+      if (!success) {
+        promise.reject("CALCULATE_ERROR", "独立驾车路线规划启动失败", null)
+      }
     } catch (e: Exception) {
       promise.reject("CALCULATE_ERROR", e.message, e)
     }
   }
 
   // 货车
-  fun independentTruckRoute(options: Map<String, Any?>, promise: Promise) {
+  fun independentTruckRoute(options: ReadableArguments, promise: Promise) {
     try {
+      val rawOptions = options.toPlainMap()
       val navi = AMapNavi.getInstance(context)
 
-      val carNumber = options["carNumber"] as? String
-      val restriction = options["restriction"] as? Boolean
+      val carNumber = rawOptions["carNumber"] as? String
+      val restriction = rawOptions["restriction"] as? Boolean
       setCarInfo(navi, "1", carNumber, restriction)
 
       @Suppress("UNCHECKED_CAST")
-      val from = options["from"] as? Map<String, Any?>
+      val from = rawOptions["from"] as? Map<String, Any?>
       @Suppress("UNCHECKED_CAST")
-      val to = options["to"] as? Map<String, Any?> ?: throw Exception("to is required")
+      val to = rawOptions["to"] as? Map<String, Any?> ?: throw Exception("to is required")
 
       val fromPoi = from?.let { Converters.parseNaviPoi(it) }
       val toPoi = Converters.parseNaviPoi(to)
       @Suppress("UNCHECKED_CAST")
-      val waypoints = Converters.parseWaypoints(options["waypoints"] as? List<Map<String, Any?>>)
+      val waypoints = Converters.parseWaypoints(rawOptions["waypoints"] as? List<Map<String, Any?>>)
 
-      val strategy = resolveDriveStrategy(navi, options)
+      val strategy = resolveDriveStrategy(navi, rawOptions)
 
       navi.independentCalculateRoute(
         fromPoi, toPoi, waypoints, strategy,
@@ -137,23 +144,24 @@ class IndependentRouteService(
   }
 
   // 步行
-  fun independentWalkRoute(options: Map<String, Any?>, promise: Promise) {
+  fun independentWalkRoute(options: ReadableArguments, promise: Promise) {
     try {
+      val rawOptions = options.toPlainMap()
       val navi = AMapNavi.getInstance(context)
 
       @Suppress("UNCHECKED_CAST")
-      val from = options["from"] as? Map<String, Any?>
+      val from = rawOptions["from"] as? Map<String, Any?>
       @Suppress("UNCHECKED_CAST")
-      val to = options["to"] as? Map<String, Any?> ?: throw Exception("to is required")
+      val to = rawOptions["to"] as? Map<String, Any?> ?: throw Exception("to is required")
 
       val fromPoi = from?.let { Converters.parseNaviPoi(it) }
       val toPoi = Converters.parseNaviPoi(to)
       @Suppress("UNCHECKED_CAST")
-      val waypoints = Converters.parseWaypoints(options["waypoints"] as? List<Map<String, Any?>>)
+      val waypoints = Converters.parseWaypoints(rawOptions["waypoints"] as? List<Map<String, Any?>>)
 
       val travelStrategy: Int = when {
-        options["travelStrategy"] is Number -> (options["travelStrategy"] as Number).toInt()
-        options["multiple"] as? Boolean == true -> 1001
+        rawOptions["travelStrategy"] is Number -> (rawOptions["travelStrategy"] as Number).toInt()
+        rawOptions["multiple"] as? Boolean == true -> 1001
         else -> 1000
       }
 
@@ -168,23 +176,24 @@ class IndependentRouteService(
   }
 
   // 骑行
-  fun independentRideRoute(options: Map<String, Any?>, promise: Promise) {
+  fun independentRideRoute(options: ReadableArguments, promise: Promise) {
     try {
+      val rawOptions = options.toPlainMap()
       val navi = AMapNavi.getInstance(context)
 
       @Suppress("UNCHECKED_CAST")
-      val from = options["from"] as? Map<String, Any?>
+      val from = rawOptions["from"] as? Map<String, Any?>
       @Suppress("UNCHECKED_CAST")
-      val to = options["to"] as? Map<String, Any?> ?: throw Exception("to is required")
+      val to = rawOptions["to"] as? Map<String, Any?> ?: throw Exception("to is required")
 
       val fromPoi = from?.let { Converters.parseNaviPoi(it) }
       val toPoi = Converters.parseNaviPoi(to)
       @Suppress("UNCHECKED_CAST")
-      val waypoints = Converters.parseWaypoints(options["waypoints"] as? List<Map<String, Any?>>)
+      val waypoints = Converters.parseWaypoints(rawOptions["waypoints"] as? List<Map<String, Any?>>)
 
       val travelStrategy: Int = when {
-        options["travelStrategy"] is Number -> (options["travelStrategy"] as Number).toInt()
-        options["multiple"] as? Boolean == true -> 1001
+        rawOptions["travelStrategy"] is Number -> (rawOptions["travelStrategy"] as Number).toInt()
+        rawOptions["multiple"] as? Boolean == true -> 1001
         else -> 1000
       }
 
@@ -199,25 +208,26 @@ class IndependentRouteService(
   }
 
   // 摩托车（carType=11）
-  fun independentMotorcycleRoute(options: Map<String, Any?>, promise: Promise) {
+  fun independentMotorcycleRoute(options: ReadableArguments, promise: Promise) {
     try {
+      val rawOptions = options.toPlainMap()
       val navi = AMapNavi.getInstance(context)
 
-      val carNumber = options["carNumber"] as? String
-      val motorcycleCC = (options["motorcycleCC"] as? Number)?.toInt()
+      val carNumber = rawOptions["carNumber"] as? String
+      val motorcycleCC = (rawOptions["motorcycleCC"] as? Number)?.toInt()
       setCarInfo(navi, "11", carNumber, null, motorcycleCC)
 
       @Suppress("UNCHECKED_CAST")
-      val from = options["from"] as? Map<String, Any?>
+      val from = rawOptions["from"] as? Map<String, Any?>
       @Suppress("UNCHECKED_CAST")
-      val to = options["to"] as? Map<String, Any?> ?: throw Exception("to is required")
+      val to = rawOptions["to"] as? Map<String, Any?> ?: throw Exception("to is required")
 
       val fromPoi = from?.let { Converters.parseNaviPoi(it) }
       val toPoi = Converters.parseNaviPoi(to)
       @Suppress("UNCHECKED_CAST")
-      val waypoints = Converters.parseWaypoints(options["waypoints"] as? List<Map<String, Any?>>)
+      val waypoints = Converters.parseWaypoints(rawOptions["waypoints"] as? List<Map<String, Any?>>)
 
-      val strategy = resolveDriveStrategy(navi, options)
+      val strategy = resolveDriveStrategy(navi, rawOptions)
 
       navi.independentCalculateRoute(
         fromPoi, toPoi, waypoints, strategy,
@@ -392,5 +402,9 @@ class IndependentRouteService(
       java.lang.Character.TYPE -> java.lang.Character::class.java
       else -> type
     }
+  }
+
+  private fun ReadableArguments.toPlainMap(): Map<String, Any?> {
+    return keys().associateWith { key -> get(key) }
   }
 }

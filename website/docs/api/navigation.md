@@ -535,6 +535,8 @@ await clearIndependentRoute({
 
 `NaviView` 是高德官方提供的完整导航界面组件。
 
+如果你的场景是“把导航页嵌进自己的 React Native 页面里”，库本身提供的是底层 `NaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 `example-navigation` 示例工程。
+
 ### 基础用法
 
 ```typescript
@@ -575,6 +577,59 @@ function NavigationScreen() {
 }
 ```
 
+### 自定义嵌入式导航 UI
+
+库不再直接导出 `EmbeddedNaviView` 这类成品 UI 组件；这部分实现已经迁移到 `example-navigation/lib/navigation-ui/*`，便于你直接查看和复制。
+
+推荐做法：
+
+- 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
+- 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
+- 直接参考 `example-navigation` 里的“自定义 UI 导航界面”示例页及对应源码
+- 需要路线选择、起终点 / 多途经点输入时，直接参考 `example-navigation` 里的“自定义路线选择页”示例
+
+嵌入式说明：
+
+- 在部分 React Native / Expo 宿主里，官方原生嵌入式 `NaviView` 的顶部信息区、车道信息、路口大图联动效果，可能与高德官方 Demo / 官方黑盒页存在差异
+- Android 上纯官方嵌入式 UI 更容易出现顶部信息区显示不全、叠层异常、局部样式跑偏等问题；这类页面更适合做边界验证，不建议直接作为业务成品
+- 如果你的目标是稳定交付嵌入式导航页，建议以示例工程里的自定义 UI 实现为起点
+- 如果你只是想验证原生官方嵌入式 UI，请参考 `example-navigation` 中的 `official-embedded` 页面
+
+### 样式效果对比
+
+下图是示例工程里两种导航 UI 方案的实际效果截图，方便直接对比：
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>官方默认 1</strong><br />
+      <img src="/images/navigation/official-default-1.jpg" alt="官方默认导航样式 1" width="260" />
+    </td>
+    <td align="center">
+      <strong>官方默认 2</strong><br />
+      <img src="/images/navigation/official-default-2.jpg" alt="官方默认导航样式 2" width="260" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <strong>自定义 UI 1</strong><br />
+      <img src="/images/navigation/custom-ui-1.jpg" alt="自定义导航样式 1" width="260" />
+    </td>
+    <td align="center">
+      <strong>自定义 UI 2</strong><br />
+      <img src="/images/navigation/custom-ui-2.jpg" alt="自定义导航样式 2" width="260" />
+    </td>
+  </tr>
+</table>
+
+### 多路线规划示例
+
+如果你需要起点 / 终点 / 多途经点输入，以及底部多条候选路线切换，可以参考 `example-navigation` 里的“自定义路线选择页”：
+
+<p align="center">
+  <img src="/images/navigation/route-picker-multi-route.jpg" alt="多路线规划示例" width="320" />
+</p>
+
 ### NaviView 属性参考
 
 #### 核心属性
@@ -584,20 +639,31 @@ function NavigationScreen() {
 | `naviType` | `number` | `0` | 导航类型：`0`=GPS导航, `1`=模拟导航 |
 | `enableVoice` | `boolean` | `true` | 是否启用语音播报 |
 | `showCamera` | `boolean` | `true` | 是否显示摄像头提示 |
+| `carImage` | `string \| ImageSourcePropType` | - | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
+| `carImageSize` | `{ width?: number; height?: number }` | - | 自定义导航车标尺寸，单位为 RN 逻辑像素（dp/pt）；需同时传 `width` 与 `height` 才会生效 |
+| `startPointImage` | `string \| ImageSourcePropType` | - | 自定义起点标注图 |
+| `wayPointImage` | `string \| ImageSourcePropType` | - | 自定义途经点标注图 |
+| `endPointImage` | `string \| ImageSourcePropType` | - | 自定义终点标注图 |
 | `autoLockCar` | `boolean` | `true` | 是否自动锁车 |
 | `autoChangeZoom` | `boolean` | `true` | 是否自动缩放地图 |
-| `trafficLayerEnabled` | `boolean` | `true` | 是否显示交通路况 |
+| `trafficLayerEnabled` | `boolean` | `true` | 是否显示实时交通路况线 |
 | `realCrossDisplay` | `boolean` | `true` | 是否显示路口放大图 |
 | `naviMode` | `number` | `0` | 视角模式：`0`=车头朝上, `1`=正北朝上 |
 | `showMode` | `number` | `1` | 显示模式：`1`=锁车态, `2`=全览态, `3`=普通态 |
-| `isNightMode` | `boolean` | `false` | 是否开启夜间模式 |
+| `mapViewModeType` | `number` | `0` | 地图样式模式：`0`=白天, `1`=黑夜, `2`=自动, `3`=自定义（Android 未提供样式路径时会降级为白天） |
+| `isNightMode` | `boolean` | `false` | 兼容属性，等价于 `mapViewModeType` 的 `1/0`；若同时传 `mapViewModeType`，以后者为准 |
+| `showDriveCongestion` | `boolean` | `true` | 是否显示拥堵气泡 |
+| `showTrafficLightView` | `boolean` | `true` | 是否显示红绿灯倒计时气泡 |
+| `showCompassEnabled` | `boolean` | `true` | 是否显示指南针；iOS 仅在显式传值时覆盖默认行为 |
 | `naviArrowVisible` | `boolean` | `true` | 是否显示路线转向箭头 |
 | `showTrafficBar` | `boolean` | `true` | 是否显示路况光柱 |
+| `trafficBarFrame` | `object` | - | iOS 路况光柱位置，格式 `{ x, y, width, height }`，底层映射 `AMapNaviDriveView.tmcRouteFrame` |
+| `trafficBarColors` | `object` | - | iOS 路况光柱颜色，可配置 `unknown / smooth / fineOpen / slow / jam / seriousJam / defaultRoad` |
 | `showBrowseRouteButton` | `boolean` | `true` | 是否显示全览按钮 |
-| `showTrafficButton` | `boolean` | `true` | 是否显示实时交通按钮 |
-| `showUIElements` | `boolean` | `true` | 是否显示界面元素（ios默认不支持，后续支持） |
+| `showTrafficButton` | `boolean` | `true` | Android 对应交通图层开关按钮，iOS 对应官方交通按钮 |
+| `showUIElements` | `boolean` | `true` | Android / iOS 均已实现整体 UI 显隐；iOS 会在视图就绪后应用 |
 | `showVectorline` | `boolean` | `true` | 是否显示牵引线 |
-| `showGreyAfterPass` | `boolean` | `false` | 走过的路线是否置灰 |
+| `showGreyAfterPass` | `boolean` | `true` | 走过的路线是否置灰 |
 | `showTrafficLights` | `boolean` | `true` | 是否显示红绿灯图标 |
 
 #### Android 特有属性
@@ -605,12 +671,20 @@ function NavigationScreen() {
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `carOverlayVisible` | `boolean` | `true` | 是否显示自车和罗盘 |
-| `showDriveCongestion` | `boolean` | `true` | 是否显示拥堵气泡（v10.0.5+） |
-| `showTrafficLightView` | `boolean` | `true` | 是否显示红绿灯倒计时（v10.0.5+） |
+| `fourCornersImage` | `string \| ImageSourcePropType` | - | 自定义自车四角朝向图，映射 `AMapNaviViewOptions.setFourCornersBitmap` |
 | `routeMarkerVisible` | `object` | - | 路线标记点配置（见下文） |
 | `isNaviTravelView` | `boolean` | `false` | 设置是否为骑步行视图 |
-| `showCompassEnabled` | `boolean` | `true` | 是否显示罗盘 |
-| `androidStatusBarPaddingTop` | `number` | `状态栏高度` | 导航试图的顶部 padding 值，用于适配状态栏高度 |
+| `laneInfoVisible` | `boolean` | `true` | 是否显示车道信息 |
+| `modeCrossDisplay` | `boolean` | `true` | 是否显示 3D 路口模型 |
+| `eyrieCrossDisplay` | `boolean` | `true` | 是否显示鹰眼路口图 |
+| `secondActionVisible` | `boolean` | `true` | 是否显示辅助操作区域 |
+| `backupOverlayVisible` | `boolean` | `true` | 是否显示备用路线覆盖物 |
+| `androidStatusBarPaddingTop` | `number` | `0` | 导航视图顶部额外 padding，用于宿主页面自定义安全区 |
+| `naviStatusBarEnabled` | `boolean` | `false` | 是否启用高德官方导航状态栏；若当前 AMap SDK 不支持该接口，则自动降级为 no-op |
+| `lockZoom` | `number` | `18` | 锁车态缩放级别，范围 `14-18` |
+| `lockTilt` | `number` | `35` | 锁车态倾斜角度，范围 `0-60` |
+| `eagleMapVisible` | `boolean` | `false` | 是否显示鹰眼小地图 |
+| `pointToCenter` | `object` | - | 锁车态自车锚点位置，格式 `{ x, y }` |
 
 **routeMarkerVisible 配置：**
 
@@ -631,9 +705,94 @@ function NavigationScreen() {
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `showRoute` | `boolean` | `true` | 是否显示路线 |
+| `carCompassImage` | `string \| ImageSourcePropType` | - | 自定义自车罗盘图，映射 `setCarCompassImage` |
+| `cameraImage` | `string \| ImageSourcePropType` | - | 自定义摄像头图标，映射 `setCameraImage` |
 | `showMoreButton` | `boolean` | `true` | 是否显示更多按钮 |
-| `mapViewModeType` | `number` | `0` | 地图样式：`0`=白天, `1`=黑夜, `2`=自动, `3`=自定义 |
 | `lineWidth` | `number` | - | 路线polyline宽度（0恢复默认） |
+| `driveViewEdgePadding` | `object` | - | 导航内容边距，格式 `{ top, left, bottom, right }` |
+| `screenAnchor` | `object` | - | 地图视图锚点，格式 `{ x, y }` |
+| `showBackupRoute` | `boolean` | `true` | 是否显示备选路线 |
+| `showEagleMap` | `boolean` | `false` | 是否显示鹰眼小地图 |
+
+### NaviView UI 能力清单
+
+已开放且两端都有实现：
+
+- `showCamera`
+- `carImage`
+- `carImageSize`
+- `startPointImage`
+- `wayPointImage`
+- `endPointImage`
+- `autoLockCar`
+- `autoChangeZoom`
+- `trafficLayerEnabled`
+- `realCrossDisplay`
+- `naviMode`
+- `showMode`
+- `mapViewModeType`
+- `isNightMode`
+- `showTrafficBar`
+- `showTrafficButton`
+- `showUIElements`
+- `showGreyAfterPass`
+- `showVectorline`
+- `showCompassEnabled`
+- `showDriveCongestion`
+- `showTrafficLightView`
+
+仅 Android 已开放：
+
+- `carOverlayVisible`
+- `fourCornersImage`
+- `routeMarkerVisible`
+- `naviArrowVisible`
+- `laneInfoVisible`
+- `modeCrossDisplay`
+- `eyrieCrossDisplay`
+- `secondActionVisible`
+- `backupOverlayVisible`
+- `androidStatusBarPaddingTop`
+- `naviStatusBarEnabled`
+- `lockZoom`
+- `lockTilt`
+- `eagleMapVisible`
+- `pointToCenter`
+- `isNaviTravelView`
+
+#### Android 状态栏兼容性说明
+
+- `naviStatusBarEnabled` 依赖高德 Android 导航 SDK 某些版本才提供的 `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`。
+- 当前封装已做兼容处理：如果宿主工程实际使用的 AMap SDK 不包含这个方法，模块不会再编译失败。
+- 在这种情况下，Android 侧会跳过该设置并输出 warning，`naviStatusBarEnabled` 等价于 no-op。
+- 若你需要它在 Android 上真正生效，请升级宿主工程使用的高德导航 SDK 到包含该 API 的版本。
+
+仅 iOS 已开放：
+
+- `showRoute`
+- `carCompassImage`
+- `cameraImage`
+- `showMoreButton`
+- `lineWidth`
+- `driveViewEdgePadding`
+- `screenAnchor`
+- `showBackupRoute`
+- `showEagleMap`
+
+### 嵌入式导航 UI 方案说明
+
+- `NaviView`：高德官方提供的原生嵌入式导航视图
+- `example-navigation/lib/navigation-ui/*`：仓库示例提供的自定义嵌入式导航 UI 参考实现
+- `example-navigation/app/examples/ui-props.tsx`：自定义 UI 导航界面示例页
+- `example-navigation/app/examples/route-picker.tsx`：自定义路线选择页示例
+- `example-navigation/app/examples/official-embedded.tsx`：纯官方嵌入式 UI 边界验证页
+- `openOfficialNaviPage`：高德官方黑盒路线页 / 导航页
+
+这三者是不同层次的能力，不应混淆：
+
+- 如果你要完全沿用官方整页 UI，用 `openOfficialNaviPage`
+- 如果你要把导航嵌进自己的 RN 页面，但仍保留官方原生视图能力，用 `NaviView`
+- 如果你要在嵌入式场景下统一接管顶部信息展示，参考 `example-navigation` 里的自定义 UI 示例
 
 ### NaviView 事件
 
@@ -662,6 +821,18 @@ onArrive={(e) => {
   console.log('已到达目的地');
 }}
 ```
+
+#### iOS Live Activity 补充说明
+
+- `iosLiveActivityEnabled` 开启后，会根据 `onNaviInfoUpdate` 的实时导航数据持续更新锁屏/灵动岛卡片。
+- 到达目的地时，模块会先把卡片更新为“到达目的地”，随后约 6 秒自动结束 Live Activity。
+- 若你在 Xcode 看到 `[api] Error updating activity content: Payload maximum size exceeded.`：
+  - 模块已内置自动降级策略（优先保留转向图标，先裁剪文案）；
+  - 极端情况下仍超限才会去掉图标，避免整个状态更新失败。
+- 可用这些日志快速排查：
+  - `payload ... keeping turn icon`
+  - `payload still too large ... dropped turn icon`
+  - `arrived destination card displayed for ... stopping activity`
 
 #### onNaviInfoUpdate - 实时导航信息
 

@@ -6,7 +6,7 @@
 
 - 🗺️ **地图渲染**：内置完整地图能力，支持 Marker、Polyline、Polygon、Circle、Cluster、HeatMap 等覆盖物。
 - 🚗 **多模式路径规划**：支持驾车、步行、骑行、电动车、货车、摩托车等多种出行方式。
-- 🧭 **实时导航 UI**：提供 `NaviView` 组件，内置完整的导航界面、语音播报、转向指引、路况显示等。
+- 🧭 **实时导航 UI**：提供 `NaviView` 官方嵌入视图，并暴露完整事件与原生参数，方便你自行定制导航界面。
 - 🛣️ **独立路径规划**：支持“先算路、再导航”的高级模式，可实现多路线对比与选择。
 - ⚙️ **策略丰富**：支持速度优先、避让拥堵、少收费、不走高速等多种算路策略。
 - ✅ **开箱即用**：封装了 Android/iOS 原生导航 SDK，统一 JS 接口。
@@ -29,6 +29,13 @@ npm install expo-gaode-map-navigation
 **⚠️ 重要提示：**
 如果项目中已安装 `expo-gaode-map`，请务必先卸载，否则会导致 Android 端二进制冲突（`3dmap` vs `navi-3dmap`）。`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
 
+> ⚠️ **版本兼容性说明**：
+> - 如果你的项目使用 **Expo SDK 54 及以上**，请安装 默认的 版本。
+> - 如果你的项目使用 **Expo SDK 53 及以下**（如 50, 51, 52, 53），请使用 **V1** 版本（Tag: `v1`）。
+>   ```bash
+>   npm install expo-gaode-map-navigation@1.1.8
+>   ```
+
 
 ### Config Plugin 配置（推荐）
 
@@ -42,7 +49,12 @@ npm install expo-gaode-map-navigation
         "expo-gaode-map-navigation", 
         {
           "androidKey": "your-android-key",
-          "iosKey": "your-ios-key"
+          "iosKey": "your-ios-key",
+          "enableBackgroundLocation": true,
+          "enableBackgroundAudio": true,
+          "enableNavigationNotification": true,
+          "enableIOSLiveActivity": true,
+          "enableIOSLiveActivityFrequentUpdates": true
         }
       ]
     ]
@@ -56,6 +68,68 @@ npx expo prebuild --clean
 npx expo run:android
 npx expo run:ios
 ```
+
+说明：
+
+- `enableNavigationNotification` 仅 Android 生效，用于注入导航前台通知所需权限与 `NavigationForegroundService` 声明。
+- `enableBackgroundAudio` 仅 iOS 生效（默认随 `enableBackgroundLocation` 自动开启），用于注入 `UIBackgroundModes: audio`，保障后台导航语音持续播报。
+- `enableIOSLiveActivity` 仅 iOS 生效，用于注入 `NSSupportsLiveActivities`。
+- `enableIOSLiveActivityFrequentUpdates` 仅 iOS 生效，用于注入 `NSSupportsLiveActivitiesFrequentUpdates`。
+- 运行时还需要在 `NaviView` 里显式传 `androidBackgroundNavigationNotificationEnabled={true}` 才会在应用退到后台后显示导航常驻通知。
+- iOS 运行时还需要在 `NaviView` 里显式传 `iosLiveActivityEnabled={true}` 才会持续更新 Live Activity。
+
+## 示例工程
+
+仓库内提供了可直接运行的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md) 示例工程，专门用于验证导航能力。
+
+推荐场景：
+
+- 调试 `NaviView` 与示例工程里的自定义 HUD / 车道 HUD / 路况光柱
+- 对比官方黑盒页、官方嵌入式页、自绘嵌入式页
+- 验证独立算路、多路线选择、近似跟线导航
+
+快速运行：
+
+```bash
+cd example-navigation
+cp .env.example .env
+npm install
+npx expo run:android
+```
+
+如需 iOS：
+
+```bash
+cd example-navigation
+cp .env.example .env
+npm install
+npx pod-install ios
+npx expo run:ios
+```
+
+### iOS Live Activity Widget Extension
+
+`iosLiveActivityEnabled` 只负责从导航回调里请求/更新 ActivityKit 状态。  
+真正显示在锁屏/灵动岛的 UI，需要你在 App 里提供 Widget Extension 的 `ActivityConfiguration`。
+
+仓库已提供模板：
+
+- [`packages/navigation/widget-template/README.md`](/Volumes/xinxin/expo-gaode-map/packages/navigation/widget-template/README.md)
+- [`packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift`](/Volumes/xinxin/expo-gaode-map/packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift)
+
+模板里直接使用库导出的 `NavigationLiveActivityAttributes`（`import ExpoGaodeMapNavigation`）。
+
+#### iOS Live Activity 行为说明（补充）
+
+- 导航进行中会持续推送实时状态到锁屏/灵动岛（前提是已启用 `iosLiveActivityEnabled` 且 Widget Extension 配置正确）。
+- 到达目的地后，模块会先更新卡片为“到达目的地”，再延时约 6 秒自动结束 Live Activity。
+- 为避免 ActivityKit `Payload maximum size exceeded`：
+  - 模块会优先保留转向图标，先裁剪文案字段；
+  - 如仍超限，才会降级去掉图标，确保状态更新不中断。
+- 调试日志关键字：
+  - `payload ... keeping turn icon`
+  - `payload still too large ... dropped turn icon`
+  - `arrived destination card displayed for ... stopping activity`
 
 
 ## 快速开始
@@ -122,11 +196,29 @@ export default function NavigationScreen() {
         style={{ flex: 1 }}
         showCamera={true} // 显示摄像头
         enableVoice={true} // 开启语音
+        androidBackgroundNavigationNotificationEnabled={true} // Android 后台导航常驻通知（需配合插件 enableNavigationNotification）
+        iosLiveActivityEnabled={true} // iOS Live Activity 状态更新（需配合插件 enableIOSLiveActivity + Widget Extension）
       />
     </View>
   );
 }
 ```
+
+### 3. 自定义嵌入式导航 UI
+
+如果你要做“嵌入在自己页面里的导航页”，库本身提供的是底层 `NaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md)。
+
+建议做法：
+
+- 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
+- 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
+- 直接参考 `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx` 及配套 UI 文件，按你的产品需求裁剪
+
+注意：
+
+- Android 官方嵌入式 `NaviView` 在部分 React Native / Expo 宿主中，顶部信息区、车道条、路口大图联动效果可能与高德官方 Demo 不完全一致
+- 如果你要验证官方嵌入式 UI 本身，请直接跑 `example-navigation` 里的 `official-embedded` 示例页
+- 如果你要交付稳定的嵌入式导航页，建议以示例工程里的“自定义 UI 导航界面”作为起点
 
 ## 详细用法
 
@@ -145,11 +237,25 @@ const result = await calculateRoute({
   to: { latitude: 39.91, longitude: 116.41 },
   strategy: DriveStrategy.FASTEST, // 速度优先
   avoidRoad: '京通快速路', // 避让道路名称
+  avoidPolygons: [
+    [
+      { latitude: 39.905, longitude: 116.395 },
+      { latitude: 39.905, longitude: 116.405 },
+      { latitude: 39.915, longitude: 116.405 },
+      { latitude: 39.915, longitude: 116.395 },
+    ],
+  ],
 });
 
 console.log(`总距离: ${result.routes[0].distance}米`);
 console.log(`预计耗时: ${result.routes[0].duration}秒`);
 ```
+
+说明：
+
+- 当传入 `avoidRoad` 或 `avoidPolygons` 时，`calculateRoute` / `calculateDriveRoute` 会优先尝试通过 `expo-gaode-map-web-api` 获取官方“规避后路线预览”结果。
+- 该回退仅用于路线预览与地图绘制；Web API 返回的是 polyline，不是导航 SDK 可直接启动的 `routeGroup/path`。
+- 如果未安装 `expo-gaode-map-web-api`，则保持原有原生驾车算路逻辑不变。Android 仍可能命中底层 SDK 的避让重载；iOS 则没有官方导航 SDK 接口可直接消费任意规避道路/区域。
 
 #### 步行/骑行路径规划
 
@@ -192,6 +298,8 @@ const truckResult = await calculateRoute({
 
 “独立路径规划”允许你先计算路线，并在地图上展示多条方案，用户选择其中一条后再开始导航。这通常比直接开始导航体验更好。
 
+注意：`independentDriveRoute` 仍然依赖导航 SDK 自身的独立算路能力，因此这里不接 Web API 的规避预览结果。`avoidRoad` / `avoidPolygons` 不再作为 `IndependentDriveRouteOptions` 的标准公开参数暴露。若你需要“规避道路/区域后再开始导航”，建议先用 `calculateRoute` 做预览与确认，再按终点重新发起原生导航。
+
 ```typescript
 import {
   independentDriveRoute,
@@ -210,13 +318,71 @@ const result = await independentDriveRoute({
 // 2. 选择某一条路线（例如 index=1 的路线）
 // 这通常配合地图上的点击事件，高亮显示某条路线
 await selectIndependentRoute({
+  token: result.token,
   routeId: result.routes[1].id
 });
 
 // 3. 使用当前选中的路线开始导航
 await startNaviWithIndependentPath({
-  emulator: true, // 开启模拟导航
+  token: result.token,
+  naviType: 1, // 1 = 模拟导航
 });
+```
+
+### 近似跟线导航（第一版）
+
+当你已经通过 Web API 拿到一条想要的路线，但导航 SDK 不能直接吃这条 `polyline` 时，可以使用 `followWebPlannedRoute`。
+
+它会：
+
+- 从 Web 路线提炼一组途经锚点
+- 用这些锚点重新发起原生独立算路
+- 选择最接近 Web 路线的一条原生路线
+- 仅在匹配足够接近时才启动导航
+
+```typescript
+import { followWebPlannedRoute } from 'expo-gaode-map-navigation';
+
+const result = await followWebPlannedRoute({
+  from: { latitude: 39.9, longitude: 116.4 },
+  to: { latitude: 39.91, longitude: 116.41 },
+  webRoute: {
+    polyline: webResult.routes[0].polyline ?? [],
+  },
+  maxViaPoints: 8,
+  maxDeviationMeters: 120,
+  startNavigation: true,
+  naviType: 1, // 1 = 模拟导航
+});
+
+console.log(result.mode); // matched | approximate | preview_only
+console.log(result.anchorWaypoints);
+console.log(result.candidateMatches);
+```
+
+说明：
+
+- 这不是“强制按 Web 线导航”，而是“尽量贴近 Web 线”。
+- 若返回 `preview_only`，说明原生导航 SDK 算出的路线与 Web 线路偏差过大，建议仅做预览，不要直接开导航。
+- 若你只想拿锚点，不立即导航，可以单独使用 `buildAnchorWaypointsFromWebRoute`。
+
+如果你希望继续使用嵌入式官方导航 UI，可以先完成近似跟线选路，再通过 `ExpoGaodeMapNaviView` 的 ref 使用独立路径启动：
+
+```typescript
+const matchResult = await followWebPlannedRoute({
+  from,
+  to,
+  webRoute,
+  startNavigation: false,
+});
+
+if (matchResult.mode !== 'preview_only') {
+  await naviRef.current?.startNavigationWithIndependentPath(matchResult.token, {
+    routeId: matchResult.selectedRouteId,
+    routeIndex: matchResult.selectedRouteIndex,
+    naviType: 1,
+  });
+}
 ```
 
 ### 官方导航页（openOfficialNaviPage）
@@ -336,23 +502,141 @@ const result = await calculateTransitRoute({
 | `AVOID_CONGESTION` (4) | 躲避拥堵 |
 | ... | 更多策略请参考类型定义 |
 
+### 自定义嵌入式 UI 参考实现
+
+库不再直接导出 `EmbeddedNaviView` 这类成品 UI 组件；这部分实现现在放在示例工程里，便于你直接查看和复制。
+
+参考文件：
+
+- `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviHud.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviLaneView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviTrafficBar.tsx`
+
+这套示例实现演示了：
+
+- 默认 `showUIElements={false}` 的完整自定义 UI 模式
+- 基于 `driveViewEdgePadding` / `screenAnchor` 的嵌入式地图可视区域管理
+- 基于 `onNaviInfoUpdate` 的顶部 HUD
+- 基于 `onLaneInfoUpdate` 的自绘车道 HUD
+- 基于 `onTrafficStatusesUpdate` 的自绘路况光柱
+- “全览 / 锁车”与路况开关等浮层控制按钮
+
 ### NaviView Props
 
 | 属性 | 类型 | 说明 |
 |---|---|---|
 | `naviType` | number | 导航类型（0: GPS, 1: 模拟） |
-| `showCrossImage` | boolean | 是否显示路口放大图 |
+| `realCrossDisplay` | boolean | 是否显示路口放大图 |
 | `showCamera` | boolean | 是否显示摄像头 |
-| `showTrafficButton` | boolean | 是否显示路况按钮 |
+| `carImage` | string \| ImageSourcePropType | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
+| `carImageSize` | object | 自定义导航车标尺寸，格式 `{ width, height }`（单位 dp/pt，需同时传宽高） |
+| `startPointImage` | string \| ImageSourcePropType | 自定义起点标注图 |
+| `wayPointImage` | string \| ImageSourcePropType | 自定义途经点标注图 |
+| `endPointImage` | string \| ImageSourcePropType | 自定义终点标注图 |
+| `trafficLayerEnabled` | boolean | 是否显示实时交通路况线 |
+| `showTrafficButton` | boolean | 是否显示交通按钮/交通图层开关 |
+| `showDriveCongestion` | boolean | 是否显示拥堵气泡 |
+| `showTrafficLightView` | boolean | 是否显示红绿灯倒计时气泡 |
+| `mapViewModeType` | number | 地图样式模式：`0` 白天、`1` 黑夜、`2` 自动、`3` 自定义（Android 当前未开放样式路径时会降级为白天） |
+| `isNightMode` | boolean | 兼容属性，等价于 `mapViewModeType` 的 `1/0`；若同时传 `mapViewModeType`，以后者为准 |
+| `showUIElements` | boolean | Android / iOS 均支持整体 UI 显隐 |
+| `laneInfoVisible` | boolean | Android 是否显示官方车道信息 |
+| `hideNativeLaneInfoLayout` | boolean | iOS 是否隐藏官方车道信息条，交给 RN 自绘 |
+| `iosLiveActivityEnabled` | boolean | iOS 是否启用导航 Live Activity 状态更新（需已配置 Widget Extension） |
+| `modeCrossDisplay` | boolean | Android 是否显示 3D 路口模型；iOS 当前不支持，会忽略 |
+| `eyrieCrossDisplay` | boolean | Android 是否显示鹰眼路口图 |
+| `secondActionVisible` | boolean | Android 是否显示辅助操作区域 |
+| `backupOverlayVisible` | boolean | Android 是否显示备用路线覆盖物 |
+| `androidStatusBarPaddingTop` | number | Android 顶部额外间距；若显示官方原生顶部信息区且未显式传值，封装会自动补系统状态栏高度 |
+| `naviStatusBarEnabled` | boolean | Android 是否启用高德官方导航状态栏；若当前 AMap SDK 不支持该接口，则自动降级为 no-op |
+| `lockZoom` | number | Android 锁车态缩放级别 |
+| `lockTilt` | number | Android 锁车态倾斜角度 |
+| `eagleMapVisible` | boolean | Android 是否显示鹰眼小地图 |
+| `pointToCenter` | object | Android 锁车态自车锚点位置 |
+| `androidBackgroundNavigationNotificationEnabled` | boolean | Android 退到后台时是否启用前台服务导航常驻通知（默认 false） |
+| `driveViewEdgePadding` | object | iOS 导航内容边距 |
+| `screenAnchor` | object | iOS 地图视图锚点 |
+| `showBackupRoute` | boolean | iOS 是否显示备选路线 |
+| `showEagleMap` | boolean | iOS 是否显示鹰眼小地图 |
 | `enableVoice` | boolean | 是否开启语音播报 |
 | `onArrive` | function | 到达目的地回调 |
 | `onNaviInfoUpdate` | function | 导航信息更新（剩余距离、时间等） |
+| `onLaneInfoUpdate` | function | Android / iOS 车道信息更新，用于自绘车道 HUD |
+
+### NaviView UI 能力清单
+
+已开放且两端都有实现：
+
+- `showCamera`
+- `autoLockCar`
+- `autoChangeZoom`
+- `trafficLayerEnabled`
+- `realCrossDisplay`
+- `naviMode`
+- `showMode`
+- `mapViewModeType`
+- `isNightMode`
+- `showTrafficBar`
+- `showTrafficButton`
+- `showUIElements`
+- `showGreyAfterPass`
+- `showVectorline`
+- `showCompassEnabled`
+- `showDriveCongestion`
+- `showTrafficLightView`
+
+仅 Android 已开放：
+
+- `carOverlayVisible`
+- `fourCornersImage`
+- `routeMarkerVisible`
+- `naviArrowVisible`
+- `laneInfoVisible`
+- `modeCrossDisplay`
+- `eyrieCrossDisplay`
+- `secondActionVisible`
+- `backupOverlayVisible`
+- `androidStatusBarPaddingTop`
+- `naviStatusBarEnabled`
+- `lockZoom`
+- `lockTilt`
+- `eagleMapVisible`
+- `pointToCenter`
+- `isNaviTravelView`
+
+仅 iOS 已开放：
+
+- `hideNativeLaneInfoLayout`
+- `showRoute`
+- `carCompassImage`
+- `cameraImage`
+- `trafficBarFrame`
+- `trafficBarColors`
+- `showMoreButton`
+- `lineWidth`
+- `driveViewEdgePadding`
+- `screenAnchor`
+
+关于 iOS 路口放大图能力：
+
+- iOS 官方公开的是 `showCrossImage / hideCrossImage`
+- 因此库里的 `realCrossDisplay` 对应 iOS 实景路口放大图显示控制
+- Android 的 `modeCrossDisplay` 没有 iOS 对等公开接口，传入 iOS 时会被忽略
+- `showBackupRoute`
+- `showEagleMap`
+
+当前这份清单里此前列出的“剩余代表项”已全部开放。
+
+如果后续还要继续往下包，更适合继续补的是更底层的样式类配置，而不是核心导航 UI 能力。
 
 ## 注意事项
 
 1.  **二进制冲突**：严禁与 `expo-gaode-map` 共存。本模块已包含 `3dmap` SDK。
 2.  **Web API**：如果需要更灵活的 HTTP 算路（如公交跨城规划、Web端展示），推荐配合 `expo-gaode-map-web-api` 使用。
 3.  **权限**：使用导航功能前，请确保应用已获取定位权限（`ACCESS_FINE_LOCATION`）。
+4.  **Android 状态栏兼容性**：`naviStatusBarEnabled` 依赖高德 Android 导航 SDK 某些版本才提供的 `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`。当前封装已做兼容处理：若宿主工程解析到的 SDK 不包含该方法，则不会再编译失败，而是在运行时跳过该设置并输出 warning。此时该 prop 在 Android 上等价于 no-op。
+5.  **嵌入式 UI 边界**：库导出的是底层 `NaviView` 能力；完整自定义导航界面请参考 `example-navigation` 里的示例实现，它也不是高德官方黑盒导航页的 UI 替代品。
 
 
 ## 📚 文档与资源

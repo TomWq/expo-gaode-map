@@ -3,11 +3,7 @@
 本指南将帮助你快速开始使用 expo-gaode-map。
 
 ::: tip 完整示例代码
-📦 查看完整的可运行示例：[expo-gaode-map-example](https://github.com/TomWq/expo-gaode-map-example)
-:::
-
-::: tip 🚀 AI 提效助手
-使用 Cursor 或 Trae 开发？下载我们的 [AI 技能包](/guide/ai-skills)，让 AI 成为您的高德地图专家！
+📦 导航相关的可运行示例已收敛到仓库内 `example-navigation/`；入口说明见 `example-navigation/README.md`
 :::
 
 ## 项目架构
@@ -78,13 +74,17 @@ npx expo run:android
 
 ### 纯 React Native 项目
 
-对于纯 React Native 项目，确保已安装 `expo` 包作为依赖：
+对于纯 React Native 项目（非 Expo 托管），请先接入 Expo Modules：
 
 ```bash
-npm install expo
-# 然后重新构建应用
+npx install-expo-modules@latest
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
 npx react-native run-android
 ```
+
+如果你的项目已经接入 Expo Modules，可以跳过 `install-expo-modules` 这一步。
 
 ## 配置
 
@@ -452,7 +452,7 @@ export default function App() {
 - [配置插件](/guide/config-plugin) - Config Plugin 详细配置
 - [架构说明](/guide/architecture) - Monorepo 架构和模块说明
 - [API 文档](/api/) - 完整的 API 参考
-- [完整示例仓库](https://github.com/TomWq/expo-gaode-map-example) - 可运行的完整示例代码
+- `example-navigation/README.md` - 仓库内可运行的导航示例工程说明
 
 
 ### 地图不显示？

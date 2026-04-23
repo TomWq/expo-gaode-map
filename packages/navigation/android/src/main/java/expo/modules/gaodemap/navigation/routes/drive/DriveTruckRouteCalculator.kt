@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.navigation.routes.drive
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
@@ -64,6 +65,7 @@ class DriveTruckRouteCalculator(
   /**
    * 驾车路径规划
    */
+  @SuppressLint("SuspiciousIndentation")
   fun calculateDriveRoute(options: Map<String, Any?>, promise: Promise) {
     android.util.Log.d("DriveTruckRouteCalculator", "开始计算驾车路线，初始化状态: $isInitialized")
     
@@ -121,20 +123,28 @@ class DriveTruckRouteCalculator(
       }
     }
 
-    // 小客车可选设置：车牌/限行
+    val explicitCarType = when (val rawCarType = options["carType"]) {
+      is String -> rawCarType.trim().takeIf { it.isNotEmpty() }
+      is Number -> rawCarType.toInt().toString()
+      else -> null
+    }
     val carNumber = options["carNumber"] as? String
     val restriction = options["restriction"] as? Boolean
-    if (carNumber != null || restriction != null) {
-      try {
-        val carInfo = AMapCarInfo().apply {
-          if (carNumber != null) setCarNumber(carNumber)
-            carType = "0" // 0=小客车
-          if (restriction != null) isRestriction = restriction
+    val motorcycleCC = (options["motorcycleCC"] as? Number)?.toInt()
+    try {
+      val carInfo = AMapCarInfo().apply {
+        carType = explicitCarType ?: "0"
+        if (carNumber != null) setCarNumber(carNumber)
+        if (restriction != null) isRestriction = restriction
+        if (motorcycleCC != null) {
+          try {
+            this.motorcycleCC = motorcycleCC
+          } catch (_: Exception) {}
         }
-        aMapNavi?.setCarInfo(carInfo)
-      } catch (_: Exception) {
-        // ignore
       }
+      aMapNavi?.setCarInfo(carInfo)
+    } catch (_: Exception) {
+      // ignore
     }
 
     // 标注场景与多路线期望（默认 drive；若上层已指定 scene 则尊重）
@@ -175,36 +185,15 @@ class DriveTruckRouteCalculator(
    * 注意：该能力为收费接口；需要商务开通。未开通可能算路失败。
    */
   fun calculateTruckRoute(options: Map<String, Any?>, promise: Promise) {
-    // 先设置货车信息，再复用驾车算路流程
-    try {
-      val carNumber = options["carNumber"] as? String
-      val restriction = options["restriction"] as? Boolean
-
-      val carInfo = AMapCarInfo().apply {
-        if (carNumber != null) setCarNumber(carNumber)
-          carType = "1" // 1/3/5 视为货车，这里取 1
-        if (restriction != null) isRestriction = restriction
-
-        // 可按需扩展更详细的货车参数（示例）：
-        // setVehicleAxis("6")
-        // setVehicleHeight("3.5")
-        // setVehicleLength("7.3")
-        // setVehicleWidth("2.5")
-        // setVehicleSize("4")
-        // setVehicleLoad("25.99")
-        // setVehicleWeight("20")
-        // setVehicleLoadSwitch(true)
-      }
-      aMapNavi?.setCarInfo(carInfo)
-    } catch (_: Exception) {
-      // ignore
+    val truckOptions = options.toMutableMap()
+    if (truckOptions["carType"] == null) {
+      truckOptions["carType"] = "1"
     }
 
-    // 标注场景（truck），并期望多路线
     routeListener?.scene = "truck"
     routeListener?.multiple = true
 
-    calculateDriveRoute(options, promise)
+    calculateDriveRoute(truckOptions, promise)
   }
 
   fun destroy() {

@@ -78,19 +78,22 @@ object Converters {
    */
   fun convertNaviPathInfo(path: AMapNaviPath): Map<String, Any?> {
     return mapOf(
+      "naviMode" to 0,
       "currentRoadName" to "",
       "nextRoadName" to "",
-      "currentStepRetainDistance" to 0,
-      "currentStepRetainTime" to 0,
+      "curStepRetainDistance" to 0,
+      "curStepRetainTime" to 0,
       "pathRetainDistance" to path.allLength,
       "pathRetainTime" to path.allTime,
       "currentSpeed" to 0,
-      "iconSpeed" to 0,
       "iconType" to 0,
-      "cameraDistance" to 0,
-      "cameraType" to 0,
-      "isInHighway" to false,
-      "isOffRoute" to false
+      "iconDirection" to 0,
+      "currentSegmentIndex" to 0,
+      "currentLinkIndex" to 0,
+      "currentPointIndex" to 0,
+      "routeRemainTrafficLightCount" to 0,
+      "driveDistance" to 0,
+      "driveTime" to 0
     )
   }
 
@@ -126,23 +129,28 @@ object Converters {
   /**
    * 转换路径结果（只使用确实存在的属性）
    */
-  fun convertNaviPath(path: AMapNaviPath): Map<String, Any?> {
-    return mapOf(
+  fun convertNaviPath(path: AMapNaviPath, routeId: Int? = null): Map<String, Any?> {
+    val payload = mutableMapOf<String, Any?>(
       "distance" to path.allLength,
       "duration" to path.allTime,
       "tollDistance" to 0,
       "tollCost" to path.tollCost,
-      "trafficLightCount" to 0,
+      "trafficLightCount" to path.trafficLightCount,
       "steps" to convertSteps(path.steps),
       "polyline" to convertCoords(path.coordList)
     )
+    if (routeId != null) {
+      payload["id"] = routeId
+      payload["routeId"] = routeId
+    }
+    return payload
   }
 
   /**
    * 转换驾车路径结果
    */
   fun convertDriveRouteResult(paths: Map<Int, AMapNaviPath>?): Map<String, Any?> {
-    val routes = paths?.values?.map { convertNaviPath(it) } ?: emptyList()
+    val routes = paths?.entries?.map { (id, path) -> convertNaviPath(path, id) } ?: emptyList()
     
     return mapOf(
       "routes" to routes,
@@ -156,11 +164,12 @@ object Converters {
   fun convertMultiRouteInfo(paths: Map<Int, AMapNaviPath>?): List<Map<String, Any?>> {
     return paths?.entries?.map { (id, path) ->
       mapOf(
+        "id" to id,
         "routeId" to id,
         "distance" to path.allLength,
         "duration" to path.allTime,
         "tollCost" to path.tollCost,
-        "trafficLightCount" to 0,
+        "trafficLightCount" to path.trafficLightCount,
         "strategyDesc" to ""
       )
     } ?: emptyList()

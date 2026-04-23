@@ -40,18 +40,35 @@ class IndependentRouteService: NSObject {
     rideManager = AMapNaviRideManager.sharedInstance()
     rideManager?.delegate = self
   }
+
+  private func bindDriveManagerDelegate() {
+    driveManager = AMapNaviDriveManager.sharedInstance()
+    driveManager?.delegate = self
+  }
+
+  private func bindWalkManagerDelegate() {
+    walkManager = AMapNaviWalkManager.sharedInstance()
+    walkManager?.delegate = self
+  }
+
+  private func bindRideManagerDelegate() {
+    rideManager = AMapNaviRideManager.sharedInstance()
+    rideManager?.delegate = self
+  }
   
   // MARK: - 独立驾车路线规划
   func independentDriveRoute(options: [String: Any], promise: Promise) {
-    guard let from = options["from"] as? [String: Any],
-          let to = options["to"] as? [String: Any] else {
-      promise.reject("INVALID_PARAMS", "from and to are required")
+    bindDriveManagerDelegate()
+    guard let to = options["to"] as? [String: Any] else {
+      promise.reject("INVALID_PARAMS", "to is required")
       return
     }
 
-    guard let startPOIInfo = Converters.parseNaviPOIInfo(from),
-          let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
-      promise.reject("INVALID_COORDS", "Invalid coordinates or POI info")
+    let from = options["from"] as? [String: Any]
+    let startPOIInfo = Converters.parseNaviPOIInfo(from)
+
+    guard let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
+      promise.reject("INVALID_COORDS", "Invalid destination coordinates or POI info")
       return
     }
 
@@ -66,7 +83,7 @@ class IndependentRouteService: NSObject {
 
     let strategyValue = resolveDriveStrategyValue(options: options)
     let strategy = AMapNaviDrivingStrategy(rawValue: strategyValue)
-      ?? AMapNaviDrivingStrategy.drivingStrategySingleDefault
+      ?? AMapNaviDrivingStrategy.drivingStrategyMultipleDefault
     let token = independentRouteManager.generateToken()
 
     let success = driveManager?.independentCalculateDriveRoute(
@@ -98,6 +115,7 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立货车路线规划
   func independentTruckRoute(options: [String: Any], promise: Promise) {
+    bindDriveManagerDelegate()
     var truckOptions = options
     if truckOptions["carType"] == nil && (truckOptions["vehicleInfo"] as? [String: Any]) == nil {
       truckOptions["carType"] = 1
@@ -107,60 +125,117 @@ class IndependentRouteService: NSObject {
   
   // MARK: - 独立步行路线规划
   func independentWalkRoute(options: [String: Any], promise: Promise) {
-    guard let from = options["from"] as? [String: Any],
-          let to = options["to"] as? [String: Any] else {
-      promise.reject("INVALID_PARAMS", "from and to are required")
+    bindWalkManagerDelegate()
+    guard let to = options["to"] as? [String: Any] else {
+      promise.reject("INVALID_PARAMS", "to is required")
       return
     }
-    
-    guard let startPoint = Converters.parseNaviPoint(from),
-          let endPoint = Converters.parseNaviPoint(to) else {
-      promise.reject("INVALID_COORDS", "Invalid coordinates")
+
+    let from = options["from"] as? [String: Any]
+    let startPOIInfo = Converters.parseNaviPOIInfo(from)
+
+    guard let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
+      promise.reject("INVALID_COORDS", "Invalid destination coordinates or POI info")
       return
     }
-    
-    currentScene = "walk"
-    currentPromise = promise
-    currentToken = independentRouteManager.generateToken()
-    
-    let success = walkManager?.calculateWalkRoute(withStart: [startPoint], end: [endPoint]) ?? false
-    
+
+    let wayPOIInfos: [AMapNaviPOIInfo]? = {
+      guard let waypoints = options["waypoints"] as? [[String: Any]] else { return nil }
+      return Converters.parseNaviPOIInfos(waypoints)
+    }()
+
+    let strategy = resolveTravelStrategy(options: options)
+    let token = independentRouteManager.generateToken()
+
+    let success = walkManager?.independentCalculateWalkRoute(
+      withStart: startPOIInfo,
+      end: endPOIInfo,
+      wayPOIInfos: wayPOIInfos,
+      strategy: strategy,
+      callback: { [weak self] routeGroup, error in
+        guard let self else { return }
+        if let error = error {
+          promise.reject("CALCULATE_FAILED", error.localizedDescription)
+          return
+        }
+        guard let routeGroup = routeGroup else {
+          promise.reject("CALCULATE_FAILED", "独立步行算路成功回调未返回 routeGroup")
+          return
+        }
+
+        self.independentRouteManager.storeRouteGroup(token: token, scene: "walk", routeGroup: routeGroup)
+        let result = self.convertIndependentTravelResult(
+          routeGroup: routeGroup,
+          token: token,
+          scene: "walk"
+        )
+        promise.resolve(result)
+      }
+    ) ?? false
+
     if !success {
-      currentPromise = nil
-      currentToken = nil
       promise.reject("CALCULATE_FAILED", "独立步行路线规划启动失败")
     }
   }
   
   // MARK: - 独立骑行路线规划
   func independentRideRoute(options: [String: Any], promise: Promise) {
-    guard let from = options["from"] as? [String: Any],
-          let to = options["to"] as? [String: Any] else {
-      promise.reject("INVALID_PARAMS", "from and to are required")
+    bindRideManagerDelegate()
+    guard let to = options["to"] as? [String: Any] else {
+      promise.reject("INVALID_PARAMS", "to is required")
       return
     }
-    
-    guard let startPoint = Converters.parseNaviPoint(from),
-          let endPoint = Converters.parseNaviPoint(to) else {
-      promise.reject("INVALID_COORDS", "Invalid coordinates")
+
+    let from = options["from"] as? [String: Any]
+    let startPOIInfo = Converters.parseNaviPOIInfo(from)
+
+    guard let endPOIInfo = Converters.parseNaviPOIInfo(to) else {
+      promise.reject("INVALID_COORDS", "Invalid destination coordinates or POI info")
       return
     }
-    
-    currentScene = "ride"
-    currentPromise = promise
-    currentToken = independentRouteManager.generateToken()
-    
-    let success = rideManager?.calculateRideRoute(withStart: startPoint, end: endPoint) ?? false
-    
+
+    let wayPOIInfos: [AMapNaviPOIInfo]? = {
+      guard let waypoints = options["waypoints"] as? [[String: Any]] else { return nil }
+      return Converters.parseNaviPOIInfos(waypoints)
+    }()
+
+    let strategy = resolveTravelStrategy(options: options)
+    let token = independentRouteManager.generateToken()
+
+    let success = rideManager?.independentCalculateRideRoute(
+      withStart: startPOIInfo,
+      end: endPOIInfo,
+      wayPOIInfos: wayPOIInfos ?? [],
+      strategy: strategy,
+      callback: { [weak self] routeGroup, error in
+        guard let self else { return }
+        if let error = error {
+          promise.reject("CALCULATE_FAILED", error.localizedDescription)
+          return
+        }
+        guard let routeGroup = routeGroup else {
+          promise.reject("CALCULATE_FAILED", "独立骑行算路成功回调未返回 routeGroup")
+          return
+        }
+
+        self.independentRouteManager.storeRouteGroup(token: token, scene: "ride", routeGroup: routeGroup)
+        let result = self.convertIndependentTravelResult(
+          routeGroup: routeGroup,
+          token: token,
+          scene: "ride"
+        )
+        promise.resolve(result)
+      }
+    ) ?? false
+
     if !success {
-      currentPromise = nil
-      currentToken = nil
       promise.reject("CALCULATE_FAILED", "独立骑行路线规划启动失败")
     }
   }
   
   // MARK: - 独立摩托车路线规划（使用驾车接口）
   func independentMotorcycleRoute(options: [String: Any], promise: Promise) {
+    bindDriveManagerDelegate()
     var motorcycleOptions = options
     if motorcycleOptions["carType"] == nil {
       motorcycleOptions["carType"] = 11
@@ -240,6 +315,82 @@ class IndependentRouteService: NSObject {
     return hasAnyValue ? naviVehicleInfo : nil
   }
 
+  private func resolveTravelStrategy(options: [String: Any]) -> AMapNaviTravelStrategy {
+    if let rawValue = intValue(options["travelStrategy"]),
+       let strategy = AMapNaviTravelStrategy(rawValue: rawValue) {
+      return strategy
+    }
+
+    if (options["multiple"] as? Bool) == true {
+      return .multipleDefault
+    }
+
+    return .singleDefault
+  }
+
+  private func convertIndependentTravelResult(
+    routeGroup: AMapNaviRouteGroup,
+    token: Int,
+    scene: String
+  ) -> [String: Any] {
+    let orderedRouteIds = routeGroup.naviRouteIDs?.map { $0.intValue } ?? []
+    var routes: [[String: Any]] = []
+
+    if let naviRoutes = routeGroup.naviRoutes {
+      let fallbackIds = naviRoutes.keys.map { $0.intValue }.sorted()
+      let routeIds = orderedRouteIds.isEmpty ? fallbackIds : orderedRouteIds
+      for routeId in routeIds {
+        let key = NSNumber(value: routeId)
+        guard let route = naviRoutes[key] else { continue }
+        routes.append([
+          "id": routeId,
+          "routeId": routeId,
+          "distance": route.routeLength,
+          "duration": route.routeTime,
+          "strategy": buildTravelRouteStrategyLabel(scene: scene, routeId: routeId),
+          "polyline": extractCoordinates(from: route)
+        ])
+      }
+    } else if let route = routeGroup.naviRoute {
+      let routeId = routeGroup.naviRouteID
+      routes.append([
+        "id": routeId,
+        "routeId": routeId,
+        "distance": route.routeLength,
+        "duration": route.routeTime,
+        "strategy": scene == "ride" ? "骑行路线" : "步行路线",
+        "polyline": extractCoordinates(from: route)
+      ])
+    }
+
+    let finalRouteIds = orderedRouteIds.isEmpty ? routes.compactMap { $0["routeId"] as? Int } : orderedRouteIds
+    let mainRouteId = routeGroup.naviRouteID
+    let mainPathIndex = finalRouteIds.firstIndex(of: mainRouteId) ?? 0
+
+    return [
+      "success": true,
+      "independent": true,
+      "token": token,
+      "count": routes.count,
+      "mainPathIndex": mainPathIndex,
+      "routeIds": finalRouteIds,
+      "routes": routes
+    ]
+  }
+
+  private func buildTravelRouteStrategyLabel(scene: String, routeId: Int) -> String {
+    switch routeId {
+    case 12:
+      return "推荐"
+    case 13:
+      return scene == "ride" ? "时间短" : "步行便捷"
+    case 14:
+      return scene == "ride" ? "距离短" : "少换向"
+    default:
+      return scene == "ride" ? "骑行路线" : "步行路线"
+    }
+  }
+
   private func convertIndependentDriveResult(
     routeGroup: AMapNaviRouteGroup,
     token: Int
@@ -254,10 +405,12 @@ class IndependentRouteService: NSObject {
         let key = NSNumber(value: routeId)
         guard let route = naviRoutes[key] else { continue }
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
           "tollCost": route.routeTollCost,
+          "trafficLightCount": route.routeTrafficLightCount,
           "strategy": "推荐路线",
           "polyline": extractCoordinates(from: route)
         ])
@@ -265,10 +418,12 @@ class IndependentRouteService: NSObject {
     } else if let route = routeGroup.naviRoute {
       let routeId = routeGroup.naviRouteID
       routes.append([
+        "id": routeId,
         "routeId": routeId,
         "distance": route.routeLength,
         "duration": route.routeTime,
         "tollCost": route.routeTollCost,
+        "trafficLightCount": route.routeTrafficLightCount,
         "strategy": "推荐路线",
         "polyline": extractCoordinates(from: route)
       ])
@@ -326,10 +481,12 @@ extension IndependentRouteService: AMapNaviDriveManagerDelegate {
       for routeID in routeIDs {
         if let route = driveManager.naviRoutes?[routeID] {
           routes.append([
+            "id": routeID.intValue,
             "routeId": routeID.intValue,
             "distance": route.routeLength,
             "duration": route.routeTime,
             "tollCost": route.routeTollCost,
+            "trafficLightCount": route.routeTrafficLightCount,
             "strategy": "推荐路线",
             "polyline": extractCoordinates(from: route)
           ])
@@ -365,6 +522,7 @@ extension IndependentRouteService: AMapNaviWalkManagerDelegate {
     var routes: [[String: Any]] = []
     if let naviRoute = walkManager.naviRoute {
       routes.append([
+        "id": 1,
         "routeId": 1,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
@@ -401,6 +559,7 @@ extension IndependentRouteService: AMapNaviRideManagerDelegate {
     var routes: [[String: Any]] = []
     if let naviRoute = rideManager.naviRoute {
       routes.append([
+        "id": 1,
         "routeId": 1,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,

@@ -2,10 +2,6 @@
 
 Quick start guide to help you integrate expo-gaode-map into your Expo project.
 
-::: tip 🚀 AI Productivity Assistant
-Using Cursor or Trae for development? Download our [AI Skill Pack](/en/guide/ai-skills) to turn your AI into a Gaode Map expert!
-:::
-
 ## Prerequisites
 
 - Node.js >= 16
@@ -37,6 +33,20 @@ yarn add expo-gaode-map
 npm install expo-gaode-map
 
 ```
+
+### Bare React Native (non-Expo managed) projects
+
+This package uses Expo Modules. In plain React Native apps, install Expo Modules first:
+
+```bash
+npx install-expo-modules@latest
+npm install expo-gaode-map
+cd ios && pod install && cd ..
+npx react-native run-ios
+npx react-native run-android
+```
+
+If Expo Modules is already integrated in your app, you can skip `install-expo-modules`.
 
 ## Get API Keys
 

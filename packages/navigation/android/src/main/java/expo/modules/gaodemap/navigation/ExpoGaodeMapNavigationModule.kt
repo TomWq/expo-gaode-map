@@ -2,9 +2,9 @@ package expo.modules.gaodemap.navigation
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.amap.api.navi.AMapNavi
 import com.amap.api.navi.model.AMapCarInfo
 import com.amap.api.navi.model.AMapNaviPathGroup
+import expo.modules.core.arguments.ReadableArguments
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -12,8 +12,7 @@ import expo.modules.gaodemap.map.modules.SDKInitializer
 import expo.modules.gaodemap.navigation.routes.drive.DriveTruckRouteCalculator
 import expo.modules.gaodemap.navigation.routes.walkride.WalkRideRouteCalculator
 import expo.modules.gaodemap.navigation.routes.ebike.EbikeRouteCalculator
-import expo.modules.gaodemap.navigation.listeners.IndependentRouteListener
-import expo.modules.gaodemap.navigation.utils.Converters
+
 import expo.modules.gaodemap.navigation.managers.IndependentRouteManager
 import expo.modules.gaodemap.navigation.services.IndependentRouteService
 import java.util.Locale
@@ -43,7 +42,7 @@ class ExpoGaodeMapNavigationModule : Module() {
   private var ebikeCalculator: EbikeRouteCalculator? = null
 
   // 独立路径规划：在原生侧暂存路线组，委托独立管理器，避免 Module 膨胀
-  private val independentRouteManager = IndependentRouteManager()
+  private val independentRouteManager = IndependentRouteManager.shared
   private var independentRouteService: IndependentRouteService? = null
 
   @SuppressLint("SuspiciousIndentation")
@@ -136,7 +135,7 @@ class ExpoGaodeMapNavigationModule : Module() {
     // 使用 AMapNavi.independentCalculateRoute，不影响当前导航状态
     // 委托给 IndependentRouteService 处理，避免 Module 文件臃肿
     
-    AsyncFunction("independentDriveRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentDriveRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentDriveRoute(options, promise)
       } catch (e: Exception) {
@@ -144,7 +143,7 @@ class ExpoGaodeMapNavigationModule : Module() {
       }
     }
 
-    AsyncFunction("independentTruckRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentTruckRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentTruckRoute(options, promise)
       } catch (e: Exception) {
@@ -152,7 +151,7 @@ class ExpoGaodeMapNavigationModule : Module() {
       }
     }
 
-    AsyncFunction("independentWalkRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentWalkRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentWalkRoute(options, promise)
       } catch (e: Exception) {
@@ -160,7 +159,7 @@ class ExpoGaodeMapNavigationModule : Module() {
       }
     }
 
-    AsyncFunction("independentRideRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentRideRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentRideRoute(options, promise)
       } catch (e: Exception) {
@@ -169,7 +168,7 @@ class ExpoGaodeMapNavigationModule : Module() {
     }
 
     // 独立摩托车 路线规划（与驾车一致，依赖车辆信息 carType=11）
-    AsyncFunction("independentMotorcycleRoute") { options: Map<String, Any?>, promise: Promise ->
+    AsyncFunction("independentMotorcycleRoute") { options: ReadableArguments, promise: Promise ->
       try {
         ensureIndependentService().independentMotorcycleRoute(options, promise)
       } catch (e: Exception) {
@@ -213,8 +212,8 @@ class ExpoGaodeMapNavigationModule : Module() {
         val routeId = (options["routeId"] as? Number)?.toInt()
         val routeIndex = (options["routeIndex"] as? Number)?.toInt()
         val naviType = (options["naviType"] as? Number)?.toInt() ?: 0
-        val ok = independentRouteManager.start(context, token, naviType, routeId, routeIndex)
-        if (!ok) throw Exception("startNaviWithPath failed")
+        val result = independentRouteManager.start(context, token, naviType, routeId, routeIndex)
+        if (!result.success) throw Exception(result.message)
         promise.resolve(true)
       } catch (e: Exception) {
         promise.reject("START_NAVI_ERROR", e.message, e)
@@ -263,26 +262,13 @@ class ExpoGaodeMapNavigationModule : Module() {
     AsyncFunction("calculateMotorcycleRoute") { options: Map<String, Any?>, promise: Promise ->
       try {
         ensureNavigationPrivacyReady()
-        // 设置摩托车车辆信息（车牌可选、排量可选）
-        try {
-          val carNumber = options["carNumber"] as? String
-          val motorcycleCC = (options["motorcycleCC"] as? Number)?.toInt()
-          val carInfo = AMapCarInfo().apply {
-            if (carNumber != null) setCarNumber(carNumber)
-              carType = "11" // 11 = 摩托车
-            if (motorcycleCC != null) {
-              try {
-                  this.motorcycleCC = motorcycleCC
-              } catch (_: Exception) {}
-            }
-          }
-          AMapNavi.getInstance(context).setCarInfo(carInfo)
-        } catch (_: Exception) {
-          // ignore
+        val motorcycleOptions = options.toMutableMap()
+        if (motorcycleOptions["carType"] == null) {
+          motorcycleOptions["carType"] = "11"
         }
 
         // 复用驾车算路逻辑（含 strategyConvert / 途经点等）
-        ensureDriveTruck().calculateDriveRoute(options, promise)
+        ensureDriveTruck().calculateDriveRoute(motorcycleOptions, promise)
       } catch (e: Exception) {
         promise.reject("CALCULATE_ERROR", e.message, e)
       }

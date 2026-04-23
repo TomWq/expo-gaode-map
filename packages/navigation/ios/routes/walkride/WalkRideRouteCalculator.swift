@@ -38,10 +38,84 @@ class WalkRideRouteCalculator: NSObject {
     eleBikeDelegateHandler?.calculator = self
     eleBikeManager?.delegate = eleBikeDelegateHandler
   }
+
+  private func bindWalkManagerDelegate() {
+    walkManager = AMapNaviWalkManager.sharedInstance()
+    walkManager?.delegate = self
+  }
+
+  private func bindRideManagerDelegate() {
+    rideManager = AMapNaviRideManager.sharedInstance()
+    rideManager?.delegate = self
+  }
+
+  private func bindEleBikeManagerDelegate() {
+    eleBikeManager = AMapNaviEleBikeManager.sharedInstance()
+    if eleBikeDelegateHandler == nil {
+      eleBikeDelegateHandler = EleBikeDelegateHandler()
+      eleBikeDelegateHandler?.calculator = self
+    }
+    eleBikeManager?.delegate = eleBikeDelegateHandler
+  }
+
+  private func boolValue(_ raw: Any?) -> Bool? {
+    if let value = raw as? Bool { return value }
+    if let value = raw as? NSNumber { return value.boolValue }
+    if let value = raw as? String {
+      switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+      case "true", "1", "yes":
+        return true
+      case "false", "0", "no":
+        return false
+      default:
+        return nil
+      }
+    }
+    return nil
+  }
+
+  private func intValue(_ raw: Any?) -> Int? {
+    if let value = raw as? Int { return value }
+    if let value = raw as? NSNumber { return value.intValue }
+    if let value = raw as? String { return Int(value) }
+    return nil
+  }
+
+  private func shouldUsePOICalculation(options: [String: Any]) -> Bool {
+    if boolValue(options["usePoi"]) == true {
+      return true
+    }
+
+    let pointDictionaries = [
+      options["from"] as? [String: Any],
+      options["to"] as? [String: Any]
+    ]
+
+    return pointDictionaries.contains { point in
+      guard let point else {
+        return false
+      }
+      let name = (point["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      let poiId = (point["poiId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      let mid = (point["mid"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      return !(name?.isEmpty ?? true) || !(poiId?.isEmpty ?? true) || !(mid?.isEmpty ?? true)
+    }
+  }
+
+  private func resolveTravelStrategy(options: [String: Any]) -> AMapNaviTravelStrategy {
+    if let raw = intValue(options["travelStrategy"]) {
+      return raw == 1001 ? .multipleDefault : .singleDefault
+    }
+    if boolValue(options["multiple"]) == true {
+      return .multipleDefault
+    }
+    return .singleDefault
+  }
   
   // MARK: - 步行路径规划
   
   func calculateWalkRoute(options: [String: Any], promise: Promise) {
+    bindWalkManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -76,6 +150,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 骑行路线规划（坐标方式）
   /// 对应官方方法：calculateRideRouteWithStartPoint:endPoint:
   func calculateRideRoute(options: [String: Any], promise: Promise) {
+    bindRideManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -104,6 +179,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 骑行路线规划（POIInfo方式，推荐）
   /// 对应官方方法：calculateRideRouteWithStartPOIInfo:endPOIInfo:strategy:
   func calculateRideRouteWithPOI(options: [String: Any], promise: Promise) {
+    bindRideManagerDelegate()
     guard let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "to is required")
       return
@@ -138,6 +214,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 电动车路线规划（坐标方式）
   /// 对应官方方法：calculateEleBikeRouteWithStartPoint:endPoint:
   func calculateEleBikeRoute(options: [String: Any], promise: Promise) {
+    bindEleBikeManagerDelegate()
     guard let from = options["from"] as? [String: Any],
           let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "from and to are required")
@@ -166,6 +243,7 @@ class WalkRideRouteCalculator: NSObject {
   /// 电动车路线规划（POIInfo方式，推荐）
   /// 对应官方方法：calculateEleBikeRouteWithStartPOIInfo:endPOIInfo:strategy:
   func calculateEleBikeRouteWithPOI(options: [String: Any], promise: Promise) {
+    bindEleBikeManagerDelegate()
     guard let to = options["to"] as? [String: Any] else {
       promise.reject("INVALID_PARAMS", "to is required")
       return
@@ -184,10 +262,52 @@ class WalkRideRouteCalculator: NSObject {
       promise.reject("INVALID_PARAMS", "Invalid end POI info")
       return
     }
-    let strategy = AMapNaviTravelStrategy(rawValue: options["strategy"] as? Int ?? 0) ?? .multipleDefault
+    let strategy = resolveTravelStrategy(options: options)
     
     let success = eleBikeManager?.calculateEleBikeRoute(withStart: startPOIInfo, end: endPOIInfo, strategy: strategy) ?? false
     
+    if !success {
+      currentPromise = nil
+      promise.reject("CALCULATE_FAILED", "电动车路线规划启动失败")
+    }
+  }
+
+  func calculateResolvedEleBikeRoute(options: [String: Any], promise: Promise) {
+    if shouldUsePOICalculation(options: options) {
+      calculateEleBikeRouteWithPOI(options: options, promise: promise)
+      return
+    }
+
+    bindEleBikeManagerDelegate()
+    guard let to = options["to"] as? [String: Any] else {
+      promise.reject("INVALID_PARAMS", "to is required")
+      return
+    }
+
+    scene = "eleBike"
+    currentPromise = promise
+
+    if let from = options["from"] as? [String: Any] {
+      guard let start = Converters.parseNaviPoint(from),
+            let end = Converters.parseNaviPoint(to) else {
+        currentPromise = nil
+        promise.reject("INVALID_COORDS", "Invalid coordinates")
+        return
+      }
+      let success = eleBikeManager?.calculateEleBikeRoute(withStart: start, end: end) ?? false
+      if !success {
+        currentPromise = nil
+        promise.reject("CALCULATE_FAILED", "电动车路线规划启动失败")
+      }
+      return
+    }
+
+    guard let end = Converters.parseNaviPoint(to) else {
+      currentPromise = nil
+      promise.reject("INVALID_COORDS", "Invalid coordinates")
+      return
+    }
+    let success = eleBikeManager?.calculateEleBikeRoute(withEnd: end) ?? false
     if !success {
       currentPromise = nil
       promise.reject("CALCULATE_FAILED", "电动车路线规划启动失败")
@@ -225,6 +345,7 @@ extension WalkRideRouteCalculator: AMapNaviWalkManagerDelegate {
       NSLog("WalkRideRouteCalculator: 步行规划返回 \(naviRoutes.count) 条路线")
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -236,6 +357,7 @@ extension WalkRideRouteCalculator: AMapNaviWalkManagerDelegate {
       // 单路线
       NSLog("WalkRideRouteCalculator: 步行规划返回单条路线")
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
@@ -274,6 +396,7 @@ extension WalkRideRouteCalculator: AMapNaviRideManagerDelegate {
       NSLog("WalkRideRouteCalculator: 骑行规划返回 \(naviRoutes.count) 条路线")
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -285,6 +408,7 @@ extension WalkRideRouteCalculator: AMapNaviRideManagerDelegate {
       // 单路线
       NSLog("WalkRideRouteCalculator: 骑行规划返回单条路线")
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,
@@ -336,6 +460,7 @@ extension WalkRideRouteCalculator {
       NSLog("WalkRideRouteCalculator: 电动车规划返回 \(naviRoutes.count) 条路线")
       for (routeId, route) in naviRoutes {
         routes.append([
+          "id": routeId,
           "routeId": routeId,
           "distance": route.routeLength,
           "duration": route.routeTime,
@@ -347,6 +472,7 @@ extension WalkRideRouteCalculator {
       // 单路线
       NSLog("WalkRideRouteCalculator: 电动车规划返回单条路线")
       routes.append([
+        "id": 12,
         "routeId": 12,
         "distance": naviRoute.routeLength,
         "duration": naviRoute.routeTime,

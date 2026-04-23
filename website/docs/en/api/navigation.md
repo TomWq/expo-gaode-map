@@ -187,6 +187,35 @@ import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
 />
 ```
 
+Custom annotation icons are now exposed as image props:
+
+- `carImage`: custom ego vehicle icon on both iOS and Android
+- `carImageSize`: custom ego vehicle icon size on both iOS and Android (`{ width, height }` in RN logical pixels)
+- `startPointImage` / `wayPointImage` / `endPointImage`: custom route marker icons on both iOS and Android
+- `fourCornersImage`: Android-only four-corners direction bitmap
+- `carCompassImage`: iOS-only ego compass image
+- `cameraImage`: iOS-only camera icon
+
+These props accept either a string URI/resource name or a React Native asset source such as `require(...)`.
+
+### Custom Embedded Navigation UI
+
+For embedded navigation screens inside your own React Native page, the package now exposes the low-level `NaviView`, events, and native props only. The full custom HUD / lane HUD / traffic bar reference implementation has been moved into the repo's `example-navigation` app under `example-navigation/lib/navigation-ui/*`.
+
+Recommended approach:
+
+- Use `NaviView` for the native navigation map, guidance, lane events, traffic-status events, and cross-image events
+- Render your own HUD from `onNaviInfoUpdate`, `onLaneInfoUpdate`, `onTrafficStatusesUpdate`, and `onNaviVisualStateChange`
+- Start from the `example-navigation` "Custom Navigation UI" example and trim it to your product needs
+- If you need route picking plus start/end/multi-waypoint input, start from the `route-picker` example inside `example-navigation`
+
+Android embedded note:
+
+- In some React Native / Expo hosts, the official embedded `NaviView` top info panel, lane information, and cross-image transitions may differ from the official AMap demo / official black-box page
+- On Android, the pure official embedded UI is more likely to show incomplete top panels, overlay glitches, or inconsistent styling across hosts/devices; treat it as a boundary-check page rather than a production UI baseline
+- If your goal is a stable embedded navigation page, start from the custom UI example in `example-navigation`
+- If you specifically want to verify the native official embedded UI, use the `official-embedded` page in the repo's example app
+
 ## Driving Strategies
 
 | Strategy | Description |
@@ -244,12 +273,58 @@ const result = await ExpoGaodeMapNavigationModule.calculateDriveRoute({
 - `endPoint` - End coordinate
 - `waypoints` - Waypoint array (optional)
 - `strategy` - Route planning strategy
+- `carImageSize` - Custom ego vehicle icon size (`{ width, height }`)
+- `iosLiveActivityEnabled` - Enables iOS Live Activity state updates (requires Widget Extension configuration)
+- `mapViewModeType` - Cross-platform map mode (`0` day, `1` night, `2` auto, `3` custom; Android falls back to day when custom style path is unavailable)
+- `isNightMode` - Legacy compatibility prop (`true`/`false` maps to `mapViewModeType` `1/0`; `mapViewModeType` takes precedence)
 - `onCalculateRouteSuccess` - Route calculation success callback
 - `onCalculateRouteFailure` - Route calculation failure callback
+- `naviStatusBarEnabled` - Android only; enables the official AMap navigation status bar when the underlying AMap SDK exposes that API
+
+### iOS Live Activity Notes
+
+- With `iosLiveActivityEnabled`, lock screen / Dynamic Island is updated from navigation snapshots.
+- On destination arrival, the module updates the card to an "Arrived" state first, then auto-dismisses it after about 6 seconds.
+- If Xcode prints `[api] Error updating activity content: Payload maximum size exceeded.`:
+  - the module now degrades payload automatically (keep turn icon first, trim text first),
+  - and only drops the turn icon as a last fallback.
+- Useful diagnostics:
+  - `payload ... keeping turn icon`
+  - `payload still too large ... dropped turn icon`
+  - `arrived destination card displayed for ... stopping activity`
+
+### Custom UI Reference
+
+The package no longer exports a ready-made `EmbeddedNaviView`. Instead, the example app contains a reference implementation you can reuse:
+
+- `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviHud.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviLaneView.tsx`
+- `example-navigation/lib/navigation-ui/EmbeddedNaviTrafficBar.tsx`
+- `example-navigation/app/examples/ui-props.tsx`
+- `example-navigation/app/examples/route-picker.tsx`
+- `example-navigation/app/examples/official-embedded.tsx`
+
+That example demonstrates:
+
+- full custom mode with `showUIElements={false}`
+- embedded-friendly `driveViewEdgePadding` / `screenAnchor` handling
+- a top HUD rendered from `onNaviInfoUpdate`
+- a custom lane HUD rendered from `onLaneInfoUpdate`
+- a custom traffic bar rendered from `onTrafficStatusesUpdate`
+- floating overview/lock and traffic toggle controls
 
 ### Map Component
 
 The navigation package includes all map component features. See [Map View API](/en/api/mapview) for details.
+
+### Android SDK Compatibility
+
+- `naviStatusBarEnabled` depends on Android AMap SDK versions that expose `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`.
+- The module now applies this setting compatibly.
+- If the resolved AMap SDK in the host app does not provide that method, the module no longer fails compilation.
+- In that case, Android skips the setting at runtime and logs a warning, so `naviStatusBarEnabled` behaves as a no-op.
+- If you need this prop to actually take effect on Android, upgrade the host app's AMap navigation SDK to a version that includes the API.
 
 ## Related Documentation
 
