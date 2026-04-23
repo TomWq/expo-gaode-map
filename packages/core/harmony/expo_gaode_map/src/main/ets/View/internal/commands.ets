@@ -3,6 +3,17 @@ import { RNComponentContext } from '@rnoh/react-native-openharmony';
 
 import { EVENT_CHANNEL, ScreenPointLike } from './types';
 
+interface CommandResultEventPayload {
+  type: string;
+  command: string;
+  requestId: string;
+  status: 'success' | 'error';
+  latitude?: number;
+  longitude?: number;
+  snapshotPath?: string;
+  message?: string;
+}
+
 export class CommandResultEmitter {
   private readonly ctx: RNComponentContext;
   private readonly tag: number;
@@ -21,16 +32,27 @@ export class CommandResultEmitter {
     snapshotPath?: string,
     message?: string
   ): void {
-    this.ctx.rnInstance.emitComponentEvent(this.tag, EVENT_CHANNEL, {
+    const event: CommandResultEventPayload = {
       type: 'onCommandResult',
       command,
       requestId,
       status,
-      latitude,
-      longitude,
-      snapshotPath,
-      message,
-    });
+    };
+
+    if (latitude !== undefined) {
+      event.latitude = latitude;
+    }
+    if (longitude !== undefined) {
+      event.longitude = longitude;
+    }
+    if (snapshotPath !== undefined) {
+      event.snapshotPath = snapshotPath;
+    }
+    if (message !== undefined) {
+      event.message = message;
+    }
+
+    this.ctx.rnInstance.emitComponentEvent(this.tag, EVENT_CHANNEL, event);
   }
 }
 

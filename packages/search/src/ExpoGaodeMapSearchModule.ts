@@ -1,5 +1,4 @@
-
-import { requireNativeModule } from 'expo-modules-core';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 
 import {
   AlongSearchOptions,
@@ -14,6 +13,67 @@ import {
   SearchResult,
 } from './ExpoGaodeMapSearch.types';
 
+function resolveModuleFromExpoGlobal<ModuleType>(moduleName: string): ModuleType | null {
+  const expoGlobal = (globalThis as {
+    expo?: {
+      modules?: Record<string, unknown>;
+    };
+  }).expo;
+  const modules = expoGlobal?.modules;
+  if (!modules || typeof modules !== 'object') {
+    return null;
+  }
+
+  const directModule = modules[moduleName] as ModuleType | undefined;
+  if (directModule) {
+    return directModule;
+  }
+
+  const nativeModulesProxy = modules.NativeModulesProxy as Record<string, unknown> | undefined;
+  if (!nativeModulesProxy || typeof nativeModulesProxy !== 'object') {
+    return null;
+  }
+
+  return (nativeModulesProxy[moduleName] as ModuleType | undefined) ?? null;
+}
+
+function requireNativeModuleCompat<ModuleType = unknown>(moduleName: string): ModuleType {
+  const os = (Platform.OS as string).toLowerCase();
+  const isHarmony = os === 'harmony' || os === 'ohos';
+
+  if (!isHarmony) {
+    try {
+      const { requireNativeModule } = require('expo-modules-core') as {
+        requireNativeModule: <T = unknown>(name: string) => T;
+      };
+      return requireNativeModule<ModuleType>(moduleName);
+    } catch {
+      // Fallback to explicit resolution below.
+    }
+  }
+
+  let resolvedModule: ModuleType | null = null;
+
+  try {
+    resolvedModule = TurboModuleRegistry.get(moduleName) as ModuleType | null;
+  } catch {
+    resolvedModule = null;
+  }
+
+  if (!resolvedModule) {
+    resolvedModule = (NativeModules[moduleName] as ModuleType | undefined) ?? null;
+  }
+
+  if (!resolvedModule) {
+    resolvedModule = resolveModuleFromExpoGlobal<ModuleType>(moduleName);
+  }
+
+  if (!resolvedModule) {
+    throw new Error(`Cannot find native module '${moduleName}'`);
+  }
+
+  return resolvedModule;
+}
 
 /**
  * 在加载原生搜索模块前，强制校验基础地图组件是否已安装。
@@ -26,7 +86,7 @@ function ensureBaseInstalled() {
     // 无论是安装了 expo-gaode-map 还是 expo-gaode-map-navigation，
     // 原生端都会注册名为 'ExpoGaodeMap' 的模块。
     // 我们通过 requireNativeModule 来检测，避免在 JS 层面引入对包的硬依赖。
-    requireNativeModule('ExpoGaodeMap');
+    requireNativeModuleCompat('ExpoGaodeMap');
   } catch (_) {
     const msg =
       '[expo-gaode-map-search] 未检测到基础地图原生模块。\n' +
@@ -117,7 +177,7 @@ let nativeModuleCache: ExpoGaodeMapSearchModuleType | null = null;
 function getNativeModule(): ExpoGaodeMapSearchModuleType {
   ensureBaseInstalled();
   if (!nativeModuleCache) {
-    nativeModuleCache = requireNativeModule<ExpoGaodeMapSearchModuleType>('ExpoGaodeMapSearch');
+    nativeModuleCache = requireNativeModuleCompat<ExpoGaodeMapSearchModuleType>('ExpoGaodeMapSearch');
   }
   return nativeModuleCache;
 }

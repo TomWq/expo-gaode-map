@@ -14,9 +14,11 @@ import {
   OnMarkerDragListener,
   Poi,
   Polyline,
-  MapsInitializer
+  MapsInitializer,
+  LocationSource
 } from '@amap/amap_lbs_map3d';
 import { AMapLocationManagerImpl } from '@amap/amap_lbs_location';
+import { l73 as AMapReflectionLocationSource } from '@amap/amap_lbs_map3d/src/main/ets/com/amap/mapcore/location/AMapReflectionLocationSource';
 import {
   AMapPrivacyAgreeStatus,
   AMapPrivacyInfoStatus,
@@ -139,11 +141,13 @@ export struct ExpoGaodeMapView {
   private hasAppliedCustomMapStyle: boolean = false;
   private hasLoggedUnsupportedLocationRepresentation: boolean = false;
   private lastAppliedWorldMapSwitchEnabled?: boolean = undefined;
+  private hasWarnedWorldMapSwitchAfterInit: boolean = false;
   private lastCameraMoveEventAt: number = 0;
   private cameraEventThrottleMs: number = 32;
   private hasLocationEverEnabled: boolean = false;
   private hasAppliedInitialCameraPosition: boolean = false;
   private overlayManager?: HarmonyChildOverlayManager;
+  private locationSource?: LocationSource;
 
   private isDestroyed: boolean = false;
 
@@ -240,6 +244,7 @@ export struct ExpoGaodeMapView {
     this.applyPrivacyState();
     this.applyMapApiKey();
     this.applyLocationApiKey();
+    this.applyWorldMapSwitchOptionBeforeInit();
     return !!this.getResolvedApiKey();
   }
 
@@ -381,6 +386,12 @@ export struct ExpoGaodeMapView {
     this.overlayManager?.clearAll();
     this.overlayManager = undefined;
     HarmonyOverlayRegistry.unregisterMapManager(this.tag);
+    try {
+      this.locationSource?.deactivate();
+    } catch (error) {
+      Logger.warn(`deactivate locationSource on disappear failed: ${JSON.stringify(error)}`);
+    }
+    this.locationSource = undefined;
 
     this.aMap?.clear();
     this.mapView?.onDestroy();
@@ -465,8 +476,15 @@ export struct ExpoGaodeMapView {
     this.aMap.showMapText(this.labelsEnabled);
     const mapWithIndoor = this.aMap as IndoorMapFeature;
     mapWithIndoor.showIndoorMap?.(this.indoorViewEnabled);
-    this.applyWorldMapSwitchOption();
     this.applyCustomMapStyle();
+    this.ensureLocationSourceConfigured();
+    if (this.lastAppliedWorldMapSwitchEnabled !== this.worldMapSwitchEnabled && !this.hasWarnedWorldMapSwitchAfterInit) {
+      this.hasWarnedWorldMapSwitchAfterInit = true;
+      Logger.warn(
+        `worldMapSwitchEnabled changed after map initialized (${this.lastAppliedWorldMapSwitchEnabled} -> ${this.worldMapSwitchEnabled}); ` +
+        'this option only takes effect before map init, recreate MapView to apply.'
+      );
+    }
 
     this.applyLocationApiKey();
     this.applyMyLocationStyle();
@@ -476,6 +494,13 @@ export struct ExpoGaodeMapView {
     } else if (this.hasLocationEverEnabled) {
       this.aMap.setMyLocationEnabled(false);
       this.hasLocationEverEnabled = false;
+    }
+    if (!this.myLocationEnabled) {
+      try {
+        this.locationSource?.deactivate();
+      } catch (error) {
+        Logger.warn(`deactivate locationSource failed: ${JSON.stringify(error)}`);
+      }
     }
 
     this.aMap.setMinZoomLevel(this.minZoom);
@@ -503,7 +528,7 @@ export struct ExpoGaodeMapView {
     }
   }
 
-  private applyWorldMapSwitchOption(): void {
+  private applyWorldMapSwitchOptionBeforeInit(): void {
     if (this.lastAppliedWorldMapSwitchEnabled === this.worldMapSwitchEnabled) {
       return;
     }
@@ -511,8 +536,30 @@ export struct ExpoGaodeMapView {
     try {
       MapsInitializer.setLoadWorldVectorMap(this.worldMapSwitchEnabled);
       this.lastAppliedWorldMapSwitchEnabled = this.worldMapSwitchEnabled;
+      this.hasWarnedWorldMapSwitchAfterInit = false;
     } catch (error) {
       Logger.warn(`setLoadWorldVectorMap failed: ${JSON.stringify(error)}`);
+    }
+  }
+
+  private ensureLocationSourceConfigured(): void {
+    if (!this.aMap) {
+      return;
+    }
+
+    if (!this.locationSource) {
+      const context = this.ctx.uiAbilityContext;
+      if (!context) {
+        Logger.warn('uiAbilityContext missing, skip creating locationSource');
+        return;
+      }
+      this.locationSource = new AMapReflectionLocationSource(context) as LocationSource;
+    }
+
+    try {
+      this.aMap.setLocationSource(this.locationSource);
+    } catch (error) {
+      Logger.warn(`setLocationSource failed: ${JSON.stringify(error)}`);
     }
   }
 

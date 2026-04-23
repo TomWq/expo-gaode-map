@@ -85,6 +85,11 @@ interface OfflineLoadedListenerLike {
   onVerifyComplete: () => void;
 }
 
+interface OfflineMapManagerCompat {
+  registOnMapDownloadListener?: (listener: OfflineMapDownloadListenerLike) => void;
+  unRegistMapDownloadListener?: () => void;
+}
+
 interface CheckUpdatePending {
   cityCode: string;
   resolve: (hasNew: boolean) => void;
@@ -93,6 +98,7 @@ interface CheckUpdatePending {
 
 const DEFAULT_AVAILABLE_SPACE_BYTES: number = 20 * 1024 * 1024 * 1024;
 const OFFLINE_LOAD_TIMEOUT_MS: number = 1200;
+const OFFLINE_PROGRESS_POLL_INTERVAL_MS: number = 1000;
 
 function arrayListToArray<T>(list: ArrayList<T> | undefined): T[] {
   const result: T[] = [];
@@ -236,7 +242,9 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
   private offlineMapManager?: OfflineMapManager;
   private readonly downloadingCities: Set<string> = new Set<string>();
   private readonly pausedCities: Set<string> = new Set<string>();
+  private readonly cityNameToCode: Map<string, string> = new Map<string, string>();
   private readonly pendingCheckUpdateByName: Map<string, CheckUpdatePending> = new Map<string, CheckUpdatePending>();
+  private progressPollTimer: number = -1;
   private offlineLoaded: boolean = false;
   private offlineLoadWaiters: Array<() => void> = [];
   private storagePath: string = '';
@@ -268,12 +276,26 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
   }
 
   override __onDestroy__(): void {
+    if (this.progressPollTimer >= 0) {
+      clearInterval(this.progressPollTimer);
+      this.progressPollTimer = -1;
+    }
     if (this.offlineMapManager) {
+      const managerCompat = this.offlineMapManager as OfflineMapManagerCompat;
+      if (managerCompat.unRegistMapDownloadListener) {
+        try {
+          managerCompat.unRegistMapDownloadListener();
+          Logger.info('[ExpoGaodeMapOffline] unRegistMapDownloadListener success');
+        } catch (error) {
+          Logger.warn(`[ExpoGaodeMapOffline] unRegistMapDownloadListener failed: ${JSON.stringify(error)}`);
+        }
+      }
       this.offlineMapManager.destroy();
       this.offlineMapManager = undefined;
     }
     this.downloadingCities.clear();
     this.pausedCities.clear();
+    this.cityNameToCode.clear();
     this.pendingCheckUpdateByName.clear();
     this.offlineLoaded = false;
     this.offlineLoadWaiters = [];
@@ -282,6 +304,68 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
   addListener(_eventName: string): void {}
 
   removeListeners(_count: number): void {}
+
+  private ensureProgressPolling(): void {
+    if (this.progressPollTimer >= 0) {
+      return;
+    }
+    this.progressPollTimer = setInterval(() => {
+      this.pollDownloadProgress();
+    }, OFFLINE_PROGRESS_POLL_INTERVAL_MS);
+    Logger.info('[ExpoGaodeMapOffline] progress polling started');
+  }
+
+  private stopProgressPollingIfIdle(): void {
+    if (this.downloadingCities.size > 0) {
+      return;
+    }
+    if (this.progressPollTimer >= 0) {
+      clearInterval(this.progressPollTimer);
+      this.progressPollTimer = -1;
+      Logger.info('[ExpoGaodeMapOffline] progress polling stopped');
+    }
+  }
+
+  private pollDownloadProgress(): void {
+    const manager = this.offlineMapManager;
+    if (!manager) {
+      this.stopProgressPollingIfIdle();
+      return;
+    }
+
+    if (this.downloadingCities.size === 0) {
+      this.stopProgressPollingIfIdle();
+      return;
+    }
+
+    const sdkDownloadingCities = arrayListToArray<OfflineMapCity>(manager.getDownloadingCityList());
+    for (let index = 0; index < sdkDownloadingCities.length; index += 1) {
+      const sdkCity = sdkDownloadingCities[index];
+      const sdkCityName = sdkCity.getCity();
+      const mappedCityCode = this.cityNameToCode.get(sdkCityName) || this.cityNameToCode.get(sdkCityName.trim());
+      const trackedCityCode = mappedCityCode || readPreferredCityCode(sdkCity);
+      this.downloadingCities.add(trackedCityCode);
+      this.handleDownloadStatus(
+        sdkCity.getState(),
+        Number(sdkCity.getcompleteCode()),
+        sdkCityName
+      );
+    }
+
+    const downloadingList = Array.from(this.downloadingCities);
+    for (let index = 0; index < downloadingList.length; index += 1) {
+      const cityCode = downloadingList[index];
+      const city = this.getCityByIdentifier(cityCode);
+      if (!city) {
+        continue;
+      }
+      this.handleDownloadStatus(
+        city.getState(),
+        Number(city.getcompleteCode()),
+        city.getCity()
+      );
+    }
+  }
 
   private getContext(): common.UIAbilityContext {
     const uiAbilityContext = this.ctx.uiAbilityContext;
@@ -334,6 +418,17 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
         this.storagePath = `${context.cacheDir}/amap/data`;
       }
       const manager = new OfflineMapManager(context, this.downloadListener);
+      const managerCompat = manager as OfflineMapManagerCompat;
+      if (managerCompat.registOnMapDownloadListener) {
+        try {
+          managerCompat.registOnMapDownloadListener(this.downloadListener);
+          Logger.info('[ExpoGaodeMapOffline] registOnMapDownloadListener success');
+        } catch (error) {
+          Logger.warn(`[ExpoGaodeMapOffline] registOnMapDownloadListener failed: ${JSON.stringify(error)}`);
+        }
+      } else {
+        Logger.info('[ExpoGaodeMapOffline] registOnMapDownloadListener not available, rely on constructor listener');
+      }
       manager.setOnOfflineLoadedListener(this.offlineLoadedListener);
       this.offlineMapManager = manager;
     }
@@ -362,6 +457,10 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     const resolvedCityCode = city ? city.getCode() : cityCode;
     const publicCityCode = city ? readPreferredCityCode(city) : cityCode;
     const cityName = city ? city.getCity() : cityCode;
+    if (cityName.trim().length > 0) {
+      this.cityNameToCode.set(cityName, publicCityCode);
+      this.cityNameToCode.set(cityName.trim(), publicCityCode);
+    }
 
     try {
       if (city && cityName.trim().length > 0) {
@@ -484,6 +583,22 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     return undefined;
   }
 
+  private getDownloadingCityByIdentifier(cityIdentifier: string): OfflineMapCity | undefined {
+    const manager = this.offlineMapManager;
+    if (!manager) {
+      return undefined;
+    }
+
+    const downloadingList = arrayListToArray<OfflineMapCity>(manager.getDownloadingCityList());
+    for (let index = 0; index < downloadingList.length; index += 1) {
+      if (matchesCityIdentifier(downloadingList[index], cityIdentifier)) {
+        return downloadingList[index];
+      }
+    }
+
+    return undefined;
+  }
+
   private handleCheckUpdateResult(hasNew: boolean, name: string): void {
     const pending = this.pendingCheckUpdateByName.get(name);
     if (!pending) {
@@ -498,23 +613,34 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
   }
 
   private handleDownloadStatus(status: number, completeCode: number, name: string): void {
-    const city = this.getCityByName(name);
-    if (!city) {
-      Logger.warn(`[ExpoGaodeMapOffline] download callback city not found: ${name}`);
-      return;
-    }
+    const city = this.getCityByName(name) || this.getCityByIdentifier(name);
+    const mappedCityCode = this.cityNameToCode.get(name) || this.cityNameToCode.get(name.trim());
+    const fallbackCityCode = mappedCityCode || name;
+    const fallbackCityName = name && name.trim().length > 0 ? name : fallbackCityCode;
+    const fallbackCity = this.getCityByIdentifier(fallbackCityCode);
 
-    const cityCode = readPreferredCityCode(city);
-    const cityName = city.getCity();
-    const totalSize = Number(city.getSize());
+    const cityCode = city ? readPreferredCityCode(city) : fallbackCityCode;
+    const cityName = city ? city.getCity() : fallbackCityName;
+    const totalSize = city ? Number(city.getSize()) : fallbackCity ? Number(fallbackCity.getSize()) : 0;
+    if (!city) {
+      Logger.warn(`[ExpoGaodeMapOffline] download callback city not found, fallback: name=${name} cityCode=${cityCode}`);
+    }
     const progress = Math.max(0, Math.min(Number(completeCode), 100));
     const downloadedSize = Math.floor(totalSize * progress / 100);
 
     Logger.info(`[ExpoGaodeMapOffline] onDownload status=${status} progress=${progress} cityName=${cityName} cityCode=${cityCode}`);
 
     if (status === OfflineMapStatus.SUCCESS) {
+      const wasDownloading = this.downloadingCities.has(cityCode);
       this.downloadingCities.delete(cityCode);
       this.pausedCities.delete(cityCode);
+      this.cityNameToCode.delete(cityName);
+      this.cityNameToCode.delete(cityName.trim());
+      this.stopProgressPollingIfIdle();
+      if (!wasDownloading) {
+        Logger.info(`[ExpoGaodeMapOffline] ignore duplicate success callback: cityCode=${cityCode}`);
+        return;
+      }
       this.emitOfflineEvent('onDownloadComplete', {
         cityCode,
         cityName,
@@ -526,6 +652,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     if (status === OfflineMapStatus.LOADING || status === OfflineMapStatus.WAITING) {
       this.downloadingCities.add(cityCode);
       this.pausedCities.delete(cityCode);
+      this.ensureProgressPolling();
       this.emitOfflineEvent('onDownloadProgress', {
         cityCode,
         cityName,
@@ -538,6 +665,9 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     }
 
     if (status === OfflineMapStatus.UNZIP) {
+      this.downloadingCities.add(cityCode);
+      this.pausedCities.delete(cityCode);
+      this.ensureProgressPolling();
       this.emitOfflineEvent('onUnzipProgress', {
         cityCode,
         cityName,
@@ -550,16 +680,26 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     }
 
     if (status === OfflineMapStatus.PAUSE || status === OfflineMapStatus.STOP) {
-      if (this.pausedCities.has(cityCode)) {
-        this.emitOfflineEvent('onDownloadPaused', {
-          cityCode,
-          cityName,
-        });
-      }
+      this.downloadingCities.delete(cityCode);
+      this.pausedCities.add(cityCode);
+      this.stopProgressPollingIfIdle();
+      this.emitOfflineEvent('onDownloadPaused', {
+        cityCode,
+        cityName,
+      });
+      return;
+    }
+
+    if (status === OfflineMapStatus.CHECKUPDATES || status === OfflineMapStatus.NEW_VERSION) {
+      this.ensureProgressPolling();
       return;
     }
 
     this.downloadingCities.delete(cityCode);
+    this.pausedCities.delete(cityCode);
+    this.cityNameToCode.delete(cityName);
+    this.cityNameToCode.delete(cityName.trim());
+    this.stopProgressPollingIfIdle();
     const errorPayload: OfflineMapErrorEventPayload = {
       cityCode,
       cityName,
@@ -645,8 +785,80 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     }
     const city = this.findCityByIdentifier(requestedCityCode);
     const publicCityCode = city ? readPreferredCityCode(city) : requestedCityCode;
+    if (this.downloadingCities.has(publicCityCode)) {
+      Logger.info(`[ExpoGaodeMapOffline] skip duplicate startDownload: cityCode=${publicCityCode}`);
+      return;
+    }
+
+    const queuedCity = this.getDownloadingCityByIdentifier(requestedCityCode);
+    if (queuedCity) {
+      const queuedCityCode = readPreferredCityCode(queuedCity);
+      const queuedCityName = queuedCity.getCity();
+      const trackedCityCode = city ? publicCityCode : queuedCityCode;
+      if (queuedCityName.trim().length > 0) {
+        this.cityNameToCode.set(queuedCityName, trackedCityCode);
+        this.cityNameToCode.set(queuedCityName.trim(), trackedCityCode);
+      }
+      this.downloadingCities.add(trackedCityCode);
+      this.pausedCities.delete(trackedCityCode);
+      this.ensureProgressPolling();
+      this.emitOfflineEvent('onDownloadProgress', {
+        cityCode: trackedCityCode,
+        cityName: queuedCityName,
+        progress: Math.max(0, Math.min(Number(queuedCity.getcompleteCode()), 100)),
+        downloadedSize: Math.floor(Number(queuedCity.getSize()) * Math.max(0, Math.min(Number(queuedCity.getcompleteCode()), 100)) / 100),
+        totalSize: Number(queuedCity.getSize()),
+        status: 'downloading',
+      });
+      Logger.info(`[ExpoGaodeMapOffline] skip startDownload, city already in sdk queue: cityCode=${trackedCityCode}`);
+      return;
+    }
+
+    if (city) {
+      const state = city.getState();
+      const cityName = city.getCity();
+      if (cityName.trim().length > 0) {
+        this.cityNameToCode.set(cityName, publicCityCode);
+        this.cityNameToCode.set(cityName.trim(), publicCityCode);
+      }
+      const totalSize = Number(city.getSize());
+      const progress = Math.max(0, Math.min(Number(city.getcompleteCode()), 100));
+      const downloadedSize = Math.floor(totalSize * progress / 100);
+
+      if (state === OfflineMapStatus.SUCCESS) {
+        this.emitOfflineEvent('onDownloadComplete', {
+          cityCode: publicCityCode,
+          cityName,
+          success: true,
+        });
+        Logger.info(`[ExpoGaodeMapOffline] skip startDownload, already downloaded: cityCode=${publicCityCode}`);
+        return;
+      }
+
+      if (
+        state === OfflineMapStatus.LOADING ||
+        state === OfflineMapStatus.WAITING ||
+        state === OfflineMapStatus.UNZIP
+      ) {
+        this.downloadingCities.add(publicCityCode);
+        this.pausedCities.delete(publicCityCode);
+        this.ensureProgressPolling();
+        this.emitOfflineEvent('onDownloadProgress', {
+          cityCode: publicCityCode,
+          cityName,
+          progress,
+          downloadedSize,
+          totalSize,
+          status: state === OfflineMapStatus.UNZIP ? 'unzipping' : 'downloading',
+        });
+        Logger.info(`[ExpoGaodeMapOffline] skip startDownload, city already active: cityCode=${publicCityCode} state=${state} progress=${progress}`);
+        return;
+      }
+    }
+
     this.downloadingCities.add(publicCityCode);
     this.pausedCities.delete(publicCityCode);
+    this.ensureProgressPolling();
     this.downloadOfflineCityByCode(requestedCityCode);
   }
 
@@ -671,6 +883,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     const publicCityCode = city ? readPreferredCityCode(city) : cityCode;
     this.downloadingCities.add(publicCityCode);
     this.pausedCities.delete(publicCityCode);
+    this.ensureProgressPolling();
     this.downloadOfflineCityByCode(cityCode);
   }
 
@@ -679,6 +892,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     const publicCityCode = city ? readPreferredCityCode(city) : cityCode;
     this.downloadingCities.delete(publicCityCode);
     this.pausedCities.delete(publicCityCode);
+    this.stopProgressPollingIfIdle();
     this.getOfflineMapManager().stop();
     if (city) {
       this.emitOfflineEvent('onDownloadCancelled', {
@@ -697,6 +911,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     const publicCityCode = readPreferredCityCode(city);
     this.downloadingCities.delete(publicCityCode);
     this.pausedCities.delete(publicCityCode);
+    this.stopProgressPollingIfIdle();
   }
 
   async updateMap(cityCode: string): Promise<void> {
@@ -704,6 +919,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     const publicCityCode = city ? readPreferredCityCode(city) : cityCode;
     this.downloadingCities.add(publicCityCode);
     this.pausedCities.delete(publicCityCode);
+    this.ensureProgressPolling();
     this.updateOfflineCityByCode(cityCode);
   }
 
@@ -792,6 +1008,8 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
     }
     this.downloadingCities.clear();
     this.pausedCities.clear();
+    this.cityNameToCode.clear();
+    this.stopProgressPollingIfIdle();
   }
 
   setStoragePath(path: string): void {
@@ -814,6 +1032,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
       const publicCityCode = city ? readPreferredCityCode(city) : cityCode;
       this.downloadingCities.add(publicCityCode);
       this.pausedCities.delete(publicCityCode);
+      this.ensureProgressPolling();
       this.downloadOfflineCityByCode(cityCode);
     }
   }
@@ -829,6 +1048,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
       this.downloadingCities.delete(publicCityCode);
       this.pausedCities.delete(publicCityCode);
     }
+    this.stopProgressPollingIfIdle();
   }
 
   async batchUpdate(cityCodes: string[]): Promise<void> {
@@ -837,6 +1057,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
       const city = this.findCityByIdentifier(cityCode);
       const publicCityCode = city ? readPreferredCityCode(city) : cityCode;
       this.downloadingCities.add(publicCityCode);
+      this.ensureProgressPolling();
       this.updateOfflineCityByCode(cityCode);
     }
   }
@@ -856,6 +1077,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
       }
     }
     this.downloadingCities.clear();
+    this.stopProgressPollingIfIdle();
   }
 
   async resumeAllDownloads(): Promise<void> {
@@ -864,6 +1086,7 @@ export class ExpoGaodeMapOfflineModule extends UITurboModule {
       const cityCode = pausedList[index];
       this.downloadingCities.add(cityCode);
       this.pausedCities.delete(cityCode);
+      this.ensureProgressPolling();
       this.downloadOfflineCityByCode(cityCode);
     }
   }
