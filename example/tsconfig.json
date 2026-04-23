@@ -4,8 +4,18 @@
     "jsx": "react",
     "strict": true,
     "paths": {
-      "expo-gaode-map": ["../src/index"],
-      "expo-gaode-map/*": ["../src/*"]
+      "expo-gaode-map": [
+        "../src/index"
+      ],
+      "expo-gaode-map/*": [
+        "../src/*"
+      ]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }

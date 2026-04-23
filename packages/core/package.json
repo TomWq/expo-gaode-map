@@ -9,6 +9,7 @@
     "android",
     "ios",
     "shared",
+    "scripts",
     "app.plugin.js",
     "expo-module.config.json",
     "plugin/build"
@@ -20,6 +21,7 @@
     "lint": "expo-module lint",
     "test": "expo-module test",
     "prepare": "expo-module prepare && yarn build:plugin",
+    "postinstall": "node scripts/check-expo-modules.js",
     "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
     "expo-module": "expo-module",
     "open:ios": "xed example/ios",

@@ -964,7 +964,7 @@ export default function RoutePickerExampleScreen() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        style={StyleSheet.absoluteFill}
+        style={{flex:1}}
         initialCameraPosition={{
           target: fromSelection?.point ?? {
             latitude: 39.908823,

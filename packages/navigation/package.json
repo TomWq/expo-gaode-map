@@ -17,6 +17,7 @@
     "lint": "expo-module lint",
     "test": "expo-module test",
     "prepare": "expo-module prepare && yarn build:plugin",
+    "postinstall": "node scripts/check-expo-modules.js",
     "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
     "expo-module": "expo-module",
     "android": "expo run:android",
@@ -25,9 +26,9 @@
   "devDependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@types/react": "~19.1.0",
-    "expo": "^54.0.31",
-    "expo-module-scripts": "^5.0.8",
-    "react-native": "0.81.5",
+    "expo": "^55.0.8",
+    "expo-module-scripts": "^55.0.2",
+    "react-native": "0.83.2",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
@@ -51,6 +52,7 @@
     "ios",
     "widget-template",
     "shared",
+    "scripts",
     "app.plugin.js",
     "expo-module.config.json",
     "plugin/build"
