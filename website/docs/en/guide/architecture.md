@@ -98,7 +98,7 @@ Features:
 - Built-in MapView and overlay components
 - Multiple route planning modes (drive, walk, ride, truck, motorcycle,
   electric bike)
-- Real-time turn-by-turn navigation via `NaviView`
+- Real-time turn-by-turn navigation via `ExpoGaodeMapNaviView`
 - Independent route planning APIs that do not affect current navigation
 
 Related docs:
@@ -196,4 +196,3 @@ Any App (core or navigation)
 - [Web API Guide](/en/guide/web-api)
 - [API Reference](/en/api/)
 - [Examples](/en/examples/)
-

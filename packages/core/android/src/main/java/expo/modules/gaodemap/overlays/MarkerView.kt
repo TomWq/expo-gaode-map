@@ -479,7 +479,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             return
         }
 
-        invalidateAppliedCustomMarkerCaches()
+        invalidateAppliedCustomMarkerCaches(clearGlobalCache = true)
         cacheKey = key
         updateMarkerIcon()
     }
@@ -997,10 +997,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
     }
 
-    private fun invalidateAppliedCustomMarkerCaches() {
+    private fun invalidateAppliedCustomMarkerCaches(clearGlobalCache: Boolean = false) {
         val key = lastAppliedCustomMarkerKey ?: return
-        BitmapDescriptorCache.remove(key)
-        IconBitmapCache.remove(key)
+        if (clearGlobalCache) {
+            BitmapDescriptorCache.remove(key)
+            IconBitmapCache.remove(key)
+        }
         lastAppliedCustomMarkerKey = null
     }
 
@@ -1009,7 +1011,10 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             return
         }
 
-        invalidateAppliedCustomMarkerCaches()
+        // children（尤其是 Image）异步加载完成后，需要强制淘汰当前 marker 已应用的位图缓存，
+        // 否则同一个 cacheKey 会一直命中“占位态”的旧 bitmap，表现为灰块/蒙层不更新。
+        // 这里仅清理当前 marker 已应用的 key，不会影响其它 marker。
+        invalidateAppliedCustomMarkerCaches(clearGlobalCache = true)
         if (marker != null) {
             scheduleMarkerIconUpdate(delayMs)
         }

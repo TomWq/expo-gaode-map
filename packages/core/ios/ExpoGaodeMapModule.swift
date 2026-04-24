@@ -273,6 +273,31 @@ public class ExpoGaodeMapModule: Module {
             }
             return ClusterNative.calculateDistance(lat1: coord1.latitude, lon1: coord1.longitude, lat2: coord2.latitude, lon2: coord2.longitude)
         }
+
+        /**
+         * 根据多个坐标点计算可同时可见的推荐缩放级别
+         */
+        Function("calculateFitZoom") {
+            (points: [Any]?, viewportWidthPx: Double?, viewportHeightPx: Double?, paddingPx: Double?, minZoom: Int?, maxZoom: Int?) -> Double in
+            let coords = LatLngParser.parseLatLngList(points)
+            let safeMinZoom = minZoom ?? 3
+            let safeMaxZoom = maxZoom ?? 20
+            if coords.isEmpty {
+                return Double(safeMinZoom)
+            }
+
+            let lats = coords.map { NSNumber(value: $0.latitude) }
+            let lons = coords.map { NSNumber(value: $0.longitude) }
+            return ClusterNative.calculateFitZoom(
+                latitudes: lats,
+                longitudes: lons,
+                viewportWidthPx: viewportWidthPx ?? 390.0,
+                viewportHeightPx: viewportHeightPx ?? 844.0,
+                paddingPx: paddingPx ?? 48.0,
+                minZoom: Int32(safeMinZoom),
+                maxZoom: Int32(safeMaxZoom)
+            )
+        }
         
         /**
          * 计算多边形面积

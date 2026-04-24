@@ -188,6 +188,37 @@ class ExpoGaodeMapModule : Module() {
     }
 
     /**
+     * 根据多个坐标点计算可同时可见的推荐缩放级别
+     * @param points 坐标点（至少 1 个）
+     * @param viewportWidthPx 视口宽度（像素）
+     * @param viewportHeightPx 视口高度（像素）
+     * @param paddingPx 内边距（像素）
+     * @param minZoom 最小缩放
+     * @param maxZoom 最大缩放
+     */
+    Function("calculateFitZoom") {
+      points: List<Any>?,
+      viewportWidthPx: Double?,
+      viewportHeightPx: Double?,
+      paddingPx: Double?,
+      minZoom: Int?,
+      maxZoom: Int? ->
+      val normalized = LatLngParser.parseLatLngList(points)
+      val safeMinZoom = minZoom ?: 3
+      val safeMaxZoom = maxZoom ?: 20
+      if (normalized.isEmpty()) return@Function safeMinZoom.toDouble()
+
+      GeometryUtils.calculateFitZoom(
+        normalized,
+        viewportWidthPx ?: 390.0,
+        viewportHeightPx ?: 844.0,
+        paddingPx ?: 48.0,
+        safeMinZoom,
+        safeMaxZoom
+      )
+    }
+
+    /**
      * 计算多边形面积
      * @param points 多边形顶点坐标数组，支持嵌套数组（多边形空洞）
      * @return 面积（平方米）

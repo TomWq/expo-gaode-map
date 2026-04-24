@@ -83,10 +83,12 @@ internal object MarkerBitmapRenderer {
             return null
         }
 
-        val fingerprint = computeViewFingerprint(container)
+        // 业务层已经显式传入稳定 cacheKey 时，直接信任它。
+        // 否则点击、重排或 drawable 实例抖动仍会让 key 变化，导致 children marker 反复重建。
+        val keyPart = cacheKey?.takeIf { it.isNotBlank() } ?: computeViewFingerprint(container)
 
         return MarkerBitmapSnapshot(
-            keyPart = cacheKey?.let { "$it|$fingerprint" } ?: fingerprint,
+            keyPart = keyPart,
             width = finalWidth,
             height = finalHeight,
         )
@@ -227,7 +229,19 @@ internal object MarkerBitmapRenderer {
                     } else {
                         val drawable = v.drawable
                         if (drawable != null) {
-                            sb.append("[drawableHash=").append(drawable.hashCode()).append("]")
+                            val constantState = drawable.constantState
+                            if (constantState != null) {
+                                sb.append("[drawableState=").append(constantState.hashCode()).append("]")
+                            } else {
+                                sb
+                                    .append("[drawable=")
+                                    .append(drawable.javaClass.simpleName)
+                                    .append(':')
+                                    .append(drawable.intrinsicWidth)
+                                    .append('x')
+                                    .append(drawable.intrinsicHeight)
+                                    .append("]")
+                            }
                         }
                     }
                 }

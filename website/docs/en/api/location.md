@@ -35,8 +35,6 @@ ExpoGaodeMapModule.start();
 |--------|------------|--------|-------------|
 | `initSDK` | `SDKConfig` | `void` | Initialize SDK when needed (without Config Plugin, or when you need to provide `webKey`) |
 | `isSDKInitialized` | - | `boolean` | Whether JS-side initialization has been called |
-| `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | Sync privacy notice display status |
-| `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | Sync user privacy consent |
 | `setPrivacyVersion` | `(version: string)` | `void` | Set a privacy policy version and invalidate older consent when it changes |
 | `setPrivacyConfig` | `PrivacyConfig` | `void` | Set privacy state in one call |
 | `resetPrivacyConsent` | - | `void` | Clear persisted privacy consent |
@@ -44,6 +42,8 @@ ExpoGaodeMapModule.start();
 | `setLoadWorldVectorMap` | `(enabled: boolean)` | `void` | Enable world vector map before initialization |
 | `getVersion` | - | `string` | Get native SDK version |
 | `isNativeSDKConfigured` | - | `boolean` | Whether native API keys are already configured |
+
+> `setPrivacyShow` / `setPrivacyAgree` are kept only for backward compatibility. New integrations should use `setPrivacyConfig(...)`.
 
 ### `PrivacyConfig`
 

@@ -21,6 +21,9 @@ export interface RouteBounds {
 export interface FitToCoordinatesOptions {
   duration?: number;
   paddingFactor?: number;
+  viewportWidthPx?: number;
+  viewportHeightPx?: number;
+  paddingPx?: number;
   minZoom?: number;
   maxZoom?: number;
   singlePointZoom?: number;

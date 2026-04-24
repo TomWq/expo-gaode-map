@@ -52,6 +52,7 @@ const mockCreateNativeModule = () => ({
   calculatePolygonArea: jest.fn(() => 1000000), // 模拟面积
   calculateRectangleArea: jest.fn(() => 500000), // 模拟面积
   calculateDistance: jest.fn(() => 1000), // 模拟1000米距离
+  calculateFitZoom: jest.fn(() => 10),
   // 权限相关
   checkLocationPermission: jest.fn(() => Promise.resolve({
     granted: true,

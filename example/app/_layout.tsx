@@ -7,38 +7,22 @@ export default function RootLayout() {
 
   return (
     <Stack
-      screenOptions={{
-       
-        // headerLeft: () => (
-        //   <Pressable
-        //     onPress={() => router.back()}
-        //     style={{
-        //       flexDirection: 'row',
-        //       alignItems: 'center',
-        //       paddingRight: 8,
-        //     }}
-        //     hitSlop={8}
-        //   >
-        //     <View style={{ width: 20, alignItems: 'center', justifyContent: 'center' }}>
-        //       <Text style={{ color: '#1677ff', fontSize: 24, fontWeight: '500', lineHeight: 24 }}>
-        //         {'<'}
-        //       </Text>
-        //     </View>
-        //     <Text
-        //       style={{
-        //         color: '#1677ff',
-        //         fontSize: 16,
-        //         fontWeight: '500',
-        //       }}
-        //     >
-        //       返回
-        //     </Text>
-        //   </Pressable>
-        // ),
-      }}
+  
     >
       <Stack.Screen name="index" options={{ title: '示例中心' }} />
       <Stack.Screen name="examples/[id]" options={{ title: '示例详情' }} />
+      <Stack.Screen
+        name="trip-stop-sheet"
+        options={{
+          title: '行程详情',
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.5, 1],
+          sheetInitialDetentIndex: 0,
+          sheetCornerRadius:20
+          // sheetGrabberVisible: true,
+        }}
+      />
     </Stack>
   );
 }

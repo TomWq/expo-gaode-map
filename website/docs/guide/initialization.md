@@ -29,7 +29,7 @@ if (!privacyStatus.isReady) {
 
 推荐流程：
 1. 首次进入应用先展示你的隐私协议页面
-2. 用户点击同意后调用 `setPrivacyConfig(...)`（或分别调用 `setPrivacyShow` / `setPrivacyAgree`）
+2. 用户点击同意后调用 `setPrivacyConfig(...)`
 3. 原生层会持久化同意状态，后续冷启动自动恢复
 4. 如果未使用 Config Plugin，或你需要 Web API 服务，再调用 `initSDK(...)`
 5. 最后再请求定位权限、渲染地图或调用搜索/定位能力

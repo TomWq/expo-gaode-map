@@ -16,6 +16,7 @@ import InputTipsExample from './InputTipsExample';
 import LBSDemo from './LBSDemo';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
+import MayDayFiveDayTripExample from './MayDayFiveDayTripExample';
 import MarkerImageCacheExample from './MarkerImageCacheExample';
 import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MultiFormatExample from './MultiFormatExample';
@@ -46,6 +47,7 @@ export type ExampleDefinition = {
   outcome: string;
   component: ComponentType;
   requiresRuntimeGate?: boolean;
+  immersive?: boolean;
 };
 
 export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
@@ -267,6 +269,14 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入配送路线演示页',
     component: DeliveryRouteExample,
   },
+  'mayday-five-day-trip': {
+    id: 'mayday-five-day-trip',
+    title: '五一五日游（旅游 App）',
+    description: '完整旅游场景模板：分日行程、地图线路、自定义 Marker 与产品化底部面板。',
+    outcome: '进入五一五日游可视化模板页',
+    component: MayDayFiveDayTripExample,
+    immersive: true,
+  },
   'delivery-address-picker': {
     id: 'delivery-address-picker',
     title: '外卖地址选择器',
@@ -384,6 +394,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     title: '业务场景',
     description: '偏业务化页面，验证多段路线、区域分区和任务面板等组合能力。',
     entries: [
+      'mayday-five-day-trip',
       'delivery-route',
       'delivery-address-picker',
       'dispatch-workbench',

@@ -606,6 +606,62 @@ Java_expo_modules_gaodemap_utils_GeometryUtils_nativeCalculatePathBounds(
 #endif
 }
 
+extern "C" JNIEXPORT jdouble JNICALL
+Java_expo_modules_gaodemap_utils_GeometryUtils_nativeCalculateFitZoom(
+    JNIEnv* env,
+    jclass,
+    jdoubleArray latitudes,
+    jdoubleArray longitudes,
+    jdouble viewportWidthPx,
+    jdouble viewportHeightPx,
+    jdouble paddingPx,
+    jint minZoom,
+    jint maxZoom
+) {
+#if GAODE_HAVE_JNI
+    if (!latitudes || !longitudes) {
+        return static_cast<jdouble>(minZoom);
+    }
+
+    const jsize countLat = env->GetArrayLength(latitudes);
+    const jsize countLon = env->GetArrayLength(longitudes);
+    if (countLat == 0 || countLat != countLon) {
+        return static_cast<jdouble>(minZoom);
+    }
+
+    jdouble* latValues = env->GetDoubleArrayElements(latitudes, nullptr);
+    jdouble* lonValues = env->GetDoubleArrayElements(longitudes, nullptr);
+
+    std::vector<gaodemap::GeoPoint> points;
+    points.reserve(static_cast<size_t>(countLat));
+    for (jsize i = 0; i < countLat; ++i) {
+        points.push_back({latValues[i], lonValues[i]});
+    }
+
+    env->ReleaseDoubleArrayElements(latitudes, latValues, JNI_ABORT);
+    env->ReleaseDoubleArrayElements(longitudes, lonValues, JNI_ABORT);
+
+    return static_cast<jdouble>(gaodemap::calculateFitZoomForPoints(
+        points,
+        static_cast<double>(viewportWidthPx),
+        static_cast<double>(viewportHeightPx),
+        static_cast<double>(paddingPx),
+        static_cast<int>(minZoom),
+        static_cast<int>(maxZoom)
+    ));
+#else
+    (void)env;
+    (void)latitudes;
+    (void)longitudes;
+    (void)viewportWidthPx;
+    (void)viewportHeightPx;
+    (void)paddingPx;
+    (void)minZoom;
+    (void)maxZoom;
+    return 3.0;
+#endif
+}
+
 extern "C" JNIEXPORT jdoubleArray JNICALL
 Java_expo_modules_gaodemap_utils_GeometryUtils_nativeCalculateCentroid(
     JNIEnv* env,

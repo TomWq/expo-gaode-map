@@ -21,5 +21,7 @@ export interface NamedCoordinates extends NaviPoint {
   poiId?: string;
 }
 
-// 为了向后兼容，导出 NaviPoint 作为 Coordinates 别名
+/**
+ * @deprecated 请使用 `NaviPoint`
+ */
 export type Coordinates = NaviPoint;

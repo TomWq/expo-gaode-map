@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { MarkerProps } from '../../types';
 import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
@@ -79,7 +79,9 @@ function Marker(props: MarkerProps) {
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
   const shouldWrapChildrenForMeasurement = hasChildren;
-  const shouldUseAutoMeasuredSize = Platform.OS === 'ios';
+  // Android 的 children marker 之前始终透传 0 尺寸，点击后重新快照时容易直接消失。
+  // 统一走自动测量后，两个平台都会拿到稳定尺寸。
+  const shouldUseAutoMeasuredSize = hasChildren;
   const resolvedCustomViewWidth = customViewWidth && customViewWidth > 0
     ? customViewWidth
     : (shouldUseAutoMeasuredSize ? measuredSize.width : 0);
@@ -201,7 +203,7 @@ function Marker(props: MarkerProps) {
       {hasChildren && shouldWrapChildrenForMeasurement ? (
         <View
           collapsable={false}
-          onLayout={Platform.OS === 'ios' ? handleAutoMeasure : undefined}
+          onLayout={handleAutoMeasure}
           style={styles.measureContainer}
         >
           {children}
@@ -232,8 +234,14 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
     return false;
   }
   
-  // 比较 children (如果有 children)
-  if (prevProps.children !== nextProps.children) {
+  const hasStableCacheKey =
+    prevProps.cacheKey != null &&
+    nextProps.cacheKey != null &&
+    prevProps.cacheKey === nextProps.cacheKey;
+
+  // 有稳定 cacheKey 时，children JSX 引用变化不应触发重新快照。
+  // 这类场景下内容更新应由业务方主动变更 cacheKey。
+  if (!hasStableCacheKey && prevProps.children !== nextProps.children) {
     return false;
   }
 
@@ -244,6 +252,38 @@ function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean 
     prevProps.icon !== nextProps.icon ||
     prevProps.iconWidth !== nextProps.iconWidth ||
     prevProps.iconHeight !== nextProps.iconHeight
+  ) {
+    return false;
+  }
+
+  if (
+    prevProps.title !== nextProps.title ||
+    prevProps.snippet !== nextProps.snippet ||
+    prevProps.opacity !== nextProps.opacity ||
+    prevProps.draggable !== nextProps.draggable ||
+    prevProps.flat !== nextProps.flat ||
+    prevProps.zIndex !== nextProps.zIndex ||
+    prevProps.animatesDrop !== nextProps.animatesDrop ||
+    prevProps.pinColor !== nextProps.pinColor ||
+    prevProps.growAnimation !== nextProps.growAnimation
+  ) {
+    return false;
+  }
+
+  const prevAnchor = prevProps.anchor;
+  const nextAnchor = nextProps.anchor;
+  if (
+    prevAnchor?.x !== nextAnchor?.x ||
+    prevAnchor?.y !== nextAnchor?.y
+  ) {
+    return false;
+  }
+
+  const prevCenterOffset = prevProps.centerOffset;
+  const nextCenterOffset = nextProps.centerOffset;
+  if (
+    prevCenterOffset?.x !== nextCenterOffset?.x ||
+    prevCenterOffset?.y !== nextCenterOffset?.y
   ) {
     return false;
   }

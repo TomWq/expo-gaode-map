@@ -167,6 +167,9 @@ export default function MarkerTravelCardExample() {
               position={marker.position}
               cacheKey={effectiveCacheKey}
               zIndex={30 - index}
+              onMarkerPress={()=>{
+               
+              }}
             >
               <View style={styles.cardRoot}>
                 <View style={styles.dayBadge}>

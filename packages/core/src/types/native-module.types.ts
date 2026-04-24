@@ -295,6 +295,24 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
    */
   distanceBetweenCoordinates(coordinate1: LatLngPoint, coordinate2: LatLngPoint): number;
 
+  /**
+   * 根据多个坐标点计算可同时可见的推荐缩放级别
+   * @param points 坐标点集合（至少 1 个）
+   * @param viewportWidthPx 视口宽度（像素）
+   * @param viewportHeightPx 视口高度（像素）
+   * @param paddingPx 内边距（像素）
+   * @param minZoom 最小缩放
+   * @param maxZoom 最大缩放
+   */
+  calculateFitZoom(
+    points: LatLngPoint[],
+    viewportWidthPx: number,
+    viewportHeightPx: number,
+    paddingPx: number,
+    minZoom: number,
+    maxZoom: number
+  ): number;
+
    // ==================== 几何计算 ====================
 
   /**

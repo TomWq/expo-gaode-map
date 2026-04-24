@@ -3,6 +3,7 @@ import {
   getRouteBounds,
   parseMultiRingPolyline,
 } from '../RouteUtils';
+import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
 
 describe('RouteUtils', () => {
   it('getRouteBounds 应返回中心点、边界和推荐缩放', () => {
@@ -65,5 +66,25 @@ describe('RouteUtils', () => {
       }),
       300
     );
+  });
+
+  it('远距离点集推荐缩放应小于近距离点集', () => {
+    const fitZoomSpy = jest
+      .spyOn(ExpoGaodeMapModule, 'calculateFitZoom')
+      .mockImplementation(() => {
+        throw new Error('force fallback zoom');
+      });
+
+    const nearby = getRouteBounds([
+      { latitude: 39.9042, longitude: 116.4074 },
+      { latitude: 39.9142, longitude: 116.4174 },
+    ]);
+    const farAway = getRouteBounds([
+      { latitude: 39.9042, longitude: 116.4074 },
+      { latitude: 31.2304, longitude: 121.4737 },
+    ]);
+
+    expect(nearby?.recommendedZoom).toBeGreaterThan(farAway?.recommendedZoom ?? 0);
+    fitZoomSpy.mockRestore();
   });
 });

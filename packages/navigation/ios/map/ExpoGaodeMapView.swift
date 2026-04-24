@@ -1454,17 +1454,24 @@ extension ExpoGaodeMapView {
         isHandlingAnnotationSelect = true
         
         // 🔑 统一从 overlayViews 查找 MarkerView（新旧架构统一）
-        for view in overlayViews {
-            if let markerView = view as? MarkerView {
+        for overlayView in overlayViews {
+            if let markerView = overlayView as? MarkerView {
                 if markerView.annotation === annotation {
                     let eventData: [String: Any] = [
                         "latitude": annotation.coordinate.latitude,
                         "longitude": annotation.coordinate.longitude
                     ]
                     markerView.onMarkerPress(eventData)
+                    // iOS 对“已选中 annotation”再次点击通常不会重复触发 didSelect。
+                    // 对自定义 children marker（无系统 callout）这里主动取消选中，
+                    // 以保证同一 marker 可以连续触发点击（例如关闭 sheet 后再次点击）。
+                    if !markerView.subviews.isEmpty {
+                        mapView.deselectAnnotation(annotation, animated: false)
+                        isHandlingAnnotationSelect = false
+                    }
                     return
                 }
-            } else if let clusterView = view as? ClusterView {
+            } else if let clusterView = overlayView as? ClusterView {
                 if clusterView.containsAnnotation(annotation) {
                     clusterView.handleAnnotationTap(annotation)
                     return

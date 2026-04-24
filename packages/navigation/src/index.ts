@@ -1,5 +1,9 @@
 import ExpoGaodeMapNavigationModule from './ExpoGaodeMapNavigationModule';
 import { ExpoGaodeMapModule } from './map';
+import {
+  ExpoGaodeMapNaviView,
+  type ExpoGaodeMapNaviViewRef,
+} from './ExpoGaodeMapNaviView';
 
 // 重新导出地图模块的所有内容
 export * from './map';
@@ -681,13 +685,17 @@ function isMotorcycleRouteOptions(
 }
 
 // 导出官方导航界面组件
-export { 
-  ExpoGaodeMapNaviView, 
-  type ExpoGaodeMapNaviViewRef,
-  // 兼容旧版本名称
-  ExpoGaodeMapNaviView as NaviView,
-  type ExpoGaodeMapNaviViewRef as NaviViewRef 
-} from './ExpoGaodeMapNaviView';
+export { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef };
+
+/**
+ * @deprecated 请使用 `ExpoGaodeMapNaviView`
+ */
+export const NaviView = ExpoGaodeMapNaviView;
+
+/**
+ * @deprecated 请使用 `ExpoGaodeMapNaviViewRef`
+ */
+export type NaviViewRef = ExpoGaodeMapNaviViewRef;
 
 /**
  * 初始化导航模块（可选）

@@ -18,6 +18,7 @@ Complete geometry calculation utilities API documentation.
 | `encodeGeoHash` | `coordinate: LatLng, precision: number` | `string` | GeoHash encoding |
 | `simplifyPolyline` | `points: LatLng[], tolerance: number` | `LatLng[]` | Polyline simplification (RDP algorithm) |
 | `calculatePathLength` | `points: LatLng[]` | `number` | Calculate total path length |
+| `calculateFitZoom` | `points: LatLng[], options?: FitZoomOptions` | `number` | Estimate recommended zoom to fit all points in viewport |
 | `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object | null` | Get nearest point on path to target |
 | `getPointAtDistance` | `points: LatLng[], distance: number` | `object | null` | Get point at specific distance along path |
 | `parsePolyline` | `polylineStr: string` | `LatLng[]` | Parse AMap raw polyline string |
@@ -183,6 +184,43 @@ if (bounds) {
 - `points`: Array of coordinate points
 
 **Return Value**: `object | null` - Object containing `north`, `south`, `east`, `west` bounds and `center` point.
+
+### calculateFitZoom
+
+Calculates a recommended zoom level that can fit all points within the current viewport.
+
+```tsx
+const points = [
+  { latitude: 39.9042, longitude: 116.4074 }, // Beijing
+  { latitude: 39.91407, longitude: 116.39765 }, // Forbidden City Meridian Gate
+  { latitude: 39.92541, longitude: 116.39707 }, // Jingshan
+];
+
+const zoom = ExpoGaodeMapModule.calculateFitZoom(points, {
+  viewportWidthPx: 390,
+  viewportHeightPx: 844,
+  paddingPx: 48,
+  minZoom: 3,
+  maxZoom: 20,
+});
+
+console.log('Recommended zoom:', zoom);
+```
+
+**Parameters**:
+- `points`: Coordinate array (recommended at least 1 point)
+- `options.viewportWidthPx`: Viewport width in pixels, default `390`
+- `options.viewportHeightPx`: Viewport height in pixels, default `844`
+- `options.paddingPx`: Inner padding in pixels, default `48`
+- `options.minZoom`: Minimum zoom bound, default `3`
+- `options.maxZoom`: Maximum zoom bound, default `20`
+
+**Return Value**: `number` - Recommended zoom level (clamped by `minZoom` and `maxZoom`).
+
+**Typical Use Cases**:
+- Fit multiple POIs in one screen
+- Auto framing after route planning
+- Pre-computing zoom before calling `moveCamera`
 
 ### calculateCentroid
 

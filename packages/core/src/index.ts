@@ -1,6 +1,10 @@
 
 import { createPermissionHook } from 'expo-modules-core';
 import ExpoGaodeMapModuleWithHelpers from './ExpoGaodeMapModule';
+import {
+  PermissionUtils,
+  LocationPermissionType,
+} from './utils/PermissionUtils';
 
 // 导出类型定义（包含所有通用类型）
 export * from './types';
@@ -49,11 +53,12 @@ export {
 export type { DeviceInfo, SystemVersion } from './utils/PlatformDetector';
 
 // 导出权限工具类（仅提供文案和诊断，实际权限请求使用 ExpoGaodeMapModule）
-export {
-  PermissionUtils,
-  PermissionManager, // 向后兼容的别名
-  LocationPermissionType,
-} from './utils/PermissionUtils';
+export { PermissionUtils, LocationPermissionType };
+
+/**
+ * @deprecated 请使用 `PermissionUtils`
+ */
+export const PermissionManager = PermissionUtils;
 
 // 导出折叠屏适配组件
 export {

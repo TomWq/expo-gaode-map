@@ -149,21 +149,42 @@ describe('Marker 组件', () => {
     );
   });
 
-  it('Android 下 children 不应使用自动测量尺寸', () => {
+  it('Android 下 children 也应在 onLayout 后更新尺寸', () => {
     (Platform as any).OS = 'android';
 
-    render(
+    const result = render(
       <Marker {...defaultProps}>
         <Text>Android 内容</Text>
       </Marker>
     );
 
-    expect(mockNativeMarker).toHaveBeenCalledWith(
+    expect(mockNativeMarker).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         iconWidth: 0,
         iconHeight: 0,
         customViewWidth: 0,
         customViewHeight: 0,
+      }),
+      undefined
+    );
+
+    const measureView = result.UNSAFE_getByType(require('react-native').View);
+    fireEvent(measureView, 'layout', {
+      nativeEvent: {
+        layout: {
+          width: 96.1,
+          height: 54.6,
+        },
+      },
+    });
+
+    expect(mockNativeMarker).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        iconWidth: 97,
+        iconHeight: 55,
+        customViewWidth: 97,
+        customViewHeight: 55,
       }),
       undefined
     );
@@ -230,6 +251,22 @@ describe('Marker 组件', () => {
     expect(mockNativeMarker).toHaveBeenCalledTimes(1);
   });
 
+  it('cacheKey 稳定时，新的 children JSX 引用不应触发重新渲染', () => {
+    const { rerender } = render(
+      <Marker {...defaultProps} cacheKey="k1">
+        <Text>内容 1</Text>
+      </Marker>
+    );
+
+    rerender(
+      <Marker {...defaultProps} cacheKey="k1">
+        <Text>内容 1</Text>
+      </Marker>
+    );
+
+    expect(mockNativeMarker).toHaveBeenCalledTimes(1);
+  });
+
   it('位置、cacheKey 或 smoothMovePath 变化时应重新渲染', () => {
     const { rerender } = render(
       <Marker
@@ -250,6 +287,28 @@ describe('Marker 组件', () => {
           { latitude: 39.9, longitude: 116.4 },
           { latitude: 39.92, longitude: 116.42 },
         ]}
+      />
+    );
+
+    expect(mockNativeMarker).toHaveBeenCalledTimes(2);
+  });
+
+  it('zIndex、opacity 和 anchor 变化时应重新渲染', () => {
+    const { rerender } = render(
+      <Marker
+        {...defaultProps}
+        zIndex={10}
+        opacity={1}
+        anchor={{ x: 0.5, y: 1 }}
+      />
+    );
+
+    rerender(
+      <Marker
+        {...defaultProps}
+        zIndex={20}
+        opacity={0.8}
+        anchor={{ x: 0.5, y: 0.5 }}
       />
     );
 

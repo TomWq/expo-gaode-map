@@ -243,6 +243,7 @@ class MarkerView: ExpoView {
             // 异步渲染并设置
             DispatchQueue.main.async { [weak self, weak annotationView] in
                 guard let self = self, let annotationView = annotationView else { return }
+                guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
                 if let generated = self.createImageFromSubviews() {
                     annotationView.image = generated
                     self.applyCenterOffset(to: annotationView, defaultOffset: .zero)
@@ -265,6 +266,7 @@ class MarkerView: ExpoView {
             // 异步加载图标
             loadIcon(iconUri: iconUri) { [weak self, weak annotationView] image in
                 guard let self = self, let image = image, let annotationView = annotationView else { return }
+                guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
                 let size = CGSize(width: self.iconWidth, height: self.iconHeight)
                 UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
                 image.draw(in: CGRect(origin: .zero, size: size))
@@ -305,8 +307,9 @@ class MarkerView: ExpoView {
         
         // 🔑 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
-            // 使用 class-level reuseId，便于系统复用 view，减少内存
-            let reuseId = "custom_marker_children" + (growAnimation ? "_grow" : "")
+            let reuseToken = cacheKey?.replacingOccurrences(of: "|", with: "_")
+                ?? String(ObjectIdentifier(self).hashValue)
+            let reuseId = "custom_marker_children_\(reuseToken)" + (growAnimation ? "_grow" : "")
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId)
             if annotationView == nil {
                 if growAnimation {
@@ -347,6 +350,7 @@ class MarkerView: ExpoView {
             // 🔑 修复:延长延迟时间,给 React Native Image 更多加载时间
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
                 guard let self = self, let annotationView = annotationView else { return }
+                guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
                 // 再次检查缓存（避免重复渲染）
                 if let cached = IconBitmapCache.shared.image(forKey: key) {
                     annotationView.image = cached
@@ -410,12 +414,12 @@ class MarkerView: ExpoView {
                 UIGraphicsEndImageContext()
 
                 DispatchQueue.main.async {
+                    guard let annotationView else { return }
+                    guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
                     if let img = resizedImage {
                         IconBitmapCache.shared.setImage(img, forKey: key)
-                        annotationView?.image = img
-                        if let annotationView = annotationView {
-                            self.applyCenterOffset(to: annotationView, defaultOffset: CGPoint(x: 0, y: -img.size.height / 2))
-                        }
+                        annotationView.image = img
+                        self.applyCenterOffset(to: annotationView, defaultOffset: CGPoint(x: 0, y: -img.size.height / 2))
                     }
                 }
             }
@@ -578,6 +582,13 @@ class MarkerView: ExpoView {
         }
 
         return .zero
+    }
+
+    private func isAnnotationView(_ annotationView: MAAnnotationView, boundTo annotation: MAAnnotation) -> Bool {
+        guard let current = annotationView.annotation else {
+            return false
+        }
+        return (current as AnyObject) === (annotation as AnyObject)
     }
 
     private func resolvedCustomSubviewSize(defaultSize: CGSize) -> CGSize {

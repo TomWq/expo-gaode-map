@@ -27,7 +27,12 @@ export default function ExampleDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: entry.title }} />
+      <Stack.Screen
+        options={{
+          title: entry.title,
+          headerShown: !entry.immersive,
+        }}
+      />
       {entry.requiresRuntimeGate === false ? (
         content
       ) : (

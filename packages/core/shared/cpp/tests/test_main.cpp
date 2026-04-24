@@ -167,6 +167,21 @@ void testGeometryEngineExtended() {
     // Test trailing semicolon
     assert(parsePolyline("116.4074,39.9042;").size() == 1);
 
+    // 10. calculateFitZoomForPoints
+    std::vector<GeoPoint> nearby = {
+        {39.9042, 116.4074}, // Beijing
+        {39.9142, 116.4174}
+    };
+    std::vector<GeoPoint> farAway = {
+        {39.9042, 116.4074}, // Beijing
+        {31.2304, 121.4737}  // Shanghai
+    };
+    const double nearZoom = calculateFitZoomForPoints(nearby, 390, 844, 48, 3, 20);
+    const double farZoom = calculateFitZoomForPoints(farAway, 390, 844, 48, 3, 20);
+    assert(nearZoom > farZoom);
+    assert(nearZoom <= 20.0 && nearZoom >= 3.0);
+    assert(farZoom <= 20.0 && farZoom >= 3.0);
+
     std::cout << "PASSED" << std::endl;
 }
 

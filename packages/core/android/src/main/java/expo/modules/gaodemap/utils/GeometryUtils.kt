@@ -83,6 +83,16 @@ object GeometryUtils {
         longitudes: DoubleArray
     ): DoubleArray?
 
+    private external fun nativeCalculateFitZoom(
+        latitudes: DoubleArray,
+        longitudes: DoubleArray,
+        viewportWidthPx: Double,
+        viewportHeightPx: Double,
+        paddingPx: Double,
+        minZoom: Int,
+        maxZoom: Int
+    ): Double
+
     private external fun nativeEncodeGeoHash(
         lat: Double,
         lon: Double,
@@ -398,6 +408,99 @@ object GeometryUtils {
             }
         } catch (_: Throwable) {
             null
+        }
+    }
+
+    private fun mercatorX01(lon: Double): Double {
+        var wrapped = (lon + 180.0) % 360.0
+        if (wrapped < 0.0) wrapped += 360.0
+        return wrapped / 360.0
+    }
+
+    private fun mercatorY01(lat: Double): Double {
+        val clamped = lat.coerceIn(-85.05112878, 85.05112878)
+        val rad = Math.toRadians(clamped)
+        val y = (1.0 - asinh(tan(rad)) / Math.PI) * 0.5
+        return y.coerceIn(0.0, 1.0)
+    }
+
+    private fun wrappedSpan01(values: List<Double>): Double {
+        if (values.size <= 1) return 0.0
+        val sorted = values.sorted()
+        var maxGap = 0.0
+        for (i in 0 until sorted.size - 1) {
+            maxGap = max(maxGap, sorted[i + 1] - sorted[i])
+        }
+        maxGap = max(maxGap, sorted.first() + 1.0 - sorted.last())
+        return (1.0 - maxGap).coerceAtLeast(0.0)
+    }
+
+    private fun fallbackCalculateFitZoom(
+        points: List<LatLng>,
+        viewportWidthPx: Double,
+        viewportHeightPx: Double,
+        paddingPx: Double,
+        minZoom: Int,
+        maxZoom: Int
+    ): Double {
+        if (points.isEmpty()) return minZoom.toDouble()
+        if (points.size == 1) return maxZoom.toDouble()
+
+        val safeMinZoom = min(minZoom, maxZoom)
+        val safeMaxZoom = max(minZoom, maxZoom)
+        val safeWidth = if (viewportWidthPx > 1.0) viewportWidthPx else 390.0
+        val safeHeight = if (viewportHeightPx > 1.0) viewportHeightPx else 844.0
+        val safePadding = max(0.0, paddingPx)
+        val availableWidth = max(1.0, safeWidth - safePadding * 2.0)
+        val availableHeight = max(1.0, safeHeight - safePadding * 2.0)
+
+        val xs = points.map { mercatorX01(it.longitude) }
+        val ys = points.map { mercatorY01(it.latitude) }
+        val spanX = wrappedSpan01(xs)
+        val spanY = (ys.maxOrNull() ?: 0.0) - (ys.minOrNull() ?: 0.0)
+        val tileSize = 256.0
+
+        val zoomX = if (spanX <= 1e-12) safeMaxZoom.toDouble() else log2(availableWidth / (tileSize * spanX))
+        val zoomY = if (spanY <= 1e-12) safeMaxZoom.toDouble() else log2(availableHeight / (tileSize * spanY))
+        val fitZoom = min(zoomX, zoomY)
+        if (!fitZoom.isFinite()) return safeMinZoom.toDouble()
+        return fitZoom.coerceIn(safeMinZoom.toDouble(), safeMaxZoom.toDouble())
+    }
+
+    fun calculateFitZoom(
+        points: List<LatLng>,
+        viewportWidthPx: Double,
+        viewportHeightPx: Double,
+        paddingPx: Double,
+        minZoom: Int,
+        maxZoom: Int
+    ): Double {
+        if (points.isEmpty()) return minZoom.toDouble()
+        return try {
+            val latitudes = DoubleArray(points.size)
+            val longitudes = DoubleArray(points.size)
+            for (i in points.indices) {
+                latitudes[i] = points[i].latitude
+                longitudes[i] = points[i].longitude
+            }
+            nativeCalculateFitZoom(
+                latitudes,
+                longitudes,
+                viewportWidthPx,
+                viewportHeightPx,
+                paddingPx,
+                minZoom,
+                maxZoom
+            )
+        } catch (_: Throwable) {
+            fallbackCalculateFitZoom(
+                points,
+                viewportWidthPx,
+                viewportHeightPx,
+                paddingPx,
+                minZoom,
+                maxZoom
+            )
         }
     }
 

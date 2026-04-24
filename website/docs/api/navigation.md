@@ -8,7 +8,7 @@
 导航包是**独立的一体化解决方案**，内置了地图渲染和导航功能：
 - ✅ **包含地图能力**：内置 MapView 和所有覆盖物组件
 - ✅ **路径规划**：驾车、步行、骑行、货车、摩托车等多种方式
-- ✅ **实时导航**：NaviView 组件提供完整的导航界面
+- ✅ **实时导航**：`ExpoGaodeMapNaviView` 组件提供完整的导航界面
 - ❌ **不可与 `expo-gaode-map` 共存**：会产生 SDK 冲突
 
 ::: warning 重要提示
@@ -110,6 +110,36 @@ await mapRef.current?.fitToCoordinates(routePoints, {
 ::: tip
 `expo-gaode-map-navigation` 与 `expo-gaode-map` 都提供了 `fitToCoordinates`，但只对齐用户层 API 形状，不共享底层 MapView 实现。
 :::
+
+### calculateFitZoom
+
+导航包内置的 `ExpoGaodeMapModule` 也支持 `calculateFitZoom(points, options?)`，可在调用 `moveCamera` 前先估算合适 zoom。
+
+```typescript
+import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
+
+const points = [
+  { latitude: 39.9042, longitude: 116.4074 },
+  { latitude: 39.91407, longitude: 116.39765 },
+  { latitude: 39.92541, longitude: 116.39707 },
+];
+
+const zoom = ExpoGaodeMapModule.calculateFitZoom(points, {
+  viewportWidthPx: 390,
+  viewportHeightPx: 844,
+  paddingPx: 48,
+  minZoom: 3,
+  maxZoom: 20,
+});
+
+await mapRef.current?.moveCamera(
+  {
+    target: points[0],
+    zoom,
+  },
+  300
+);
+```
 
 ## 路径规划 API
 
@@ -531,20 +561,20 @@ await clearIndependentRoute({
 });
 ```
 
-## NaviView 导航组件
+## ExpoGaodeMapNaviView 导航组件
 
-`NaviView` 是高德官方提供的完整导航界面组件。
+`ExpoGaodeMapNaviView` 是高德官方提供的完整导航界面组件。
 
-如果你的场景是“把导航页嵌进自己的 React Native 页面里”，库本身提供的是底层 `NaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 `example-navigation` 示例工程。
+如果你的场景是“把导航页嵌进自己的 React Native 页面里”，库本身提供的是底层 `ExpoGaodeMapNaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 `example-navigation` 示例工程。
 
 ### 基础用法
 
 ```typescript
 import React, { useRef } from 'react';
-import { NaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+import { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef } from 'expo-gaode-map-navigation';
 
 function NavigationScreen() {
-  const naviViewRef = useRef<NaviViewRef>(null);
+  const naviViewRef = useRef<ExpoGaodeMapNaviViewRef>(null);
 
   const startNavigation = async () => {
     await naviViewRef.current?.startNavigation(
@@ -559,7 +589,7 @@ function NavigationScreen() {
   };
 
   return (
-    <NaviView
+    <ExpoGaodeMapNaviView
       ref={naviViewRef}
       style={{ flex: 1 }}
       naviType={1}
@@ -583,14 +613,14 @@ function NavigationScreen() {
 
 推荐做法：
 
-- 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
+- 用 `ExpoGaodeMapNaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
 - 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
 - 直接参考 `example-navigation` 里的“自定义 UI 导航界面”示例页及对应源码
 - 需要路线选择、起终点 / 多途经点输入时，直接参考 `example-navigation` 里的“自定义路线选择页”示例
 
 嵌入式说明：
 
-- 在部分 React Native / Expo 宿主里，官方原生嵌入式 `NaviView` 的顶部信息区、车道信息、路口大图联动效果，可能与高德官方 Demo / 官方黑盒页存在差异
+- 在部分 React Native / Expo 宿主里，官方原生嵌入式 `ExpoGaodeMapNaviView` 的顶部信息区、车道信息、路口大图联动效果，可能与高德官方 Demo / 官方黑盒页存在差异
 - Android 上纯官方嵌入式 UI 更容易出现顶部信息区显示不全、叠层异常、局部样式跑偏等问题；这类页面更适合做边界验证，不建议直接作为业务成品
 - 如果你的目标是稳定交付嵌入式导航页，建议以示例工程里的自定义 UI 实现为起点
 - 如果你只是想验证原生官方嵌入式 UI，请参考 `example-navigation` 中的 `official-embedded` 页面
@@ -630,7 +660,7 @@ function NavigationScreen() {
   <img src="/images/navigation/route-picker-multi-route.jpg" alt="多路线规划示例" width="320" />
 </p>
 
-### NaviView 属性参考
+### ExpoGaodeMapNaviView 属性参考
 
 #### 核心属性
 
@@ -689,7 +719,7 @@ function NavigationScreen() {
 **routeMarkerVisible 配置：**
 
 ```typescript
-<NaviView
+<ExpoGaodeMapNaviView
   routeMarkerVisible={{
     showStartEndVia: true,      // 显示起终途点
     showFootFerry: true,         // 显示步行轮渡扎点
@@ -714,7 +744,7 @@ function NavigationScreen() {
 | `showBackupRoute` | `boolean` | `true` | 是否显示备选路线 |
 | `showEagleMap` | `boolean` | `false` | 是否显示鹰眼小地图 |
 
-### NaviView UI 能力清单
+### ExpoGaodeMapNaviView UI 能力清单
 
 已开放且两端都有实现：
 
@@ -781,7 +811,7 @@ function NavigationScreen() {
 
 ### 嵌入式导航 UI 方案说明
 
-- `NaviView`：高德官方提供的原生嵌入式导航视图
+- `ExpoGaodeMapNaviView`：高德官方提供的原生嵌入式导航视图
 - `example-navigation/lib/navigation-ui/*`：仓库示例提供的自定义嵌入式导航 UI 参考实现
 - `example-navigation/app/examples/ui-props.tsx`：自定义 UI 导航界面示例页
 - `example-navigation/app/examples/route-picker.tsx`：自定义路线选择页示例
@@ -791,10 +821,10 @@ function NavigationScreen() {
 这三者是不同层次的能力，不应混淆：
 
 - 如果你要完全沿用官方整页 UI，用 `openOfficialNaviPage`
-- 如果你要把导航嵌进自己的 RN 页面，但仍保留官方原生视图能力，用 `NaviView`
+- 如果你要把导航嵌进自己的 RN 页面，但仍保留官方原生视图能力，用 `ExpoGaodeMapNaviView`
 - 如果你要在嵌入式场景下统一接管顶部信息展示，参考 `example-navigation` 里的自定义 UI 示例
 
-### NaviView 事件
+### ExpoGaodeMapNaviView 事件
 
 #### onNaviStart - 导航开始
 
@@ -967,7 +997,7 @@ useEffect(() => {
 }, []);
 ```
 
-### 3. NaviView 启动导航无反应
+### 3. ExpoGaodeMapNaviView 启动导航无反应
 
 **问题：** startNavigation 调用后没有效果。
 

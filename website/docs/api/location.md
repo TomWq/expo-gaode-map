@@ -35,8 +35,6 @@ ExpoGaodeMapModule.start();
 |------|------|--------|------|
 | `initSDK` | `SDKConfig` | `void` | 按需初始化 SDK（未使用 Config Plugin，或需要下发 `webKey` 时） |
 | `isSDKInitialized` | - | `boolean` | 当前 JS 侧是否已调用过初始化 |
-| `setPrivacyShow` | `(hasShow: boolean, hasContainsPrivacy: boolean)` | `void` | 同步隐私弹窗展示状态 |
-| `setPrivacyAgree` | `(hasAgree: boolean)` | `void` | 同步用户是否同意隐私 |
 | `setPrivacyVersion` | `(version: string)` | `void` | 设置隐私协议版本；版本变化时会要求重新同意 |
 | `setPrivacyConfig` | `PrivacyConfig` | `void` | 一次性设置隐私状态 |
 | `resetPrivacyConsent` | - | `void` | 清空已持久化的隐私同意状态 |
@@ -44,6 +42,8 @@ ExpoGaodeMapModule.start();
 | `setLoadWorldVectorMap` | `(enabled: boolean)` | `void` | 是否启用世界向量地图，需在初始化前设置 |
 | `getVersion` | - | `string` | 获取原生 SDK 版本 |
 | `isNativeSDKConfigured` | - | `boolean` | 原生侧是否已配置 API Key |
+
+> `setPrivacyShow` / `setPrivacyAgree` 仅为兼容旧代码保留；新接入统一使用 `setPrivacyConfig(...)`。
 
 ### PrivacyConfig
 

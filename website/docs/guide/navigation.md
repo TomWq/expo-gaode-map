@@ -23,7 +23,7 @@ npm install expo-gaode-map-navigation
 
 - 🗺️ **内置地图**：包含 MapView 和所有覆盖物组件
 - 🧭 **路径规划**：驾车、步行、骑行、货车、摩托车等多种方式
-- 🚗 **实时导航**：NaviView 组件提供完整的导航界面
+- 🚗 **实时导航**：`ExpoGaodeMapNaviView` 组件提供完整的导航界面
 - ⚙️ **策略丰富**：最快、最短、避拥堵、少收费等多种策略
 - 🔄 **独立服务**：支持无地图的独立路径规划
 
@@ -414,7 +414,7 @@ export default function RoutePreviewScreen() {
 
 ## 官方导航页（openOfficialNaviPage）
 
-`openOfficialNaviPage` 会调起高德官方导航组件（非 `NaviView` 内嵌模式），适合快速接入官方完整 UI。
+`openOfficialNaviPage` 会调起高德官方导航组件（非 `ExpoGaodeMapNaviView` 内嵌模式），适合快速接入官方完整 UI。
 
 支持两种页面模式：
 
@@ -470,9 +470,9 @@ await openOfficialNaviPage({
 - 若未开启，接口会返回 `BACKGROUND_LOCATION_NOT_ENABLED`。
 - Android 官方组件依赖 `com.amap.api.navi.AmapRouteActivity`，插件已自动注入；自定义原生工程请确保 Manifest 已声明该 Activity。
 
-## NaviView 导航组件
+## ExpoGaodeMapNaviView 导航组件
 
-`NaviView` 是高德官方提供的完整导航界面组件。
+`ExpoGaodeMapNaviView` 是高德官方提供的完整导航界面组件。
 
 如果你要做业务成品页，建议同时参考仓库内 `example-navigation` 的两个示例：
 
@@ -519,10 +519,10 @@ await openOfficialNaviPage({
 ```typescript
 import React, { useRef } from 'react';
 import { View, Button } from 'react-native';
-import { NaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+import { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef } from 'expo-gaode-map-navigation';
 
 function NavigationScreen() {
-  const naviViewRef = useRef<NaviViewRef>(null);
+  const naviViewRef = useRef<ExpoGaodeMapNaviViewRef>(null);
 
   const startNavigation = async () => {
     await naviViewRef.current?.startNavigation(
@@ -538,7 +538,7 @@ function NavigationScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NaviView
+      <ExpoGaodeMapNaviView
         ref={naviViewRef}
         style={{ flex: 1 }}
         naviType={1}
@@ -562,7 +562,7 @@ function NavigationScreen() {
 }
 ```
 
-### NaviView 属性
+### ExpoGaodeMapNaviView 属性
 
 #### 核心属性
 
@@ -579,7 +579,7 @@ function NavigationScreen() {
 | `showMode` | `number` | `1` | 显示模式：`1`=锁车态, `2`=全览态, `3`=普通态 |
 | `isNightMode` | `boolean` | `false` | 是否开启夜间模式 |
 
-### NaviView 事件
+### ExpoGaodeMapNaviView 事件
 
 #### onNaviStart - 导航开始
 
@@ -646,10 +646,10 @@ onCalculateRouteFailure={(e) => {
 ```typescript
 import React, { useRef, useState } from 'react';
 import { View, Button, Text, StyleSheet } from 'react-native';
-import { NaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+import { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef } from 'expo-gaode-map-navigation';
 
 export default function FullNavigationScreen() {
-  const naviViewRef = useRef<NaviViewRef>(null);
+  const naviViewRef = useRef<ExpoGaodeMapNaviViewRef>(null);
   const [naviInfo, setNaviInfo] = useState({
     distance: 0,
     time: 0,
@@ -666,7 +666,7 @@ export default function FullNavigationScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NaviView
+      <ExpoGaodeMapNaviView
         ref={naviViewRef}
         style={{ flex: 1 }}
         naviType={0}
@@ -799,7 +799,7 @@ useEffect(() => {
 }, []);
 ```
 
-### 3. NaviView 启动导航无反应
+### 3. ExpoGaodeMapNaviView 启动导航无反应
 
 **问题**：startNavigation 调用后没有效果。
 
@@ -851,10 +851,10 @@ onCalculateRouteFailure={(e) => {
 
 ### 6. 如何自定义导航界面
 
-NaviView 提供了丰富的属性来控制界面元素：
+ExpoGaodeMapNaviView 提供了丰富的属性来控制界面元素：
 
 ```typescript
-<NaviView
+<ExpoGaodeMapNaviView
   showCamera={false}          // 隐藏摄像头提示
   showMode={3}                // 普通态（可自由操作地图）
   trafficLayerEnabled={false} // 隐藏路况

@@ -110,6 +110,48 @@ await mapRef.current?.moveCamera(
 - In most cases, `Marker` custom `children` no longer need explicit `customViewWidth` / `customViewHeight`
 - `Cluster` now supports `icon?: string` with HTTP URL, local file path, or bundle resource name
 
+### fitToCoordinates
+
+`MapViewRef` in the navigation package also exposes `fitToCoordinates(points, options?)` to auto-fit a point set in the current viewport.
+
+```typescript
+await mapRef.current?.fitToCoordinates(routePoints, {
+  duration: 500,
+  paddingFactor: 0.2,
+  maxZoom: 18,
+});
+```
+
+### calculateFitZoom
+
+The built-in `ExpoGaodeMapModule` in the navigation package also supports `calculateFitZoom(points, options?)`, useful when you want to pre-compute zoom before calling `moveCamera`.
+
+```typescript
+import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
+
+const points = [
+  { latitude: 39.9042, longitude: 116.4074 },
+  { latitude: 39.91407, longitude: 116.39765 },
+  { latitude: 39.92541, longitude: 116.39707 },
+];
+
+const zoom = ExpoGaodeMapModule.calculateFitZoom(points, {
+  viewportWidthPx: 390,
+  viewportHeightPx: 844,
+  paddingPx: 48,
+  minZoom: 3,
+  maxZoom: 20,
+});
+
+await mapRef.current?.moveCamera(
+  {
+    target: points[0],
+    zoom,
+  },
+  300
+);
+```
+
 ### 3. Use Map Component
 
 ```typescript
@@ -200,18 +242,18 @@ These props accept either a string URI/resource name or a React Native asset sou
 
 ### Custom Embedded Navigation UI
 
-For embedded navigation screens inside your own React Native page, the package now exposes the low-level `NaviView`, events, and native props only. The full custom HUD / lane HUD / traffic bar reference implementation has been moved into the repo's `example-navigation` app under `example-navigation/lib/navigation-ui/*`.
+For embedded navigation screens inside your own React Native page, the package now exposes the low-level `ExpoGaodeMapNaviView`, events, and native props only. The full custom HUD / lane HUD / traffic bar reference implementation has been moved into the repo's `example-navigation` app under `example-navigation/lib/navigation-ui/*`.
 
 Recommended approach:
 
-- Use `NaviView` for the native navigation map, guidance, lane events, traffic-status events, and cross-image events
+- Use `ExpoGaodeMapNaviView` for the native navigation map, guidance, lane events, traffic-status events, and cross-image events
 - Render your own HUD from `onNaviInfoUpdate`, `onLaneInfoUpdate`, `onTrafficStatusesUpdate`, and `onNaviVisualStateChange`
 - Start from the `example-navigation` "Custom Navigation UI" example and trim it to your product needs
 - If you need route picking plus start/end/multi-waypoint input, start from the `route-picker` example inside `example-navigation`
 
 Android embedded note:
 
-- In some React Native / Expo hosts, the official embedded `NaviView` top info panel, lane information, and cross-image transitions may differ from the official AMap demo / official black-box page
+- In some React Native / Expo hosts, the official embedded `ExpoGaodeMapNaviView` top info panel, lane information, and cross-image transitions may differ from the official AMap demo / official black-box page
 - On Android, the pure official embedded UI is more likely to show incomplete top panels, overlay glitches, or inconsistent styling across hosts/devices; treat it as a boundary-check page rather than a production UI baseline
 - If your goal is a stable embedded navigation page, start from the custom UI example in `example-navigation`
 - If you specifically want to verify the native official embedded UI, use the `official-embedded` page in the repo's example app

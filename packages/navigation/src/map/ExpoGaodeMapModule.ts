@@ -215,6 +215,9 @@ const helperMethods = {
     return nativeModule.getPrivacyStatus();
   },
 
+  /**
+   * @deprecated 请使用 `distanceBetweenCoordinates`
+   */
   calculateDistanceBetweenPoints(p1: LatLngPoint, p2: LatLngPoint): number {
     const nativeModule = getNativeModule();
     if (!nativeModule) {
@@ -226,6 +229,9 @@ const helperMethods = {
     );
   },
 
+  /**
+   * @deprecated 请使用 `distanceBetweenCoordinates`
+   */
   calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const nativeModule = getNativeModule();
     if (!nativeModule) {
@@ -493,6 +499,47 @@ const helperMethods = {
       );
     } catch (error) {
       throw ErrorHandler.wrapNativeError(error, '计算距离');
+    }
+  },
+
+  /**
+   * 根据多个坐标点计算可同时可见的推荐缩放级别
+   * @param points 坐标点集合（至少 1 个）
+   * @param options 视口与缩放边界选项
+   * @returns 推荐 zoom
+   */
+  calculateFitZoom(
+    points: LatLngPoint[],
+    options: {
+      viewportWidthPx?: number;
+      viewportHeightPx?: number;
+      paddingPx?: number;
+      minZoom?: number;
+      maxZoom?: number;
+    } = {}
+  ): number {
+    if (!nativeModule) {
+      throw ErrorHandler.nativeModuleUnavailable();
+    }
+
+    const normalized = normalizeLatLngList(points);
+    const minZoom = options.minZoom ?? 3;
+    const maxZoom = options.maxZoom ?? 20;
+    if (normalized.length === 0) {
+      return minZoom;
+    }
+
+    try {
+      return nativeModule.calculateFitZoom(
+        normalized,
+        options.viewportWidthPx ?? 390,
+        options.viewportHeightPx ?? 844,
+        options.paddingPx ?? 48,
+        minZoom,
+        maxZoom
+      );
+    } catch (error) {
+      throw ErrorHandler.wrapNativeError(error, '计算拟合缩放级别');
     }
   },
 

@@ -129,21 +129,21 @@ await startNaviWithIndependentPath({
 });
 ```
 
-## NaviView (Official UI)
+## ExpoGaodeMapNaviView (Official UI)
 
-`NaviView` provides a full navigation UI.
+`ExpoGaodeMapNaviView` provides a full navigation UI.
 
 ```tsx
 import React, { useRef } from 'react';
 import { View, Button } from 'react-native';
-import { NaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+import { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef } from 'expo-gaode-map-navigation';
 
 export default function NavigationScreen() {
-  const ref = useRef<NaviViewRef>(null);
+  const ref = useRef<ExpoGaodeMapNaviViewRef>(null);
 
   return (
     <View style={{ flex: 1 }}>
-      <NaviView ref={ref} style={{ flex: 1 }} naviType={0} />
+      <ExpoGaodeMapNaviView ref={ref} style={{ flex: 1 }} naviType={0} />
       <View style={{ position: 'absolute', bottom: 20, right: 20 }}>
         <Button
           title="Start"

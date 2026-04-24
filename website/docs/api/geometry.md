@@ -18,6 +18,7 @@
 | `encodeGeoHash` | `coordinate: LatLng, precision: number` | `string` | GeoHash 编码 |
 | `simplifyPolyline` | `points: LatLng[], tolerance: number` | `LatLng[]` | 轨迹抽稀 (RDP 算法) |
 | `calculatePathLength` | `points: LatLng[]` | `number` | 计算路径总长度 |
+| `calculateFitZoom` | `points: LatLng[], options?: FitZoomOptions` | `number` | 根据点集与视口估算推荐缩放级别 |
 | `getNearestPointOnPath` | `path: LatLng[], target: LatLng` | `object \| null` | 获取路径上距离目标点最近的点 |
 | `getPointAtDistance` | `points: LatLng[], distance: number` | `object \| null` | 获取路径上指定距离的点 |
 | `parsePolyline` | `polylineStr: string` | `LatLng[]` | 解析高德原始 Polyline 字符串 |
@@ -238,6 +239,43 @@ if (bounds) {
 - `points`: 坐标点数组
 
 **返回值**: `object | null` - 包含 `north`, `south`, `east`, `west` 边界值和 `center` 中心点。
+
+### calculateFitZoom
+
+根据一组坐标点和当前视口尺寸，计算“可以同时看到所有点”的推荐缩放级别（zoom）。
+
+```tsx
+const points = [
+  { latitude: 39.9042, longitude: 116.4074 }, // 北京
+  { latitude: 39.91407, longitude: 116.39765 }, // 故宫午门
+  { latitude: 39.92541, longitude: 116.39707 }, // 景山
+];
+
+const zoom = ExpoGaodeMapModule.calculateFitZoom(points, {
+  viewportWidthPx: 390,
+  viewportHeightPx: 844,
+  paddingPx: 48,
+  minZoom: 3,
+  maxZoom: 20,
+});
+
+console.log('推荐缩放级别:', zoom);
+```
+
+**参数说明**:
+- `points`: 坐标点数组，建议至少 1 个点
+- `options.viewportWidthPx`: 视口宽度（像素），默认 `390`
+- `options.viewportHeightPx`: 视口高度（像素），默认 `844`
+- `options.paddingPx`: 内边距（像素），默认 `48`
+- `options.minZoom`: 最小缩放限制，默认 `3`
+- `options.maxZoom`: 最大缩放限制，默认 `20`
+
+**返回值**: `number` - 推荐缩放级别（会被 `minZoom` / `maxZoom` 约束）。
+
+**适用场景**:
+- 多景点同时入镜（行程总览）
+- 路线规划完成后的自动镜头调整
+- 自定义相机动画前的 zoom 预估（可配合 `moveCamera` 使用）
 
 ### calculateCentroid
 

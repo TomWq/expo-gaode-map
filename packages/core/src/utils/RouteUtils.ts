@@ -1,3 +1,4 @@
+import ExpoGaodeMapModule from '../ExpoGaodeMapModule';
 import type { LatLng, LatLngBounds, LatLngPoint } from '../types/common.types';
 import type {
   FitToCoordinatesOptions,
@@ -11,6 +12,54 @@ const MIN_ZOOM = 3;
 const MAX_ZOOM = 20;
 const DEFAULT_SINGLE_POINT_ZOOM = 16;
 const DEFAULT_PADDING_FACTOR = 1.2;
+const DEFAULT_VIEWPORT_WIDTH_PX = 390;
+const DEFAULT_VIEWPORT_HEIGHT_PX = 844;
+const DEFAULT_PADDING_PX = 48;
+
+function paddingFactorToPaddingPx(
+  paddingFactor: number,
+  viewportWidthPx: number,
+  viewportHeightPx: number
+): number {
+  if (!Number.isFinite(paddingFactor) || paddingFactor <= 1) {
+    return 0;
+  }
+  const paddingRatio = (1 - 1 / paddingFactor) / 2;
+  return Math.max(0, Math.min(viewportWidthPx, viewportHeightPx) * paddingRatio);
+}
+
+function calculateFitZoom(
+  points: LatLng[],
+  options: Pick<
+    FitToCoordinatesOptions,
+    'paddingFactor' | 'paddingPx' | 'viewportWidthPx' | 'viewportHeightPx' | 'minZoom' | 'maxZoom'
+  >
+): number | null {
+  if (points.length === 0) {
+    return null;
+  }
+
+  const viewportWidthPx = options.viewportWidthPx ?? DEFAULT_VIEWPORT_WIDTH_PX;
+  const viewportHeightPx = options.viewportHeightPx ?? DEFAULT_VIEWPORT_HEIGHT_PX;
+  const paddingFromFactor = paddingFactorToPaddingPx(
+    options.paddingFactor ?? DEFAULT_PADDING_FACTOR,
+    viewportWidthPx,
+    viewportHeightPx
+  );
+  const paddingPx = options.paddingPx ?? (paddingFromFactor > 0 ? paddingFromFactor : DEFAULT_PADDING_PX);
+
+  try {
+    return ExpoGaodeMapModule.calculateFitZoom(points, {
+      viewportWidthPx,
+      viewportHeightPx,
+      paddingPx,
+      minZoom: options.minZoom,
+      maxZoom: options.maxZoom,
+    });
+  } catch {
+    return null;
+  }
+}
 
 export function estimateZoomLevel(
   latitudeDelta: number,
@@ -28,7 +77,10 @@ export function estimateZoomLevel(
 
 export function getRouteBounds(
   points: LatLngPoint[],
-  options: Pick<FitToCoordinatesOptions, 'paddingFactor' | 'minZoom' | 'maxZoom'> = {}
+  options: Pick<
+    FitToCoordinatesOptions,
+    'paddingFactor' | 'paddingPx' | 'viewportWidthPx' | 'viewportHeightPx' | 'minZoom' | 'maxZoom'
+  > = {}
 ): RouteBounds | null {
   // 统一将路径点转换为对象坐标，再计算中心点、边界和推荐缩放。
   const normalized = normalizeLatLngList(points) as LatLng[];
@@ -46,6 +98,8 @@ export function getRouteBounds(
   const paddingFactor = options.paddingFactor ?? DEFAULT_PADDING_FACTOR;
   const latitudeDelta = Math.max((north - south) * paddingFactor, 0.0001);
   const longitudeDelta = Math.max((east - west) * paddingFactor, 0.0001);
+  const nativeZoom = calculateFitZoom(normalized, options);
+  const fallbackZoom = estimateZoomLevel(latitudeDelta, longitudeDelta, options);
 
   return {
     center: {
@@ -62,7 +116,7 @@ export function getRouteBounds(
       latitudeDelta,
       longitudeDelta,
     },
-    recommendedZoom: estimateZoomLevel(latitudeDelta, longitudeDelta, options),
+    recommendedZoom: nativeZoom ?? fallbackZoom,
   };
 }
 
