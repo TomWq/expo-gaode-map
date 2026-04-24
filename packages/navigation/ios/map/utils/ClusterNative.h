@@ -55,6 +55,14 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSDictionary * _Nullable)calculatePathBoundsWithLatitudes:(NSArray<NSNumber *> *)latitudes
                                                 longitudes:(NSArray<NSNumber *> *)longitudes NS_SWIFT_NAME(calculatePathBounds(latitudes:longitudes:));
 
++ (double)calculateFitZoomWithLatitudes:(NSArray<NSNumber *> *)latitudes
+                             longitudes:(NSArray<NSNumber *> *)longitudes
+                        viewportWidthPx:(double)viewportWidthPx
+                       viewportHeightPx:(double)viewportHeightPx
+                               paddingPx:(double)paddingPx
+                                 minZoom:(int)minZoom
+                                 maxZoom:(int)maxZoom NS_SWIFT_NAME(calculateFitZoom(latitudes:longitudes:viewportWidthPx:viewportHeightPx:paddingPx:minZoom:maxZoom:));
+
 + (NSString *)encodeGeoHashWithLat:(double)lat
                                lon:(double)lon
                          precision:(int)precision NS_SWIFT_NAME(encodeGeoHash(lat:lon:precision:));

@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   clearIndependentRoute,
+  ExpoGaodeMapModule,
   independentDriveRoute,
   independentRideRoute,
   independentWalkRoute,
@@ -248,6 +249,30 @@ function resolveTipSubtitle(tip: InputTip): string {
   return [tip.address, tip.adName, tip.cityName].filter(Boolean).join(" · ");
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function inverseLerp(value: number, min: number, max: number): number {
+  if (max <= min) {
+    return 0;
+  }
+  return clamp((value - min) / (max - min), 0, 1);
+}
+
+function mix(start: number, end: number, amount: number): number {
+  return start + (end - start) * amount;
+}
+
+function getRouteDistanceScale(distanceMeters: number): number {
+  if (!Number.isFinite(distanceMeters) || distanceMeters <= 0) {
+    return 0;
+  }
+
+  const logDistance = Math.log10(distanceMeters + 1);
+  return inverseLerp(logDistance, Math.log10(1500), Math.log10(1500000));
+}
+
 function getRouteLineStyle(
   variant: "selected" | "other",
   zoom: number
@@ -310,43 +335,34 @@ function getPreviewFitOptions(selectedRoute: RouteResult | null) {
   }
 
   const distance = selectedRoute.distance ?? 0;
-
-  if (distance >= 18000) {
-    return {
-      duration: 460,
-      paddingFactor: 0.9,
-      minZoom: 9.6,
-      maxZoom: 16.6,
-      singlePointZoom: 15.2,
-    };
-  }
-
-  if (distance >= 12000) {
-    return {
-      duration: 460,
-      paddingFactor: 0.78,
-      minZoom: 10.4,
-      maxZoom: 16.9,
-      singlePointZoom: 15.4,
-    };
-  }
-
-  if (distance >= 7000) {
-    return {
-      duration: 460,
-      paddingFactor: 0.62,
-      minZoom: 11.2,
-      maxZoom: 17,
-      singlePointZoom: 15.6,
-    };
-  }
+  const routeScale = getRouteDistanceScale(distance);
 
   return {
-    duration: 460,
-    paddingFactor: 0.5,
-    minZoom: 12.2,
-    maxZoom: 14.2,
-    singlePointZoom: 15.8,
+    duration: Math.round(mix(420, 520, routeScale)),
+    paddingFactor: mix(0.5, 1.08, routeScale),
+    minZoom: mix(12.2, 4.2, routeScale),
+    maxZoom: mix(17, 8.8, routeScale),
+    singlePointZoom: mix(15.8, 14.8, routeScale),
+  };
+}
+
+function getPreviewBounds(points: NaviPoint[]) {
+  const latitudes = points.map((point) => point.latitude);
+  const longitudes = points.map((point) => point.longitude);
+  const north = Math.max(...latitudes);
+  const south = Math.min(...latitudes);
+  const east = Math.max(...longitudes);
+  const west = Math.min(...longitudes);
+
+  return {
+    north,
+    south,
+    east,
+    west,
+    center: {
+      latitude: (north + south) / 2,
+      longitude: (east + west) / 2,
+    },
   };
 }
 
@@ -460,6 +476,27 @@ export default function RoutePickerExampleScreen() {
     };
   }, []);
 
+  const focusSelectedPoint = React.useCallback(async (point: NaviPoint) => {
+    if (!mapRef.current) {
+      return;
+    }
+
+    try {
+      const camera = await mapRef.current.getCameraPosition();
+      await mapRef.current.moveCamera(
+        {
+          target: point,
+          zoom: Math.max(camera.zoom ?? 0, 13.5),
+          bearing: camera.bearing,
+          tilt: camera.tilt,
+        },
+        260
+      );
+    } catch {
+      // ignore focus failures and keep the current map state
+    }
+  }, []);
+
   const compensatePreviewViewport = React.useCallback(async () => {
     if (!mapRef.current || windowWidth <= 0 || windowHeight <= 0) {
       return;
@@ -514,8 +551,122 @@ export default function RoutePickerExampleScreen() {
     windowWidth,
   ]);
 
+  const fitPreviewCamera = React.useCallback(async () => {
+    if (!mapRef.current || previewPoints.length === 0 || windowWidth <= 0 || windowHeight <= 0) {
+      return;
+    }
+
+    const fitOptions = getPreviewFitOptions(selectedRoute);
+    const topBlocked = Math.max(insets.top, 12) + topPanelHeight + 10;
+    const bottomBlocked = Math.max(insets.bottom, 14) + bottomPanelHeight + 10;
+    const visibleHeight = windowHeight - topBlocked - bottomBlocked;
+
+    if (previewPoints.length === 1) {
+      const camera = await mapRef.current.getCameraPosition();
+      await mapRef.current.moveCamera(
+        {
+          target: previewPoints[0],
+          zoom: fitOptions.singlePointZoom,
+          bearing: camera.bearing,
+          tilt: camera.tilt,
+        },
+        fitOptions.duration
+      );
+      return;
+    }
+
+    if (visibleHeight <= 120) {
+      return;
+    }
+
+    const viewportWidthPx = Math.max(1, windowWidth);
+    const viewportHeightPx = Math.max(1, visibleHeight);
+    const routeDistance = selectedRoute?.distance ?? 0;
+    const routeScale = getRouteDistanceScale(routeDistance);
+    const blockedRatio = Math.min(0.5, (topBlocked + bottomBlocked) / Math.max(windowHeight, 1));
+    const blockedDeltaRatio = (bottomBlocked - topBlocked) / Math.max(windowHeight, 1);
+    const bounds = getPreviewBounds(previewPoints);
+    const latitudeSpan = Math.max(0.0001, bounds.north - bounds.south);
+    const longitudeSpan = Math.max(0.0001, bounds.east - bounds.west);
+    const routeVerticality = latitudeSpan / longitudeSpan;
+    const viewportAspectRatio = viewportHeightPx / Math.max(viewportWidthPx, 1);
+    const distancePaddingBoost = mix(0, 0.05, routeScale);
+    const androidVerticalPaddingBoost = Math.max(0, Math.min(0.05, (routeVerticality - 1.2) * 0.035));
+    const androidTallScreenBoost = Math.max(0, Math.min(0.025, (viewportAspectRatio - 1.45) * 0.035));
+    const platformPaddingScale = Platform.select({
+      ios: 0.125,
+      android: 0.08 + androidVerticalPaddingBoost + androidTallScreenBoost,
+      default: 0.1,
+    }) ?? 0.1;
+    const paddingScale = Math.max(
+      0.055,
+      Math.min(
+        0.28,
+        platformPaddingScale +
+          blockedRatio * (Platform.OS === "android" ? 0.115 : 0.1) +
+          distancePaddingBoost
+      )
+    );
+    const paddingPx = Math.round(Math.min(viewportWidthPx, viewportHeightPx) * paddingScale);
+    const rawZoom = ExpoGaodeMapModule.calculateFitZoom(previewPoints, {
+      viewportWidthPx,
+      viewportHeightPx,
+      paddingPx,
+      minZoom: fitOptions.minZoom,
+      maxZoom: fitOptions.maxZoom,
+    });
+    const zoomBias = Platform.select({
+      ios: 0,
+      android: Math.max(
+        -0.015,
+        Math.min(0.06, 0.03 + blockedRatio * 0.045 - androidVerticalPaddingBoost * 0.55)
+      ),
+      default: 0,
+    }) ?? 0;
+    const overlayBias = Math.max(-0.32, Math.min(0.32, blockedDeltaRatio));
+    const verticalShiftFactor = Platform.select({
+      ios: 0.36,
+      android: Math.max(
+        0.36,
+        Math.min(0.48, 0.39 + Math.max(0, blockedDeltaRatio) * 0.2 + androidVerticalPaddingBoost * 0.9)
+      ),
+      default: 0.36,
+    }) ?? 0.36;
+    const camera = await mapRef.current.getCameraPosition();
+
+    await mapRef.current.moveCamera(
+      {
+        target: {
+          latitude: bounds.center.latitude + overlayBias * latitudeSpan * verticalShiftFactor,
+          longitude: bounds.center.longitude,
+        },
+        zoom: Math.min(fitOptions.maxZoom, Math.max(fitOptions.minZoom, rawZoom + zoomBias)),
+        bearing: camera.bearing,
+        tilt: camera.tilt,
+      },
+      fitOptions.duration
+    );
+  }, [
+    bottomPanelHeight,
+    insets.bottom,
+    insets.top,
+    previewPoints,
+    selectedRoute,
+    topPanelHeight,
+    windowHeight,
+    windowWidth,
+  ]);
+
   React.useEffect(() => {
-    if (previewPoints.length < 2) {
+    if (activeFieldId) {
+      return;
+    }
+
+    if (!routeResult || !selectedRoute) {
+      return;
+    }
+
+    if (previewPoints.length === 0) {
       return;
     }
 
@@ -525,20 +676,24 @@ export default function RoutePickerExampleScreen() {
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          await mapRef.current?.fitToCoordinates(
-            previewPoints,
-            getPreviewFitOptions(selectedRoute)
-          );
-
-          if (cancelled) {
-            return;
-          }
-
-          if (shouldCompensateViewport) {
-            await compensatePreviewViewport();
-          }
+          await fitPreviewCamera();
         } catch {
-          // keep silent; planning UI already handles route errors elsewhere
+          try {
+            await mapRef.current?.fitToCoordinates(
+              previewPoints,
+              getPreviewFitOptions(selectedRoute)
+            );
+
+            if (cancelled) {
+              return;
+            }
+
+            if (shouldCompensateViewport) {
+              await compensatePreviewViewport();
+            }
+          } catch {
+            // keep silent; planning UI already handles route errors elsewhere
+          }
         }
       })();
     }, 160);
@@ -547,7 +702,7 @@ export default function RoutePickerExampleScreen() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [compensatePreviewViewport, previewPoints, routeResult, selectedRoute]);
+  }, [activeFieldId, compensatePreviewViewport, fitPreviewCamera, previewPoints, routeResult, selectedRoute]);
 
   React.useEffect(() => {
     if (!activeFieldId) {
@@ -674,6 +829,15 @@ export default function RoutePickerExampleScreen() {
     void initialize();
   }, []);
 
+  const resetRoutePreview = React.useCallback(async () => {
+    if (activeTokenRef.current != null) {
+      await clearIndependentRoute({ token: activeTokenRef.current }).catch(() => {});
+      activeTokenRef.current = null;
+    }
+    setRouteResult(null);
+    setSelectedRouteIndex(0);
+  }, []);
+
   const setWaypointInput = React.useCallback((waypointKey: string, value: string) => {
     setWaypoints((current) =>
       current.map((item) =>
@@ -686,24 +850,19 @@ export default function RoutePickerExampleScreen() {
           : item
       )
     );
-  }, []);
+    if (routeResult) {
+      void resetRoutePreview();
+    }
+  }, [resetRoutePreview, routeResult]);
 
   const handleSwap = React.useCallback(() => {
     setFromInput(toInput);
     setFromSelection(toSelection);
     setToInput(fromInput);
     setToSelection(fromSelection);
+    void resetRoutePreview();
     setStatusText("已交换起点和终点。重新规划后会刷新候选路线。");
-  }, [fromInput, fromSelection, toInput, toSelection]);
-
-  const resetRoutePreview = React.useCallback(async () => {
-    if (activeTokenRef.current != null) {
-      await clearIndependentRoute({ token: activeTokenRef.current }).catch(() => {});
-      activeTokenRef.current = null;
-    }
-    setRouteResult(null);
-    setSelectedRouteIndex(0);
-  }, []);
+  }, [fromInput, fromSelection, resetRoutePreview, toInput, toSelection]);
 
   const handleRouteSceneChange = React.useCallback(
     (nextScene: RouteScene) => {
@@ -721,6 +880,7 @@ export default function RoutePickerExampleScreen() {
   const applySelectedField = React.useCallback(
     (fieldId: string, value: RouteFieldValue) => {
       Keyboard.dismiss();
+      void resetRoutePreview();
       if (fieldId === "from") {
         setFromInput(value.label);
         setFromSelection(value);
@@ -742,8 +902,9 @@ export default function RoutePickerExampleScreen() {
       }
       setActiveFieldId(null);
       setTips([]);
+      void focusSelectedPoint(value.point);
     },
-    []
+    [focusSelectedPoint, resetRoutePreview]
   );
 
   const handleTipPress = React.useCallback(
@@ -770,6 +931,8 @@ export default function RoutePickerExampleScreen() {
       const presentation = await resolvePointPresentation(currentLocation, "我的位置");
       setFromSelection(createFieldValue(currentLocation, presentation.label, presentation.address));
       setFromInput(presentation.label);
+      void resetRoutePreview();
+      void focusSelectedPoint(currentLocation);
       setCity(presentation.city || city);
       setStatusText("起点已更新为当前位置。");
     } catch (error) {
@@ -778,7 +941,7 @@ export default function RoutePickerExampleScreen() {
     } finally {
       setBootstrapping(false);
     }
-  }, [city]);
+  }, [city, focusSelectedPoint, resetRoutePreview]);
 
   const handleAddWaypoint = React.useCallback(() => {
     setWaypoints((current) => {
@@ -793,11 +956,12 @@ export default function RoutePickerExampleScreen() {
 
   const handleRemoveWaypoint = React.useCallback((waypointKey: string) => {
     setWaypoints((current) => current.filter((item) => item.key !== waypointKey));
+    void resetRoutePreview();
     if (activeFieldId === waypointKey) {
       setActiveFieldId(null);
       setTips([]);
     }
-  }, [activeFieldId]);
+  }, [activeFieldId, resetRoutePreview]);
 
   const planRoutes = React.useCallback(async () => {
     if (!fromSelection?.point || !toSelection?.point) {
@@ -964,7 +1128,7 @@ export default function RoutePickerExampleScreen() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        style={{flex:1}}
+        style={styles.mapView}
         initialCameraPosition={{
           target: fromSelection?.point ?? {
             latitude: 39.908823,
@@ -1403,6 +1567,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#d8e6f6",
+  },
+  mapView:{
+     ...StyleSheet.absoluteFillObject,
   },
   overlayLayer: {
     flex: 1,

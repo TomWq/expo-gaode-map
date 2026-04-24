@@ -125,6 +125,27 @@ PixelResult latLngToPixel(double lat, double lon, int zoom);
  */
 GeoPoint pixelToLatLng(double x, double y, int zoom);
 
+/**
+ * 根据一组坐标点和视口尺寸计算“可同时看到所有点”的推荐缩放级别。
+ * 使用 Web Mercator 投影，在跨经线场景下会自动取更小经度跨度。
+ *
+ * @param points 坐标点集合，至少 1 个
+ * @param viewportWidthPx 视口宽度（像素）
+ * @param viewportHeightPx 视口高度（像素）
+ * @param paddingPx 四周预留的内边距（像素）
+ * @param minZoom 最小缩放级别
+ * @param maxZoom 最大缩放级别
+ * @return 推荐 zoom（已在 [minZoom, maxZoom] 范围内）
+ */
+double calculateFitZoomForPoints(
+    const std::vector<GeoPoint>& points,
+    double viewportWidthPx,
+    double viewportHeightPx,
+    double paddingPx,
+    int minZoom,
+    int maxZoom
+);
+
 // --- 批量地理围栏与热力图 ---
 
 /**

@@ -242,6 +242,33 @@
     };
 }
 
++ (double)calculateFitZoomWithLatitudes:(NSArray<NSNumber *> *)latitudes
+                              longitudes:(NSArray<NSNumber *> *)longitudes
+                         viewportWidthPx:(double)viewportWidthPx
+                        viewportHeightPx:(double)viewportHeightPx
+                                paddingPx:(double)paddingPx
+                                  minZoom:(int)minZoom
+                                  maxZoom:(int)maxZoom {
+    if (latitudes.count == 0 || latitudes.count != longitudes.count) {
+        return (double)minZoom;
+    }
+
+    std::vector<gaodemap::GeoPoint> points;
+    points.reserve(latitudes.count);
+    for (NSUInteger i = 0; i < latitudes.count; i++) {
+        points.push_back({[latitudes[i] doubleValue], [longitudes[i] doubleValue]});
+    }
+
+    return gaodemap::calculateFitZoomForPoints(
+        points,
+        viewportWidthPx,
+        viewportHeightPx,
+        paddingPx,
+        minZoom,
+        maxZoom
+    );
+}
+
 + (NSString *)encodeGeoHashWithLat:(double)lat
                                lon:(double)lon
                          precision:(int)precision {

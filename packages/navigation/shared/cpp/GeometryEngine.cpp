@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <algorithm>
+#include <limits>
 
 namespace gaodemap {
 
@@ -17,6 +18,54 @@ static inline double geo_toRadians(double degrees) {
 
 static inline double geo_toDegrees(double radians) {
     return radians * kRadiansToDegrees;
+}
+
+static inline double clampMercatorLatitude(double lat) {
+    static constexpr double kMaxMercatorLatitude = 85.05112878;
+    if (lat > kMaxMercatorLatitude) return kMaxMercatorLatitude;
+    if (lat < -kMaxMercatorLatitude) return -kMaxMercatorLatitude;
+    return lat;
+}
+
+static inline double mercatorX01(double lon) {
+    double wrapped = std::fmod(lon + 180.0, 360.0);
+    if (wrapped < 0.0) {
+        wrapped += 360.0;
+    }
+    return wrapped / 360.0;
+}
+
+static inline double mercatorY01(double lat) {
+    const double clampedLat = clampMercatorLatitude(lat);
+    const double latRad = geo_toRadians(clampedLat);
+    const double y = (1.0 - std::asinh(std::tan(latRad)) / kPi) * 0.5;
+    if (y < 0.0) return 0.0;
+    if (y > 1.0) return 1.0;
+    return y;
+}
+
+static double wrappedSpan01(std::vector<double> xs) {
+    if (xs.size() <= 1) {
+        return 0.0;
+    }
+
+    std::sort(xs.begin(), xs.end());
+    double maxGap = 0.0;
+
+    for (size_t i = 0; i + 1 < xs.size(); ++i) {
+        const double gap = xs[i + 1] - xs[i];
+        if (gap > maxGap) {
+            maxGap = gap;
+        }
+    }
+
+    const double endGap = xs.front() + 1.0 - xs.back();
+    if (endGap > maxGap) {
+        maxGap = endGap;
+    }
+
+    const double span = 1.0 - maxGap;
+    return span < 0.0 ? 0.0 : span;
 }
 
 double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -510,6 +559,69 @@ GeoPoint pixelToLatLng(double x, double y, int zoom) {
     double latRad = std::atan(std::sinh(kPi * (1.0 - 2.0 * y / n)));
     double lat = latRad * kRadiansToDegrees;
     return {lat, lon};
+}
+
+double calculateFitZoomForPoints(
+    const std::vector<GeoPoint>& points,
+    double viewportWidthPx,
+    double viewportHeightPx,
+    double paddingPx,
+    int minZoom,
+    int maxZoom
+) {
+    if (minZoom > maxZoom) {
+        std::swap(minZoom, maxZoom);
+    }
+    if (points.empty()) {
+        return static_cast<double>(minZoom);
+    }
+    if (points.size() == 1) {
+        return static_cast<double>(maxZoom);
+    }
+
+    const double safeViewportWidth = viewportWidthPx > 1.0 ? viewportWidthPx : 390.0;
+    const double safeViewportHeight = viewportHeightPx > 1.0 ? viewportHeightPx : 844.0;
+    const double safePadding = std::max(0.0, paddingPx);
+    const double availableWidth = std::max(1.0, safeViewportWidth - safePadding * 2.0);
+    const double availableHeight = std::max(1.0, safeViewportHeight - safePadding * 2.0);
+
+    std::vector<double> projectedXs;
+    projectedXs.reserve(points.size());
+
+    double minY = std::numeric_limits<double>::max();
+    double maxY = -std::numeric_limits<double>::max();
+
+    for (const auto& p : points) {
+        projectedXs.push_back(mercatorX01(p.lon));
+        const double y = mercatorY01(p.lat);
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+    }
+
+    const double spanX = wrappedSpan01(projectedXs);
+    const double spanY = std::max(0.0, maxY - minY);
+    static constexpr double kTileSize = 256.0;
+    static constexpr double kSpanEpsilon = 1e-12;
+
+    const double zoomX = spanX <= kSpanEpsilon
+        ? static_cast<double>(maxZoom)
+        : std::log2(availableWidth / (kTileSize * spanX));
+    const double zoomY = spanY <= kSpanEpsilon
+        ? static_cast<double>(maxZoom)
+        : std::log2(availableHeight / (kTileSize * spanY));
+
+    double fitZoom = std::min(zoomX, zoomY);
+    if (!std::isfinite(fitZoom)) {
+        fitZoom = static_cast<double>(minZoom);
+    }
+
+    if (fitZoom < static_cast<double>(minZoom)) {
+        fitZoom = static_cast<double>(minZoom);
+    } else if (fitZoom > static_cast<double>(maxZoom)) {
+        fitZoom = static_cast<double>(maxZoom);
+    }
+
+    return fitZoom;
 }
 
 // --- 批量地理围栏与热力图 ---
