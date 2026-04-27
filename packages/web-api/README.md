@@ -782,7 +782,8 @@ try {
 ## 📚 文档与资源
 - [在线文档](https://tomwq.github.io/expo-gaode-map/api/web-api.html)
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/packages/web-api)
-- [示例项目(地图)](https://github.com/TomWq/expo-gaode-map-example)
+- [地图示例工程](../../example)
+- [导航示例工程](../../example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

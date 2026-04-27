@@ -3,7 +3,7 @@
 本指南将帮助你快速开始使用 expo-gaode-map。
 
 ::: tip 完整示例代码
-📦 导航相关的可运行示例已收敛到仓库内 `example-navigation/`；入口说明见 `example-navigation/README.md`
+📦 可运行示例请优先参考仓库内 `example/` 和 `example-navigation/`；导航入口说明见 `example-navigation/README.md`
 :::
 
 ## 项目架构

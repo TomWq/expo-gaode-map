@@ -643,7 +643,7 @@ const result = await calculateTransitRoute({
 
 - [在线文档](https://tomwq.github.io/expo-gaode-map/api/navigation.html)
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/packages/navigation)
-- [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-navigation-example)
+- [导航示例工程](../../example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

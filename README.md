@@ -14,7 +14,7 @@ A fully-featured Amap (Gaode Map) React Native library, **built with Expo Module
 
 ## 📖 Complete Documentation
 
-**👉 [Online Documentation](https://TomWq.github.io/expo-gaode-map/)** · **👉 [Example Repository](https://github.com/TomWq/expo-gaode-map-example)**
+**👉 [Online Documentation](https://TomWq.github.io/expo-gaode-map/)** · **👉 Local examples: [`example/`](./example) / [`example-navigation/`](./example-navigation)**
 
 Includes complete API documentation, usage guides, and example code:
 - [Getting Started](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
@@ -23,7 +23,7 @@ Includes complete API documentation, usage guides, and example code:
 - [Navigation Functionality](https://TomWq.github.io/expo-gaode-map/guide/navigation.html)
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API Reference](https://TomWq.github.io/expo-gaode-map/api/)
-- [Usage Examples](https://github.com/TomWq/expo-gaode-map-example)
+- [Local Map Example](./example) / [Navigation Example](./example-navigation)
 
 ## 🚀 Why Choose expo-gaode-map?
 
@@ -189,7 +189,7 @@ If privacy consent is missing on a fresh install, the library now throws a clear
 
 For detailed initialization and usage guides, please see:
 - 📖 [Getting Started Documentation](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
-- 💻 [Complete Example Code](https://github.com/TomWq/expo-gaode-map-example)
+- 💻 [Map Example App](./example) / [Navigation Example App](./example-navigation)
 
 ## 📚 Feature Module Comparison
 
@@ -278,7 +278,8 @@ MIT
 - [Online Documentation](https://TomWq.github.io/expo-gaode-map/)
 - [Error Handling Guide](./ERROR_HANDLING_GUIDE.md) 🆕
 - [GitHub Repository](https://github.com/TomWq/expo-gaode-map)
-- [Example Project](https://github.com/TomWq/expo-gaode-map-example)
+- [Map Example App](./example)
+- [Navigation Example App](./example-navigation)
 - [Amap Open Platform](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

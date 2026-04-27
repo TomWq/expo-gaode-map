@@ -558,4 +558,4 @@ const checkAllUpdates = async () => {
 ## Related Documentation
 
 - [Offline Maps Guide](/en/guide/offline-map)
-- [Complete Example](https://github.com/TomWq/expo-gaode-map/tree/main/example/OfflineMapExample.tsx)
+- Complete example: `example/OfflineMapExample.tsx` in this repository

@@ -156,6 +156,8 @@ export default function App() {
 
 ## Complete Example
 
+For runnable apps, prefer the local `example/` and `example-navigation/` projects in this repository.
+
 ```tsx
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';

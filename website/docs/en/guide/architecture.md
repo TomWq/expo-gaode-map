@@ -31,7 +31,7 @@ expo-gaode-map/
 │       └── src/            # TypeScript code (pure JS, no native)
 │
 ├── example/                # Example app (uses core package)
-├── navigation/             # Navigation example app
+├── example-navigation/     # Navigation example app
 ├── website/                # Documentation site (this project)
 ```
 

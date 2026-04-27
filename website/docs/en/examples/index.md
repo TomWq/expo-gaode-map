@@ -2,6 +2,8 @@
 
 Complete code examples to help you get started quickly.
 
+> The snippets on this page are for quick reference. For runnable apps, prefer the local `example/` and `example-navigation/` projects in this repository.
+
 ## Basic Examples
 
 ### [Basic Map](/en/examples/basic-map)
@@ -211,7 +213,8 @@ Learn more: [Search Examples](/en/examples/search)
 
 ## More Examples
 
-- [GitHub Repository](https://github.com/TomWq/expo-gaode-map/tree/main/example) - View complete example project
+- `example/` - complete local map example app
+- `example-navigation/` - complete local navigation example app
 - [API Documentation](/en/api/) - Detailed API reference
 - [Search API](/en/api/search) - Search module API reference
 - [Initialization Guide](/en/guide/initialization) - SDK initialization guide

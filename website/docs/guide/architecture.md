@@ -29,7 +29,7 @@ expo-gaode-map/
 │       └── src/            # TypeScript 代码（纯 JS）
 │
 ├── example/                # 示例应用（使用核心包）
-├── navigation/             # 导航示例应用
+├── example-navigation/     # 导航示例应用
 ├── website/                # 文档网站
 ```
 

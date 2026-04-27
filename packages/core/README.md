@@ -6,7 +6,7 @@
 
 ## 📖 完整文档
 
-**👉 [在线文档网站](https://TomWq.github.io/expo-gaode-map/)** · **👉 [示例仓库](https://github.com/TomWq/expo-gaode-map-example)**
+**👉 [在线文档网站](https://TomWq.github.io/expo-gaode-map/)** · **👉 本地示例：[`example/`](../../example) / [`example-navigation/`](../../example-navigation)**
 
 包含完整的 API 文档、使用指南和示例代码：
 - [快速开始](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
@@ -15,7 +15,7 @@
 - [导航功能](https://TomWq.github.io/expo-gaode-map/guide/navigation.html)
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API 参考](https://TomWq.github.io/expo-gaode-map/api/)
-- [使用示例](https://github.com/TomWq/expo-gaode-map-example)
+- [本地示例工程](../../example) / [导航示例工程](../../example-navigation)
 
 ## ✨ 主要特性
 
@@ -104,7 +104,7 @@ npx expo run:ios
 
 详细的初始化和使用指南请查看：
 - 📖 [快速开始文档](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
-- 💻 [完整示例代码](https://github.com/TomWq/expo-gaode-map-example)
+- 💻 [地图示例工程](../../example) / [导航示例工程](../../example-navigation)
 
 ## 📚 功能模块对比
 
@@ -231,8 +231,8 @@ MIT
 - [错误处理指南](./ERROR_HANDLING_GUIDE.md) 🆕
 - [性能优化指南](./PERFORMANCE_GUIDE.md) 🆕
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map)
-- [示例项目(地图)](https://github.com/TomWq/expo-gaode-map-example)
-- [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-navigation-example)
+- [地图示例工程](../../example)
+- [导航示例工程](../../example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

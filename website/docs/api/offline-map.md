@@ -558,4 +558,4 @@ const checkAllUpdates = async () => {
 ## 相关文档
 
 - [离线地图指南](/guide/offline-map)
-- [完整示例](https://github.com/TomWq/expo-gaode-map/tree/main/example/OfflineMapExample.tsx)
+- 完整示例：仓库内 `example/OfflineMapExample.tsx`

@@ -584,6 +584,6 @@ await ExpoGaodeMapOfflineModule.clearAll();
 
 ## 相关链接
 
-- [完整示例代码](https://github.com/TomWq/expo-gaode-map/tree/main/example/OfflineMapExample.tsx)
+- 完整示例代码：仓库内 `example/OfflineMapExample.tsx`
 - [API 文档](/api/)
 - [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)

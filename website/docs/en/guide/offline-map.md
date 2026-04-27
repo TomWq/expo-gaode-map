@@ -584,6 +584,6 @@ await ExpoGaodeMapOfflineModule.clearAll();
 
 ## Related Links
 
-- [Complete Example Code](https://github.com/TomWq/expo-gaode-map/tree/main/example/OfflineMapExample.tsx)
+- Complete example code: `example/OfflineMapExample.tsx` in this repository
 - [API Documentation](/api/)
 - [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
