@@ -43,27 +43,4 @@ const styles = StyleSheet.create({
   },
 });
 
-/**
- * 🔑 性能优化：浅比较关键属性
- */
-function arePropsEqual(prevProps: HeatMapProps, nextProps: HeatMapProps): boolean {
-  // 比较 data 数组引用（最常变化）
-  if (prevProps.data !== nextProps.data) {
-    return false;
-  }
-
-  if (prevProps.visible !== nextProps.visible) {
-    return false;
-  }
-  
-  // 比较样式属性
-  if (prevProps.radius !== nextProps.radius ||
-      prevProps.opacity !== nextProps.opacity) {
-    return false;
-  }
-  
-  return true;
-}
-
-// 导出优化后的组件
-export default React.memo(HeatMap, arePropsEqual);
+export default React.memo(HeatMap);

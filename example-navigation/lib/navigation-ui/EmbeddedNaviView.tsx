@@ -12,6 +12,7 @@ import type {
   NaviVisualStateEvent,
 } from "expo-gaode-map-navigation";
 import {
+  ExpoGaodeMapNaviView,
   NaviView,
   type NaviViewRef,
 } from "expo-gaode-map-navigation";
@@ -24,7 +25,6 @@ import {
   StyleSheet,
   View,
   type LayoutChangeEvent,
-  type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -40,6 +40,15 @@ const overviewNormalButtonImage = require("./assets/markers/default_navi_browse_
 const overviewSelectedButtonImage = require("./assets/markers/default_navi_browse_ver_selected.png");
 const trafficOpenButtonImage = require("./assets/markers/default_navi_traffic_open_normal.png");
 const trafficCloseButtonImage = require("./assets/markers/default_navi_traffic_close_normal.png");
+
+type NaviInfoUpdateHandler = NonNullable<ExpoGaodeMapNaviViewProps["onNaviInfoUpdate"]>;
+type NaviVisualStateChangeHandler = NonNullable<
+  ExpoGaodeMapNaviViewProps["onNaviVisualStateChange"]
+>;
+type LaneInfoUpdateHandler = NonNullable<ExpoGaodeMapNaviViewProps["onLaneInfoUpdate"]>;
+type TrafficStatusesUpdateHandler = NonNullable<
+  ExpoGaodeMapNaviViewProps["onTrafficStatusesUpdate"]
+>;
 
 export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   /** 是否显示示例内置的顶部导航 HUD */
@@ -157,16 +166,16 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       setTrafficLayerVisible(trafficLayerEnabled);
     }, [trafficLayerEnabled]);
 
-    const handleNaviInfoUpdate = React.useCallback(
-      (event: NativeSyntheticEvent<NaviInfoUpdateEvent>) => {
+    const handleNaviInfoUpdate = React.useCallback<NaviInfoUpdateHandler>(
+      (event) => {
         setLatestNaviInfo(event.nativeEvent);
         onNaviInfoUpdate?.(event);
       },
       [onNaviInfoUpdate]
     );
 
-    const handleVisualStateChange = React.useCallback(
-      (event: NativeSyntheticEvent<NaviVisualStateEvent>) => {
+    const handleVisualStateChange = React.useCallback<NaviVisualStateChangeHandler>(
+      (event) => {
         setVisualState(event.nativeEvent);
         if (!event.nativeEvent.isLaneInfoVisible) {
           setLatestLaneInfo(null);
@@ -176,16 +185,16 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       [onNaviVisualStateChange]
     );
 
-    const handleLaneInfoUpdate = React.useCallback(
-      (event: NativeSyntheticEvent<NaviLaneInfoEvent>) => {
+    const handleLaneInfoUpdate = React.useCallback<LaneInfoUpdateHandler>(
+      (event) => {
         setLatestLaneInfo(event.nativeEvent);
         onLaneInfoUpdate?.(event);
       },
       [onLaneInfoUpdate]
     );
 
-    const handleTrafficStatusesUpdate = React.useCallback(
-      (event: NativeSyntheticEvent<NaviTrafficStatusesEvent>) => {
+    const handleTrafficStatusesUpdate = React.useCallback<TrafficStatusesUpdateHandler>(
+      (event) => {
         setLatestTrafficStatuses(event.nativeEvent);
         onTrafficStatusesUpdate?.(event);
       },
@@ -386,7 +395,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
       <View style={[styles.container, style]} onLayout={handleContainerLayout}>
         {/* BlurTargetView 必须包住真实地图内容，悬浮 HUD 才能模糊到“地图本身”而不是一层空 View。 */}
         <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
-          <NaviView
+          <ExpoGaodeMapNaviView
             ref={ref}
             style={styles.naviView}
             showUIElements={resolvedShowUIElements}
@@ -419,7 +428,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
             screenAnchor={resolvedScreenAnchor}
             startPointImage={startPointImage}
             wayPointImage={wayPointImage}
-            endPointImage={endPointImage }
+            endPointImage={endPointImage}
             routeMarkerVisible={resolvedRouteMarkerVisible}
             showBackupRoute={showBackupRoute}
             showEagleMap={showEagleMap}

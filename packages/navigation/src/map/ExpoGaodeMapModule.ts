@@ -144,26 +144,6 @@ const helperMethods = {
   },
 
   /**
-   * 设置是否显示隐私政策弹窗
-   * @deprecated 请优先使用 `setPrivacyConfig`
-   */
-  setPrivacyShow(hasShow: boolean, hasContainsPrivacy?: boolean): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
-    nativeModule.setPrivacyShow(hasShow, hasContainsPrivacy ?? hasShow);
-  },
-
-  /**
-   * 设置用户是否同意隐私政策
-   * @deprecated 请优先使用 `setPrivacyConfig`
-   */
-  setPrivacyAgree(hasAgree: boolean): void {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
-    nativeModule.setPrivacyAgree(hasAgree);
-  },
-
-  /**
    * 设置当前隐私协议版本
    * 当版本号变化时，之前的同意状态会失效
    */
@@ -189,14 +169,7 @@ const helperMethods = {
   setPrivacyConfig(config: PrivacyConfig): void {
     const nativeModule = getNativeModule();
     if (!nativeModule) throw ErrorHandler.nativeModuleUnavailable();
-    if (typeof config.privacyVersion === 'string') {
-      nativeModule.setPrivacyVersion(config.privacyVersion);
-    }
-    nativeModule.setPrivacyShow(
-      config.hasShow,
-      config.hasContainsPrivacy ?? config.hasShow
-    );
-    nativeModule.setPrivacyAgree(config.hasAgree);
+    nativeModule.setPrivacyConfig(config);
   },
 
   getPrivacyStatus(): PrivacyStatus {
@@ -213,34 +186,6 @@ const helperMethods = {
       };
     }
     return nativeModule.getPrivacyStatus();
-  },
-
-  /**
-   * @deprecated 请使用 `distanceBetweenCoordinates`
-   */
-  calculateDistanceBetweenPoints(p1: LatLngPoint, p2: LatLngPoint): number {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) {
-      throw ErrorHandler.nativeModuleUnavailable();
-    }
-    return nativeModule.distanceBetweenCoordinates(
-      normalizeLatLng(p1),
-      normalizeLatLng(p2)
-    );
-  },
-
-  /**
-   * @deprecated 请使用 `distanceBetweenCoordinates`
-   */
-  calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const nativeModule = getNativeModule();
-    if (!nativeModule) {
-      throw ErrorHandler.nativeModuleUnavailable();
-    }
-    return nativeModule.distanceBetweenCoordinates(
-      { latitude: lat1, longitude: lon1 },
-      { latitude: lat2, longitude: lon2 }
-    );
   },
 
   setLoadWorldVectorMap(enabled: boolean): void {
@@ -905,13 +850,27 @@ export function getSDKConfig(): SDKConfig | null {
   return _sdkConfig;
 };
 
+type HiddenNativeMethodName = 'setPrivacyShow' | 'setPrivacyAgree';
+
+const hiddenNativeMethodNames = new Set<PropertyKey>([
+  'setPrivacyShow',
+  'setPrivacyAgree',
+]);
+
 export type ExpoGaodeMapModule =
-  Omit<NativeExpoGaodeMapModule, keyof typeof helperMethods> & typeof helperMethods;
+  Omit<
+    NativeExpoGaodeMapModule,
+    keyof typeof helperMethods | HiddenNativeMethodName
+  > &
+    typeof helperMethods;
 
 const ExpoGaodeMapModuleWithHelpers = new Proxy(helperMethods, {
   get(target, prop, receiver) {
     if (Reflect.has(target, prop)) {
       return Reflect.get(target, prop, receiver);
+    }
+    if (hiddenNativeMethodNames.has(prop)) {
+      return undefined;
     }
     const nativeModule = getNativeModule(true);
     if (!nativeModule) {

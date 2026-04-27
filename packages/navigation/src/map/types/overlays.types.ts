@@ -5,6 +5,10 @@
 
 import type { ImageSourcePropType, ViewStyle, NativeSyntheticEvent, TextStyle } from 'react-native';
 import type { ColorValue, LatLng, LatLngPoint, Point } from './common.types';
+import type {
+  SmoothMoveEndEvent,
+  SmoothMoveProgressEvent,
+} from './route-playback.types';
 
 /**
  * 标记点属性
@@ -102,22 +106,6 @@ export interface MarkerProps {
   children?: React.ReactNode;
 
   /**
-   * 自定义视图宽度（像素）
-   * 仅在使用 children 属性时有效
-   * 通常可省略，组件会优先尝试自动测量 children 的布局尺寸
-   * 需要强制指定渲染尺寸时再传入
-   */
-  customViewWidth?: number;
-
-  /**
-   * 自定义视图高度（像素）
-   * 仅在使用 children 属性时有效
-   * 通常可省略，组件会优先尝试自动测量 children 的布局尺寸
-   * 需要强制指定渲染尺寸时再传入
-   */
-  customViewHeight?: number;
-
-  /**
    * 缓存 key 建议使用 提高性能
    */
   cacheKey?: string;
@@ -159,6 +147,16 @@ export interface MarkerProps {
    * @default 10
    */
   smoothMoveDuration?: number;
+
+  /**
+   * 平滑移动进度事件
+   */
+  onSmoothMoveProgress?: (event: NativeSyntheticEvent<SmoothMoveProgressEvent>) => void;
+
+  /**
+   * 平滑移动完成事件
+   */
+  onSmoothMoveEnd?: (event: NativeSyntheticEvent<SmoothMoveEndEvent>) => void;
 }
 
 /**

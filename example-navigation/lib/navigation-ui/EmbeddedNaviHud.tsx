@@ -172,7 +172,7 @@ export function EmbeddedNaviHud({
   const hasNextTurnIcon = typeof info?.nextIconType === "number" && info.nextIconType > 0;
   const nextTurnMeta = getTurnMeta(info?.nextIconType);
   const hasNextTurnImage = Boolean(info?.nextTurnIconImage);
-  const showsNextTurnPanel = hasNextTurnImage || (Platform.OS === "android" && hasNextTurnIcon);
+  const showsNextTurnPanel = hasNextTurnImage || hasNextTurnIcon;
 
   const nextRoadName = info?.nextRoadName?.trim() || info?.currentRoadName?.trim() || "前方道路";
   const currentRoadName = info?.currentRoadName?.trim() || "当前道路信息获取中";
@@ -199,21 +199,27 @@ export function EmbeddedNaviHud({
 
   if (compact) {
     // 路口大图出现时切成横向紧凑 HUD，尽量不压住官方大图和地图前方视野。
+    const compactBackdrop =
+      Platform.OS === "ios" ? (
+        <View style={[styles.blurFill, styles.compactSolidBackdrop]} />
+      ) : (
+        <BlurView
+          tint="dark"
+          intensity={90}
+          blurMethod="dimezisBlurViewSdk31Plus"
+          blurTarget={blurTarget}
+          style={styles.blurFill}
+        />
+      );
+
     return (
       <View
         pointerEvents="none"
         onLayout={onLayout}
-        style={[styles.container, styles.containerCompact, { paddingTop: topInset + 2 }]}
+        style={[styles.container, styles.containerCompact, { paddingTop: topInset + 3 }]}
       >
         <View style={styles.compactShell}>
-          {/* 这里直接消费外层 EmbeddedNaviView 提供的地图 blur target，保证毛玻璃真的来自地图背景。 */}
-          <BlurView
-            tint="dark"
-            intensity={90}
-            blurMethod="dimezisBlurViewSdk31Plus"
-            blurTarget={blurTarget}
-            style={styles.blurFill}
-          />
+          {compactBackdrop}
           {/* <View style={styles.compactOverlay} /> */}
 
           <View style={styles.compactLeadPanel}>
@@ -366,7 +372,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   compactShell: {
-    minHeight: 44,
+    // minHeight: 44,
     width: "100%",
     // borderRadius: 20,
     borderTopLeftRadius:10,
@@ -383,6 +389,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
     borderRadius: 20,
+  },
+  compactSolidBackdrop: {
+    backgroundColor: "rgba(18, 24, 32, 0.86)",
   },
   compactLeadPanel: {
     width: 62,

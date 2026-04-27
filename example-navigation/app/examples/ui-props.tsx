@@ -1,4 +1,4 @@
-import type { NaviViewRef } from "expo-gaode-map-navigation";
+import type { ExpoGaodeMapNaviViewRef,  } from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Alert,
@@ -21,7 +21,7 @@ import { EmbeddedNaviView } from "@/lib/navigation-ui";
 import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 export default function UiPropsExampleScreen() {
-  const naviRef = React.useRef<NaviViewRef>(null);
+  const naviRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
 
   const [loading, setLoading] = React.useState(false);
   const [statusText, setStatusText] = React.useState("等待初始化");

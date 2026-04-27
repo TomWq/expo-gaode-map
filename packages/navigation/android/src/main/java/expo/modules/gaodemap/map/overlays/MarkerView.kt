@@ -99,16 +99,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val selfParams = this.layoutParams
         if (selfParams == null || selfParams !is LayoutParams) {
-            val width = if (customViewWidth > 0) {
-                customViewWidth
+            val width = if (contentWidth > 0) {
+                contentWidth
             } else if (selfParams != null && selfParams.width > 0) {
                 selfParams.width
             } else {
                 LayoutParams.WRAP_CONTENT
             }
 
-            val height = if (customViewHeight > 0) {
-                customViewHeight
+            val height = if (contentHeight > 0) {
+                contentHeight
             } else if (selfParams != null && selfParams.height > 0) {
                 selfParams.height
             } else {
@@ -140,12 +140,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val fallbackHeightSize = resolveExplicitMeasureSize(parentHeightSize, false)
 
         val contentWidthSpec = when {
-            customViewWidth > 0 -> MeasureSpec.makeMeasureSpec(customViewWidth, MeasureSpec.EXACTLY)
+            contentWidth > 0 -> MeasureSpec.makeMeasureSpec(contentWidth, MeasureSpec.EXACTLY)
             fallbackWidthSize > 0 -> MeasureSpec.makeMeasureSpec(fallbackWidthSize, MeasureSpec.AT_MOST)
             else -> MeasureSpec.makeMeasureSpec(1, MeasureSpec.EXACTLY)
         }
         val contentHeightSpec = when {
-            customViewHeight > 0 -> MeasureSpec.makeMeasureSpec(customViewHeight, MeasureSpec.EXACTLY)
+            contentHeight > 0 -> MeasureSpec.makeMeasureSpec(contentHeight, MeasureSpec.EXACTLY)
             fallbackHeightSize > 0 -> MeasureSpec.makeMeasureSpec(fallbackHeightSize, MeasureSpec.AT_MOST)
             else -> MeasureSpec.makeMeasureSpec(1, MeasureSpec.EXACTLY)
         }
@@ -175,13 +175,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             measuredContentHeight = max(measuredContentHeight, childBounds?.height() ?: child.measuredHeight)
         }
 
-        val desiredWidth = if (customViewWidth > 0) {
-            customViewWidth
+        val desiredWidth = if (contentWidth > 0) {
+            contentWidth
         } else {
             measuredContentWidth + paddingLeft + paddingRight
         }
-        val desiredHeight = if (customViewHeight > 0) {
-            customViewHeight
+        val desiredHeight = if (contentHeight > 0) {
+            contentHeight
         } else {
             measuredContentHeight + paddingTop + paddingBottom
         }
@@ -235,8 +235,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private var pendingLongitude: Double? = null  // 临时存储经度
     private var iconWidth: Int = 0  // 用于自定义图标的宽度
     private var iconHeight: Int = 0  // 用于自定义图标的高度
-    private var customViewWidth: Int = 0  // 用于自定义视图（children）的宽度
-    private var customViewHeight: Int = 0  // 用于自定义视图（children）的高度
+    private var contentWidth: Int = 0  // 用于自定义视图（children）的宽度
+    private var contentHeight: Int = 0  // 用于自定义视图（children）的高度
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isRemoving = false  // 标记是否正在被移除
     private var pendingMarkerIconUpdate: Runnable? = null
@@ -733,21 +733,33 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
 
     /**
-     * 设置自定义视图宽度（用于 children 属性）
+     * 设置内容宽度（用于 children 属性）
      * 注意：React Native 传入的是 DP 值，需要转换为 PX
      */
-    fun setCustomViewWidth(width: Int) {
+    fun setContentWidth(width: Int) {
         val density = context.resources.displayMetrics.density
-        customViewWidth = (width * density).toInt()
+        val resolvedWidth = (width * density).toInt()
+        if (contentWidth == resolvedWidth) {
+            return
+        }
+
+        contentWidth = resolvedWidth
+        scheduleMarkerIconUpdate()
     }
 
     /**
-     * 设置自定义视图高度（用于 children 属性）
+     * 设置内容高度（用于 children 属性）
      * 注意：React Native 传入的是 DP 值，需要转换为 PX
      */
-    fun setCustomViewHeight(height: Int) {
+    fun setContentHeight(height: Int) {
         val density = context.resources.displayMetrics.density
-        customViewHeight = (height * density).toInt()
+        val resolvedHeight = (height * density).toInt()
+        if (contentHeight == resolvedHeight) {
+            return
+        }
+
+        contentHeight = resolvedHeight
+        scheduleMarkerIconUpdate()
     }
 
     /**
@@ -897,8 +909,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val measuredWidth = contentBounds?.width() ?: contentView?.measuredWidth ?: measuredChild?.measuredWidth ?: 0
         val measuredHeight = contentBounds?.height() ?: contentView?.measuredHeight ?: measuredChild?.measuredHeight ?: 0
 
-        val finalWidth = if (measuredWidth > 0) measuredWidth else (if (customViewWidth > 0) customViewWidth else 0)
-        val finalHeight = if (measuredHeight > 0) measuredHeight else (if (customViewHeight > 0) customViewHeight else 0)
+        val finalWidth = if (measuredWidth > 0) measuredWidth else (if (contentWidth > 0) contentWidth else 0)
+        val finalHeight = if (measuredHeight > 0) measuredHeight else (if (contentHeight > 0) contentHeight else 0)
 
         // 🔑 修复：如果尺寸为 0，说明 View 还没准备好，不要生成 Bitmap，否则会导致动画位置偏移
         if (finalWidth <= 0 || finalHeight <= 0) {
@@ -978,7 +990,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             childView.isDrawingCacheEnabled = false
             childView.destroyDrawingCache()
 
-            val shouldTrimTransparentPadding = customViewWidth <= 0 && customViewHeight <= 0
+            val shouldTrimTransparentPadding = contentWidth <= 0 && contentHeight <= 0
             return if (shouldTrimTransparentPadding) trimTransparentPadding(bitmap) else bitmap
         } catch (_: Exception) {
             // 遇到异常时返回 null，让上层使用默认图标
@@ -1079,8 +1091,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val child = getChildAt(0)
         val contentView = resolveRenderableContentView(child)
         val contentBounds = computeContentBounds(child)
-        val measuredWidth = contentBounds?.width() ?: contentView?.measuredWidth ?: child?.measuredWidth ?: customViewWidth
-        val measuredHeight = contentBounds?.height() ?: contentView?.measuredHeight ?: child?.measuredHeight ?: customViewHeight
+        val measuredWidth = contentBounds?.width() ?: contentView?.measuredWidth ?: child?.measuredWidth ?: contentWidth
+        val measuredHeight = contentBounds?.height() ?: contentView?.measuredHeight ?: child?.measuredHeight ?: contentHeight
         val fullCacheKey = "$keyPart|${measuredWidth}x${measuredHeight}"
 
         // 确定锚点：优先使用用户指定的 pendingAnchor，否则对于自定义 View 使用中心点 (0.5, 0.5)
@@ -1236,13 +1248,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       val childCountBefore = childCount
 
       val sourceWidth = when {
-        customViewWidth > 0 -> customViewWidth
+        contentWidth > 0 -> contentWidth
         params?.width != null && params.width > 0 -> params.width
         else -> LayoutParams.WRAP_CONTENT
       }
 
       val sourceHeight = when {
-        customViewHeight > 0 -> customViewHeight
+        contentHeight > 0 -> contentHeight
         params?.height != null && params.height > 0 -> params.height
         else -> LayoutParams.WRAP_CONTENT
       }

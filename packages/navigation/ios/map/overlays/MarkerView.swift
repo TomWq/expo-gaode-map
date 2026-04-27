@@ -37,9 +37,9 @@ class MarkerView: ExpoView {
     /// 图标高度（用于自定义图标 icon 属性）
     var iconHeight: Double = 40
     /// 自定义视图宽度（用于 children 属性）
-    var customViewWidth: Double = 0
+    var contentWidth: Double = 0
     /// 自定义视图高度（用于 children 属性）
-    var customViewHeight: Double = 0
+    var contentHeight: Double = 0
     /// 中心偏移
     var centerOffset: [String: Double]?
     /// 是否显示动画
@@ -585,9 +585,9 @@ class MarkerView: ExpoView {
             return defaultSize
         }
 
-        if customViewWidth > 0 || customViewHeight > 0 {
-            let width = customViewWidth > 0 ? CGFloat(customViewWidth) : defaultSize.width
-            let height = customViewHeight > 0 ? CGFloat(customViewHeight) : defaultSize.height
+        if contentWidth > 0 || contentHeight > 0 {
+            let width = contentWidth > 0 ? CGFloat(contentWidth) : defaultSize.width
+            let height = contentHeight > 0 ? CGFloat(contentHeight) : defaultSize.height
             return CGSize(width: width, height: height)
         }
 
@@ -1000,17 +1000,17 @@ class MarkerView: ExpoView {
         }
     }
 
-    func setCustomViewWidth(_ width: Double) {
-        guard customViewWidth != width else { return }
-        customViewWidth = width
+    func setContentWidth(_ width: Double) {
+        guard contentWidth != width else { return }
+        contentWidth = width
         if !subviews.isEmpty {
             refreshAnnotationAppearance(invalidateChildrenCache: true)
         }
     }
 
-    func setCustomViewHeight(_ height: Double) {
-        guard customViewHeight != height else { return }
-        customViewHeight = height
+    func setContentHeight(_ height: Double) {
+        guard contentHeight != height else { return }
+        contentHeight = height
         if !subviews.isEmpty {
             refreshAnnotationAppearance(invalidateChildrenCache: true)
         }

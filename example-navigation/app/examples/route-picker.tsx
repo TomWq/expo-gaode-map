@@ -64,9 +64,6 @@ type RouteTone = "primary" | "success" | "warm" | "neutral";
 
 const MAX_WAYPOINTS = 5;
 const DEFAULT_CITY = "北京";
-const PREVIEW_EDGE_MARKER_SIZE = 32;
-const PREVIEW_WAYPOINT_MARKER_WIDTH = 56;
-const PREVIEW_WAYPOINT_MARKER_HEIGHT = 36;
 const FALLBACK_START_POINT: NaviPoint = {
   latitude: 39.908823,
   longitude: 116.39747,
@@ -1185,8 +1182,6 @@ export default function RoutePickerExampleScreen() {
             anchor={{ x: 0.5, y: 0.92 }}
             zIndex={50}
             cacheKey={`preview-from-${fromSelection.point.latitude.toFixed(6)}-${fromSelection.point.longitude.toFixed(6)}`}
-            customViewWidth={PREVIEW_EDGE_MARKER_SIZE}
-            customViewHeight={PREVIEW_EDGE_MARKER_SIZE}
           >
             <View style={[styles.mapMarker, styles.startMarker]}>
               <Text style={styles.mapMarkerText}>{buildMarkerText("from")}</Text>
@@ -1202,8 +1197,6 @@ export default function RoutePickerExampleScreen() {
               anchor={{ x: 0.5, y: 1 }}
               zIndex={60 + index}
               cacheKey={`preview-waypoint-${waypoint.key}-${previewMarkerRevision}-${waypoint.selected.point.latitude.toFixed(6)}-${waypoint.selected.point.longitude.toFixed(6)}`}
-              customViewWidth={PREVIEW_WAYPOINT_MARKER_WIDTH}
-              customViewHeight={PREVIEW_WAYPOINT_MARKER_HEIGHT}
             >
               <View style={styles.waypointBadge}>
                 <View style={styles.waypointBadgeBody}>
@@ -1223,8 +1216,6 @@ export default function RoutePickerExampleScreen() {
             anchor={{ x: 0.5, y: 0.92 }}
             zIndex={55}
             cacheKey={`preview-to-${toSelection.point.latitude.toFixed(6)}-${toSelection.point.longitude.toFixed(6)}`}
-            customViewWidth={PREVIEW_EDGE_MARKER_SIZE}
-            customViewHeight={PREVIEW_EDGE_MARKER_SIZE}
           >
             <View style={[styles.mapMarker, styles.endMarker]}>
               <Text style={styles.mapMarkerText}>{buildMarkerText("to")}</Text>

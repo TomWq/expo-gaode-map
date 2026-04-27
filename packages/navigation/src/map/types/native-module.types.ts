@@ -43,20 +43,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   initSDK(config: SDKConfig): void;
 
   /**
-   * 设置是否显示隐私政策弹窗
-   * @deprecated 请优先使用 `setPrivacyConfig`
-   */
-  setPrivacyShow(hasShow: boolean, hasContainsPrivacy?: boolean): void;
-
-  /**
-   * 设置用户是否同意隐私政策
-   * @deprecated 请优先使用 `setPrivacyConfig`
-   */
-  setPrivacyAgree(hasAgree: boolean): void;
-
-  /**
-   * 一次性设置完整的隐私状态
-   * 推荐作为业务层唯一入口调用
+   * 一次性同步完整隐私状态
    */
   setPrivacyConfig(config: PrivacyConfig): void;
 

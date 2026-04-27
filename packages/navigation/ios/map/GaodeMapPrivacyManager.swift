@@ -46,24 +46,6 @@ enum GaodeMapPrivacyManager {
         applyPrivacyState()
     }
 
-    static func setPrivacyShow(_ show: Bool, hasContainsPrivacy: Bool) {
-        let previousStatus = status()
-        hasShow = show
-        self.hasContainsPrivacy = hasContainsPrivacy
-        persistState()
-        applyPrivacyState()
-        notifyIfNeeded(previousStatus: previousStatus)
-    }
-
-    static func setPrivacyAgree(_ agree: Bool) {
-        let previousStatus = status()
-        hasAgree = agree
-        agreedPrivacyVersion = agree ? privacyVersion : nil
-        persistState()
-        applyPrivacyState()
-        notifyIfNeeded(previousStatus: previousStatus)
-    }
-
     static func setPrivacyVersion(_ version: String) {
         let previousStatus = status()
         privacyVersion = version.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -79,6 +61,32 @@ enum GaodeMapPrivacyManager {
             persistState()
         }
 
+        applyPrivacyState()
+        notifyIfNeeded(previousStatus: previousStatus)
+    }
+
+    static func setPrivacyConfig(
+        hasShow: Bool,
+        hasContainsPrivacy: Bool,
+        hasAgree: Bool,
+        privacyVersion newPrivacyVersion: String?,
+        updatesPrivacyVersion: Bool
+    ) {
+        let previousStatus = status()
+
+        if updatesPrivacyVersion {
+            privacyVersion = newPrivacyVersion?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if privacyVersion?.isEmpty == true {
+                privacyVersion = nil
+            }
+        }
+
+        self.hasShow = hasShow
+        self.hasContainsPrivacy = hasContainsPrivacy
+        self.hasAgree = hasAgree
+        agreedPrivacyVersion = hasAgree ? privacyVersion : nil
+
+        persistState()
         applyPrivacyState()
         notifyIfNeeded(previousStatus: previousStatus)
     }

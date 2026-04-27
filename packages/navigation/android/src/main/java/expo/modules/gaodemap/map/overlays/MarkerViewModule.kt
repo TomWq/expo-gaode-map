@@ -69,13 +69,13 @@ class MarkerViewModule : Module() {
       Prop<Int>("iconHeight") { view, height ->
         view.setIconHeight(height)
       }
-      // 自定义视图宽度
-      Prop<Int>("customViewWidth") { view, width ->
-        view.setCustomViewWidth(width)
+      // 内容宽度
+      Prop<Int>("contentWidth") { view, width ->
+        view.setContentWidth(width)
       }
-      // 自定义视图高度
-      Prop<Int>("customViewHeight") { view, height ->
-        view.setCustomViewHeight(height)
+      // 内容高度
+      Prop<Int>("contentHeight") { view, height ->
+        view.setContentHeight(height)
       }
       // 缓存key
       Prop<String?>("cacheKey") { view, key ->

@@ -51,7 +51,7 @@ class ExpoGaodeMapModule : Module() {
         } else if (!SDKInitializer.isPrivacyReady()) {
           throw expo.modules.kotlin.exception.CodedException(
             "PRIVACY_NOT_AGREED",
-            "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree",
+            "隐私协议未完成确认，请先调用 setPrivacyConfig",
             null
           )
         } else {
@@ -68,12 +68,20 @@ class ExpoGaodeMapModule : Module() {
       }
     }
 
-    Function("setPrivacyShow") { hasShow: Boolean, hasContainsPrivacy: Boolean ->
-      SDKInitializer.setPrivacyShow(appContext.reactContext!!, hasShow, hasContainsPrivacy)
-    }
+    Function("setPrivacyConfig") { config: Map<String, Any?> ->
+      val hasShow = config["hasShow"] as? Boolean ?: false
+      val hasContainsPrivacy = config["hasContainsPrivacy"] as? Boolean ?: hasShow
+      val hasAgree = config["hasAgree"] as? Boolean ?: false
+      val privacyVersion = config["privacyVersion"] as? String
 
-    Function("setPrivacyAgree") { hasAgree: Boolean ->
-      SDKInitializer.setPrivacyAgree(appContext.reactContext!!, hasAgree)
+      SDKInitializer.setPrivacyConfig(
+        appContext.reactContext!!,
+        hasShow,
+        hasContainsPrivacy,
+        hasAgree,
+        privacyVersion,
+        config.containsKey("privacyVersion")
+      )
     }
 
     Function("setPrivacyVersion") { version: String ->

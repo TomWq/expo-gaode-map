@@ -1267,7 +1267,7 @@ class ExpoGaodeMapNaviView(context: Context, appContext: AppContext) : ExpoView(
             SDKInitializer.restorePersistedState(appCtx)
             if (!SDKInitializer.isPrivacyReady()) {
                 throw IllegalStateException(
-                    "隐私协议未完成确认，请先调用 setPrivacyConfig（或 setPrivacyShow/setPrivacyAgree）"
+                    "隐私协议未完成确认，请先调用 setPrivacyConfig"
                 )
             }
 

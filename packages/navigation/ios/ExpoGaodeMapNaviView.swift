@@ -306,7 +306,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
         code: -1002,
         userInfo: [
           NSLocalizedDescriptionKey: "隐私协议未完成确认",
-          NSLocalizedFailureReasonErrorKey: "请先调用 setPrivacyConfig（或 setPrivacyShow/setPrivacyAgree）并确保参数为 true",
+          NSLocalizedFailureReasonErrorKey: "请先调用 setPrivacyConfig 并确保参数为 true",
           NSLocalizedRecoverySuggestionErrorKey: "建议在首次启动弹窗同意后再进入导航页面。"
         ]
       )
@@ -427,6 +427,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private var walkManager: AMapNaviWalkManager?
   private var rideManager: AMapNaviRideManager?
   private var lastKnownSpeed: Int = 0
+  private var currentNaviRoute: AMapNaviRoute?
   private var currentRouteTotalLength: Int?
   private var lastNavigationInfoPayload: [String: Any]?
   private var lastTurnIconType: Int?
@@ -911,6 +912,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     hasStartedNavi = false
     hasReceivedFirstNaviData = false
     lastKnownSpeed = 0
+    currentNaviRoute = nil
     currentRouteTotalLength = nil
     trafficBarTotalLength = nil
     lastNavigationInfoPayload = nil
@@ -2117,7 +2119,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
 
   private func navigationInfoPayload(from naviInfo: AMapNaviInfo) -> [String: Any] {
-    [
+    var payload: [String: Any] = [
       "naviMode": naviInfo.naviMode.rawValue,
       "currentRoadName": naviInfo.currentRoadName ?? "",
       "nextRoadName": naviInfo.nextRoadName ?? "",
@@ -2135,6 +2137,12 @@ public class ExpoGaodeMapNaviView: ExpoView {
       "driveDistance": naviInfo.routeDriveDistance,
       "driveTime": naviInfo.routeDriveTime
     ]
+
+    if let nextIconType = resolveNextTurnIconType(currentSegmentIndex: naviInfo.currentSegmentIndex) {
+      payload["nextIconType"] = nextIconType
+    }
+
+    return payload
   }
 
   private func handleNavigationInfoUpdate(_ naviInfo: AMapNaviInfo) {
@@ -2144,6 +2152,24 @@ public class ExpoGaodeMapNaviView: ExpoView {
     }
     updateCachedTurnIconForTravelSceneIfNeeded(iconType: Int(naviInfo.iconType.rawValue))
     emitNavigationInfoUpdate(navigationInfoPayload(from: naviInfo))
+  }
+
+  private func resolveNextTurnIconType(currentSegmentIndex: Int) -> Int? {
+    guard currentSegmentIndex >= 0 else {
+      return nil
+    }
+
+    guard let routeSegments = currentNaviRoute?.routeSegments else {
+      return nil
+    }
+
+    let nextSegmentIndex = currentSegmentIndex + 1
+    guard routeSegments.indices.contains(nextSegmentIndex) else {
+      return nil
+    }
+
+    let nextIconType = Int(routeSegments[nextSegmentIndex].iconType.rawValue)
+    return nextIconType > 0 ? nextIconType : nil
   }
 
   private func handleNavigationSound(_ soundString: String, soundStringType: AMapNaviSoundType) {
@@ -2467,6 +2493,7 @@ extension ExpoGaodeMapNaviView: AMapNaviDriveViewDelegate {
 
 extension ExpoGaodeMapNaviView: AMapNaviDriveDataRepresentable {
   public func driveManager(_ driveManager: AMapNaviDriveManager, update naviRoute: AMapNaviRoute?) {
+    currentNaviRoute = naviRoute
     if let routeLength = naviRoute?.routeLength, routeLength > 0 {
       currentRouteTotalLength = routeLength
     }
@@ -2604,6 +2631,7 @@ extension ExpoGaodeMapNaviView: AMapNaviWalkViewDelegate {
 
 extension ExpoGaodeMapNaviView: AMapNaviWalkDataRepresentable {
   public func walkManager(_ walkManager: AMapNaviWalkManager, update naviRoute: AMapNaviRoute?) {
+    currentNaviRoute = naviRoute
     if let routeLength = naviRoute?.routeLength, routeLength > 0 {
       currentRouteTotalLength = routeLength
     }
@@ -2680,6 +2708,7 @@ extension ExpoGaodeMapNaviView: AMapNaviRideViewDelegate {
 
 extension ExpoGaodeMapNaviView: AMapNaviRideDataRepresentable {
   public func rideManager(_ rideManager: AMapNaviRideManager, update naviRoute: AMapNaviRoute?) {
+    currentNaviRoute = naviRoute
     if let routeLength = naviRoute?.routeLength, routeLength > 0 {
       currentRouteTotalLength = routeLength
     }

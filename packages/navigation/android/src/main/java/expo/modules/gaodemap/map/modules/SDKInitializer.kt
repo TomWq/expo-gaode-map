@@ -56,22 +56,6 @@ object SDKInitializer {
         applyPrivacyState(appContext)
     }
 
-    fun setPrivacyShow(context: Context, hasShow: Boolean, hasContainsPrivacy: Boolean) {
-        privacyShown = hasShow
-        privacyContains = hasContainsPrivacy
-        val appContext = resolveContext(context)
-        persistState(appContext)
-        applyPrivacyState(appContext)
-    }
-
-    fun setPrivacyAgree(context: Context, hasAgree: Boolean) {
-        privacyAgreed = hasAgree
-        agreedPrivacyVersion = if (hasAgree) privacyVersion else null
-        val appContext = resolveContext(context)
-        persistState(appContext)
-        applyPrivacyState(appContext)
-    }
-
     fun setPrivacyVersion(context: Context, version: String) {
         val sanitizedVersion = version.trim().takeIf { it.isNotEmpty() }
         privacyVersion = sanitizedVersion
@@ -86,6 +70,28 @@ object SDKInitializer {
             persistState(appContext)
         }
 
+        applyPrivacyState(appContext)
+    }
+
+    fun setPrivacyConfig(
+        context: Context,
+        hasShow: Boolean,
+        hasContainsPrivacy: Boolean,
+        hasAgree: Boolean,
+        version: String?,
+        shouldUpdateVersion: Boolean
+    ) {
+        val appContext = resolveContext(context)
+
+        if (shouldUpdateVersion) {
+            privacyVersion = version?.trim()?.takeIf { it.isNotEmpty() }
+        }
+        privacyShown = hasShow
+        privacyContains = hasContainsPrivacy
+        privacyAgreed = hasAgree
+        agreedPrivacyVersion = if (hasAgree) privacyVersion else null
+
+        persistState(appContext)
         applyPrivacyState(appContext)
     }
 
@@ -138,7 +144,7 @@ object SDKInitializer {
         if (!isPrivacyReady()) {
             throw expo.modules.kotlin.exception.CodedException(
                 "PRIVACY_NOT_AGREED",
-                "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree",
+                "隐私协议未完成确认，请先调用 setPrivacyConfig",
                 null
             )
         }

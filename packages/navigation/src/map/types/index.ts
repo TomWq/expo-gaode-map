@@ -59,6 +59,10 @@ export type {
   ClusterProps,
 } from './overlays.types';
 
-// 原生模块类型
-export type { ExpoGaodeMapModule } from './native-module.types';
-export type { FitToCoordinatesOptions } from './route-playback.types';
+// 模块 facade 类型
+export type { ExpoGaodeMapModule } from '../ExpoGaodeMapModule';
+export type {
+  FitToCoordinatesOptions,
+  SmoothMoveEndEvent,
+  SmoothMoveProgressEvent,
+} from './route-playback.types';
