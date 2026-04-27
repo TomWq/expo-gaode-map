@@ -36,10 +36,10 @@ class MarkerView: ExpoView {
     var iconWidth: Double = 40
     /// 图标高度（用于自定义图标 icon 属性）
     var iconHeight: Double = 40
-    /// 自定义视图宽度（用于 children 属性）
-    var customViewWidth: Double = 0
-    /// 自定义视图高度（用于 children 属性）
-    var customViewHeight: Double = 0
+    /// 内容宽度（用于 children 属性）
+    var contentWidth: Double = 0
+    /// 内容高度（用于 children 属性）
+    var contentHeight: Double = 0
     /// 中心偏移
     var centerOffset: [String: Double]?
     /// 是否显示动画
@@ -230,7 +230,7 @@ class MarkerView: ExpoView {
         
         // 1. 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
-            let size = resolvedCustomSubviewSize(defaultSize: CGSize(width: 200, height: 60))
+            let size = resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
             let key = childrenCacheKey(for: size)
             if let cached = IconBitmapCache.shared.image(forKey: key) {
                 annotationView?.image = cached
@@ -329,7 +329,7 @@ class MarkerView: ExpoView {
             self.annotationView = annotationView
 
             // 生成 cacheKey 或 fallback 到 identifier
-            let size = resolvedCustomSubviewSize(defaultSize: CGSize(width: 200, height: 40))
+            let size = resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 40))
             let key = childrenCacheKey(for: size)
 
             // 1) 如果缓存命中，直接同步返回图像（fast path）
@@ -500,7 +500,7 @@ class MarkerView: ExpoView {
      * 将子视图转换为图片
      */
     private func createImageFromSubviews() -> UIImage? {
-        let size = resolvedCustomSubviewSize(defaultSize: CGSize(width: 200, height: 60))
+        let size = resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
         let key = childrenCacheKey(for: size)
 
         if let cachedImage = IconBitmapCache.shared.image(forKey: key) {
@@ -591,14 +591,14 @@ class MarkerView: ExpoView {
         return (current as AnyObject) === (annotation as AnyObject)
     }
 
-    private func resolvedCustomSubviewSize(defaultSize: CGSize) -> CGSize {
+    private func resolvedContentSubviewSize(defaultSize: CGSize) -> CGSize {
         guard let firstSubview = subviews.first else {
             return defaultSize
         }
 
-        if customViewWidth > 0 || customViewHeight > 0 {
-            let width = customViewWidth > 0 ? CGFloat(customViewWidth) : defaultSize.width
-            let height = customViewHeight > 0 ? CGFloat(customViewHeight) : defaultSize.height
+        if contentWidth > 0 || contentHeight > 0 {
+            let width = contentWidth > 0 ? CGFloat(contentWidth) : defaultSize.width
+            let height = contentHeight > 0 ? CGFloat(contentHeight) : defaultSize.height
             return CGSize(width: width, height: height)
         }
 
@@ -853,8 +853,8 @@ class MarkerView: ExpoView {
 
     private func invalidateCurrentChildrenCache() {
         let sizes = [
-            resolvedCustomSubviewSize(defaultSize: CGSize(width: 200, height: 40)),
-            resolvedCustomSubviewSize(defaultSize: CGSize(width: 200, height: 60))
+            resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 40)),
+            resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
         ]
 
         for size in sizes {
@@ -1011,17 +1011,17 @@ class MarkerView: ExpoView {
         }
     }
 
-    func setCustomViewWidth(_ width: Double) {
-        guard customViewWidth != width else { return }
-        customViewWidth = width
+    func setContentWidth(_ width: Double) {
+        guard contentWidth != width else { return }
+        contentWidth = width
         if !subviews.isEmpty {
             refreshAnnotationAppearance(invalidateChildrenCache: true)
         }
     }
 
-    func setCustomViewHeight(_ height: Double) {
-        guard customViewHeight != height else { return }
-        customViewHeight = height
+    func setContentHeight(_ height: Double) {
+        guard contentHeight != height else { return }
+        contentHeight = height
         if !subviews.isEmpty {
             refreshAnnotationAppearance(invalidateChildrenCache: true)
         }

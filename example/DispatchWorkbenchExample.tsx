@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 
 const DEFAULT_CENTER: LatLng = { latitude: 39.9042, longitude: 116.4074 };
-const riderIcon = Image.resolveAssetSource(require('./assets/car.png')).uri;
+const riderIcon = Image.resolveAssetSource(require('./assets/qishou.png')).uri;
 
 type TravelMode = 'driving' | 'bicycling' | 'walking';
 type OrderStatus = '待接单' | '取货中' | '配送中' | '已完成';
@@ -625,7 +625,7 @@ export default function DispatchWorkbenchExample() {
         )}
       </MapView>
 
-      <View style={[styles.topPanel, { top: headerHeight + 8 }]}> 
+      <View style={[styles.topPanel, { top:  8 }]}> 
         <View style={styles.topHeader}>
           <View>
             <Text style={styles.panelTitle}>配送调度实战示例</Text>

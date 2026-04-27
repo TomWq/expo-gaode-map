@@ -9,42 +9,13 @@ import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 type NativeMarkerViewProps = Omit<MarkerProps, 'position'> & {
   latitude: number;
   longitude: number;
+  contentWidth?: number;
+  contentHeight?: number;
 };
 
 const getNativeMarkerView = createLazyNativeViewManager<NativeMarkerViewProps>('MarkerView');
 
 const AUTO_SIZE_FALLBACK = { width: 0, height: 0 };
-
-function areSmoothMovePathsEqual(
-  prevPath: MarkerProps['smoothMovePath'],
-  nextPath: MarkerProps['smoothMovePath']
-): boolean {
-  if (prevPath === nextPath) {
-    return true;
-  }
-
-  if (!prevPath || !nextPath) {
-    return prevPath === nextPath;
-  }
-
-  if (prevPath.length !== nextPath.length) {
-    return false;
-  }
-
-  for (let index = 0; index < prevPath.length; index += 1) {
-    const prevPoint = normalizeLatLng(prevPath[index]);
-    const nextPoint = normalizeLatLng(nextPath[index]);
-
-    if (
-      prevPoint.latitude !== nextPoint.latitude ||
-      prevPoint.longitude !== nextPoint.longitude
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 /**
  * Marker 组件 - 完全声明式 API
@@ -62,8 +33,6 @@ function Marker(props: MarkerProps) {
   // 从 props 中排除 position 属性，避免传递到原生层
   const {
     position,
-    customViewWidth,
-    customViewHeight,
     iconWidth,
     iconHeight,
     children,
@@ -82,12 +51,8 @@ function Marker(props: MarkerProps) {
   // Android 的 children marker 之前始终透传 0 尺寸，点击后重新快照时容易直接消失。
   // 统一走自动测量后，两个平台都会拿到稳定尺寸。
   const shouldUseAutoMeasuredSize = hasChildren;
-  const resolvedCustomViewWidth = customViewWidth && customViewWidth > 0
-    ? customViewWidth
-    : (shouldUseAutoMeasuredSize ? measuredSize.width : 0);
-  const resolvedCustomViewHeight = customViewHeight && customViewHeight > 0
-    ? customViewHeight
-    : (shouldUseAutoMeasuredSize ? measuredSize.height : 0);
+  const resolvedContentWidth = shouldUseAutoMeasuredSize ? measuredSize.width : 0;
+  const resolvedContentHeight = shouldUseAutoMeasuredSize ? measuredSize.height : 0;
 
   React.useEffect(() => {
     if (
@@ -160,12 +125,8 @@ function Marker(props: MarkerProps) {
   ]);
 
   const handleAutoMeasure = (event: LayoutChangeEvent) => {
-    const nextWidth = customViewWidth && customViewWidth > 0
-      ? customViewWidth
-      : Math.ceil(event.nativeEvent.layout.width);
-    const nextHeight = customViewHeight && customViewHeight > 0
-      ? customViewHeight
-      : Math.ceil(event.nativeEvent.layout.height);
+    const nextWidth = Math.ceil(event.nativeEvent.layout.width);
+    const nextHeight = Math.ceil(event.nativeEvent.layout.height);
 
     if (nextWidth === measuredSize.width && nextHeight === measuredSize.height) {
       return;
@@ -179,26 +140,26 @@ function Marker(props: MarkerProps) {
   
   // 智能尺寸计算
   const finalIconWidth = hasChildren
-    ? resolvedCustomViewWidth
+    ? resolvedContentWidth
     : (iconWidth && iconWidth > 0 ? iconWidth : 40);
     
   const finalIconHeight = hasChildren
-    ? resolvedCustomViewHeight
+    ? resolvedContentHeight
     : (iconHeight && iconHeight > 0 ? iconHeight : 40);
 
   const optionalNativeProps = cacheKey != null ? { cacheKey } : undefined;
   
   return (
     <NativeMarkerView
+      {...restProps}
+      {...optionalNativeProps}
       latitude={normalizedPosition.latitude}
       longitude={normalizedPosition.longitude}
       iconWidth={finalIconWidth}
       iconHeight={finalIconHeight}
-      customViewWidth={finalIconWidth}
-      customViewHeight={finalIconHeight}
+      contentWidth={hasChildren ? finalIconWidth : 0}
+      contentHeight={hasChildren ? finalIconHeight : 0}
       smoothMovePath={normalizedSmoothMovePath}
-      {...optionalNativeProps}
-      {...restProps}
     >
       {hasChildren && shouldWrapChildrenForMeasurement ? (
         <View
@@ -213,97 +174,7 @@ function Marker(props: MarkerProps) {
   );
 }
 
-/**
- * 🔑 性能优化：极简比较函数
- * 只检查最常变化的关键属性,减少 JS 线程开销
- */
-function arePropsEqual(prevProps: MarkerProps, nextProps: MarkerProps): boolean {
-  // 快速路径：比较 position (最常变化)
-  const prevPos = normalizeLatLng(prevProps.position);
-  const nextPos = normalizeLatLng(nextProps.position);
-
-  if (
-    prevPos.latitude !== nextPos.latitude ||
-    prevPos.longitude !== nextPos.longitude
-  ) {
-    return false;
-  }
-  
-  // 比较 cacheKey (如果提供了 cacheKey,其他属性理论上不会变)
-  if (prevProps.cacheKey !== nextProps.cacheKey) {
-    return false;
-  }
-  
-  const hasStableCacheKey =
-    prevProps.cacheKey != null &&
-    nextProps.cacheKey != null &&
-    prevProps.cacheKey === nextProps.cacheKey;
-
-  // 有稳定 cacheKey 时，children JSX 引用变化不应触发重新快照。
-  // 这类场景下内容更新应由业务方主动变更 cacheKey。
-  if (!hasStableCacheKey && prevProps.children !== nextProps.children) {
-    return false;
-  }
-
-  // 比较自定义内容尺寸和图标尺寸
-  if (
-    prevProps.customViewWidth !== nextProps.customViewWidth ||
-    prevProps.customViewHeight !== nextProps.customViewHeight ||
-    prevProps.icon !== nextProps.icon ||
-    prevProps.iconWidth !== nextProps.iconWidth ||
-    prevProps.iconHeight !== nextProps.iconHeight
-  ) {
-    return false;
-  }
-
-  if (
-    prevProps.title !== nextProps.title ||
-    prevProps.snippet !== nextProps.snippet ||
-    prevProps.opacity !== nextProps.opacity ||
-    prevProps.draggable !== nextProps.draggable ||
-    prevProps.flat !== nextProps.flat ||
-    prevProps.zIndex !== nextProps.zIndex ||
-    prevProps.animatesDrop !== nextProps.animatesDrop ||
-    prevProps.pinColor !== nextProps.pinColor ||
-    prevProps.growAnimation !== nextProps.growAnimation
-  ) {
-    return false;
-  }
-
-  const prevAnchor = prevProps.anchor;
-  const nextAnchor = nextProps.anchor;
-  if (
-    prevAnchor?.x !== nextAnchor?.x ||
-    prevAnchor?.y !== nextAnchor?.y
-  ) {
-    return false;
-  }
-
-  const prevCenterOffset = prevProps.centerOffset;
-  const nextCenterOffset = nextProps.centerOffset;
-  if (
-    prevCenterOffset?.x !== nextCenterOffset?.x ||
-    prevCenterOffset?.y !== nextCenterOffset?.y
-  ) {
-    return false;
-  }
-  
-  // 比较 smoothMovePath (平滑移动路径)
-  if (!areSmoothMovePathsEqual(prevProps.smoothMovePath, nextProps.smoothMovePath)) {
-    return false;
-  }
-  
-  // 比较 smoothMoveDuration (平滑移动时长)
-  if (prevProps.smoothMoveDuration !== nextProps.smoothMoveDuration) {
-    return false;
-  }
-  
-  // 其他属性相同,不重新渲染
-  return true;
-}
-
-// 导出优化后的组件
-export default React.memo(Marker, arePropsEqual);
+export default React.memo(Marker);
 
 const styles = StyleSheet.create({
   measureContainer: {

@@ -212,13 +212,7 @@ const EXAMPLES: ExampleDefinition[] = [
     category: 'web-api',
     component: SearchModuleTest,
   },
-  {
-    id: 'platform-optimization',
-    title: '平台优化',
-    description: '演示折叠屏、平板等平台适配相关能力。',
-    category: 'tooling',
-    component: PlatformOptimizationDemo,
-  },
+
   {
     id: 'legacy-playground',
     title: '综合演示（旧版）',

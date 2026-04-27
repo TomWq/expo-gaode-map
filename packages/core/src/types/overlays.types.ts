@@ -106,24 +106,6 @@ export interface MarkerProps {
   children?: React.ReactNode;
 
   /**
-   * 自定义视图宽度（像素）
-   * 仅在使用 children 属性时有效
-   * 已经可以省略，组件会优先尝试自动测量 children 的布局尺寸
-   * 需要强制指定渲染尺寸时再传入
-   * @deprecated
-   */
-  customViewWidth?: number;
-
-  /**
-   * 自定义视图高度（像素）
-   * 仅在使用 children 属性时有效
-   * 已经可以省略，组件会优先尝试自动测量 children 的布局尺寸
-   * 需要强制指定渲染尺寸时再传入
-   * @deprecated
-   */
-  customViewHeight?: number;
-
-  /**
    * 缓存 key 建议使用 提高性能
    */
   cacheKey?: string;

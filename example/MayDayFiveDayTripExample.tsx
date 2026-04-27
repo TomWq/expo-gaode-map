@@ -388,14 +388,20 @@ function getBounds(points: LatLng[]) {
 
 const TripMarkerCard = React.memo(function TripMarkerCard({
   stop,
+  onImageLoadEnd,
 }: {
   stop: FlatStop;
+  onImageLoadEnd?: () => void;
 }) {
   return (
     <View style={styles.markerOuter}>
       <View style={[styles.markerCard, { borderColor: stop.dayColor }]}>
         <View style={styles.markerTopRow}>
-          <Image source={stop.image} style={styles.markerThumb} />
+          <Image
+            source={stop.image}
+            style={styles.markerThumb}
+            onLoadEnd={onImageLoadEnd}
+          />
           <View style={styles.markerMeta}>
             <View style={[styles.dayBadge, { backgroundColor: stop.dayColor }]}>
               <Text style={styles.dayBadgeText}>D{stop.day}</Text>
@@ -423,6 +429,7 @@ export default function MayDayFiveDayTripExample() {
   const [bottomPanelHeight, setBottomPanelHeight] = React.useState(0);
   const [activeDayIndex, setActiveDayIndex] = React.useState(0);
   const [activeStopId, setActiveStopId] = React.useState(TRIP_DAYS[0].stops[0].id);
+  const [loadedMarkerImages, setLoadedMarkerImages] = React.useState<Record<string, boolean>>({});
   // 缓存“按天”路线结果，避免切换 Day 时反复请求 Web API。
   const [dayRoutePlans, setDayRoutePlans] = React.useState<Record<number, TripDayRoutePlan>>(() => {
     const initialPlans: Record<number, TripDayRoutePlan> = {};
@@ -511,6 +518,18 @@ export default function MayDayFiveDayTripExample() {
   const handleBottomPanelLayout = React.useCallback((event: LayoutChangeEvent) => {
     const nextHeight = Math.ceil(event.nativeEvent.layout.height);
     setBottomPanelHeight((current) => (current === nextHeight ? current : nextHeight));
+  }, []);
+
+  const handleMarkerImageLoadEnd = React.useCallback((stopId: string) => {
+    setLoadedMarkerImages((current) => {
+      if (current[stopId]) {
+        return current;
+      }
+      return {
+        ...current,
+        [stopId]: true,
+      };
+    });
   }, []);
 
   const loadDayRoutePlan = React.useCallback(async (dayIndex: number) => {
@@ -840,13 +859,16 @@ export default function MayDayFiveDayTripExample() {
               key={stop.id}
               position={stop.coordinate}
               zIndex={20}
-              cacheKey={`trip-stop-card-${stop.id}`}
+              cacheKey={`trip-stop-card-${stop.id}-${loadedMarkerImages[stop.id] ? 'ready' : 'loading'}`}
               onMarkerPress={() => {
                 handleSelectStop(activeDayIndex, stop);
                 openTripStopSheet(activeDayIndex, stop.id);
               }}
             >
-              <TripMarkerCard stop={stop} />
+              <TripMarkerCard
+                stop={stop}
+                onImageLoadEnd={() => handleMarkerImageLoadEnd(stop.id)}
+              />
             </Marker>
           );
         })}

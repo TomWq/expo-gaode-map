@@ -47,8 +47,8 @@ describe('Marker 组件', () => {
         longitude: 116.4,
         iconWidth: 40,
         iconHeight: 40,
-        customViewWidth: 40,
-        customViewHeight: 40,
+        contentWidth: 0,
+        contentHeight: 0,
       }),
       undefined
     );
@@ -71,8 +71,8 @@ describe('Marker 组件', () => {
         icon: 'custom-icon',
         iconWidth: 50,
         iconHeight: 60,
-        customViewWidth: 50,
-        customViewHeight: 60,
+        contentWidth: 0,
+        contentHeight: 0,
       }),
       undefined
     );
@@ -90,8 +90,8 @@ describe('Marker 组件', () => {
       expect.objectContaining({
         iconWidth: 0,
         iconHeight: 0,
-        customViewWidth: 0,
-        customViewHeight: 0,
+        contentWidth: 0,
+        contentHeight: 0,
       }),
       undefined
     );
@@ -110,40 +110,8 @@ describe('Marker 组件', () => {
       expect.objectContaining({
         iconWidth: 89,
         iconHeight: 43,
-        customViewWidth: 89,
-        customViewHeight: 43,
-      }),
-      undefined
-    );
-  });
-
-  it('显式 customViewWidth/customViewHeight 应覆盖自动测量尺寸', () => {
-    const result = render(
-      <Marker
-        {...defaultProps}
-        customViewWidth={100}
-        customViewHeight={80}
-      >
-        <Text>固定尺寸</Text>
-      </Marker>
-    );
-
-    const measureView = result.UNSAFE_getByType(require('react-native').View);
-    fireEvent(measureView, 'layout', {
-      nativeEvent: {
-        layout: {
-          width: 20,
-          height: 10,
-        },
-      },
-    });
-
-    expect(mockNativeMarker).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        iconWidth: 100,
-        iconHeight: 80,
-        customViewWidth: 100,
-        customViewHeight: 80,
+        contentWidth: 89,
+        contentHeight: 43,
       }),
       undefined
     );
@@ -163,8 +131,8 @@ describe('Marker 组件', () => {
       expect.objectContaining({
         iconWidth: 0,
         iconHeight: 0,
-        customViewWidth: 0,
-        customViewHeight: 0,
+        contentWidth: 0,
+        contentHeight: 0,
       }),
       undefined
     );
@@ -183,8 +151,8 @@ describe('Marker 组件', () => {
       expect.objectContaining({
         iconWidth: 97,
         iconHeight: 55,
-        customViewWidth: 97,
-        customViewHeight: 55,
+        contentWidth: 97,
+        contentHeight: 55,
       }),
       undefined
     );
@@ -214,8 +182,12 @@ describe('Marker 组件', () => {
     );
   });
 
-  it('相同关键属性重渲染时不应重复渲染', () => {
+  it('相同 props 引用重渲染时不应重复渲染', () => {
     const child = <Text>内容</Text>;
+    const smoothMovePath = [
+      { latitude: 39.9, longitude: 116.4 },
+      { latitude: 39.91, longitude: 116.41 },
+    ];
     const { rerender } = render(
       <Marker
         {...defaultProps}
@@ -224,10 +196,7 @@ describe('Marker 组件', () => {
         icon="marker"
         iconWidth={20}
         iconHeight={20}
-        smoothMovePath={[
-          { latitude: 39.9, longitude: 116.4 },
-          { latitude: 39.91, longitude: 116.41 },
-        ]}
+        smoothMovePath={smoothMovePath}
         smoothMoveDuration={10}
       />
     );
@@ -240,10 +209,7 @@ describe('Marker 组件', () => {
         icon="marker"
         iconWidth={20}
         iconHeight={20}
-        smoothMovePath={[
-          { latitude: 39.9, longitude: 116.4 },
-          { latitude: 39.91, longitude: 116.41 },
-        ]}
+        smoothMovePath={smoothMovePath}
         smoothMoveDuration={10}
       />
     );
@@ -251,7 +217,7 @@ describe('Marker 组件', () => {
     expect(mockNativeMarker).toHaveBeenCalledTimes(1);
   });
 
-  it('cacheKey 稳定时，新的 children JSX 引用不应触发重新渲染', () => {
+  it('cacheKey 稳定时，新的 children JSX 引用也应触发重新渲染', () => {
     const { rerender } = render(
       <Marker {...defaultProps} cacheKey="k1">
         <Text>内容 1</Text>
@@ -264,7 +230,7 @@ describe('Marker 组件', () => {
       </Marker>
     );
 
-    expect(mockNativeMarker).toHaveBeenCalledTimes(1);
+    expect(mockNativeMarker).toHaveBeenCalledTimes(2);
   });
 
   it('位置、cacheKey 或 smoothMovePath 变化时应重新渲染', () => {

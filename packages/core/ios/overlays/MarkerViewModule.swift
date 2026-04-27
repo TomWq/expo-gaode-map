@@ -41,12 +41,12 @@ public class MarkerViewModule: Module {
                 view.setIconHeight(height)
             }
             
-            Prop("customViewWidth") { (view: MarkerView, width: Double) in
-                view.setCustomViewWidth(width)
+            Prop("contentWidth") { (view: MarkerView, width: Double) in
+                view.setContentWidth(width)
             }
             
-            Prop("customViewHeight") { (view: MarkerView, height: Double) in
-                view.setCustomViewHeight(height)
+            Prop("contentHeight") { (view: MarkerView, height: Double) in
+                view.setContentHeight(height)
             }
             
             Prop("centerOffset") { (view: MarkerView, offset: [String: Double]) in

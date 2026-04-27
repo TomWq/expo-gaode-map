@@ -82,16 +82,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val selfParams = this.layoutParams
         if (selfParams == null || selfParams !is LayoutParams) {
-            val width = if (customViewWidth > 0) {
-                customViewWidth
+            val width = if (contentWidth > 0) {
+                contentWidth
             } else if (selfParams != null && selfParams.width > 0) {
                 selfParams.width
             } else {
                 LayoutParams.WRAP_CONTENT
             }
 
-            val height = if (customViewHeight > 0) {
-                customViewHeight
+            val height = if (contentHeight > 0) {
+                contentHeight
             } else if (selfParams != null && selfParams.height > 0) {
                 selfParams.height
             } else {
@@ -123,12 +123,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         val fallbackHeightSize = resolveExplicitMeasureSize(parentHeightSize, false)
 
         val contentWidthSpec = when {
-            customViewWidth > 0 -> MeasureSpec.makeMeasureSpec(customViewWidth, MeasureSpec.EXACTLY)
+            contentWidth > 0 -> MeasureSpec.makeMeasureSpec(contentWidth, MeasureSpec.EXACTLY)
             fallbackWidthSize > 0 -> MeasureSpec.makeMeasureSpec(fallbackWidthSize, MeasureSpec.AT_MOST)
             else -> MeasureSpec.makeMeasureSpec(1, MeasureSpec.EXACTLY)
         }
         val contentHeightSpec = when {
-            customViewHeight > 0 -> MeasureSpec.makeMeasureSpec(customViewHeight, MeasureSpec.EXACTLY)
+            contentHeight > 0 -> MeasureSpec.makeMeasureSpec(contentHeight, MeasureSpec.EXACTLY)
             fallbackHeightSize > 0 -> MeasureSpec.makeMeasureSpec(fallbackHeightSize, MeasureSpec.AT_MOST)
             else -> MeasureSpec.makeMeasureSpec(1, MeasureSpec.EXACTLY)
         }
@@ -158,13 +158,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             measuredContentHeight = max(measuredContentHeight, childBounds?.height() ?: child.measuredHeight)
         }
 
-        val desiredWidth = if (customViewWidth > 0) {
-            customViewWidth
+        val desiredWidth = if (contentWidth > 0) {
+            contentWidth
         } else {
             measuredContentWidth + paddingLeft + paddingRight
         }
-        val desiredHeight = if (customViewHeight > 0) {
-            customViewHeight
+        val desiredHeight = if (contentHeight > 0) {
+            contentHeight
         } else {
             measuredContentHeight + paddingTop + paddingBottom
         }
@@ -218,8 +218,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private var pendingLongitude: Double? = null  // 临时存储经度
     private var iconWidth: Int = 0  // 用于自定义图标的宽度
     private var iconHeight: Int = 0  // 用于自定义图标的高度
-    private var customViewWidth: Int = 0  // 用于自定义视图（children）的宽度
-    private var customViewHeight: Int = 0  // 用于自定义视图（children）的高度
+    private var contentWidth: Int = 0  // 用于自定义视图（children）的宽度
+    private var contentHeight: Int = 0  // 用于自定义视图（children）的高度
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isRemoving = false  // 标记是否正在被移除
     private var pendingMarkerIconUpdate: Runnable? = null
@@ -738,32 +738,32 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     }
 
     /**
-     * 设置自定义视图宽度（用于 children 属性）
+     * 设置内容宽度（用于 children 属性）
      * 注意：React Native 传入的是 DP 值，需要转换为 PX
      */
-    fun setCustomViewWidth(width: Int) {
+    fun setContentWidth(width: Int) {
         val density = context.resources.displayMetrics.density
         val resolvedWidth = (width * density).toInt()
-        if (customViewWidth == resolvedWidth) {
+        if (contentWidth == resolvedWidth) {
             return
         }
 
-        customViewWidth = resolvedWidth
+        contentWidth = resolvedWidth
         markCustomMarkerContentDirty()
     }
 
     /**
-     * 设置自定义视图高度（用于 children 属性）
+     * 设置内容高度（用于 children 属性）
      * 注意：React Native 传入的是 DP 值，需要转换为 PX
      */
-    fun setCustomViewHeight(height: Int) {
+    fun setContentHeight(height: Int) {
         val density = context.resources.displayMetrics.density
         val resolvedHeight = (height * density).toInt()
-        if (customViewHeight == resolvedHeight) {
+        if (contentHeight == resolvedHeight) {
             return
         }
 
-        customViewHeight = resolvedHeight
+        contentHeight = resolvedHeight
         markCustomMarkerContentDirty()
     }
 
@@ -904,8 +904,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         return MarkerBitmapRenderer.createBitmap(
             container = this,
             snapshot = resolvedSnapshot,
-            customViewWidth = customViewWidth,
-            customViewHeight = customViewHeight,
+            contentWidth = contentWidth,
+            contentHeight = contentHeight,
             mainHandler = mainHandler,
         )
     }
@@ -1053,8 +1053,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private fun resolveMarkerBitmapSnapshot(): MarkerBitmapSnapshot? =
         MarkerBitmapRenderer.resolveSnapshot(
             container = this,
-            customViewWidth = customViewWidth,
-            customViewHeight = customViewHeight,
+            contentWidth = contentWidth,
+            contentHeight = contentHeight,
             cacheKey = cacheKey,
         )
 
@@ -1064,13 +1064,13 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       val childCountBefore = childCount
 
       val sourceWidth = when {
-        customViewWidth > 0 -> customViewWidth
+        contentWidth > 0 -> contentWidth
         params?.width != null && params.width > 0 -> params.width
         else -> LayoutParams.WRAP_CONTENT
       }
 
       val sourceHeight = when {
-        customViewHeight > 0 -> customViewHeight
+        contentHeight > 0 -> contentHeight
         params?.height != null && params.height > 0 -> params.height
         else -> LayoutParams.WRAP_CONTENT
       }

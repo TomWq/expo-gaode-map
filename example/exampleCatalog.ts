@@ -11,7 +11,7 @@ import DynamicRouteTrackingExample from './DynamicRouteTrackingExample';
 import EnterpriseCheckInExample from './EnterpriseCheckInExample';
 import LegacyPlaygroundExample from './App';
 import GeometryUtilsExample from './GeometryUtilsExample';
-import IndustrySceneExample from './IndustrySceneExample';
+
 import InputTipsExample from './InputTipsExample';
 import LBSDemo from './LBSDemo';
 import MapBasicsExample from './MapBasicsExample';
@@ -180,20 +180,8 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入离线地图管理页',
     component: OfflineMapExample,
   },
-  'address-picker-web': {
-    id: 'address-picker-web',
-    title: '地址选择器（Web API）',
-    description: '通过输入提示和地理编码完成地址选择，并联动地图定位。',
-    outcome: '进入 Web API 地址选点页',
-    component: AddressPickerWebAPIExample,
-  },
-  'address-picker-native': {
-    id: 'address-picker-native',
-    title: '地址选择器（Native Search）',
-    description: '使用 search 模块的 getInputTips/searchPOI 完成地址选择。',
-    outcome: '进入原生搜索地址选点页',
-    component: AddressPickerNativeExample,
-  },
+
+
   'taxi-location-picker': {
     id: 'taxi-location-picker',
     title: '打车上车点选择',
@@ -293,20 +281,8 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入企业打卡页',
     component: EnterpriseCheckInExample,
   },
-  'industry-scene': {
-    id: 'industry-scene',
-    title: '行业场景综合',
-    description: '展示区域 Polygon、站点 Marker 与配送路径的组合场景。',
-    outcome: '进入行业场景综合页',
-    component: IndustrySceneExample,
-  },
-  'platform-optimization': {
-    id: 'platform-optimization',
-    title: '平台优化',
-    description: '演示折叠屏、平板等平台适配相关能力。',
-    outcome: '进入平台适配验证页',
-    component: PlatformOptimizationDemo,
-  },
+ 
+  
   'legacy-playground': {
     id: 'legacy-playground',
     title: '综合演示（旧版）',
@@ -343,8 +319,6 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
       'new-permissions',
       'lbs',
       'offline-map',
-      'address-picker-web',
-      'address-picker-native',
       'taxi-location-picker',
     ],
   },
@@ -387,14 +361,14 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
       'dispatch-workbench',
       'dynamic-route-tracking',
       'enterprise-check-in',
-      'industry-scene',
+     
     ],
   },
   {
     key: 'tooling',
     title: '工具与兼容',
     description: '用于几何能力校验、平台适配和性能调试。',
-    entries: ['geometry-utils', 'platform-optimization'],
+    entries: ['geometry-utils',],
   },
   {
     key: 'legacy',

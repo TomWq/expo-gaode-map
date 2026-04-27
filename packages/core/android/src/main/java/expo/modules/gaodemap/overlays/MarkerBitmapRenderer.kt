@@ -51,8 +51,8 @@ internal object MarkerBitmapRenderer {
 
     fun resolveSnapshot(
         container: ViewGroup,
-        customViewWidth: Int,
-        customViewHeight: Int,
+        contentWidth: Int,
+        contentHeight: Int,
         cacheKey: String?,
     ): MarkerBitmapSnapshot? {
         if (container.childCount == 0) {
@@ -76,8 +76,8 @@ internal object MarkerBitmapRenderer {
                 ?: child.measuredHeight
                 ?: 0
 
-        val finalWidth = if (measuredWidth > 0) measuredWidth else customViewWidth
-        val finalHeight = if (measuredHeight > 0) measuredHeight else customViewHeight
+        val finalWidth = if (measuredWidth > 0) measuredWidth else contentWidth
+        val finalHeight = if (measuredHeight > 0) measuredHeight else contentHeight
 
         if (finalWidth <= 0 || finalHeight <= 0) {
             return null
@@ -97,8 +97,8 @@ internal object MarkerBitmapRenderer {
     fun createBitmap(
         container: ViewGroup,
         snapshot: MarkerBitmapSnapshot,
-        customViewWidth: Int,
-        customViewHeight: Int,
+        contentWidth: Int,
+        contentHeight: Int,
         mainHandler: Handler,
     ): Bitmap? {
         IconBitmapCache.get(snapshot.fullCacheKey)?.let { return it }
@@ -109,8 +109,8 @@ internal object MarkerBitmapRenderer {
                     container = container,
                     finalWidth = snapshot.width,
                     finalHeight = snapshot.height,
-                    customViewWidth = customViewWidth,
-                    customViewHeight = customViewHeight,
+                    contentWidth = contentWidth,
+                    contentHeight = contentHeight,
                 )
             } else {
                 val latch = CountDownLatch(1)
@@ -122,8 +122,8 @@ internal object MarkerBitmapRenderer {
                                 container = container,
                                 finalWidth = snapshot.width,
                                 finalHeight = snapshot.height,
-                                customViewWidth = customViewWidth,
-                                customViewHeight = customViewHeight,
+                                contentWidth = contentWidth,
+                                contentHeight = contentHeight,
                             )
                     } finally {
                         latch.countDown()
@@ -262,8 +262,8 @@ internal object MarkerBitmapRenderer {
         container: ViewGroup,
         finalWidth: Int,
         finalHeight: Int,
-        customViewWidth: Int,
-        customViewHeight: Int,
+        contentWidth: Int,
+        contentHeight: Int,
     ): Bitmap? {
         try {
             val childView = container.getChildAt(0) ?: return null
@@ -285,7 +285,7 @@ internal object MarkerBitmapRenderer {
             val canvas = Canvas(bitmap)
             childView.draw(canvas)
 
-            val shouldTrimTransparentPadding = customViewWidth <= 0 && customViewHeight <= 0
+            val shouldTrimTransparentPadding = contentWidth <= 0 && contentHeight <= 0
             return if (shouldTrimTransparentPadding) trimTransparentPadding(bitmap) else bitmap
         } catch (_: Exception) {
             return null
