@@ -20,6 +20,12 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import type { NaviInfoUpdateEvent } from "expo-gaode-map-navigation";
 
 function formatDistance(distance?: number): string {
@@ -147,6 +153,42 @@ function TurnIconBadge({
   );
 }
 
+function AnimatedChangingText({
+  text,
+  style,
+  numberOfLines,
+}: {
+  text: string;
+  style: StyleProp<TextStyle>;
+  numberOfLines?: number;
+}) {
+  const progress = useSharedValue(1);
+  const previousTextRef = React.useRef(text);
+
+  React.useEffect(() => {
+    if (previousTextRef.current === text) {
+      return;
+    }
+
+    previousTextRef.current = text;
+    progress.value = 0;
+    progress.value = withTiming(1, {
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progress, text]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: 0.9 + progress.value * 0.1,
+  }));
+
+  return (
+    <Animated.Text numberOfLines={numberOfLines} style={[style, animatedStyle]}>
+      {text}
+    </Animated.Text>
+  );
+}
+
 export function EmbeddedNaviHud({
   info,
   compact = false,
@@ -199,28 +241,22 @@ export function EmbeddedNaviHud({
 
   if (compact) {
     // 路口大图出现时切成横向紧凑 HUD，尽量不压住官方大图和地图前方视野。
-    const compactBackdrop =
-      Platform.OS === "ios" ? (
-        <View style={[styles.blurFill, styles.compactSolidBackdrop]} />
-      ) : (
-        <BlurView
-          tint="dark"
-          intensity={90}
-          blurMethod="dimezisBlurViewSdk31Plus"
-          blurTarget={blurTarget}
-          style={styles.blurFill}
-        />
-      );
-
     return (
       <View
         pointerEvents="none"
         onLayout={onLayout}
-        style={[styles.container, styles.containerCompact, { paddingTop: topInset + 3 }]}
+        style={[styles.container, styles.containerCompact, { paddingTop: topInset + 2 }]}
       >
         <View style={styles.compactShell}>
-          {compactBackdrop}
-          {/* <View style={styles.compactOverlay} /> */}
+          {/* 这里直接消费外层 EmbeddedNaviView 提供的地图 blur target，保证毛玻璃真的来自地图背景。 */}
+          <BlurView
+            tint="dark"
+            intensity={90}
+            blurMethod="dimezisBlurViewSdk31Plus"
+            blurTarget={blurTarget}
+            style={styles.blurFill}
+          />
+          <View style={styles.compactOverlay} />
 
           <View style={styles.compactLeadPanel}>
             {turnMeta.guideVariant === "arrive" ? <View style={styles.compactLeadDot} /> : null}
@@ -239,7 +275,10 @@ export function EmbeddedNaviHud({
           <View style={styles.compactMain}>
             <View style={styles.compactHeadline}>
               <View style={styles.compactDistanceGroup}>
-                <Text style={styles.compactDistanceValue}>{stepDistanceParts.value}</Text>
+                <AnimatedChangingText
+                  text={stepDistanceParts.value}
+                  style={styles.compactDistanceValue}
+                />
                 {stepDistanceParts.unit ? (
                   <Text style={styles.compactDistanceUnit}>{stepDistanceParts.unit}</Text>
                 ) : null}
@@ -299,7 +338,7 @@ export function EmbeddedNaviHud({
 
             <View style={styles.centerBlock}>
               <View style={styles.headlineRow}>
-                <Text style={distanceStyle}>{stepDistanceText}</Text>
+                <AnimatedChangingText text={stepDistanceText} style={distanceStyle} />
                 <Text style={actionStyle}>{turnMeta.action}</Text>
               </View>
               <Text numberOfLines={1} style={roadNameStyle}>
@@ -372,15 +411,13 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   compactShell: {
-    // minHeight: 44,
+    minHeight: 74,
     width: "100%",
-    // borderRadius: 20,
-    borderTopLeftRadius:10,
-    borderTopRightRadius:10,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
-    // boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.22)",
+    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.22)",
     
   },
   compactOverlay: {
@@ -389,16 +426,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
     borderRadius: 20,
-  },
-  compactSolidBackdrop: {
-    backgroundColor: "rgba(18, 24, 32, 0.86)",
+  
   },
   compactLeadPanel: {
-    width: 62,
+    // width: 72,
+    paddingHorizontal:10,
     alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    // backgroundColor: "rgba(37, 99, 235, 0.88)",
+    backgroundColor: "rgba(37, 99, 235, 0.88)",
   },
   compactLeadDot: {
     position: "absolute",
@@ -409,8 +445,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(191, 219, 254, 0.52)",
   },
   compactLeadImage: {
-    width: 32,
-    height: 32,
+    width: 52,
+    height: 52,
   },
   compactMain: {
     flex: 1,
@@ -432,7 +468,7 @@ const styles = StyleSheet.create({
   },
   compactDistanceValue: {
     color: "#ffffff",
-    fontSize: 26,
+    fontSize: 36,
     lineHeight: 40,
     fontWeight: "900",
     fontVariant: ["tabular-nums"],
@@ -449,7 +485,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 18,
     lineHeight: 22,
     fontWeight: "800",
     flexShrink: 1,
