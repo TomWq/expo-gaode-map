@@ -33,9 +33,7 @@ All overlay coordinates support:
 | `centerOffset` | `Point` | - | View offset, iOS only |
 | `animatesDrop` | `boolean` | `false` | Drop animation, iOS only |
 | `pinColor` | `'red' \| 'orange' \| 'yellow' \| 'green' \| 'cyan' \| 'blue' \| 'violet' \| 'magenta' \| 'rose' \| 'purple'` | - | Default pin color |
-| `children` | `React.ReactNode` | - | Custom marker content |
-| `customViewWidth` | `number` | `0` | Custom view width. Optional if `children` already has a normal layout size |
-| `customViewHeight` | `number` | `0` | Custom view height. Optional if `children` already has a normal layout size |
+| `children` | `React.ReactNode` | - | Custom marker content, measured automatically from layout |
 | `cacheKey` | `string` | - | Cache key for custom marker rendering |
 | `growAnimation` | `boolean` | `false` | Grow animation on Android / iOS |
 | `smoothMovePath` | `LatLng[]` | - | Path for smooth movement |

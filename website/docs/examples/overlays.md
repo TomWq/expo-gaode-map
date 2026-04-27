@@ -90,11 +90,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function CustomViewMarker() {
   return (
     <MapView style={{ flex: 1 }}>
-      <Marker
-        position={{ latitude: 39.9, longitude: 116.4 }}
-        customViewWidth={120}
-        customViewHeight={40}
-      >
+      <Marker position={{ latitude: 39.9, longitude: 116.4 }}>
         <View style={styles.markerView}>
           <Text style={styles.markerText}>自定义标记</Text>
         </View>

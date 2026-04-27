@@ -107,7 +107,7 @@ await mapRef.current?.moveCamera(
 
 ### Custom Marker / Cluster
 
-- In most cases, `Marker` custom `children` no longer need explicit `customViewWidth` / `customViewHeight`
+- `Marker` custom `children` are measured automatically from layout
 - `Cluster` now supports `icon?: string` with HTTP URL, local file path, or bundle resource name
 
 ### fitToCoordinates

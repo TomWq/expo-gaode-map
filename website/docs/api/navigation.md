@@ -92,7 +92,7 @@ await mapRef.current?.moveCamera(
 
 ### 自定义 Marker / Cluster
 
-- `Marker` 自定义 `children` 时，一般不需要再手动传 `customViewWidth` / `customViewHeight`
+- `Marker` 自定义 `children` 时会自动测量布局尺寸
 - `Cluster` 现已支持 `icon?: string`，可传网络 URL、本地文件路径或资源名称
 
 ### fitToCoordinates

@@ -33,9 +33,7 @@
 | `centerOffset` | `Point` | - | 图标偏移，仅 iOS |
 | `animatesDrop` | `boolean` | `false` | 掉落动画，仅 iOS |
 | `pinColor` | `'red' \| 'orange' \| 'yellow' \| 'green' \| 'cyan' \| 'blue' \| 'violet' \| 'magenta' \| 'rose' \| 'purple'` | - | 大头针颜色 |
-| `children` | `React.ReactNode` | - | 自定义 Marker 视图 |
-| `customViewWidth` | `number` | `0` | 自定义视图宽度，可省略；默认会自动测量 `children` 的布局尺寸 |
-| `customViewHeight` | `number` | `0` | 自定义视图高度，可省略；默认会自动测量 `children` 的布局尺寸 |
+| `children` | `React.ReactNode` | - | 自定义 Marker 视图，会自动测量布局尺寸 |
 | `cacheKey` | `string` | - | 自定义视图缓存键，频繁渲染时建议提供 |
 | `growAnimation` | `boolean` | `false` | 生长动画，Android / iOS |
 | `smoothMovePath` | `LatLng[]` | - | 平滑移动轨迹点数组 |

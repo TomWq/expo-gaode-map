@@ -309,8 +309,6 @@ interface MarkerProps {
   animatesDrop?: boolean;
   pinColor?: 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'magenta' | 'rose' | 'purple';
   children?: React.ReactNode;
-  customViewWidth?: number;
-  customViewHeight?: number;
   cacheKey?: string;
   growAnimation?: boolean;
   smoothMovePath?: LatLng[];
