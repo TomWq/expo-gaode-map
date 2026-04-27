@@ -65,11 +65,12 @@ npm install expo-gaode-map
 ```tsx
 import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// With Config Plugin, native SDK auto-initializes by default.
+// If native keys are configured via Config Plugin or manually, you do not need
+// to pass androidKey / iosKey in JavaScript.
 // Only needed for Web API features:
 // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-// Without Config Plugin, this is mandatory:
+// Only if native keys are not configured:
 // ExpoGaodeMapModule.initSDK({
 //   androidKey: 'your-android-api-key',
 //   iosKey: 'your-ios-api-key',

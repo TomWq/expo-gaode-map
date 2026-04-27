@@ -74,12 +74,12 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 使用 Config Plugin 时，原生 Key 已自动配置
+// 已通过 Config Plugin 或手动方式配置原生 Key 时，仅 Web API 需要
 ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
 });
 
-// 不使用 Config Plugin 时
+// 未配置原生 Key 时，才需要运行时传入移动端 Key
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-key',
   iosKey: 'your-ios-key',

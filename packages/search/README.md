@@ -403,11 +403,12 @@ export default function SearchScreen() {
   const [pois, setPois] = useState<POI[]>([]);
 
   useEffect(() => {
-    // 初始化核心包
-    ExpoGaodeMapModule.initSDK({
-      androidKey: 'your-android-key',
-      iosKey: 'your-ios-key',
-    });
+    // 如果已通过 Config Plugin 或手动方式配置原生 Key，可跳过 initSDK。
+    // 只有未配置原生 Key 时，才需要运行时传入移动端 Key。
+    // ExpoGaodeMapModule.initSDK({
+    //   androidKey: 'your-android-key',
+    //   iosKey: 'your-ios-key',
+    // });
   }, []);
 
   // 输入提示
@@ -476,4 +477,3 @@ MIT
 - [示例项目(导航)](https://github.com/TomWq/expo-gaode-map-example)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
-

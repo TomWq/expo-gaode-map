@@ -59,11 +59,12 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// With Config Plugin and map/navigation-only usage, you can skip initSDK.
+// If native keys are configured via Config Plugin or manually, and you only use
+// map/navigation features, you can skip initSDK.
 // Only needed for Web API features:
 ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-// Without Config Plugin, provide native keys manually:
+// Only if native keys are not configured:
 // ExpoGaodeMapModule.initSDK({
 //   androidKey: 'your-android-key',
 //   iosKey: 'your-ios-key',

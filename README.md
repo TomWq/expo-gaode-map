@@ -143,11 +143,11 @@ npx expo run:android
 npx expo run:ios
 ```
 
-With Config Plugin (`androidKey` / `iosKey`) configured, the native map SDK is auto-initialized by default on app startup.
+When API keys are configured in the native project via Config Plugin or manual native setup, the native map SDK is auto-initialized by default on app startup.
 
 `ExpoGaodeMapModule.initSDK({ webKey })` is only needed when you use `expo-gaode-map-web-api` (or when you want to set a runtime `webKey` manually).
 
-If you **do not** use Config Plugin, you **must** call:
+Only if you **do not** use Config Plugin and **have not** manually configured API keys in the native project, you must call:
 
 ```ts
 ExpoGaodeMapModule.initSDK({
@@ -178,7 +178,8 @@ if (!privacyStatus.isReady) {
     privacyVersion: '2026-03-13',
   });
 }
-// With Config Plugin: only needed when you use expo-gaode-map-web-api
+// With native keys configured via Config Plugin or manual setup:
+// only needed when you use expo-gaode-map-web-api
 ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 ```
 

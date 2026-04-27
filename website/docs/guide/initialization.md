@@ -62,14 +62,19 @@ useEffect(() => {
   // ExpoGaodeMapModule.setLoadWorldVectorMap(true);
 
   // 2. 按需调用：
-  // - 使用 Config Plugin 且不使用 Web API：可不调用 initSDK
+  // - 已通过 Config Plugin 或手动原生配置写入移动端 Key：通常可不调用 initSDK
   // - 使用 Web API：调用 initSDK 并传入 webKey
   ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 }, []);
 ```
 
-::: tip Config Plugin 自动配置
-如果使用了 Config Plugin，原生 API Key 会自动配置到原生项目中，SDK 默认自动初始化，**但运行时隐私步骤仍必须手动调用**。  
+::: tip 原生 Key 配置后无需在 JS 中重复传入
+如果已通过 Config Plugin 或手动方式把 API Key 写入原生项目：
+
+- Android: `AndroidManifest.xml` 中的 `com.amap.api.v2.apikey`
+- iOS: `Info.plist` 中的 `AMapApiKey`
+
+则不需要再调用 `initSDK({ androidKey, iosKey })`，**但运行时隐私步骤仍必须手动调用**。
 因此：地图/定位场景通常不需要再显式调用 `initSDK`；只有在使用 Web API（或运行时手动设置 `webKey`）时再调用。
 
 ```tsx
@@ -87,8 +92,8 @@ ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 ```
 :::
 
-::: warning 不使用 Config Plugin（必须调用）
-如果没有使用 Config Plugin，必须显式调用：
+::: warning 未配置原生 Key 时才需要运行时传入
+如果既没有使用 Config Plugin，也没有手动在原生项目中配置 API Key，才需要显式调用：
 
 ```tsx
 ExpoGaodeMapModule.initSDK({
@@ -100,7 +105,7 @@ ExpoGaodeMapModule.initSDK({
 才能正常使用地图相关能力。
 :::
 
-**不使用 Config Plugin 时**，需要手动传入原生 Key：
+**没有配置原生 Key 时**，才需要运行时传入移动端 Key：
 
 ```tsx
 ExpoGaodeMapModule.initSDK({
@@ -242,9 +247,9 @@ export default function App() {
 
 ## 常见问题
 
-### Q: 使用 Config Plugin 后还需要配置 API Key 吗？
+### Q: 原生项目中配置 API Key 后还需要在代码中配置吗？
 
-A: 原生 API Key 不需要，Config Plugin 会自动配置。但如果要使用 Web API 服务（`expo-gaode-map-web-api`），仍需在 `initSDK` 中传入 `webKey`。
+A: 原生 API Key 不需要。只要 API Key 已经通过 Config Plugin 或手动方式配置到原生项目中，就不需要再在 JavaScript 中传入 `androidKey` / `iosKey`。但如果要使用 Web API 服务（`expo-gaode-map-web-api`），仍需在 `initSDK` 中传入 `webKey`。
 
 ### Q: 使用 Config Plugin 后，还需要调用隐私接口吗？
 

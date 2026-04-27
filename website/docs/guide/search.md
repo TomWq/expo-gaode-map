@@ -42,19 +42,19 @@ npm install expo-gaode-map-search
 }
 ```
 
-### 手动初始化
+### 按需初始化
 
-如果不使用 Config Plugin，需要手动初始化：
+如果已通过 Config Plugin 或手动方式配置了原生 Key，不需要再在 JavaScript 中传入 `androidKey` / `iosKey`；只有使用 Web API 时需要传入 `webKey`：
 
 ```typescript
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
-// 使用 Config Plugin 时，原生 Key 已自动配置
+// 已配置原生 Key 时，仅 Web API 需要
 ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 仅在使用 Web API 时需要
 });
 
-// 不使用 Config Plugin 时
+// 未配置原生 Key 时，才需要运行时传入移动端 Key
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-api-key',
   iosKey: 'your-ios-api-key',

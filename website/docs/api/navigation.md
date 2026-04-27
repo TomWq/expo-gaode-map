@@ -40,11 +40,11 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
   });
 }
 
-// 使用 Config Plugin 且仅地图/导航场景时，可不调用 initSDK
+// 已通过 Config Plugin 或手动方式配置原生 Key，且仅地图/导航场景时，可不调用 initSDK
 // 仅在使用 Web API 时调用：
 ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-// 不使用 Config Plugin 时，需要手动传入原生 Key
+// 未配置原生 Key 时，才需要运行时传入移动端 Key
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-key',
   iosKey: 'your-ios-key',

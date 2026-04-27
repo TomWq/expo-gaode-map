@@ -145,11 +145,11 @@ npx expo run:android
 npx expo run:ios
 ```
 
-当 Config Plugin（`androidKey` / `iosKey`）已配置时，原生地图 SDK 默认会在启动时自动初始化。
+当 API Key 已通过 Config Plugin 或手动方式配置到原生项目时，原生地图 SDK 默认会在启动时自动初始化。
 
 `ExpoGaodeMapModule.initSDK({ webKey })` 仅在你需要 `expo-gaode-map-web-api`（或希望运行时手动设置 `webKey`）时调用。
 
-如果你**没有**使用 Config Plugin，则**必须**先调用：
+如果你既**没有**使用 Config Plugin，也**没有**手动在原生项目中配置 API Key，则**必须**先调用：
 
 ```ts
 ExpoGaodeMapModule.initSDK({
@@ -180,7 +180,7 @@ if (!privacyStatus.isReady) {
     privacyVersion: '2026-03-13',
   });
 }
-// 使用 Config Plugin 时：仅在需要 expo-gaode-map-web-api 时调用
+// 已通过 Config Plugin 或手动方式配置原生 Key 时：仅在需要 expo-gaode-map-web-api 时调用
 ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 ```
 

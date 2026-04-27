@@ -35,11 +35,12 @@ if (!privacyStatus.isReady) {
 // Must be called before initSDK
 ExpoGaodeMapModule.setLoadWorldVectorMap(true);
 
-// With Config Plugin, native SDK auto-initializes by default.
+// If native keys are configured via Config Plugin or manually, you do not need
+// to pass androidKey / iosKey in JavaScript.
 // Only needed when you use Web API features:
 // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-// Without Config Plugin, you must provide native keys manually:
+// Only if native keys are not configured:
 // ExpoGaodeMapModule.initSDK({
 //   androidKey: 'your-android-api-key',
 //   iosKey: 'your-ios-api-key',

@@ -44,12 +44,12 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 // 或
 // import { ExpoGaodeMapModule } from 'expo-gaode-map-navigation';
 
-// 使用 Config Plugin 时，原生 Key 已自动配置
+// 已通过 Config Plugin 或手动方式配置原生 Key 时，仅传入 webKey
 ExpoGaodeMapModule.initSDK({
   webKey: 'your-web-api-key', // 必需，供 Web API 包读取
 });
 
-// 不使用 Config Plugin 时
+// 未配置原生 Key 时，才需要同时运行时传入移动端 Key
 ExpoGaodeMapModule.initSDK({
   androidKey: 'your-android-key',
   iosKey: 'your-ios-key',
@@ -538,4 +538,4 @@ export default function CurrentLocationScreen() {
 }
 ```
 
-## 
+##

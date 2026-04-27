@@ -33,7 +33,7 @@ ExpoGaodeMapModule.start();
 
 | Method | Parameters | Return | Description |
 |--------|------------|--------|-------------|
-| `initSDK` | `SDKConfig` | `void` | Initialize SDK when needed (without Config Plugin, or when you need to provide `webKey`) |
+| `initSDK` | `SDKConfig` | `void` | Initialize SDK when needed (when native keys are not configured, or when you need to provide `webKey`) |
 | `isSDKInitialized` | - | `boolean` | Whether JS-side initialization has been called |
 | `setPrivacyVersion` | `(version: string)` | `void` | Set a privacy policy version and invalidate older consent when it changes |
 | `setPrivacyConfig` | `PrivacyConfig` | `void` | Set privacy state in one call |
