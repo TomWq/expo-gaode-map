@@ -17,7 +17,7 @@ import LBSDemo from './LBSDemo';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 import MayDayFiveDayTripExample from './MayDayFiveDayTripExample';
-import MarkerImageCacheExample from './MarkerImageCacheExample';
+
 import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
@@ -29,7 +29,7 @@ import PermissionExample from './PermissionExample';
 import PlatformOptimizationDemo from './PlatformOptimizationDemo';
 import PolylineExample from './PolylineExample';
 import PrivacyInitializationExample from './PrivacyInitializationExample';
-import RandomMarkersExample from './RandomMarkersExample';
+
 import RentalMapLabelExample from './RentalMapLabelExample';
 import SearchModuleTest from './SearchModuleTest';
 import SmoothMoveExample from './SmoothMoveExample';
@@ -115,13 +115,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入平滑移动效果页',
     component: SmoothMoveExample,
   },
-  'marker-image-cache': {
-    id: 'marker-image-cache',
-    title: 'Marker 图片缓存复现',
-    description: '对比唯一 cacheKey、不传 cacheKey、共享 cacheKey 三种 children + Image 场景。',
-    outcome: '进入缓存一致性验证页',
-    component: MarkerImageCacheExample,
-  },
+ 
   'marker-travel-card': {
     id: 'marker-travel-card',
     title: '景点卡片 Marker 复现',
@@ -136,13 +130,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入标签样式对比页',
     component: RentalMapLabelExample,
   },
-  'random-markers': {
-    id: 'random-markers',
-    title: '随机标记点',
-    description: '演示批量 Marker 的渲染、更新和地图交互。',
-    outcome: '进入批量 Marker 压力页',
-    component: RandomMarkersExample,
-  },
+
   'multi-format': {
     id: 'multi-format',
     title: '多格式坐标',
@@ -367,10 +355,9 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     entries: [
       'polyline',
       'smooth-move',
-      'marker-image-cache',
       'marker-travel-card',
       'rental-map-label',
-      'random-markers',
+     
       'multi-format',
       'aoi-mask',
     ],

@@ -18,7 +18,7 @@ import GeometryUtilsExample from './GeometryUtilsExample';
 import LBSDemo from './LBSDemo';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
-import MarkerImageCacheExample from './MarkerImageCacheExample';
+
 import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
@@ -27,7 +27,7 @@ import PermissionExample from './PermissionExample';
 import PlatformOptimizationDemo from './PlatformOptimizationDemo';
 import PolylineExample from './PolylineExample';
 import PrivacyInitializationExample from './PrivacyInitializationExample';
-import RandomMarkersExample from './RandomMarkersExample';
+
 import RentalMapLabelExample from './RentalMapLabelExample';
 import SearchModuleTest from './SearchModuleTest';
 import SmoothMoveExample from './SmoothMoveExample';
@@ -125,13 +125,7 @@ const EXAMPLES: ExampleDefinition[] = [
     category: 'overlay',
     component: SmoothMoveExample,
   },
-  {
-    id: 'marker-image-cache',
-    title: 'Marker 图片缓存复现',
-    description: '对比唯一 cacheKey、不传 cacheKey、共享 cacheKey 三种 children + Image 场景。',
-    category: 'overlay',
-    component: MarkerImageCacheExample,
-  },
+ 
   {
     id: 'marker-travel-card',
     title: '景点卡片 Marker 复现',
@@ -147,13 +141,7 @@ const EXAMPLES: ExampleDefinition[] = [
     category: 'overlay',
     component: RentalMapLabelExample,
   },
-  {
-    id: 'random-markers',
-    title: '随机标记点',
-    description: '演示批量 Marker 的渲染、更新和地图交互。',
-    category: 'overlay',
-    component: RandomMarkersExample,
-  },
+
   {
     id: 'multi-format',
     title: '多格式坐标',
