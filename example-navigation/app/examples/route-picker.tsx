@@ -11,7 +11,7 @@ import {
   type IndependentRouteResult,
   type MapViewRef,
   type NaviPoint,
-  type NaviViewRef,
+  type ExpoGaodeMapNaviViewRef,
   type RouteResult,
 } from "expo-gaode-map-navigation";
 import {
@@ -368,7 +368,7 @@ export default function RoutePickerExampleScreen() {
   const router = useRouter();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const mapRef = React.useRef<MapViewRef>(null);
-  const naviRef = React.useRef<NaviViewRef>(null);
+  const naviRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
   const activeTokenRef = React.useRef<number | null>(null);
   const waypointSeedRef = React.useRef(2);
 
@@ -466,6 +466,11 @@ export default function RoutePickerExampleScreen() {
   }, [routes]);
 
   React.useEffect(() => {
+    ExpoGaodeMapModule.setPrivacyConfig({
+        hasShow: true,
+        hasContainsPrivacy: true,
+        hasAgree: true,
+      });
     return () => {
       if (activeTokenRef.current != null) {
         void clearIndependentRoute({ token: activeTokenRef.current }).catch(() => {});

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapView, Polyline, LatLng } from 'expo-gaode-map';
 
 export default function PolylineExample() {
@@ -32,7 +33,7 @@ export default function PolylineExample() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.header}>
         <Text style={styles.title}>Polyline 轨迹抽稀示例</Text>
         <Text style={styles.subtitle}>原始点数: {points.length}</Text>

@@ -12,9 +12,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
  
   ExpoGaodeMapOfflineModule,
@@ -413,7 +413,7 @@ export default function OfflineMapExample() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <StatusBar barStyle="dark-content" />
       
       {/* 头部统计 */}

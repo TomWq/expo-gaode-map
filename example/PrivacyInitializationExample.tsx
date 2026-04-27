@@ -4,11 +4,11 @@ import {
   Alert,
   Modal,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
@@ -92,7 +92,7 @@ export default function PrivacyInitializationExample() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.heroCard}>
         <Text style={styles.badge}>启动链路</Text>
         <Text style={styles.title}>隐私确认与 SDK 初始化</Text>

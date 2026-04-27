@@ -3,11 +3,11 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
@@ -84,7 +84,7 @@ export default function ExampleRuntimeGate({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.heroCard}>
         <Text style={styles.badge}>expo-gaode-map</Text>
         <Text style={styles.title}>示例中心入口</Text>

@@ -18,13 +18,13 @@ import React from "react";
 import {
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EXAMPLE_WEB_API_KEY } from "@/exampleConfig";
 import {
@@ -322,7 +322,7 @@ export default function FollowWebRouteExampleScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.badge}>follow-web</Text>

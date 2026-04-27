@@ -2,13 +2,13 @@ import React from 'react';
 import {
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AOIOverlayExample from './AOIOverlayExample';
 import AdvancedOverlayExample from './AdvancedOverlayExample';
@@ -261,7 +261,7 @@ export default function ExampleHub() {
   const ViewerContent = selectedExample ? (
     <View style={styles.viewerContainer}>
       {SelectedComponent ? <SelectedComponent /> : null}
-      <SafeAreaView pointerEvents="box-none" style={styles.viewerOverlay}>
+      <SafeAreaView pointerEvents="box-none" style={styles.viewerOverlay} edges={['bottom']}>
         <Pressable style={styles.backButton} onPress={() => setSelectedId(null)}>
           <Text style={styles.backButtonText}>返回目录</Text>
         </Pressable>
@@ -278,7 +278,7 @@ export default function ExampleHub() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.title}>expo-gaode-map 示例中心</Text>

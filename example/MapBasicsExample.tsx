@@ -21,6 +21,14 @@ import {
 
 import { BEIJING_CENTER } from './playgroundUtils';
 
+const MAP_TYPE_OPTIONS = [
+  { label: '标准', value: MapType.Standard },
+  { label: '卫星', value: MapType.Satellite },
+  { label: '夜间', value: MapType.Night },
+  { label: '导航', value: MapType.Navi },
+  { label: '公交', value: MapType.Bus },
+];
+
 /**
  * 地图基础能力示例。
  * 这里集中演示最常用的相机、定位和事件监听能力，
@@ -28,16 +36,7 @@ import { BEIJING_CENTER } from './playgroundUtils';
  */
 export default function MapBasicsExample() {
   const mapRef = React.useRef<MapViewRef>(null);
-  const mapTypeOptions = React.useMemo(
-    () => [
-      { label: '标准', value: MapType.Standard },
-      { label: '卫星', value: MapType.Satellite },
-      { label: '夜间', value: MapType.Night },
-      { label: '导航', value: MapType.Navi },
-      { label: '公交', value: MapType.Bus },
-    ],
-    []
-  );
+  const currentZoomRef = React.useRef(12);
   const [initialCamera, setInitialCamera] =
     React.useState<CameraPosition | null>(null);
   const [location, setLocation] = React.useState<LatLng | null>(null);
@@ -52,6 +51,8 @@ export default function MapBasicsExample() {
 
     const bootstrap = async () => {
       try {
+        ExpoGaodeMapModule.setLocatingWithReGeocode(false);
+
         const current = await ExpoGaodeMapModule.getCurrentLocation().catch(
           () => null
         );
@@ -63,14 +64,18 @@ export default function MapBasicsExample() {
           return;
         }
 
+        const zoom = current ? 16 : 12;
+        currentZoomRef.current = zoom;
+
         setLocation(target);
         setInitialCamera({
           target,
-          zoom: current ? 16 : 12,
+          zoom,
         });
       } catch (error) {
         console.error('加载基础地图示例失败:', error);
         if (mounted) {
+          currentZoomRef.current = 12;
           setLocation(BEIJING_CENTER);
           setInitialCamera({
             target: BEIJING_CENTER,
@@ -101,60 +106,45 @@ export default function MapBasicsExample() {
     };
   }, []);
 
-  const handleLocateMe = React.useCallback(async () => {
-    try {
-      const current = await ExpoGaodeMapModule.getCurrentLocation().catch(
-        () => null
-      );
-      const target = current
-        ? { latitude: current.latitude, longitude: current.longitude }
-        : BEIJING_CENTER;
+  function moveToLocation(target: LatLng, zoom: number, bearing = 0) {
+    currentZoomRef.current = zoom;
+    setLocation(target);
+    void mapRef.current?.moveCamera(
+      {
+        target,
+        zoom,
+        bearing,
+      },
+      220
+    );
+  }
 
-      setLocation(target);
-      await mapRef.current?.moveCamera(
-        {
-          target,
-          zoom: current ? 16.5 : 12,
-          bearing: current?.heading ?? 0,
-        },
-        320
-      );
+  function handleLocateMe() {
+    try {
+      moveToLocation(location ?? BEIJING_CENTER, location ? 16.5 : 12);
     } catch (error) {
       console.error('定位失败:', error);
       Alert.alert('定位失败', '请确认权限、设备定位开关或 SDK 配置。');
     }
-  }, []);
+  }
 
-  const handleStartLocation = React.useCallback(() => {
+  function handleStartLocation() {
     ExpoGaodeMapModule.start();
     ExpoGaodeMapModule.startUpdatingHeading();
     setIsLocating(true);
-  }, []);
+  }
 
-  const handleStopLocation = React.useCallback(() => {
+  function handleStopLocation() {
     ExpoGaodeMapModule.stop();
     ExpoGaodeMapModule.stopUpdatingHeading();
     setIsLocating(false);
-  }, []);
+  }
 
-  const handleZoom = React.useCallback(async (delta: number) => {
-    try {
-      const camera = await mapRef.current?.getCameraPosition();
-      if (!camera) {
-        return;
-      }
-
-      await mapRef.current?.moveCamera(
-        {
-          ...camera,
-          zoom: (camera.zoom ?? 12) + delta,
-        },
-        220
-      );
-    } catch (error) {
-      console.error('调整缩放失败:', error);
-    }
-  }, []);
+  function handleZoom(delta: number) {
+    const nextZoom = currentZoomRef.current + delta;
+    currentZoomRef.current = nextZoom;
+    void mapRef.current?.setZoom(nextZoom, true);
+  }
 
   if (!initialCamera) {
     return (
@@ -186,6 +176,9 @@ export default function MapBasicsExample() {
         onCameraMove={({ nativeEvent }) => {
           const zoom = nativeEvent.cameraPosition.zoom ?? 0;
           const target = nativeEvent.cameraPosition.target;
+          if (Number.isFinite(zoom) && zoom > 0) {
+            currentZoomRef.current = zoom;
+          }
           setCameraMoveCount((previous) => previous + 1);
           setCameraInfo(
             `移动中 · 中心 ${target?.latitude?.toFixed(4) ?? '--'}, ${
@@ -196,6 +189,9 @@ export default function MapBasicsExample() {
         onCameraIdle={({ nativeEvent }) => {
           const zoom = nativeEvent.cameraPosition.zoom ?? 0;
           const target = nativeEvent.cameraPosition.target;
+          if (Number.isFinite(zoom) && zoom > 0) {
+            currentZoomRef.current = zoom;
+          }
           setCameraIdleCount((previous) => previous + 1);
           setCameraInfo(
             `已停止 · 中心 ${target?.latitude?.toFixed(4) ?? '--'}, ${
@@ -222,7 +218,7 @@ export default function MapBasicsExample() {
                 事件统计 · move {cameraMoveCount} / idle {cameraIdleCount}
               </Text>
               <Text style={styles.cardMeta}>
-                当前模式 · {mapTypeOptions.find((option) => option.value === mapType)?.label ?? '未知'}
+                当前模式 · {MAP_TYPE_OPTIONS.find((option) => option.value === mapType)?.label ?? '未知'}
               </Text>
             </View>
 
@@ -245,7 +241,7 @@ export default function MapBasicsExample() {
                 <Pressable
                   style={styles.zoomButton}
                   onPress={() => {
-                    void handleZoom(1);
+                    handleZoom(1);
                   }}
                 >
                   <Text style={styles.zoomButtonText}>放大</Text>
@@ -253,14 +249,14 @@ export default function MapBasicsExample() {
                 <Pressable
                   style={styles.zoomButton}
                   onPress={() => {
-                    void handleZoom(-1);
+                    handleZoom(-1);
                   }}
                 >
                   <Text style={styles.zoomButtonText}>缩小</Text>
                 </Pressable>
               </View>
               <View style={styles.mapTypeRow}>
-                {mapTypeOptions.map((option) => {
+                {MAP_TYPE_OPTIONS.map((option) => {
                   const active = option.value === mapType;
                   return (
                     <Pressable
