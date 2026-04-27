@@ -43,7 +43,7 @@ ExpoGaodeMapModule.start();
 | `getVersion` | - | `string` | Get native SDK version |
 | `isNativeSDKConfigured` | - | `boolean` | Whether native API keys are already configured |
 
-> `setPrivacyShow` / `setPrivacyAgree` are kept only for backward compatibility. New integrations should use `setPrivacyConfig(...)`.
+> New integrations should use `setPrivacyConfig(...)` to sync privacy state. `setPrivacyShow` / `setPrivacyAgree` are no longer exposed as public JS APIs.
 
 ### `PrivacyConfig`
 

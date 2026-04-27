@@ -43,7 +43,7 @@ ExpoGaodeMapModule.start();
 | `getVersion` | - | `string` | 获取原生 SDK 版本 |
 | `isNativeSDKConfigured` | - | `boolean` | 原生侧是否已配置 API Key |
 
-> `setPrivacyShow` / `setPrivacyAgree` 仅为兼容旧代码保留；新接入统一使用 `setPrivacyConfig(...)`。
+> 新接入统一使用 `setPrivacyConfig(...)` 同步隐私状态；`setPrivacyShow` / `setPrivacyAgree` 不再作为 JS 公开 API 暴露。
 
 ### PrivacyConfig
 

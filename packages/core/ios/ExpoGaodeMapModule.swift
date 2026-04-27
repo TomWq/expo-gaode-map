@@ -48,12 +48,19 @@ public class ExpoGaodeMapModule: Module {
             _ = self.trySetupApiKeyFromPlist()
         }
         
-        Function("setPrivacyShow") { (hasShow: Bool, hasContainsPrivacy: Bool) in
-            GaodeMapPrivacyManager.setPrivacyShow(hasShow, hasContainsPrivacy: hasContainsPrivacy)
-        }
+        Function("setPrivacyConfig") { (config: [String: Any]) in
+            let hasShow = config["hasShow"] as? Bool ?? false
+            let hasContainsPrivacy = config["hasContainsPrivacy"] as? Bool ?? hasShow
+            let hasAgree = config["hasAgree"] as? Bool ?? false
+            let privacyVersion = config["privacyVersion"] as? String
 
-        Function("setPrivacyAgree") { (hasAgree: Bool) in
-            GaodeMapPrivacyManager.setPrivacyAgree(hasAgree)
+            GaodeMapPrivacyManager.setPrivacyConfig(
+                hasShow: hasShow,
+                hasContainsPrivacy: hasContainsPrivacy,
+                hasAgree: hasAgree,
+                privacyVersion: privacyVersion,
+                updatesPrivacyVersion: config.keys.contains("privacyVersion")
+            )
         }
 
         Function("setPrivacyVersion") { (version: String) in
@@ -76,7 +83,7 @@ public class ExpoGaodeMapModule: Module {
          */
         Function("initSDK") { (config: [String: String]) in
             guard GaodeMapPrivacyManager.isReady else {
-                throw Exception(name: "PRIVACY_NOT_AGREED", description: "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree")
+                throw Exception(name: "PRIVACY_NOT_AGREED", description: "隐私协议未完成确认，请先调用 setPrivacyConfig")
             }
             GaodeMapPrivacyManager.applyPrivacyState()
 

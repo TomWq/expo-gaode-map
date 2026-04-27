@@ -42,7 +42,7 @@ class ExpoGaodeMapOfflineModule : Module() {
     if (!SDKInitializer.isPrivacyReady()) {
       throw CodedException(
         "PRIVACY_NOT_AGREED",
-        "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree",
+        "隐私协议未完成确认，请先调用 setPrivacyConfig",
         null
       )
     }

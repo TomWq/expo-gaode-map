@@ -262,38 +262,33 @@ describe('ExpoGaodeMapModule', () => {
 
     it('应该同步完整隐私配置', () => {
       const nativeModule = getNativeMock();
-      nativeModule.setPrivacyVersion = jest.fn();
-      nativeModule.setPrivacyShow = jest.fn();
-      nativeModule.setPrivacyAgree = jest.fn();
-
-      ExpoGaodeMapModule.setPrivacyConfig({
+      nativeModule.setPrivacyConfig = jest.fn();
+      const config = {
         hasShow: true,
         hasContainsPrivacy: true,
         hasAgree: true,
         privacyVersion: 'v2',
-      });
+      };
 
-      expect(nativeModule.setPrivacyVersion).toHaveBeenCalledWith('v2');
-      expect(nativeModule.setPrivacyShow).toHaveBeenCalledWith(true, true);
-      expect(nativeModule.setPrivacyAgree).toHaveBeenCalledWith(true);
+      ExpoGaodeMapModule.setPrivacyConfig(config);
+
+      expect(nativeModule.setPrivacyConfig).toHaveBeenCalledWith(config);
     });
 
-    it('应该兼容旧版隐私设置接口', () => {
+    it('不再公开旧版隐私设置接口', () => {
       const nativeModule = getNativeMock();
       nativeModule.setPrivacyShow = jest.fn();
       nativeModule.setPrivacyAgree = jest.fn();
-      nativeModule.setPrivacyVersion = jest.fn();
-      nativeModule.resetPrivacyConsent = jest.fn();
 
-      ExpoGaodeMapModule.setPrivacyShow(true);
-      ExpoGaodeMapModule.setPrivacyAgree(false);
-      ExpoGaodeMapModule.setPrivacyVersion('v3');
-      ExpoGaodeMapModule.resetPrivacyConsent();
+      const moduleWithHiddenMethods = ExpoGaodeMapModule as typeof ExpoGaodeMapModule & {
+        setPrivacyShow?: unknown;
+        setPrivacyAgree?: unknown;
+      };
 
-      expect(nativeModule.setPrivacyShow).toHaveBeenCalledWith(true, true);
-      expect(nativeModule.setPrivacyAgree).toHaveBeenCalledWith(false);
-      expect(nativeModule.setPrivacyVersion).toHaveBeenCalledWith('v3');
-      expect(nativeModule.resetPrivacyConsent).toHaveBeenCalled();
+      expect(moduleWithHiddenMethods.setPrivacyShow).toBeUndefined();
+      expect(moduleWithHiddenMethods.setPrivacyAgree).toBeUndefined();
+      expect(nativeModule.setPrivacyShow).not.toHaveBeenCalled();
+      expect(nativeModule.setPrivacyAgree).not.toHaveBeenCalled();
     });
   });
 
@@ -456,16 +451,6 @@ describe('ExpoGaodeMapModule', () => {
   });
 
   describe('几何计算', () => {
-    it('应该支持 calculateDistanceBetweenPoints 别名方法', () => {
-      const distance = ExpoGaodeMapModule.calculateDistanceBetweenPoints(
-        [116.4, 39.9],
-        [116.41, 39.91]
-      );
-
-      expect(typeof distance).toBe('number');
-      expect(distance).toBeGreaterThan(0);
-    });
-
     it("应该能够计算点到点的距离", async () => {
       // 检查方法是否存在
       expect(ExpoGaodeMapModule.distanceBetweenCoordinates).toBeDefined();

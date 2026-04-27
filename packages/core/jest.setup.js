@@ -8,6 +8,7 @@ const mockNativeModuleMocks = new Map();
 
 const mockCreateNativeModule = () => ({
   initSDK: jest.fn(),
+  setPrivacyConfig: jest.fn(),
   getPrivacyStatus: jest.fn(() => ({
     hasShow: true,
     hasContainsPrivacy: true,

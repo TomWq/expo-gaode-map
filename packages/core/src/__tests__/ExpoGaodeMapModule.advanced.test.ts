@@ -264,11 +264,6 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
       }).not.toThrow();
     });
 
-    it('计算距离测试', () => {
-        const d = ExpoGaodeMapModule.calculateDistance(39.9, 116.3, 39.9, 116.4);
-        expect(d).toBeDefined();
-    });
-
     it('单次高精度定位配置', () => {
       expect(() => {
         ExpoGaodeMapModule.setOnceLocation?.(true); // 单次定位

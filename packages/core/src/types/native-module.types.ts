@@ -23,7 +23,8 @@ import type {
 } from './location.types';
 import type { ExpoGaodeMapModuleEvents } from './map-view.types';
 
-export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvents> {
+export interface NativeExpoGaodeMapModule
+  extends NativeModule<ExpoGaodeMapModuleEvents> {
   /**
    * 原生事件订阅方法
    */
@@ -44,23 +45,7 @@ export interface ExpoGaodeMapModule extends NativeModule<ExpoGaodeMapModuleEvent
   initSDK(config: SDKConfig): void;
 
   /**
-   * 设置是否显示隐私政策弹窗
-   * @param hasShow 是否显示弹窗
-   * @param hasContainsPrivacy 是否包含隐私条款
-   * @deprecated 请优先使用 `setPrivacyConfig`
-   */
-  setPrivacyShow(hasShow: boolean, hasContainsPrivacy?: boolean): void;
-
-  /**
-   * 设置用户是否同意隐私政策
-   * @param hasAgree 是否同意
-   * @deprecated 请优先使用 `setPrivacyConfig`
-   */
-  setPrivacyAgree(hasAgree: boolean): void;
-
-  /**
-   * 一次性设置完整的隐私状态
-   * 推荐作为业务层唯一入口调用
+   * 一次性同步完整隐私状态
    */
   setPrivacyConfig(config: PrivacyConfig): void;
 

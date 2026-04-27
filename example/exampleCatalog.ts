@@ -1,8 +1,5 @@
 import type { ComponentType } from 'react';
-
 import AOIOverlayExample from './AOIOverlayExample';
-import AddressPickerNativeExample from './AddressPickerNativeExample';
-import AddressPickerWebAPIExample from './AddressPickerWebAPIExample';
 import AdvancedOverlayExample from './AdvancedOverlayExample';
 import DeliveryAddressPickerExample from './DeliveryAddressPickerExample';
 import DeliveryRouteExample from './DeliveryRouteExample';
@@ -11,13 +8,11 @@ import DynamicRouteTrackingExample from './DynamicRouteTrackingExample';
 import EnterpriseCheckInExample from './EnterpriseCheckInExample';
 import LegacyPlaygroundExample from './App';
 import GeometryUtilsExample from './GeometryUtilsExample';
-
 import InputTipsExample from './InputTipsExample';
 import LBSDemo from './LBSDemo';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 import MayDayFiveDayTripExample from './MayDayFiveDayTripExample';
-
 import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
@@ -26,10 +21,8 @@ import POIMapSearchWebAPIExample from './POIMapSearchWebAPIExample';
 import POISearchMapNativeExample from './POISearchMapNativeExample';
 import POISearchNativeExample from './POISearchNativeExample';
 import PermissionExample from './PermissionExample';
-import PlatformOptimizationDemo from './PlatformOptimizationDemo';
 import PolylineExample from './PolylineExample';
 import PrivacyInitializationExample from './PrivacyInitializationExample';
-
 import RentalMapLabelExample from './RentalMapLabelExample';
 import SearchModuleTest from './SearchModuleTest';
 import SmoothMoveExample from './SmoothMoveExample';

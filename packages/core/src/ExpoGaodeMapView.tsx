@@ -24,6 +24,23 @@ export type { MapViewRef } from './types';
 
 const getNativeView = createLazyNativeViewManager<MapViewProps & { ref?: React.Ref<MapViewRef> }>('ExpoGaodeMapView');
 
+function splitMapChildren(children: React.ReactNode) {
+  const overlays: React.ReactNode[] = [];
+  const uiControls: React.ReactNode[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (
+      React.isValidElement(child) &&
+      (child.type === MapUI || (child.type as { isMapUI?: boolean })?.isMapUI)
+    ) {
+      uiControls.push(child);
+    } else {
+      overlays.push(child);
+    }
+  });
+
+  return { overlays, uiControls };
+}
 
 /**
  * 高德地图视图组件，提供地图操作API和覆盖物管理功能
@@ -33,13 +50,12 @@ const getNativeView = createLazyNativeViewManager<MapViewProps & { ref?: React.R
  * @returns 返回包含地图视图和上下文提供者的React组件
  * 
  * @remarks
- * 该组件内部维护两个ref：
- * - nativeRef: 指向原生地图视图的引用
- * - internalRef: 内部使用的API引用，通过MapContext共享
+ * 该组件内部维护 nativeRef，用于将 JS ref API 转发到原生地图视图。
+ * MapContext 会向子组件共享同一组地图 API 方法。
  * 
  * 提供的主要API功能包括：
  * - 相机控制（移动、缩放、获取当前位置）
- * - 覆盖物管理（添加/删除/更新标记、折线、多边形、圆形等）
+ * - 屏幕坐标转换、截图、根据坐标集合拟合相机
  * 
  * 所有API方法都会检查地图是否已初始化，未初始化时抛出错误
  */
@@ -50,7 +66,6 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   }
 
   const nativeRef = React.useRef<MapViewRef>(null);
-  const internalRef = React.useRef<MapViewRef | null>(null);
   const NativeView = React.useMemo(() => getNativeView(), []);
 
   const callNativeMethod = React.useCallback(<T extends (...args: never[]) => unknown>(
@@ -78,8 +93,7 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   }, []);
   
   /**
-   * 🔑 性能优化：通用 API 方法包装器
-   * 统一处理初始化检查和错误处理，减少重复代码
+   * 通用 API 方法包装器，统一处理初始化检查和错误包装。
    */
   const createApiMethod = React.useCallback(<T extends (...args: never[]) => unknown>(
     methodName: keyof MapViewRef
@@ -161,14 +175,6 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
   }), [callNativeMethod, createApiMethod]);
 
   /**
-   * 将传入的apiRef赋值给internalRef.current
-   * 用于在组件内部保存对地图API实例的引用
-   */
-  React.useEffect(() => {
-    internalRef.current = apiRef;
-  }, [apiRef]);
-
-  /**
    * 获取当前地图实例的API引用
    * @returns 返回地图API的引用对象，可用于调用地图相关方法
    */
@@ -176,20 +182,18 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
 
   // 分离 children：区分原生覆盖物和普通 UI 组件
   const { children, style, ...otherProps } = props;
-  const overlays: React.ReactNode[] = [];
-  const uiControls: React.ReactNode[] = [];
-
-  React.Children.forEach(children, (child) => {
-    if (React.isValidElement(child) && (child.type === MapUI || (child.type as { isMapUI?: boolean })?.isMapUI)) {
-      uiControls.push(child);
-    } else {
-      overlays.push(child);
-    }
-  });
+  const { overlays, uiControls } = React.useMemo(
+    () => splitMapChildren(children),
+    [children]
+  );
+  const containerStyle = React.useMemo(
+    () => [styles.container, style],
+    [style]
+  );
 
   return (
     <MapContext.Provider value={apiRef}>
-      <View style={[{ flex: 1, position: 'relative', overflow: 'hidden' ,}, style]}>
+      <View style={containerStyle}>
         <NativeView
           ref={nativeRef}
           style={StyleSheet.absoluteFill}
@@ -206,3 +210,11 @@ const ExpoGaodeMapView = React.forwardRef<MapViewRef, MapViewProps>((props, ref)
 ExpoGaodeMapView.displayName = 'ExpoGaodeMapView';
 
 export default ExpoGaodeMapView;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+});

@@ -61,8 +61,8 @@ export type {
   ClusterProps,
 } from './overlays.types';
 
-// 原生模块类型
-export type { ExpoGaodeMapModule } from './native-module.types';
+// 模块 facade 类型
+export type { ExpoGaodeMapModule } from '../ExpoGaodeMapModule';
 
 export type {
   AreaMaskOverlayProps,

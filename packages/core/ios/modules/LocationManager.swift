@@ -238,7 +238,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
      */
     func coordinateConvert(_ coordinate: [String: Double], type: Int, promise: Promise) {
         guard GaodeMapPrivacyManager.isReady else {
-            promise.reject("PRIVACY_NOT_AGREED", "隐私协议未完成确认，请先调用 setPrivacyShow/setPrivacyAgree")
+            promise.reject("PRIVACY_NOT_AGREED", "隐私协议未完成确认，请先调用 setPrivacyConfig")
             return
         }
 
