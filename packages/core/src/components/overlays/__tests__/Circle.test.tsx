@@ -91,9 +91,10 @@ describe('Circle 覆盖物组件', () => {
 
   it('相同关键属性重渲染时不应重复渲染原生组件', () => {
     const onCirclePress = jest.fn();
+    const center = { latitude: 39.9, longitude: 116.4 };
     const { rerender } = render(
       <Circle
-        center={{ latitude: 39.9, longitude: 116.4 }}
+        center={center}
         radius={1000}
         strokeColor="#FF0000"
         fillColor="#00FF00"
@@ -107,7 +108,7 @@ describe('Circle 覆盖物组件', () => {
 
     rerender(
       <Circle
-        center={{ latitude: 39.9, longitude: 116.4 }}
+        center={center}
         radius={1000}
         strokeColor="#FF0000"
         fillColor="#00FF00"

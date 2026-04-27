@@ -107,4 +107,32 @@ describe('HeatMap 热力图组件', () => {
 
     expect(mockNativeHeatMap).toHaveBeenCalledTimes(2);
   });
+
+  it('gradient 或 allowRetinaAdapting 变化时应重新渲染', () => {
+    const gradient = {
+      colors: ['#00f', '#f00'],
+      startPoints: [0.2, 1],
+    };
+    const nextGradient = {
+      colors: ['#0f0', '#f00'],
+      startPoints: [0.2, 1],
+    };
+    const { rerender } = render(
+      <HeatMap
+        data={data}
+        gradient={gradient}
+        allowRetinaAdapting={false}
+      />
+    );
+
+    rerender(
+      <HeatMap
+        data={data}
+        gradient={nextGradient}
+        allowRetinaAdapting
+      />
+    );
+
+    expect(mockNativeHeatMap).toHaveBeenCalledTimes(2);
+  });
 });
