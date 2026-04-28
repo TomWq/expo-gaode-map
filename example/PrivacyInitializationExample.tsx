@@ -67,6 +67,7 @@ export default function PrivacyInitializationExample() {
       setResultText(
         [
           '初始化已完成。',
+          `sdk版本号: ${ExpoGaodeMapModule.getVersion()}`,
           `定位权限: ${permission.granted ? '已授予' : '未授予'}`,
           currentLocation
             ? `当前位置: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`

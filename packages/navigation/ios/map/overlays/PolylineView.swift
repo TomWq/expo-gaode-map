@@ -71,6 +71,9 @@ class PolylineView: ExpoView {
     func setMap(_ map: MAMapView) {
         // 🔑 关键优化：如果是同一个地图引用，跳过重复设置
         if lastSetMapView === map {
+            if polyline == nil {
+                updatePolyline()
+            }
             return
         }
         
@@ -105,10 +108,9 @@ class PolylineView: ExpoView {
         // 🔑 至少需要2个点才能绘制折线
         guard coords.count >= 2 else { return }
         
+        renderer = nil
         polyline = MAPolyline(coordinates: &coords, count: UInt(coords.count))
         mapView.add(polyline!)
-        
-        renderer = nil
     }
     
     /**
@@ -221,18 +223,10 @@ class PolylineView: ExpoView {
     
     /**
      * 强制重新渲染折线
-     * 通过移除并重新添加 overlay 来触发地图重新请求 renderer
+     * 通过重建 overlay 来触发地图重新请求 renderer
      */
     private func forceRerender() {
-        guard let mapView = mapView, let polyline = polyline else {
-            return
-        }
-        
-        // 移除旧的 overlay
-        mapView.remove(polyline)
-        
-        // 重新添加（地图会调用 rendererFor overlay）
-        mapView.add(polyline)
+        updatePolyline()
     }
     
     func setDotted(_ dotted: Bool) {

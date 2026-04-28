@@ -150,6 +150,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     // 缓存初始相机位置，等待地图加载完成后设置
     private var pendingCameraPosition: Map<String, Any?>? = null
     private var isMapLoaded = false
+    private var hasAppliedInitialCameraPosition = false
 
     init {
         try {
@@ -192,7 +193,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
                 val positionToApply = initialCameraPosition ?: pendingCameraPosition
                 positionToApply?.let { position ->
-                    applyInitialCameraPosition(position)
+                    applyInitialCameraPositionIfNeeded(position)
                     pendingCameraPosition = null
                 }
 
@@ -352,10 +353,14 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     fun setInitialCameraPosition(position: Map<String, Any?>) {
         initialCameraPosition = position
 
+        if (hasAppliedInitialCameraPosition) {
+            return
+        }
+
         // 如果地图已加载,立即应用;否则缓存等待地图加载完成
         if (isMapLoaded) {
             mainHandler.post {
-                applyInitialCameraPosition(position)
+                applyInitialCameraPositionIfNeeded(position)
             }
         } else {
             pendingCameraPosition = position
@@ -366,8 +371,12 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
      * 实际应用相机位置
      * @param position 相机位置配置
      */
-    private fun applyInitialCameraPosition(position: Map<String, Any?>) {
+    private fun applyInitialCameraPositionIfNeeded(position: Map<String, Any?>) {
+        if (hasAppliedInitialCameraPosition) {
+            return
+        }
         cameraManager.setInitialCameraPosition(position)
+        hasAppliedInitialCameraPosition = true
     }
 
     // ==================== UI 控件和手势 ====================
@@ -649,6 +658,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
             // 销毁地图实例
             mapView.onDestroy()
+            hasAppliedInitialCameraPosition = false
         } catch (e: Exception) {
             // 静默处理异常,确保销毁流程不会中断
             android.util.Log.e("ExpoGaodeMapView", "Error destroying map", e)

@@ -61,9 +61,11 @@ dependencies {
         } else {
             println "ExpoGaodeMapNavigation: Custom SDK path configured but file not found, falling back to Maven dependency."
             implementation 'com.amap.api:navi-3dmap:latest.integration'
+
         }
     } else {
         implementation 'com.amap.api:navi-3dmap:latest.integration'
+
     }
 
     // Live Update APIs on NotificationCompat.Builder

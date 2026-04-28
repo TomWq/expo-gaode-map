@@ -62,7 +62,8 @@ allprojects {
 }
 
 dependencies {
-    // 高德地图 3D SDK
+    // 高德地图组合 SDK：地图 + 定位 + 搜索。
+    // 搜索模块只 compileOnly 引用搜索类，运行时由这里提供真实 SDK，避免 duplicate class。
     def customSdkPath = null
     println "ExpoGaodeMap: Checking for custom SDK property in rootProject: ${rootProject.name}"
     if (rootProject.hasProperty("EXPO_GAODE_MAP_CUSTOM_SDK_PATH")) {
@@ -86,6 +87,6 @@ dependencies {
             throw new FileNotFoundException("ExpoGaodeMap: Could not find custom SDK at ${customSdkPath}. Please check your customMapSdkPath configuration.")
         }
     } else {
-        implementation 'com.amap.api:3dmap:latest.integration'
+        implementation 'com.amap.api:3dmap-location-search:latest.integration'
     }
 }

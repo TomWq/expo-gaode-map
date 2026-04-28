@@ -90,7 +90,7 @@ export class ErrorHandler {
       message: '高德地图 SDK 尚未初始化',
       solution: `请在使用地图功能前先调用 initSDK()：
 
-import ExpoGaodeMapModule from 'expo-gaode-map';
+import {ExpoGaodeMapModule} from 'expo-gaode-map-navigation';
 
 useEffect(() => {
   // 在组件挂载时初始化
@@ -118,7 +118,7 @@ useEffect(() => {
       message: `调用高德地图前未完成隐私合规确认：${sceneText}`,
       solution: `请在调用任何高德地图 SDK 接口前，先明确完成隐私告知与同意：
 
-import ExpoGaodeMapModule from 'expo-gaode-map';
+import {ExpoGaodeMapModule} from 'expo-gaode-map-navigation';
 
 // 应用启动后，先展示你自己的隐私弹窗
 ExpoGaodeMapModule.setPrivacyConfig({
@@ -176,7 +176,7 @@ ExpoGaodeMapModule.initSDK({
   "expo": {
     "plugins": [
       [
-        "expo-gaode-map",
+        "expo-gaode-map-navigation",
         {
           "androidKey": "your-android-key",
           "iosKey": "your-ios-key"
@@ -209,7 +209,7 @@ ExpoGaodeMapModule.initSDK({
       solution: `请按以下步骤授予权限：
 
 1️⃣  请求权限：
-import ExpoGaodeMapModule from 'expo-gaode-map';
+import {ExpoGaodeMapModule} from 'expo-gaode-map-navigation';
 
 const checkPermission = async () => {
   // 检查权限状态
@@ -246,7 +246,7 @@ const checkPermission = async () => {
 }
 
 3️⃣  Android 配置（Config Plugin 会自动添加）：
-使用 expo-gaode-map 的 Config Plugin 会自动添加必要的权限声明`,
+使用 expo-gaode-map-navigation 的 Config Plugin 会自动添加必要的权限声明`,
       docUrl: `${this.docBaseUrl}/guide/getting-started.html#权限配置`,
     });
   }
@@ -299,13 +299,13 @@ ExpoGaodeMapModule.setDesiredAccuracy(0); // 最佳精度`,
   static nativeModuleUnavailable(): GaodeMapError {
     return new GaodeMapError({
       type: ErrorType.NATIVE_MODULE_UNAVAILABLE,
-      message: 'expo-gaode-map 原生模块不可用',
+      message: 'expo-gaode-map-navigation 原生模块不可用',
       solution: `请检查以下步骤：
 
 1️⃣  确认已正确安装：
-npm install expo-gaode-map
+npm install expo-gaode-map-navigation
 # 或
-bun install expo-gaode-map
+bun install expo-gaode-map-navigation
 
 2️⃣  重新构建原生代码：
 npx expo prebuild --clean
@@ -313,7 +313,7 @@ npx expo run:android
 npx expo run:ios
 
 3️⃣  检查 Expo 版本兼容性：
-• expo-gaode-map 需要 Expo SDK 49+
+• expo-gaode-map-navigation 需要 Expo SDK 49+
 • 不支持 Expo Go，必须使用 Development Build
 
 4️⃣  检查是否与其他包冲突：
@@ -340,7 +340,7 @@ cd ios && pod deintegrate && pod install && cd ..`,
 2️⃣  使用 ref 获取地图实例后再调用方法
 
 正确用法：
-import { MapView, MapViewRef } from 'expo-gaode-map';
+import { MapView, MapViewRef } from 'expo-gaode-map-navigation';
 
 const App = () => {
   const mapRef = useRef<MapViewRef>(null);
@@ -507,6 +507,6 @@ export class ErrorLogger {
   static warn(message: string, details?: unknown) {
     if (!this.isEnabled) return;
     
-    console.warn(`⚠️  expo-gaode-map: ${message}`, details || '');
+    console.warn(`⚠️  expo-gaode-map-navigation: ${message}`, details || '');
   }
 }
