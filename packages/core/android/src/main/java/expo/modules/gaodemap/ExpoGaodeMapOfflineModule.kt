@@ -22,7 +22,6 @@ class ExpoGaodeMapOfflineModule : Module() {
   private var offlineMapManager: OfflineMapManager? = null
   private val downloadingCities = mutableSetOf<String>()
   private val pausedCities = mutableSetOf<String>()
-  private val pendingDownloadsByName = mutableMapOf<String, String>()
   
   // 线程安全锁
   private val lock = Any()
@@ -34,7 +33,6 @@ class ExpoGaodeMapOfflineModule : Module() {
       }
 
       override fun onCheckUpdate(hasNew: Boolean, name: String?) {
-        handleCheckUpdate(hasNew, name)
       }
 
       override fun onRemove(success: Boolean, name: String?, describe: String?) {
@@ -363,16 +361,6 @@ class ExpoGaodeMapOfflineModule : Module() {
       ?: throw IllegalArgumentException("City not found: $cityCode")
 
     logCityBeforeDownload(city, cityCode, action)
-
-    if (city.url.isNullOrEmpty()) {
-      synchronized(lock) {
-        pendingDownloadsByName[city.city] = cityCode
-      }
-      Log.i(logTag, "$action url empty, update offline config first cityName=${city.city} cityCode=$cityCode")
-      manager.updateOfflineCityByName(city.city)
-      return
-    }
-
     downloadCity(manager, city)
   }
 
@@ -395,49 +383,6 @@ class ExpoGaodeMapOfflineModule : Module() {
 
   private fun logCityBeforeDownload(city: OfflineMapCity?, cityCode: String, action: String) {
     Log.i(logTag, "$action cityCode=$cityCode cityName=${city?.city} code=${city?.code} adcode=${city?.adcode} state=${city?.state} progress=${city?.let { getDownloadProgress(it) }} size=${city?.size} url=${city?.url}")
-  }
-
-  private fun handleCheckUpdate(hasNew: Boolean, name: String?) {
-    Log.i(logTag, "onCheckUpdate hasNew=$hasNew name=$name")
-
-    if (name.isNullOrEmpty()) return
-
-    val cityCode = synchronized(lock) {
-      pendingDownloadsByName.remove(name)
-    } ?: return
-
-    val manager = offlineMapManager ?: return
-    val city = manager.getItemByCityCode(cityCode)
-      ?: manager.getItemByCityName(name)
-      ?: manager.offlineMapCityList?.find { it.city == name || it.code == cityCode || it.adcode == cityCode }
-
-    Log.i(logTag, "download after update cityCode=$cityCode cityName=${city?.city} code=${city?.code} adcode=${city?.adcode} state=${city?.state} progress=${city?.let { getDownloadProgress(it) }} size=${city?.size} url=${city?.url}")
-
-    if (city == null) {
-      synchronized(lock) {
-        downloadingCities.remove(cityCode)
-      }
-      sendEvent("onDownloadError", Bundle().apply {
-        putString("cityCode", cityCode)
-        putString("cityName", name)
-        putString("error", "刷新离线地图配置后仍未找到城市")
-      })
-      return
-    }
-
-    try {
-      downloadCity(manager, city)
-    } catch (e: Exception) {
-      Log.w(logTag, "download after update failed cityCode=$cityCode name=$name error=${e.message}")
-      synchronized(lock) {
-        downloadingCities.remove(cityCode)
-      }
-      sendEvent("onDownloadError", Bundle().apply {
-        putString("cityCode", cityCode)
-        putString("cityName", name)
-        putString("error", e.message ?: "离线地图下载失败")
-      })
-    }
   }
   
   /**
