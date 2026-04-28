@@ -317,7 +317,7 @@ object GeometryUtils {
                 longitudes[i] = points[i].longitude
             }
             val result = nativeGetPointAtDistance(latitudes, longitudes, distanceMeters)
-            if (result != null && result.size >= 3) {
+            if (result.size >= 3) {
                 PointAtDistance(LatLng(result[0], result[1]), result[2])
             } else {
                 null
@@ -345,7 +345,7 @@ object GeometryUtils {
                 longitudes[i] = points[i].longitude
             }
             val result = nativeGetNearestPointOnPath(latitudes, longitudes, target.latitude, target.longitude)
-            if (result != null && result.size >= 4) {
+            if (result.size >= 4) {
                 NearestPointResult(
                     LatLng(result[0], result[1]),
                     result[2].toInt(),
@@ -369,7 +369,7 @@ object GeometryUtils {
                 longitudes[i] = points[i].longitude
             }
             val result = nativeCalculateCentroid(latitudes, longitudes)
-            if (result != null && result.size >= 2) {
+            if (result.size >= 2) {
                 LatLng(result[0], result[1])
             } else {
                 null
@@ -549,7 +549,7 @@ object GeometryUtils {
     fun tileToLatLng(x: Int, y: Int, zoom: Int): LatLng? {
         return try {
             val result = nativeTileToLatLng(x, y, zoom)
-            if (result != null && result.size >= 2) {
+            if (result.size >= 2) {
                 LatLng(result[0], result[1])
             } else {
                 null
@@ -570,7 +570,7 @@ object GeometryUtils {
     fun pixelToLatLng(x: Double, y: Double, zoom: Int): LatLng? {
         return try {
             val result = nativePixelToLatLng(x, y, zoom)
-            if (result != null && result.size >= 2) {
+            if (result.size >= 2) {
                 LatLng(result[0], result[1])
             } else {
                 null

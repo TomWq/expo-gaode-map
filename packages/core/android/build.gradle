@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.gaodemap'
-version = '2.2.11'
+version = '2.2.34'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -38,7 +38,7 @@ android {
   namespace "expo.modules.gaodemap"
   defaultConfig {
     versionCode 1
-    versionName "2.2.11"
+    versionName "2.2.34"
     externalNativeBuild {
       cmake {
         cppFlags "-std=c++17"
@@ -53,6 +53,12 @@ android {
   lintOptions {
     abortOnError false
   }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
 }
 
 dependencies {
@@ -80,6 +86,6 @@ dependencies {
             throw new FileNotFoundException("ExpoGaodeMap: Could not find custom SDK at ${customSdkPath}. Please check your customMapSdkPath configuration.")
         }
     } else {
-        implementation ('com.amap.api:3dmap:latest.integration')
+        implementation 'com.amap.api:3dmap:latest.integration'
     }
 }

@@ -336,6 +336,16 @@ npx expo prebuild
 
 Ensure `enableLocation` is set to `true` or not set (defaults to true)
 
+### Android HeatMap Does Not Render
+
+`HeatMap` uses AMap's Android `HeatmapTileProvider`. Some AMap SDK versions still reference legacy support-library classes such as `android.support.v4.util.LongSparseArray` while modern Expo projects use AndroidX. The config plugin automatically sets the following property:
+
+```properties
+android.enableJetifier=true
+```
+
+If you do not use the config plugin, or if you keep native directories under version control, add this line to `android/gradle.properties` and rebuild the Android app.
+
 ## Without Config Plugin
 
 If you prefer not to use Config Plugin, you can manually configure native projects. See [Initialization](./initialization.md).

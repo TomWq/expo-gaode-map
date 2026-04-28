@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import com.amap.api.maps.AMap
@@ -7,7 +8,6 @@ import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Polygon
 import com.amap.api.maps.model.PolygonHoleOptions
 import com.amap.api.maps.model.PolygonOptions
-import com.amap.api.maps.model.BaseHoleOptions
 import expo.modules.gaodemap.utils.ColorParser
 import expo.modules.gaodemap.utils.GeometryUtils
 import expo.modules.gaodemap.utils.LatLngParser
@@ -15,6 +15,7 @@ import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 
+@SuppressLint("ViewConstructor")
 class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
   private val onPolygonPress by EventDispatcher()

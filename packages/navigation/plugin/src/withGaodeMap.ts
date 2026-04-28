@@ -327,6 +327,19 @@ configurations.all {
  */
 const withGaodeMapAndroidSdk: ConfigPlugin<GaodeMapPluginProps> = (config, props) => {
   return withGradleProperties(config, (config) => {
+    const jetifierKey = 'android.enableJetifier';
+    const jetifier = config.modResults.find((item) => item.type === 'property' && item.key === jetifierKey);
+
+    if (jetifier && jetifier.type === 'property') {
+      jetifier.value = 'true';
+    } else {
+      config.modResults.push({
+        type: 'property',
+        key: jetifierKey,
+        value: 'true',
+      });
+    }
+
     if (props.customMapSdkPath) {
       const key = 'EXPO_GAODE_MAP_CUSTOM_SDK_PATH';
       const existing = config.modResults.find((item) => item.type === 'property' && item.key === key);

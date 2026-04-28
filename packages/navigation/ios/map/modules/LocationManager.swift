@@ -102,11 +102,17 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         }
     }
 
+    private func setReGeocodeLanguage(_ rawValue: AMapRegionLanguageType.RawValue) {
+        if let language = AMapRegionLanguageType(rawValue: rawValue) {
+            ensureLocationManager()?.reGeocodeLanguage = language
+        }
+    }
+
     func setGeoLanguage(_ language: Int) {
         switch language {
-        case 0: ensureLocationManager()?.reGeocodeLanguage = .default
-        case 1: ensureLocationManager()?.reGeocodeLanguage = .chinse
-        case 2: ensureLocationManager()?.reGeocodeLanguage = .english
+        case 0: setReGeocodeLanguage(0)
+        case 1: setReGeocodeLanguage(0)
+        case 2: setReGeocodeLanguage(2)
         default: break
         }
     }

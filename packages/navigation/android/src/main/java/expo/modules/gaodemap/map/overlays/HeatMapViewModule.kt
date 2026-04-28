@@ -27,8 +27,8 @@ class HeatMapViewModule : Module() {
         view.setOpacity(opacity)
       }
 
-      Prop<Map<String, Any>?>("gradient") { _: HeatMapView, _ ->
-          // iOS only, ignore on Android
+      Prop<Map<String, Any>?>("gradient") { view: HeatMapView, gradient ->
+        view.setGradient(gradient)
       }
 
       Prop<Boolean>("allowRetinaAdapting") { _: HeatMapView, _ ->

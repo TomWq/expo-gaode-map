@@ -1,7 +1,6 @@
 package expo.modules.gaodemap
 
 import com.amap.api.maps.MapsInitializer
-import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.gaodemap.modules.SDKInitializer
@@ -170,8 +169,8 @@ class ExpoGaodeMapModule : Module() {
     AsyncFunction("coordinateConvert") { coordinate: Map<String, Any>?, type: Int, promise: expo.modules.kotlin.Promise ->
       val latLng = LatLngParser.parseLatLng(coordinate)
       if (latLng != null) {
-        val coordMap = mapOf("latitude" to latLng.latitude, "longitude" to latLng.longitude)
-        getLocationManager().coordinateConvert(coordMap, type, promise)
+        val cordMap = mapOf("latitude" to latLng.latitude, "longitude" to latLng.longitude)
+        getLocationManager().coordinateConvert(cordMap, type, promise)
       } else {
         promise.reject("INVALID_COORDINATE", "Invalid coordinate format", null)
       }
@@ -186,10 +185,10 @@ class ExpoGaodeMapModule : Module() {
      * @returns 两点之间的距离（单位：米）
      */
     Function("distanceBetweenCoordinates") { p1: Map<String, Any>?, p2: Map<String, Any>? ->
-      val coord1 = LatLngParser.parseLatLng(p1)
-      val coord2 = LatLngParser.parseLatLng(p2)
-      if (coord1 != null && coord2 != null) {
-        GeometryUtils.calculateDistance(coord1, coord2)
+      val cord1 = LatLngParser.parseLatLng(p1)
+      val cord2 = LatLngParser.parseLatLng(p2)
+      if (cord1 != null && cord2 != null) {
+        GeometryUtils.calculateDistance(cord1, cord2)
       } else {
         0.0
       }
@@ -580,7 +579,7 @@ class ExpoGaodeMapModule : Module() {
      * @param gridSizeMeters 网格大小（米）
      */
     Function("generateHeatmapGrid") { points: List<Map<String, Any>>?, gridSizeMeters: Double ->
-      if (points == null || points.isEmpty()) return@Function emptyList<Map<String, Any>>()
+      if (points.isNullOrEmpty()) return@Function emptyList<Map<String, Any>>()
       
       val count = points.size
       val latitudes = DoubleArray(count)

@@ -101,14 +101,20 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         ensureLocationManager()?.allowsBackgroundLocationUpdates = allows
     }
 
+    private func setReGeocodeLanguage(_ rawValue: AMapRegionLanguageType.RawValue) {
+        if let language = AMapRegionLanguageType(rawValue: rawValue) {
+            ensureLocationManager()?.reGeocodeLanguage = language
+        }
+    }
+
     func setGeoLanguage(_ language: String) {
         switch language.uppercased() {
         case "ZH":
-            ensureLocationManager()?.reGeocodeLanguage = .chinse
+            setReGeocodeLanguage(0)
         case "EN":
-            ensureLocationManager()?.reGeocodeLanguage = .english
+            setReGeocodeLanguage(2)
         default:
-            ensureLocationManager()?.reGeocodeLanguage = .default
+            setReGeocodeLanguage(0)
         }
     }
 

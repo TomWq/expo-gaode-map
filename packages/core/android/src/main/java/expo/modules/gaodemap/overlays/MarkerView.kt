@@ -28,7 +28,7 @@ import androidx.core.view.contains
 
 import androidx.core.view.isEmpty
 import androidx.core.graphics.scale
-import android.view.ViewGroup
+
 import com.amap.api.maps.model.animation.AlphaAnimation
 import com.amap.api.maps.model.animation.AnimationSet
 import com.amap.api.maps.model.animation.ScaleAnimation
@@ -40,6 +40,7 @@ import kotlin.math.max
 import kotlin.math.min
 import expo.modules.gaodemap.utils.LatLngParser
 
+@SuppressLint("ViewConstructor")
 class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
     init {
@@ -112,7 +113,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             }
         }
 
-        if (childCount == 0) {
+        if (isEmpty()) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             return
         }
@@ -927,9 +928,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
 
         val snapshot = resolveMarkerBitmapSnapshot() ?: run {
-            if (marker?.isVisible != true) {
-                // 自定义 view 还没准备好时，继续等待下一次 layout/update。
-            }
+
             return
         }
         val fullCacheKey = snapshot.fullCacheKey
@@ -958,10 +957,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             // 🔑 关键修复：如果生成 Bitmap 失败（例如 View 还没准备好）
             // 不要急着切回默认 Marker，这会导致闪烁和位置跳变。
             // 只有在 Marker 从未显示过的情况下，才考虑兜底策略。
-            if (marker?.isVisible != true) {
-                 // 如果从未显示过，可以暂不显示，等待下一次尝试，或者显示默认（取决于需求）
-                 // 这里选择暂不显示，避免闪现蓝点
-            }
+
             return
         }
 
@@ -997,7 +993,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
     }
 
-    private fun invalidateAppliedCustomMarkerCaches(clearGlobalCache: Boolean = false) {
+    private fun invalidateAppliedCustomMarkerCaches(clearGlobalCache: Boolean) {
         val key = lastAppliedCustomMarkerKey ?: return
         if (clearGlobalCache) {
             BitmapDescriptorCache.remove(key)
@@ -1040,7 +1036,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             if (index in 0..<childCount) {
                 super.removeViewAt(index)
                 // 只在还有子视图时更新图标
-                if (!isRemoving && childCount > 0 && marker != null) {
+                if (!isRemoving && isNotEmpty() && marker != null) {
                     markCustomMarkerContentDirty(50)
                 }
                 // 如果最后一个子视图被移除，什么都不做

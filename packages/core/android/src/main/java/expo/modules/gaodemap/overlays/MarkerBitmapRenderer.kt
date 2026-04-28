@@ -15,6 +15,9 @@ import expo.modules.gaodemap.companion.IconBitmapCache
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.text.StringBuilder
+import androidx.core.view.isEmpty
+import androidx.core.graphics.get
+import androidx.core.view.isNotEmpty
 
 internal data class MarkerBitmapSnapshot(
     val keyPart: String,
@@ -55,7 +58,7 @@ internal object MarkerBitmapRenderer {
         contentHeight: Int,
         cacheKey: String?,
     ): MarkerBitmapSnapshot? {
-        if (container.childCount == 0) {
+        if (container.isEmpty()) {
             return null
         }
 
@@ -69,12 +72,10 @@ internal object MarkerBitmapRenderer {
             contentBounds?.width()
                 ?: contentView?.measuredWidth
                 ?: child.measuredWidth
-                ?: 0
         val measuredHeight =
             contentBounds?.height()
                 ?: contentView?.measuredHeight
                 ?: child.measuredHeight
-                ?: 0
 
         val finalWidth = if (measuredWidth > 0) measuredWidth else contentWidth
         val finalHeight = if (measuredHeight > 0) measuredHeight else contentHeight
@@ -146,7 +147,7 @@ internal object MarkerBitmapRenderer {
 
         var resolvedBounds: Rect? = null
 
-        if (view is ViewGroup && view.childCount > 0) {
+        if (view is ViewGroup && view.isNotEmpty()) {
             for (i in 0 until view.childCount) {
                 val child = view.getChildAt(i) ?: continue
                 val childBounds = computeContentBounds(child) ?: continue
@@ -308,7 +309,7 @@ internal object MarkerBitmapRenderer {
 
         for (y in 0 until bitmap.height) {
             for (x in 0 until bitmap.width) {
-                if (Color.alpha(bitmap.getPixel(x, y)) != 0) {
+                if (Color.alpha(bitmap[x, y]) != 0) {
                     if (x < minX) minX = x
                     if (y < minY) minY = y
                     if (x > maxX) maxX = x
@@ -337,10 +338,10 @@ internal object MarkerBitmapRenderer {
         var rightEdgeHasPixel = false
 
         for (x in 0 until bitmap.width) {
-            if (!topEdgeHasPixel && Color.alpha(bitmap.getPixel(x, 0)) != 0) {
+            if (!topEdgeHasPixel && Color.alpha(bitmap[x, 0]) != 0) {
                 topEdgeHasPixel = true
             }
-            if (!bottomEdgeHasPixel && Color.alpha(bitmap.getPixel(x, bitmap.height - 1)) != 0) {
+            if (!bottomEdgeHasPixel && Color.alpha(bitmap[x, bitmap.height - 1]) != 0) {
                 bottomEdgeHasPixel = true
             }
             if (topEdgeHasPixel && bottomEdgeHasPixel) {
@@ -349,10 +350,10 @@ internal object MarkerBitmapRenderer {
         }
 
         for (y in 0 until bitmap.height) {
-            if (!leftEdgeHasPixel && Color.alpha(bitmap.getPixel(0, y)) != 0) {
+            if (!leftEdgeHasPixel && Color.alpha(bitmap[0, y]) != 0) {
                 leftEdgeHasPixel = true
             }
-            if (!rightEdgeHasPixel && Color.alpha(bitmap.getPixel(bitmap.width - 1, y)) != 0) {
+            if (!rightEdgeHasPixel && Color.alpha(bitmap[bitmap.width - 1, y]) != 0) {
                 rightEdgeHasPixel = true
             }
             if (leftEdgeHasPixel && rightEdgeHasPixel) {

@@ -4,6 +4,29 @@ This guide focuses on location permission-related issues specific to the Android
 
 ## Common Issues
 
+### Issue: HeatMap Does Not Render on Android
+
+**Symptoms:**
+```
+java.lang.NoClassDefFoundError: Failed resolution of: Landroid/support/v4/util/LongSparseArray;
+  at com.amap.api.maps.model.HeatmapTileProvider...
+```
+
+**Root Cause:**
+
+AMap's Android heatmap implementation may still reference legacy support-library classes internally. Expo projects use AndroidX, so the old `android.support.*` classes are not available unless Jetifier rewrites the dependency.
+
+**Solution:**
+
+Ensure `android/gradle.properties` contains:
+
+```properties
+android.useAndroidX=true
+android.enableJetifier=true
+```
+
+The config plugin injects `android.enableJetifier=true` automatically. If native directories are already checked in, verify the property is present and rebuild the Android app.
+
 ### Issue: Permission Appears Not Granted Immediately After Request
 
 **Symptoms:**

@@ -3,6 +3,7 @@ package expo.modules.gaodemap.modules
 import android.content.Context
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
+import androidx.core.content.edit
 
 /**
  * SDK 初始化管理器
@@ -14,7 +15,7 @@ import com.amap.api.maps.MapsInitializer
  * - 获取 SDK 版本信息
  */
 object SDKInitializer {
-    private const val PREFS_NAME = "expo_gaodemap_privacy"
+    private const val PREFS_NAME = "expo_demagogue_privacy"
     private const val KEY_PRIVACY_SHOWN = "privacy_shown"
     private const val KEY_PRIVACY_CONTAINS = "privacy_contains"
     private const val KEY_PRIVACY_AGREED = "privacy_agreed"
@@ -170,13 +171,13 @@ object SDKInitializer {
     }
 
     private fun persistState(context: Context) {
-        prefs(context).edit()
-            .putBoolean(KEY_PRIVACY_SHOWN, privacyShown)
-            .putBoolean(KEY_PRIVACY_CONTAINS, privacyContains)
-            .putBoolean(KEY_PRIVACY_AGREED, privacyAgreed)
-            .putString(KEY_PRIVACY_VERSION, privacyVersion)
-            .putString(KEY_AGREED_PRIVACY_VERSION, agreedPrivacyVersion)
-            .apply()
+        prefs(context).edit {
+            putBoolean(KEY_PRIVACY_SHOWN, privacyShown)
+                .putBoolean(KEY_PRIVACY_CONTAINS, privacyContains)
+                .putBoolean(KEY_PRIVACY_AGREED, privacyAgreed)
+                .putString(KEY_PRIVACY_VERSION, privacyVersion)
+                .putString(KEY_AGREED_PRIVACY_VERSION, agreedPrivacyVersion)
+        }
     }
 
     private fun clearConsentPersistedState(context: Context, keepCurrentVersion: Boolean) {
@@ -185,19 +186,19 @@ object SDKInitializer {
         privacyAgreed = false
         agreedPrivacyVersion = null
 
-        val editor = prefs(context).edit()
-            .putBoolean(KEY_PRIVACY_SHOWN, false)
+        prefs(context).edit {
+            putBoolean(KEY_PRIVACY_SHOWN, false)
             .putBoolean(KEY_PRIVACY_CONTAINS, false)
             .putBoolean(KEY_PRIVACY_AGREED, false)
             .remove(KEY_AGREED_PRIVACY_VERSION)
 
-        if (keepCurrentVersion) {
-            editor.putString(KEY_PRIVACY_VERSION, privacyVersion)
-        } else {
-            privacyVersion = null
-            editor.remove(KEY_PRIVACY_VERSION)
-        }
+            if (keepCurrentVersion) {
+                putString(KEY_PRIVACY_VERSION, privacyVersion)
+            } else {
+                privacyVersion = null
+                remove(KEY_PRIVACY_VERSION)
+            }
 
-        editor.apply()
+        }
     }
 }

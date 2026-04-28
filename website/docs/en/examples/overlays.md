@@ -235,6 +235,8 @@ export default function MultiPointExample() {
 
 ## HeatMap
 
+For AndroidX projects, ensure `android.enableJetifier=true` exists in `android/gradle.properties`. AMap's Android heatmap tile provider may still reference legacy support-library classes internally; the config plugin adds this property automatically.
+
 ```tsx
 import { HeatMap, MapView } from 'expo-gaode-map';
 

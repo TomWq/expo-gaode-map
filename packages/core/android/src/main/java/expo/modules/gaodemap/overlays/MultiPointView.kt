@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,7 +11,7 @@ import expo.modules.gaodemap.utils.LatLngParser
 import com.amap.api.maps.AMap
 import com.amap.api.maps.model.BitmapDescriptor
 import com.amap.api.maps.model.BitmapDescriptorFactory
-import com.amap.api.maps.model.LatLng
+
 import com.amap.api.maps.model.MultiPointItem
 import com.amap.api.maps.model.MultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions
@@ -26,6 +27,7 @@ import java.net.URL
 import kotlin.concurrent.thread
 import androidx.core.graphics.scale
 
+@SuppressLint("ViewConstructor")
 class MultiPointView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
   private val onMultiPointPress by EventDispatcher()

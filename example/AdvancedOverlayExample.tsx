@@ -172,9 +172,9 @@ export default function AdvancedOverlayExample() {
             points={clusterData}
             icon={useClusterIcon ? positionIconUri : undefined}
             radius={32}
-            minClusterSize={2}
+            minClusterSize={1}
             clusterBuckets={[
-              { minPoints: 2, backgroundColor: '#38bdf8' },
+              { minPoints: 1, backgroundColor: '#38bdf8' },
               { minPoints: 6, backgroundColor: '#22c55e' },
               { minPoints: 12, backgroundColor: '#f97316' },
               { minPoints: 20, backgroundColor: '#ef4444' },

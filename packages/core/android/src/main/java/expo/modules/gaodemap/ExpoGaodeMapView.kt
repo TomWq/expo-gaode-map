@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import com.amap.api.maps.AMap
 import com.amap.api.maps.TextureMapView
-import com.amap.api.maps.MapsInitializer
 import com.amap.api.maps.model.LatLng
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
@@ -19,6 +18,7 @@ import expo.modules.gaodemap.overlays.*
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
 import androidx.core.graphics.withTranslation
+import androidx.core.view.isGone
 
 /**
  * 高德地图视图组件
@@ -50,20 +50,20 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val measuredWidth = View.MeasureSpec.getSize(widthMeasureSpec)
-        val measuredHeight = View.MeasureSpec.getSize(heightMeasureSpec)
+        val measuredWidth = MeasureSpec.getSize(widthMeasureSpec)
+        val measuredHeight = MeasureSpec.getSize(heightMeasureSpec)
 
         setMeasuredDimension(measuredWidth, measuredHeight)
 
         for (i in 0 until childCount) {
             val child = getChildAt(i) ?: continue
-            if (child.visibility == View.GONE) {
+            if (child.isGone) {
                 continue
             }
 
             if (child === mapView) {
-                val childWidthSpec = View.MeasureSpec.makeMeasureSpec(measuredWidth, View.MeasureSpec.EXACTLY)
-                val childHeightSpec = View.MeasureSpec.makeMeasureSpec(measuredHeight, View.MeasureSpec.EXACTLY)
+                val childWidthSpec = MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.EXACTLY)
+                val childHeightSpec = MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY)
                 child.measure(childWidthSpec, childHeightSpec)
                 continue
             }
@@ -71,15 +71,15 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             val lp = child.layoutParams
             val childWidthSpec = when {
                 lp?.width != null && lp.width > 0 ->
-                    View.MeasureSpec.makeMeasureSpec(lp.width, View.MeasureSpec.EXACTLY)
+                    MeasureSpec.makeMeasureSpec(lp.width, MeasureSpec.EXACTLY)
                 else ->
-                    View.MeasureSpec.makeMeasureSpec(measuredWidth, View.MeasureSpec.AT_MOST)
+                    MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.AT_MOST)
             }
             val childHeightSpec = when {
                 lp?.height != null && lp.height > 0 ->
-                    View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY)
+                    MeasureSpec.makeMeasureSpec(lp.height, MeasureSpec.EXACTLY)
                 else ->
-                    View.MeasureSpec.makeMeasureSpec(measuredHeight, View.MeasureSpec.AT_MOST)
+                    MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.AT_MOST)
             }
             child.measure(childWidthSpec, childHeightSpec)
         }
@@ -91,7 +91,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
         for (i in 0 until childCount) {
             val child = getChildAt(i) ?: continue
-            if (child.visibility == View.GONE) {
+            if (child.isGone) {
                 continue
             }
 

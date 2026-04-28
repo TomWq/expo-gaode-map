@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 点聚合视图
  * 实现真正的点聚合逻辑，支持自定义样式和点击事件
  */
+@SuppressLint("ViewConstructor")
 class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, appContext), AMap.OnCameraChangeListener {
   
 
@@ -139,7 +140,11 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置最小聚合数量
    */
   fun setMinClusterSize(size: Int) {
-    minClusterSize = size
+    val nextSize = size.coerceAtLeast(1)
+    if (minClusterSize != nextSize) {
+      minClusterSize = nextSize
+      styleChanged = true
+    }
     updateClusters()
   }
   

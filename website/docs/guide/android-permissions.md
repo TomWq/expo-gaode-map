@@ -4,6 +4,29 @@
 
 ## 常见问题
 
+### 问题：Android 热力图不显示
+
+**症状：**
+```
+java.lang.NoClassDefFoundError: Failed resolution of: Landroid/support/v4/util/LongSparseArray;
+  at com.amap.api.maps.model.HeatmapTileProvider...
+```
+
+**原因：**
+
+高德 Android 热力图实现内部可能仍引用旧版 support-library 类。Expo 工程默认使用 AndroidX，如果没有启用 Jetifier，旧的 `android.support.*` 类不会被转换，热力图 tile 生成会失败。
+
+**解决方案：**
+
+确认 `android/gradle.properties` 中包含：
+
+```properties
+android.useAndroidX=true
+android.enableJetifier=true
+```
+
+Config Plugin 会自动注入 `android.enableJetifier=true`。如果项目已经提交了原生 `android` 目录，请检查该配置是否存在，并重新构建 Android app。
+
 ### 问题：权限请求后立即显示未授予
 
 **症状：**

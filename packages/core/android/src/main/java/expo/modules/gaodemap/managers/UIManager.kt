@@ -240,7 +240,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
     
     // 自定义图标 (image)
     val imagePath = config["image"] as? String
-    if (imagePath != null && imagePath.isNotEmpty()) {
+    if (!imagePath.isNullOrEmpty()) {
       val density = context.resources.displayMetrics.density
       val imageWidth = (config["imageWidth"] as? Number)?.let { (it.toFloat() * density).toInt() }
       val imageHeight = (config["imageHeight"] as? Number)?.let { (it.toFloat() * density).toInt() }
@@ -357,7 +357,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   fun setMapType(type: Int) {
     aMap.mapType = when (type) {
       2 -> AMap.MAP_TYPE_SATELLITE  // 卫星地图
-      3 -> AMap.MAP_TYPE_NIGHT      // 夜间地图
+      3 -> AMap.MAP_TYPE_NIGHT      // 黑夜地图
       4 -> AMap.MAP_TYPE_NAVI       // 导航地图
       5 -> AMap.MAP_TYPE_BUS        // 公交地图
       else -> AMap.MAP_TYPE_NORMAL  // 标准地图 (1, 以及兼容旧值 0)

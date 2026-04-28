@@ -241,6 +241,8 @@ export default function MultiPointExample() {
 
 展示数据密度分布。
 
+AndroidX 工程需要确保 `android/gradle.properties` 中存在 `android.enableJetifier=true`。高德 Android 热力图的 tile provider 内部可能仍引用旧版 support-library 类；使用 Config Plugin 时会自动添加。
+
 ```tsx
 import { MapView, HeatMap } from 'expo-gaode-map';
 

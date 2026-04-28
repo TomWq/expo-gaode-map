@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
@@ -46,6 +47,7 @@ object PermissionHelper {
     /**
      * 检查是否为 Android 14+
      */
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun isAndroid14Plus(): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE // API 34
     }
@@ -53,6 +55,7 @@ object PermissionHelper {
     /**
      * 检查是否为 Android 10+（引入后台位置权限）
      */
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.Q)
     fun isAndroid10Plus(): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q // API 29
     }
@@ -117,17 +120,14 @@ object PermissionHelper {
      * 检查后台位置权限状态
      */
     fun checkBackgroundLocationPermission(context: Context): PermissionStatus {
-        val permission = getBackgroundLocationPermission()
-        if (permission == null) {
-            // Android 10 以下不支持后台位置权限
-            return PermissionStatus(
-                granted = true,
-                shouldShowRationale = false,
-                isPermanentlyDenied = false,
-                backgroundLocation = true
-            )
-        }
-        
+        val permission = getBackgroundLocationPermission() ?: // Android 10 以下不支持后台位置权限
+        return PermissionStatus(
+            granted = true,
+            shouldShowRationale = false,
+            isPermanentlyDenied = false,
+            backgroundLocation = true
+        )
+
         val granted = ContextCompat.checkSelfPermission(
             context,
             permission
@@ -179,11 +179,8 @@ object PermissionHelper {
      * 注意：必须在前台权限已授予后才能请求
      */
     fun requestBackgroundLocationPermission(activity: Activity, requestCode: Int): Boolean {
-        val permission = getBackgroundLocationPermission()
-        if (permission == null) {
-            return false
-        }
-        
+        val permission = getBackgroundLocationPermission() ?: return false
+
         // 检查前台权限是否已授予
         val foregroundStatus = checkForegroundLocationPermission(activity)
         if (!foregroundStatus.granted) {

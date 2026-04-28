@@ -227,6 +227,8 @@ All overlay coordinates support:
 | `gradient` | `{ colors: ColorValue[]; startPoints: number[] }` | - | Gradient configuration |
 | `allowRetinaAdapting` | `boolean` | `false` | Retina heatmap support, iOS only |
 
+> Android note: `HeatMap` uses AMap's `HeatmapTileProvider`, which may reference legacy support-library classes internally. AndroidX projects must enable Jetifier with `android.enableJetifier=true` in `android/gradle.properties`. The config plugin injects this automatically; add it manually if you do not use the plugin or if you maintain native projects directly.
+
 ### Example
 
 ```tsx

@@ -17,6 +17,7 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import java.net.URL
 
+@SuppressLint("ViewConstructor")
 class PolylineView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
   private val onPolylinePress by EventDispatcher()

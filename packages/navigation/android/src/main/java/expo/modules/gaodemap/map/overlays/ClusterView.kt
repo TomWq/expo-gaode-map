@@ -141,8 +141,11 @@ class ClusterView(context: Context, appContext: AppContext) : ExpoView(context, 
    * 设置最小聚合数量
    */
   fun setMinClusterSize(size: Int) {
-    Log.d("ClusterView", "setMinClusterSize: $size")
-    minClusterSize = size
+    val nextSize = size.coerceAtLeast(1)
+    if (minClusterSize != nextSize) {
+      minClusterSize = nextSize
+      styleChanged = true
+    }
     updateClusters()
   }
   

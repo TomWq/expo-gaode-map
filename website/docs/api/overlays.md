@@ -263,6 +263,8 @@ interface SmoothMoveEndEvent {
 | `gradient` | `{ colors: ColorValue[]; startPoints: number[] }` | - | 热力图渐变配置 |
 | `allowRetinaAdapting` | `boolean` | `false` | 是否开启高清热力图，仅 iOS |
 
+> Android 说明：`HeatMap` 使用高德 Android SDK 的 `HeatmapTileProvider`，该实现内部可能引用旧版 support-library 类。AndroidX 工程需要在 `android/gradle.properties` 中开启 `android.enableJetifier=true`。Config Plugin 会自动注入；如果不使用插件，或手动维护原生工程，请手动添加。
+
 ### 示例
 
 ```tsx

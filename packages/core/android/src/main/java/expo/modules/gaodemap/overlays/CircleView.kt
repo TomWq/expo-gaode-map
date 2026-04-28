@@ -1,5 +1,6 @@
 package expo.modules.gaodemap.overlays
 
+import android.annotation.SuppressLint
 import expo.modules.gaodemap.utils.LatLngParser
 import android.content.Context
 import android.graphics.Color
@@ -12,6 +13,7 @@ import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 
+@SuppressLint("ViewConstructor")
 class CircleView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   
   @Suppress("unused")
@@ -155,7 +157,7 @@ class CircleView(context: Context, appContext: AppContext) : ExpoView(context, a
     // 如果是真正的移除，parent 会保持为 null
     // 如果只是 TabView 切换，parent 会在短时间内恢复
     post {
-      // 延迟后再次检查 parent，如果仍然为 null，说明是真正的移除
+      // 延迟后再次检查 parent，如果仍然为 null，说明是真正移除
       if (parent == null) {
         removeCircle()
         aMap = null

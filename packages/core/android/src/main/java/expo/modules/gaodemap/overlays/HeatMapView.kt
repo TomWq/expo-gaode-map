@@ -1,21 +1,29 @@
 package expo.modules.gaodemap.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.os.Looper
 import android.util.Log
 import com.amap.api.maps.AMap
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.Gradient
+import com.amap.api.maps.model.HeatmapTileProvider
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.TileOverlay
 import com.amap.api.maps.model.TileOverlayOptions
-import com.amap.api.maps.model.HeatmapTileProvider
-import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.WeightedLatLng
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.views.ExpoView
+import expo.modules.gaodemap.utils.LatLngParser
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import expo.modules.gaodemap.utils.LatLngParser
 
+@SuppressLint("ViewConstructor")
 class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+  private companion object {
+    const val TAG = "HeatMapView"
+  }
   
   private val executor: ExecutorService = Executors.newSingleThreadExecutor()
   private val applyUpdateRunnable = Runnable { applyUpdateOnMain() }
@@ -25,9 +33,10 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
 
   private var heatmapOverlay: TileOverlay? = null
   private var aMap: AMap? = null
-  private var dataList: MutableList<LatLng> = mutableListOf()
+  private var dataList: MutableList<WeightedLatLng> = mutableListOf()
   private var radius: Int = 50
   private var opacity: Double = 0.6
+  private var gradient: Gradient? = null
   
   /**
    * 设置地图实例
@@ -36,6 +45,7 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun setMap(map: AMap) {
     aMap = map
     needsRebuild = true
+    Log.d(TAG, "setMap: map attached")
     scheduleUpdate()
   }
   
@@ -46,7 +56,8 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
    */
   fun setData(data: List<Any>?) {
     dataList.clear()
-    dataList.addAll(LatLngParser.parseLatLngList(data))
+    dataList.addAll(parseWeightedLatLngList(data))
+    Log.d(TAG, "setData: raw=${data?.size ?: 0}, parsed=${dataList.size}, ${formatPointStats(dataList)}")
     needsRebuild = true
     scheduleUpdate()
   }
@@ -56,6 +67,7 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
    */
   fun setRadius(radiusValue: Int) {
     radius = radiusValue
+    Log.d(TAG, "setRadius: $radiusValue")
     needsRebuild = true
     scheduleUpdate()
   }
@@ -65,10 +77,20 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
    */
   fun setOpacity(opacityValue: Double) {
     opacity = opacityValue
-    applyOverlayOpacity()
+    Log.d(TAG, "setOpacity: $opacityValue")
+    needsRebuild = true
+    scheduleUpdate()
+  }
+
+  fun setGradient(gradientValue: Map<String, Any>?) {
+    gradient = parseGradient(gradientValue)
+    Log.d(TAG, "setGradient: hasGradient=${gradient != null}, raw=${gradientValue != null}")
+    needsRebuild = true
+    scheduleUpdate()
   }
 
   fun setVisible(visibleValue: Boolean) {
+    Log.d(TAG, "setVisible: $visibleValue, points=${dataList.size}, hasOverlay=${heatmapOverlay != null}, needsRebuild=$needsRebuild")
     if (!visibleValue) {
       visible = false
       updateToken += 1
@@ -95,6 +117,7 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
   private fun scheduleUpdate() {
     updateToken += 1
     removeCallbacks(applyUpdateRunnable)
+    Log.d(TAG, "scheduleUpdate: token=$updateToken, mapAttached=${aMap != null}, visible=$visible, points=${dataList.size}")
     postDelayed(applyUpdateRunnable, 32)
   }
 
@@ -142,8 +165,11 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
     val map = aMap ?: return
     val token = updateToken
     val pointsSnapshot = ArrayList(dataList)
+    val latLngSnapshot = pointsSnapshot.map { it.latLng }
     val radiusValue = radius.coerceIn(10, 200)
     val opacityValue = opacity.coerceIn(0.0, 1.0)
+    val gradientValue = gradient
+    Log.d(TAG, "applyUpdate: token=$token, visible=$visible, points=${pointsSnapshot.size}, radius=$radiusValue, opacity=$opacityValue, gradient=${gradientValue != null}, ${formatPointStats(pointsSnapshot)}")
 
     if (!visible) {
       applyOverlayVisibility()
@@ -151,6 +177,7 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
     }
 
     if (pointsSnapshot.isEmpty()) {
+      Log.w(TAG, "applyUpdate: no valid heatmap points, removing overlay")
       heatmapOverlay?.remove()
       heatmapOverlay = null
       return
@@ -164,19 +191,25 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
 
     executor.execute {
       try {
-        val provider = HeatmapTileProvider.Builder()
-          .data(pointsSnapshot)
+        val builder = HeatmapTileProvider.Builder()
+          .data(latLngSnapshot)
           .radius(radiusValue)
-          .build()
+
+        gradientValue?.let { builder.gradient(it) }
+
+        val provider = builder.build()
 
         post {
           if (token != updateToken) {
+            Log.d(TAG, "addOverlay skipped: stale token=$token, current=$updateToken")
             return@post
           }
           if (aMap !== map) {
+            Log.d(TAG, "addOverlay skipped: map instance changed")
             return@post
           }
           if (!visible) {
+            Log.d(TAG, "addOverlay skipped: hidden")
             return@post
           }
 
@@ -200,9 +233,10 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
           applyOverlayVisibility()
           applyOverlayOpacity()
           forceRefresh()
+          Log.i(TAG, "addOverlay success: id=${runCatching { heatmapOverlay?.id }.getOrNull()}, points=${pointsSnapshot.size}, radius=$radiusValue, opacity=$opacityValue")
         }
       } catch (t: Throwable) {
-        Log.e("HeatMapView", "Failed to build heatmap", t)
+        Log.e(TAG, "Failed to build heatmap", t)
       }
     }
   }
@@ -217,10 +251,90 @@ class HeatMapView(context: Context, appContext: AppContext) : ExpoView(context, 
   fun removeHeatMap() {
     updateToken += 1
     removeCallbacks(applyUpdateRunnable)
+    Log.d(TAG, "removeHeatMap")
     heatmapOverlay?.remove()
     heatmapOverlay = null
     dataList.clear()
     needsRebuild = true
+  }
+
+  private fun parseWeightedLatLngList(data: Any?): List<WeightedLatLng> {
+    if (data == null || data !is List<*>) return emptyList()
+
+    val result = mutableListOf<WeightedLatLng>()
+    for (item in data) {
+      val point = parseWeightedLatLng(item)
+      if (point != null) {
+        result.add(point)
+      } else if (item is List<*>) {
+        result.addAll(parseWeightedLatLngList(item))
+      }
+    }
+    return result
+  }
+
+  private fun parseWeightedLatLng(data: Any?): WeightedLatLng? {
+    val latLng = LatLngParser.parseLatLng(data) ?: return null
+    val intensity = when (data) {
+      is Map<*, *> -> listOf(data["intensity"], data["weight"], data["count"], data["value"])
+        .firstOrNull { it is Number }
+      is List<*> -> data.getOrNull(2)
+      else -> null
+    }
+    val weight = ((intensity as? Number)?.toDouble() ?: 1.0).takeIf { it.isFinite() && it > 0.0 } ?: 1.0
+    return WeightedLatLng(latLng, weight)
+  }
+
+  private fun parseGradient(gradientValue: Map<String, Any>?): Gradient? {
+    if (gradientValue == null) return null
+    val rawColors = gradientValue["colors"] as? List<*> ?: return null
+    val rawStartPoints = gradientValue["startPoints"] as? List<*> ?: return null
+    if (rawColors.size < 2 || rawColors.size != rawStartPoints.size) {
+      Log.w(TAG, "parseGradient ignored: colors=${rawColors.size}, startPoints=${rawStartPoints.size}")
+      return null
+    }
+
+    val colors = IntArray(rawColors.size)
+    val startPoints = FloatArray(rawStartPoints.size)
+    for (index in rawColors.indices) {
+      val color = parseColor(rawColors[index]) ?: run {
+        Log.w(TAG, "parseGradient ignored: invalid color at index=$index, value=${rawColors[index]}")
+        return null
+      }
+      val startPoint = (rawStartPoints[index] as? Number)?.toFloat() ?: run {
+        Log.w(TAG, "parseGradient ignored: invalid startPoint at index=$index, value=${rawStartPoints[index]}")
+        return null
+      }
+      colors[index] = color
+      startPoints[index] = startPoint.coerceIn(0f, 1f)
+    }
+    return Gradient(colors, startPoints)
+  }
+
+  private fun parseColor(value: Any?): Int? {
+    return when (value) {
+      is Number -> value.toInt()
+      is String -> runCatching { Color.parseColor(value) }.getOrNull()
+      else -> null
+    }
+  }
+
+  private fun formatPointStats(points: List<WeightedLatLng>): String {
+    if (points.isEmpty()) return "bounds=empty"
+    var minLat = Double.POSITIVE_INFINITY
+    var maxLat = Double.NEGATIVE_INFINITY
+    var minLng = Double.POSITIVE_INFINITY
+    var maxLng = Double.NEGATIVE_INFINITY
+    var totalIntensity = 0.0
+    points.forEach { point ->
+      val latLng: LatLng = point.latLng
+      minLat = minOf(minLat, latLng.latitude)
+      maxLat = maxOf(maxLat, latLng.latitude)
+      minLng = minOf(minLng, latLng.longitude)
+      maxLng = maxOf(maxLng, latLng.longitude)
+      totalIntensity += point.intensity
+    }
+    return "bounds=[$minLat,$minLng]-[$maxLat,$maxLng], totalIntensity=$totalIntensity"
   }
   
   override fun onDetachedFromWindow() {

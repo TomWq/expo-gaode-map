@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
-  s.dependency 'AMap3DMap'
+  s.dependency 'AMap3DMap', '= 11.1.200'
   s.dependency "AMapLocation"
   s.dependency "AMapLocation"
 

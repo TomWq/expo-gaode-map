@@ -3,11 +3,18 @@ import { StyleSheet } from 'react-native';
 import type { ViewProps } from 'react-native';
 import type { HeatMapProps } from '../../types';
 import type { LatLng } from '../../types';
-import { normalizeLatLngList } from '../../utils/GeoUtils';
+import { normalizeLatLng } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 
+type NativeHeatMapPoint = LatLng & {
+  intensity?: number;
+  weight?: number;
+  count?: number;
+  value?: number;
+};
+
 type NativeHeatMapProps = Omit<HeatMapProps, 'data'> & ViewProps & {
-  data: LatLng[];
+  data: NativeHeatMapPoint[];
 };
 
 const getNativeHeatMap = createLazyNativeViewManager<NativeHeatMapProps>('HeatMapView');
@@ -22,7 +29,7 @@ const getNativeHeatMap = createLazyNativeViewManager<NativeHeatMapProps>('HeatMa
 function HeatMap(props: HeatMapProps) {
   const NativeHeatMap = React.useMemo(() => getNativeHeatMap(), []);
   const { data, ...restProps } = props;
-  const normalizedData = normalizeLatLngList(data);
+  const normalizedData = React.useMemo(() => normalizeHeatMapData(data), [data]);
 
   return (
     <NativeHeatMap
@@ -42,5 +49,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 });
+
+function normalizeHeatMapData(data: HeatMapProps['data']): NativeHeatMapPoint[] {
+  return data.map((point) => {
+    const normalized = normalizeLatLng(point);
+    if (Array.isArray(point)) {
+      return {
+        ...normalized,
+        intensity: typeof point[2] === 'number' ? point[2] : undefined,
+      };
+    }
+
+    const extra = point as Partial<NativeHeatMapPoint>;
+    return {
+      ...normalized,
+      intensity: typeof extra.intensity === 'number' ? extra.intensity : undefined,
+      weight: typeof extra.weight === 'number' ? extra.weight : undefined,
+      count: typeof extra.count === 'number' ? extra.count : undefined,
+      value: typeof extra.value === 'number' ? extra.value : undefined,
+    };
+  });
+}
 
 export default React.memo(HeatMap);

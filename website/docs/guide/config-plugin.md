@@ -339,6 +339,16 @@ npx expo prebuild
 
 确保 `enableLocation` 设置为 `true` 或不设置(默认为 true)
 
+### Android 热力图不显示
+
+`HeatMap` 使用高德 Android SDK 的 `HeatmapTileProvider`。部分高德 SDK 版本内部仍会引用旧版 support-library 类，例如 `android.support.v4.util.LongSparseArray`，而现代 Expo 工程默认使用 AndroidX。Config Plugin 会自动写入下面的配置：
+
+```properties
+android.enableJetifier=true
+```
+
+如果没有使用 Config Plugin，或者你手动维护 `android` 原生目录，请把这行加入 `android/gradle.properties`，然后重新构建 Android app。
+
 ## 不使用 Config Plugin
 
 如果不想使用 Config Plugin,可以手动配置原生项目。详见 [初始化配置](./initialization.md)。

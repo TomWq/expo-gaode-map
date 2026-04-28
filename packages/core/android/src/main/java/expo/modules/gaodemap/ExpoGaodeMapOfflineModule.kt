@@ -495,10 +495,10 @@ class ExpoGaodeMapOfflineModule : Module() {
   private val startDownloadFailedCode: Int by lazy {
     try {
       OfflineMapStatus::class.java.getField("START_DOWNLOAD_FAILED").getInt(null)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       try {
         OfflineMapStatus::class.java.getField("START_DOWNLOAD_FAILD").getInt(null)
-      } catch (e2: Exception) {
+      } catch (_: Exception) {
         -1
       }
     }
@@ -513,17 +513,17 @@ class ExpoGaodeMapOfflineModule : Module() {
       // 尝试标准版的命名 (getcompleteCode)
       val method = obj.javaClass.getMethod("getcompleteCode")
       return method.invoke(obj) as Int
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       try {
         // 尝试修正后的命名 (getCompleteCode) - Google Play 版本可能使用此命名
         val method = obj.javaClass.getMethod("getCompleteCode")
         return method.invoke(obj) as Int
-      } catch (e2: Exception) {
+      } catch (_: Exception) {
         // 如果都失败了，尝试直接访问 completeCode 字段
          try {
              val field = obj.javaClass.getField("completeCode")
              return field.getInt(obj)
-         } catch (e3: Exception) {
+         } catch (_: Exception) {
              return 0
          }
       }
