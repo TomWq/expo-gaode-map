@@ -1,11 +1,11 @@
 import { useSafeScrollViewStyle } from './hooks/useSafeScrollView';
-import { getInputTips, searchNearby, searchPOI, type InputTip, type POI } from 'expo-gaode-map-search';
+import { getInputTips, searchNearby, searchPOI, type InputTip, type POI } from 'expo-gaode-map';
 import React, { useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 /**
  * POI 原生搜索示例
- * 使用 expo-gaode-map-search 原生模块进行搜索
+ * 使用 expo-gaode-map 内置搜索模块进行搜索
  */
 export default function POISearchNativeExample() {
   // 搜索参数

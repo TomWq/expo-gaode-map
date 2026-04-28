@@ -1,4 +1,4 @@
-import { ExpoGaodeMapModule, type NaviPoint, type NaviViewRef } from "expo-gaode-map-navigation";
+import { ExpoGaodeMapModule, type NaviPoint,  ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
@@ -22,7 +22,7 @@ const DEMO_DESTINATION: DemoPoint = {
 };
 
 export default function QuickStartScreen() {
-  const naviViewRef = React.useRef<NaviViewRef>(null);
+  const naviViewRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
   const [privacyReady, setPrivacyReady] = React.useState(false);
   const [sdkReady, setSdkReady] = React.useState(false);
   const [initializing, setInitializing] = React.useState(false);

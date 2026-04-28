@@ -3,6 +3,7 @@ package expo.modules.gaodemap
 import android.os.Bundle
 import android.os.StatFs
 import android.os.Environment
+import android.util.Log
 import com.amap.api.maps.offlinemap.OfflineMapCity
 import com.amap.api.maps.offlinemap.OfflineMapManager
 import com.amap.api.maps.offlinemap.OfflineMapProvince
@@ -17,9 +18,11 @@ import expo.modules.kotlin.modules.ModuleDefinition
  */
 class ExpoGaodeMapOfflineModule : Module() {
   
+  private val logTag = "ExpoGaodeMapOffline"
   private var offlineMapManager: OfflineMapManager? = null
   private val downloadingCities = mutableSetOf<String>()
   private val pausedCities = mutableSetOf<String>()
+  private val pendingDownloadsByName = mutableMapOf<String, String>()
   
   // 线程安全锁
   private val lock = Any()
@@ -31,6 +34,7 @@ class ExpoGaodeMapOfflineModule : Module() {
       }
 
       override fun onCheckUpdate(hasNew: Boolean, name: String?) {
+        handleCheckUpdate(hasNew, name)
       }
 
       override fun onRemove(success: Boolean, name: String?, describe: String?) {
@@ -39,6 +43,11 @@ class ExpoGaodeMapOfflineModule : Module() {
   }
 
   private fun getOfflineMapManager(): OfflineMapManager {
+    val reactContext = appContext.reactContext
+      ?: throw CodedException("NO_CONTEXT", "React context not available", null)
+
+    SDKInitializer.restorePersistedState(reactContext.applicationContext)
+
     if (!SDKInitializer.isPrivacyReady()) {
       throw CodedException(
         "PRIVACY_NOT_AGREED",
@@ -46,9 +55,6 @@ class ExpoGaodeMapOfflineModule : Module() {
         null
       )
     }
-
-    val reactContext = appContext.reactContext
-      ?: throw CodedException("NO_CONTEXT", "React context not available", null)
 
     if (offlineMapManager == null) {
       offlineMapManager = OfflineMapManager(
@@ -114,7 +120,7 @@ class ExpoGaodeMapOfflineModule : Module() {
         downloadingCities.add(cityCode)
         pausedCities.remove(cityCode)
       }
-      getOfflineMapManager().downloadByCityCode(cityCode)
+      startCityDownload(getOfflineMapManager(), cityCode, "startDownload")
     }
     
     AsyncFunction("pauseDownload") { cityCode: String ->
@@ -145,7 +151,7 @@ class ExpoGaodeMapOfflineModule : Module() {
       }
       // Android SDK 没有针对单个城市的恢复方法
       // 需要重新调用 downloadByCityCode 来继续下载
-      getOfflineMapManager().downloadByCityCode(cityCode)
+      startCityDownload(getOfflineMapManager(), cityCode, "resumeDownload")
     }
     
     AsyncFunction("cancelDownload") { cityCode: String ->
@@ -279,7 +285,7 @@ class ExpoGaodeMapOfflineModule : Module() {
         }
       }
       cityCodes.forEach { cityCode ->
-        getOfflineMapManager().downloadByCityCode(cityCode)
+        startCityDownload(getOfflineMapManager(), cityCode, "batchDownload")
       }
     }
     
@@ -340,17 +346,106 @@ class ExpoGaodeMapOfflineModule : Module() {
           downloadingCities.add(cityCode)
           pausedCities.remove(cityCode)
         }
-        getOfflineMapManager().downloadByCityCode(cityCode)
+        startCityDownload(getOfflineMapManager(), cityCode, "resumeAllDownloads")
       }
     }
   }
   
   // ==================== 辅助方法 ====================
+
+  private fun findCity(manager: OfflineMapManager, cityCode: String): OfflineMapCity? {
+    return manager.getItemByCityCode(cityCode)
+      ?: manager.offlineMapCityList?.find { it.code == cityCode || it.adcode == cityCode }
+  }
+
+  private fun startCityDownload(manager: OfflineMapManager, cityCode: String, action: String) {
+    val city = findCity(manager, cityCode)
+      ?: throw IllegalArgumentException("City not found: $cityCode")
+
+    logCityBeforeDownload(city, cityCode, action)
+
+    if (city.url.isNullOrEmpty()) {
+      synchronized(lock) {
+        pendingDownloadsByName[city.city] = cityCode
+      }
+      Log.i(logTag, "$action url empty, update offline config first cityName=${city.city} cityCode=$cityCode")
+      manager.updateOfflineCityByName(city.city)
+      return
+    }
+
+    downloadCity(manager, city)
+  }
+
+  private fun downloadCity(manager: OfflineMapManager, city: OfflineMapCity) {
+    try {
+      manager.downloadByCityCode(city.code)
+      return
+    } catch (codeError: Exception) {
+      Log.w(logTag, "downloadByCityCode failed cityCode=${city.code} cityName=${city.city} error=${codeError.message}")
+      try {
+        manager.downloadByCityName(city.city)
+      } catch (nameError: Exception) {
+        throw IllegalStateException(
+          "离线地图下载失败: cityCode=${city.code}, cityName=${city.city}, codeError=${codeError.message}, nameError=${nameError.message}",
+          nameError
+        )
+      }
+    }
+  }
+
+  private fun logCityBeforeDownload(city: OfflineMapCity?, cityCode: String, action: String) {
+    Log.i(logTag, "$action cityCode=$cityCode cityName=${city?.city} code=${city?.code} adcode=${city?.adcode} state=${city?.state} progress=${city?.let { getDownloadProgress(it) }} size=${city?.size} url=${city?.url}")
+  }
+
+  private fun handleCheckUpdate(hasNew: Boolean, name: String?) {
+    Log.i(logTag, "onCheckUpdate hasNew=$hasNew name=$name")
+
+    if (name.isNullOrEmpty()) return
+
+    val cityCode = synchronized(lock) {
+      pendingDownloadsByName.remove(name)
+    } ?: return
+
+    val manager = offlineMapManager ?: return
+    val city = manager.getItemByCityCode(cityCode)
+      ?: manager.getItemByCityName(name)
+      ?: manager.offlineMapCityList?.find { it.city == name || it.code == cityCode || it.adcode == cityCode }
+
+    Log.i(logTag, "download after update cityCode=$cityCode cityName=${city?.city} code=${city?.code} adcode=${city?.adcode} state=${city?.state} progress=${city?.let { getDownloadProgress(it) }} size=${city?.size} url=${city?.url}")
+
+    if (city == null) {
+      synchronized(lock) {
+        downloadingCities.remove(cityCode)
+      }
+      sendEvent("onDownloadError", Bundle().apply {
+        putString("cityCode", cityCode)
+        putString("cityName", name)
+        putString("error", "刷新离线地图配置后仍未找到城市")
+      })
+      return
+    }
+
+    try {
+      downloadCity(manager, city)
+    } catch (e: Exception) {
+      Log.w(logTag, "download after update failed cityCode=$cityCode name=$name error=${e.message}")
+      synchronized(lock) {
+        downloadingCities.remove(cityCode)
+      }
+      sendEvent("onDownloadError", Bundle().apply {
+        putString("cityCode", cityCode)
+        putString("cityName", name)
+        putString("error", e.message ?: "离线地图下载失败")
+      })
+    }
+  }
   
   /**
    * 处理下载状态回调
    */
   private fun handleDownloadStatus(status: Int, completeCode: Int, downName: String?) {
+    Log.i(logTag, "onDownload raw status=$status completeCode=$completeCode downName=$downName")
+
     if (downName == null) return
     
     // downName 可能是城市代码或城市名称,尝试两种方式查找
@@ -360,10 +455,14 @@ class ExpoGaodeMapOfflineModule : Module() {
       city = manager.offlineMapCityList?.find { it.city == downName }
     }
     
-    if (city == null) return
+    if (city == null) {
+      Log.w(logTag, "onDownload city not found for downName=$downName status=$status completeCode=$completeCode")
+      return
+    }
     
     val cityCode = city.code
     val cityName = city.city
+    Log.i(logTag, "onDownload city cityCode=$cityCode cityName=$cityName adcode=${city.adcode} state=${city.state} progress=${getDownloadProgress(city)} size=${city.size} url=${city.url} status=$status completeCode=$completeCode")
     
     when (status) {
       OfflineMapStatus.SUCCESS -> {
@@ -402,6 +501,18 @@ class ExpoGaodeMapOfflineModule : Module() {
           putString("cityCode", cityCode)
           putString("cityName", cityName)
           putString("error", "解压失败,数据可能有问题")
+        })
+      }
+
+      startDownloadFailedCode -> {
+        synchronized(lock) {
+          downloadingCities.remove(cityCode)
+        }
+        sendEvent("onDownloadError", Bundle().apply {
+          putString("cityCode", cityCode)
+          putString("cityName", cityName)
+          putString("error", "下载地址为空或离线包不可用")
+          putInt("errorCode", status)
         })
       }
       

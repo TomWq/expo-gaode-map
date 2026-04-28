@@ -113,5 +113,38 @@ export {
   parseMultiRingPolyline,
 } from './utils/RouteUtils';
 
+// 导出内置搜索 API
+export {
+  initSearch,
+  searchPOI,
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  reGeocode,
+  getPoiDetail,
+  SearchType,
+} from './search';
+export type {
+  Coordinates as SearchCoordinates,
+  POI,
+  POISearchOptions,
+  NearbySearchOptions,
+  AlongSearchOptions,
+  PolygonSearchOptions,
+  InputTipsOptions,
+  InputTip,
+  SearchResult,
+  InputTipsResult,
+  ReGeocodeOptions,
+  ReGeocodeResult,
+  AddressComponent,
+  Road,
+  RoadCross,
+  AOI,
+  RoutePOIType,
+} from './search';
+export { default as Search } from './search';
+
 // 默认导出原生模块
 export { default } from './ExpoGaodeMapModule';

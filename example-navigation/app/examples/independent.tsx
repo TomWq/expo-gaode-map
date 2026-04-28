@@ -10,7 +10,7 @@ import {
   type DriveRouteResult,
   type IndependentRouteResult,
   type MapViewRef,
-  type NaviViewRef,
+  type ExpoGaodeMapNaviViewRef,
 } from "expo-gaode-map-navigation";
 import React from "react";
 import {
@@ -39,7 +39,7 @@ import { useHideNavigationHeader } from "@/lib/useHideNavigationHeader";
 
 export default function IndependentRouteExampleScreen() {
   const mapRef = React.useRef<MapViewRef>(null);
-  const naviRef = React.useRef<NaviViewRef>(null);
+  const naviRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
   const activeTokenRef = React.useRef<number | null>(null);
 
   const [loading, setLoading] = React.useState(false);

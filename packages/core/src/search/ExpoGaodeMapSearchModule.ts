@@ -30,10 +30,9 @@ function ensureBaseInstalled() {
     requireNativeModule('ExpoGaodeMap');
   } catch (_) {
     const msg =
-      '[expo-gaode-map-search] 未检测到基础地图原生模块。\n' +
+      '[expo-gaode-map] 未检测到基础地图原生模块。\n' +
       '请确保已安装以下任一包并重新构建应用 (npx expo prebuild)：\n' +
-      '  - expo-gaode-map（核心地图包）\n' +
-      '  - expo-gaode-map-navigation（导航包，内置地图能力）';
+      '  - expo-gaode-map（核心地图包）';
     throw new Error(msg);
   }
 }

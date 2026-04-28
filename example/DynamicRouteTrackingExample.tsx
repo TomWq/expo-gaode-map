@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraPosition, ExpoGaodeMapModule, MapView, MapViewRef, Marker, Polyline, type CameraEvent, type LatLng } from 'expo-gaode-map';
-import { getInputTips, InputTip } from 'expo-gaode-map-search';
+import { getInputTips, InputTip } from 'expo-gaode-map';
 import { GaodeWebAPI, PathCost, Step } from 'expo-gaode-map-web-api';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {

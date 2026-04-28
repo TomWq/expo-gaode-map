@@ -11,7 +11,8 @@
       "MultiPointViewModule",
       "HeatMapViewModule",
       "ClusterViewModule",
-      "ExpoGaodeMapOfflineModule"
+      "ExpoGaodeMapOfflineModule",
+      "ExpoGaodeMapSearchModule"
     ]
   },
   "android": {
@@ -25,7 +26,8 @@
       "expo.modules.gaodemap.overlays.MultiPointViewModule",
       "expo.modules.gaodemap.overlays.HeatMapViewModule",
       "expo.modules.gaodemap.overlays.ClusterViewModule",
-      "expo.modules.gaodemap.ExpoGaodeMapOfflineModule"
+      "expo.modules.gaodemap.ExpoGaodeMapOfflineModule",
+      "expo.modules.gaodemap.search.ExpoGaodeMapSearchModule"
     ]
   }
 }

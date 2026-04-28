@@ -1,4 +1,4 @@
-package expo.modules.gaodemap.search
+package expo.modules.gaodemap.map.search
 
 import android.content.Context
 

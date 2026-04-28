@@ -8,18 +8,17 @@ import {
   MapView,
   Marker,
   Polyline,
+  getInputTips,
+  initSearch,
+  reGeocode,
   type IndependentRouteResult,
   type MapViewRef,
   type NaviPoint,
   type ExpoGaodeMapNaviViewRef,
   type RouteResult,
+   type InputTip,
 } from "expo-gaode-map-navigation";
-import {
-  getInputTips,
-  initSearch,
-  reGeocode,
-  type InputTip,
-} from "expo-gaode-map-search";
+
 import { useRouter } from "expo-router";
 import React from "react";
 import {

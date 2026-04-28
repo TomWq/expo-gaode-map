@@ -6,7 +6,7 @@ import {
   Polyline,
   type FollowWebPlannedRouteResult,
   type MapViewRef,
-  type NaviViewRef,
+  type ExpoGaodeMapNaviViewRef,
   type WebPlannedRoute,
 } from "expo-gaode-map-navigation";
 import {
@@ -64,7 +64,7 @@ function normalizeAvoidPolygons(
 
 export default function FollowWebRouteExampleScreen() {
   const mapRef = React.useRef<MapViewRef>(null);
-  const naviRef = React.useRef<NaviViewRef>(null);
+  const naviRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
   const activeTokenRef = React.useRef<number | null>(null);
 
   const [loading, setLoading] = React.useState(false);

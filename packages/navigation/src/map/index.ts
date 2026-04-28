@@ -103,3 +103,38 @@ export const useLocationPermissions = createPermissionHook({
 
 // 导出便捷读取的 SDK 配置与 webKey
 export { getSDKConfig, getWebKey } from './ExpoGaodeMapModule';
+
+// 导出内置搜索 API
+export {
+  initSearch,
+  searchPOI,
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  reGeocode,
+  getPoiDetail,
+  SearchType,
+} from './search';
+
+export type {
+  Coordinates as SearchCoordinates,
+  POI,
+  POISearchOptions,
+  NearbySearchOptions,
+  AlongSearchOptions,
+  PolygonSearchOptions,
+  InputTipsOptions,
+  InputTip,
+  SearchResult,
+  InputTipsResult,
+  ReGeocodeOptions,
+  ReGeocodeResult,
+  AddressComponent,
+  Road,
+  RoadCross,
+  AOI,
+  RoutePOIType,
+} from './search';
+
+export { default as Search } from './search';

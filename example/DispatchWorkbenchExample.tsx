@@ -9,7 +9,7 @@ import {
   Polyline,
   type LatLng,
 } from 'expo-gaode-map';
-import { getInputTips, searchNearby, type InputTip, type POI } from 'expo-gaode-map-search';
+import { getInputTips, searchNearby, type InputTip, type POI } from 'expo-gaode-map';
 import { DrivingStrategy, GaodeWebAPI } from 'expo-gaode-map-web-api';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {

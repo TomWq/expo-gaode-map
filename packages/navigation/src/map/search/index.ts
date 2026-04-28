@@ -31,7 +31,7 @@ import type {
  *
  * @example
  * ```typescript
- * import { initSearch } from '@expo-gaode-map/search';
+ * import { initSearch } from 'expo-gaode-map-navigation';
  *
  * // 可选：提前初始化以检测问题
  * initSearch();

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraEvent, ExpoGaodeMapModule, LatLng, MapView, MapViewRef } from 'expo-gaode-map';
-import { POI, reGeocode, searchNearby } from 'expo-gaode-map-search';
+import { POI, reGeocode, searchNearby } from 'expo-gaode-map';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,

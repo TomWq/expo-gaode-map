@@ -13,7 +13,6 @@
     "expo-blur": "~55.0.14",
     "expo-constants": "~55.0.15",
     "expo-gaode-map": "workspace:*",
-    "expo-gaode-map-search": "workspace:*",
     "expo-gaode-map-web-api": "workspace:*",
     "expo-linking": "~55.0.14",
     "expo-media-library": "~55.0.15",
@@ -35,7 +34,8 @@
     "autolinking": {
       "nativeModulesDir": "../packages",
       "exclude": [
-        "expo-gaode-map-navigation"
+        "expo-gaode-map-navigation",
+        "expo-gaode-map-search"
       ]
     }
   }

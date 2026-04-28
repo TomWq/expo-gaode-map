@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { CameraEvent, ExpoGaodeMapModule, LatLng, MapView, MapViewRef } from 'expo-gaode-map';
-import { getInputTips, InputTip, POI, searchNearby } from 'expo-gaode-map-search';
+import { getInputTips, InputTip, POI, searchNearby } from 'expo-gaode-map';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,

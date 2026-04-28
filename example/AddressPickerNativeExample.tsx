@@ -1,7 +1,7 @@
 import { useSafeScrollViewStyle } from './hooks/useSafeScrollView';
 import { MapView, MapViewRef, Marker } from 'expo-gaode-map';
-import type { InputTip } from 'expo-gaode-map-search';
-import ExpoGaodeMapSearch from 'expo-gaode-map-search';
+import type { InputTip } from 'expo-gaode-map';
+import { Search as ExpoGaodeMapSearch } from 'expo-gaode-map';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,

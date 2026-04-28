@@ -1,4 +1,4 @@
-import { NaviView, type NaviViewRef } from "expo-gaode-map-navigation";
+import { ExpoGaodeMapNaviView,  ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Alert,
@@ -102,7 +102,7 @@ function ConfigSwitchRow({
 }
 
 export default function OfficialEmbeddedNaviExampleScreen() {
-  const naviRef = React.useRef<NaviViewRef>(null);
+  const naviRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
 
   const [loading, setLoading] = React.useState(false);
   const [statusText, setStatusText] = React.useState("等待初始化");
@@ -187,7 +187,7 @@ export default function OfficialEmbeddedNaviExampleScreen() {
   if (showNaviView && scenario) {
     return (
       <View style={styles.naviScreen}>
-        <NaviView
+        <ExpoGaodeMapNaviView
           ref={naviRef}
           style={styles.naviView}
           naviType={1}

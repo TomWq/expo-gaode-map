@@ -1,11 +1,11 @@
 import { MapView, Marker } from 'expo-gaode-map';
-import { searchNearby, searchPOI } from 'expo-gaode-map-search';
+import { searchNearby, searchPOI } from 'expo-gaode-map';
 import React, { useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 /**
  * POI 原生搜索 + 地图标记示例
- * 使用 expo-gaode-map-search 原生模块进行搜索，并在地图上标记结果
+ * 使用 expo-gaode-map 内置搜索模块进行搜索，并在地图上标记结果
  */
 export default function POISearchMapNativeExample() {
   // 搜索参数

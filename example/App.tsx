@@ -19,7 +19,7 @@ import {
   type LatLngPoint,
   MapType,
 } from 'expo-gaode-map';
-import { reGeocode } from 'expo-gaode-map-search'
+import { reGeocode } from 'expo-gaode-map'
 import * as MediaLibrary from 'expo-media-library';
 
 import React from 'react';

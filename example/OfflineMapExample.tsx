@@ -24,6 +24,7 @@ import {
   OfflineMapErrorEvent,
   OfflineMapPausedEvent,
   OfflineMapCancelledEvent,
+  ExpoGaodeMapModule,
 } from 'expo-gaode-map';
 
 interface DownloadProgress {
@@ -71,6 +72,14 @@ export default function OfflineMapExample() {
 
   // 监听下载事件
   useEffect(() => {
+    ExpoGaodeMapModule.setPrivacyConfig({
+      hasShow: true,
+      hasContainsPrivacy: true,
+      hasAgree: true,
+      privacyVersion: '2026-03-13',
+    });
+    ExpoGaodeMapModule.initSDK({});
+
     // 监听下载进度 - 使用 requestAnimationFrame 优化
     let progressFrame: number | null = null;
     let pendingUpdates: { [key: string]: number } = {};
@@ -169,7 +178,7 @@ export default function OfflineMapExample() {
     });
 
     // 初始加载数据
-    loadData();
+    void loadData();
 
     // 清理监听器
     return () => {

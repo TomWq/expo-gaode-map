@@ -1,4 +1,4 @@
-import type { NaviViewRef } from "expo-gaode-map-navigation";
+import type { ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Alert,
@@ -26,7 +26,7 @@ interface EventItem {
 }
 
 export default function EventsExampleScreen() {
-  const naviRef = React.useRef<NaviViewRef>(null);
+  const naviRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
   const lastInfoKeyRef = React.useRef<string>("");
 
   const [loading, setLoading] = React.useState(false);
