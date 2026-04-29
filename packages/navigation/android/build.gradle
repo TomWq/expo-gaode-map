@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.gaodemap.navigation'
-version = '2.0.0'
+version = '2.0.13'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -34,7 +34,7 @@ android {
   namespace "expo.modules.gaodemap.navigation"
   defaultConfig {
     versionCode 1
-    versionName "2.0.0"
+    versionName "2.0.13"
   }
   lintOptions {
     abortOnError false

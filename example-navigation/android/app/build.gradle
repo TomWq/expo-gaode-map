@@ -155,6 +155,7 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("androidx.core:core-splashscreen:1.2.0")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
@@ -178,5 +179,25 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+gradle.projectsEvaluated {
+    def nativePrefabProjects = [
+        rootProject.findProject(":react-native-reanimated"),
+        rootProject.findProject(":react-native-worklets"),
+    ].findAll { it != null }
+
+    tasks.matching { task ->
+        task.name.startsWith("configureCMakeDebug") || task.name.startsWith("configureCMakeRelease")
+    }.configureEach { task ->
+        def prefabTaskName = task.name.contains("Release") ? "prefabReleasePackage" : "prefabDebugPackage"
+
+        nativePrefabProjects.each { nativeProject ->
+            def prefabTask = nativeProject.tasks.findByName(prefabTaskName)
+            if (prefabTask != null) {
+                task.dependsOn(prefabTask)
+            }
+        }
     }
 }

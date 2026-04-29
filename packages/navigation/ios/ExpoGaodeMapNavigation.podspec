@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   s.dependency 'AMapNavi'
   s.dependency 'AMapFoundation'
   s.dependency 'AMapLocation'
-  s.dependency 'AMapSearch', '~> 9.7.0'
+  s.dependency 'AMapSearch'
   
   s.library = 'c++'
 

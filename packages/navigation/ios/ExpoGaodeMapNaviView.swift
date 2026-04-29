@@ -442,6 +442,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
   private var hasLoggedMissingBackgroundAudioMode: Bool = false
   private var renderedCustomWaypointAnnotations: [AMapNaviCompositeCustomAnnotation] = []
   private var customWaypointMarkers: [NaviCustomWaypointMarkerModel] = []
+  private let customSpeechSynthesizer = AVSpeechSynthesizer()
 
   private enum LaneStringKind {
     case background
@@ -1231,10 +1232,6 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
 
   private func resolveTravelTurnIconImage(iconType: Int) -> UIImage? {
-    let iconEnum = AMapNaviIconType(rawValue: iconType) ?? .none
-    if activeScene == .ride {
-      return AMapNaviRideView.rideViewTurnIconImage(with: iconEnum)
-    }
     return fallbackTurnIconImage(iconType: iconType)
   }
 
@@ -1637,11 +1634,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
       let resizedImage = self?.resizeImageIfNeeded(image, targetSize: self?.carImageSize) ?? image
       driveView?.setCarImage(resizedImage)
       walkView?.setCarImage(resizedImage)
-      if let resizedImage {
-        rideView?.setCarImageWithSize(resizedImage)
-      } else {
-        rideView?.setCarImage(nil)
-      }
+      rideView?.setCarImage(resizedImage)
     }
   }
 
@@ -2323,18 +2316,24 @@ public class ExpoGaodeMapNaviView: ExpoView {
   }
   
   func playCustomTTS(text: String, forcePlay: Bool, promise: Promise) {
-    guard let manager = currentNaviManager() else {
+    guard currentNaviManager() != nil else {
       promise.reject("NAVI_MANAGER_UNAVAILABLE", "导航管理器尚未初始化")
       return
     }
-    let success = manager.playTTS(text, forcePlay: forcePlay)
-    if success {
-      promise.resolve([
-        "success": true
-      ])
-    } else {
-      promise.reject("PLAY_TTS_FAILED", "当前场景暂不支持或正在播报其他导航语音")
+
+    if forcePlay {
+      customSpeechSynthesizer.stopSpeaking(at: .immediate)
+    } else if customSpeechSynthesizer.isSpeaking {
+      promise.reject("PLAY_TTS_FAILED", "当前正在播报其他导航语音")
+      return
     }
+
+    let utterance = AVSpeechUtterance(string: text)
+    utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
+    customSpeechSynthesizer.speak(utterance)
+    promise.resolve([
+      "success": true
+    ])
   }
   
   // MARK: - Lifecycle

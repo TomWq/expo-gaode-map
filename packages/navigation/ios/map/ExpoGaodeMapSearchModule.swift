@@ -279,7 +279,10 @@ public class ExpoGaodeMapSearchModule: Module {
     let delegate = SearchDelegate { [weak self] in
       self?.activeSearches.removeValue(forKey: token)
     }
-    let searchAPI = AMapSearchAPI()
+    guard let searchAPI = AMapSearchAPI() else {
+      promise.reject(errorCode, "Failed to create AMapSearchAPI")
+      return nil
+    }
     searchAPI.delegate = delegate
     delegate.currentPromise = promise
     activeSearches[token] = SearchSession(api: searchAPI, delegate: delegate)
