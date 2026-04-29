@@ -5,6 +5,14 @@
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+  <!-- 离线地图读写本地地图包 (Android 12 及以下) -->
+  <uses-permission
+    android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+    android:maxSdkVersion="32" />
+  <uses-permission
+    android:name="android.permission.READ_EXTERNAL_STORAGE"
+    android:maxSdkVersion="32" />
   
   <application allowBackup="false" >
   
@@ -12,6 +20,12 @@
     <service
       android:name="com.amap.api.location.APSService"
       android:enabled="true"
+      android:exported="false" />
+
+    <!-- 高德 3D 地图 SDK 官方离线地图 UI 组件 -->
+    <activity
+      android:name="com.amap.api.maps.offlinemap.OfflineMapActivity"
+      android:screenOrientation="portrait"
       android:exported="false" />
     
   </application>

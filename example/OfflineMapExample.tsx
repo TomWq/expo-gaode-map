@@ -13,6 +13,7 @@ import {
   Alert,
   ActivityIndicator,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -31,6 +32,46 @@ interface DownloadProgress {
   [cityCode: string]: number;
 }
 
+const getOfflineMapKeys = (city: OfflineMapInfo) => {
+  const keys: string[] = [];
+  const cityCode = city.cityCode?.trim();
+  const cityName = city.cityName?.trim();
+
+  if (cityCode) keys.push(`code:${cityCode}`);
+  if (cityName) keys.push(`name:${cityName}`);
+
+  return keys;
+};
+
+const mergeDownloadedStatus = (
+  availableCities: OfflineMapInfo[],
+  downloadedCities: OfflineMapInfo[]
+) => {
+  const downloadedByKey = new Map<string, OfflineMapInfo>();
+
+  downloadedCities.forEach((city) => {
+    getOfflineMapKeys(city).forEach((key) => {
+      downloadedByKey.set(key, city);
+    });
+  });
+
+  return availableCities.map((city) => {
+    const downloaded = getOfflineMapKeys(city)
+      .map((key) => downloadedByKey.get(key))
+      .find(Boolean);
+
+    if (!downloaded) return city;
+
+    return {
+      ...city,
+      status: 'downloaded' as const,
+      progress: Math.max(city.progress ?? 0, downloaded.progress ?? 100),
+      downloadedSize: downloaded.downloadedSize ?? city.downloadedSize ?? city.size,
+      version: downloaded.version || city.version,
+    };
+  });
+};
+
 export default function OfflineMapExample() {
   const [cities, setCities] = useState<OfflineMapInfo[]>([]);
   const [downloadedCities, setDownloadedCities] = useState<OfflineMapInfo[]>([]);
@@ -41,6 +82,20 @@ export default function OfflineMapExample() {
     offlineMapSize: number;
     availableSpace: number;
   } | null>(null);
+
+  const handleOpenOfficialUI = async () => {
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+      Alert.alert('提示', '高德官方离线地图 UI 组件目前仅 Android 和 iOS SDK 提供');
+      return;
+    }
+
+    try {
+      await ExpoGaodeMapOfflineModule.openOfflineMapUI();
+    } catch (error) {
+      console.error('打开官方离线地图 UI 失败:', error);
+      Alert.alert('错误', '打开官方离线地图 UI 失败，请确认已完成隐私授权、配置 Key 并集成 3D 地图 SDK');
+    }
+  };
 
   // 加载城市列表和已下载列表
   const loadData = async () => {
@@ -59,7 +114,7 @@ export default function OfflineMapExample() {
       console.log('已下载城市:', downloaded.map(c => c.cityName).join(', '));
 
       // 只显示前20个城市（演示用）
-      setCities(availableCities.slice(0, 20));
+      setCities(mergeDownloadedStatus(availableCities, downloaded).slice(0, 20));
       setDownloadedCities(downloaded);
       setStorageInfo(storage);
     } catch (error) {
@@ -428,6 +483,13 @@ export default function OfflineMapExample() {
       {/* 头部统计 */}
       <View style={styles.header}>
         <Text style={styles.title}>离线地图管理</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.officialButton]}
+          activeOpacity={0.7}
+          onPress={handleOpenOfficialUI}
+        >
+          <Text style={styles.buttonText}>打开官方离线地图 UI</Text>
+        </TouchableOpacity>
         {storageInfo && (
           <View style={styles.stats}>
             <Text style={styles.statText}>
@@ -511,6 +573,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 8,
+  },
+  officialButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#1677ff',
+    marginLeft: 0,
+    marginBottom: 12,
   },
   stats: {
     flexDirection: 'row',

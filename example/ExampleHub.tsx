@@ -15,7 +15,7 @@ import AdvancedOverlayExample from './AdvancedOverlayExample';
 import LegacyPlaygroundExample from './App';
 import ExampleRuntimeGate from './ExampleRuntimeGate';
 import GeometryUtilsExample from './GeometryUtilsExample';
-import LBSDemo from './LBSDemo';
+
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 
@@ -24,7 +24,7 @@ import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
 import OverlayPlaygroundExample from './OverlayPlaygroundExample';
 import PermissionExample from './PermissionExample';
-import PlatformOptimizationDemo from './PlatformOptimizationDemo';
+
 import PolylineExample from './PolylineExample';
 import PrivacyInitializationExample from './PrivacyInitializationExample';
 
@@ -90,13 +90,7 @@ const EXAMPLES: ExampleDefinition[] = [
     category: 'featured',
     component: AdvancedOverlayExample,
   },
-  {
-    id: 'route-playback',
-    title: '路线回放（core）',
-    description: '演示 core 侧 RouteOverlay、fitToCoordinates 和 useRoutePlayback 的标准组合。',
-    category: 'map',
-    component: NavigationWithLocationExample,
-  },
+
   {
     id: 'use-map',
     title: 'useMap Hook',
@@ -126,13 +120,7 @@ const EXAMPLES: ExampleDefinition[] = [
     component: SmoothMoveExample,
   },
  
-  {
-    id: 'marker-travel-card',
-    title: '景点卡片 Marker 复现',
-    description: '更贴近群友截图的横向卡片 Marker，继续使用远程图片与 cacheKey 切换。',
-    category: 'overlay',
-    component: MarkerTravelCardExample,
-  },
+
   {
     id: 'rental-map-label',
     title: '租房地图标签（截图同款）',
@@ -177,13 +165,7 @@ const EXAMPLES: ExampleDefinition[] = [
     category: 'location',
     component: TestNewPermissionMethods,
   },
-  {
-    id: 'lbs',
-    title: 'LBS 综合能力',
-    description: '演示定位、逆地理编码和地图联动的典型 LBS 用法。',
-    category: 'location',
-    component: LBSDemo,
-  },
+
   {
     id: 'offline-map',
     title: '离线地图',
@@ -198,13 +180,7 @@ const EXAMPLES: ExampleDefinition[] = [
     category: 'web-api',
     component: WebAPIExample,
   },
-  {
-    id: 'web-api-advanced',
-    title: 'Web API 高级',
-    description: '演示更完整的 Web API 测试入口与高级能力。',
-    category: 'web-api',
-    component: WebAPIAdvancedTest,
-  },
+
   {
     id: 'search-module',
     title: '搜索模块',

@@ -21,4 +21,12 @@
     <!-- 蓝牙权限 - 用于室内定位 (可选) -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <application>
+        <!-- 高德 3D 地图 SDK 官方离线地图 UI 组件 -->
+        <activity
+            android:name="com.amap.api.maps.offlinemap.OfflineMapActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+    </application>
 </manifest>

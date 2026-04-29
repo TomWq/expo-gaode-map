@@ -9,7 +9,7 @@ import EnterpriseCheckInExample from './EnterpriseCheckInExample';
 import LegacyPlaygroundExample from './App';
 import GeometryUtilsExample from './GeometryUtilsExample';
 import InputTipsExample from './InputTipsExample';
-import LBSDemo from './LBSDemo';
+
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 import MayDayFiveDayTripExample from './MayDayFiveDayTripExample';
@@ -73,13 +73,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入高级覆盖物验证页',
     component: AdvancedOverlayExample,
   },
-  'route-playback': {
-    id: 'route-playback',
-    title: '路线回放（core）',
-    description: '演示 core 侧 RouteOverlay、fitToCoordinates 和 useRoutePlayback 的标准组合。',
-    outcome: '进入路线回放联动页',
-    component: NavigationWithLocationExample,
-  },
+ 
   'use-map': {
     id: 'use-map',
     title: 'useMap Hook',
@@ -109,13 +103,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     component: SmoothMoveExample,
   },
  
-  'marker-travel-card': {
-    id: 'marker-travel-card',
-    title: '景点卡片 Marker 复现',
-    description: '更贴近群友截图的横向卡片 Marker，继续使用远程图片与 cacheKey 切换。',
-    outcome: '进入卡片 Marker 复现页',
-    component: MarkerTravelCardExample,
-  },
+
   'rental-map-label': {
     id: 'rental-map-label',
     title: '租房地图标签（截图同款）',
@@ -159,13 +147,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入新权限接口示例页',
     component: TestNewPermissionMethods,
   },
-  lbs: {
-    id: 'lbs',
-    title: 'LBS 综合能力',
-    description: '演示定位、逆地理编码和地图联动的典型 LBS 用法。',
-    outcome: '进入 LBS 联调页',
-    component: LBSDemo,
-  },
+
   'offline-map': {
     id: 'offline-map',
     title: '离线地图',
@@ -189,13 +171,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '进入 Web API 基础页',
     component: WebAPIExample,
   },
-  'web-api-advanced': {
-    id: 'web-api-advanced',
-    title: 'Web API 高级',
-    description: '演示更完整的 Web API 测试入口与高级能力。',
-    outcome: '进入 Web API 高级页',
-    component: WebAPIAdvancedTest,
-  },
+
   'search-module': {
     id: 'search-module',
     title: '搜索模块',
@@ -299,7 +275,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     key: 'start',
     title: '起步与推荐路径',
     description: '先跑通初始化和核心链路，再进入更细分能力，减少排查成本。',
-    entries: ['privacy-init', 'map-basics', 'overlay-playground', 'advanced-playground', 'route-playback'],
+    entries: ['privacy-init', 'map-basics', 'overlay-playground', 'advanced-playground'],
   },
   {
     key: 'map-location',
@@ -310,7 +286,6 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
       'map-debug',
       'permissions',
       'new-permissions',
-      'lbs',
       'offline-map',
       'taxi-location-picker',
     ],
@@ -322,7 +297,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     entries: [
       'polyline',
       'smooth-move',
-      'marker-travel-card',
+   
       'rental-map-label',
      
       'multi-format',
@@ -335,7 +310,6 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     description: '偏向服务端接口调用和数据联调，不依赖地图渲染也可独立验证。',
     entries: [
       'web-api-basic',
-      'web-api-advanced',
       'search-module',
       'input-tips-web',
       'poi-search-native',

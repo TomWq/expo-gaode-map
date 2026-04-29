@@ -15,6 +15,12 @@ import type {
  */
 declare class ExpoGaodeMapOfflineModule extends NativeModule<OfflineMapEvents> {
   // ==================== 地图列表管理 ====================
+
+  /**
+   * 打开高德 3D 地图 SDK 官方离线地图 UI 组件（Android）。
+   * 官方组件内置城市下载、暂停、更新、删除和城市搜索。
+   */
+  openOfflineMapUI(): Promise<void>;
   
   /**
    * 获取所有可下载的城市列表

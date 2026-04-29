@@ -9,6 +9,7 @@ import {
   EXAMPLE_IOS_KEY,
   EXAMPLE_WEB_API_KEY,
 } from '../exampleConfig';
+import { StatusBar } from 'expo-status-bar';
 
 function ExampleLinkCard({
   id,
@@ -74,6 +75,7 @@ export default function ExampleCenterScreen() {
           <Text style={styles.buttonText}>打开完整文档</Text>
         </Pressable>
       </ScrollView>
+      <StatusBar style='dark' />
     </SafeAreaView>
   );
 }

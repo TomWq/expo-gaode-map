@@ -20,6 +20,13 @@ import type {
  */
 export class OfflineMapManager {
   // ==================== 地图列表管理 ====================
+
+  /**
+   * 打开高德 3D 地图 SDK 官方离线地图 UI 组件（Android）。
+   */
+  static async openOfflineMapUI(): Promise<void> {
+    return ExpoGaodeMapOfflineModule.openOfflineMapUI();
+  }
   
   /**
    * 获取所有可下载的城市列表

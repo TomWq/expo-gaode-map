@@ -2,6 +2,7 @@ import ExpoModulesCore
 import AMapFoundationKit
 import MAMapKit
 import Foundation
+import UIKit
 
 /**
  * 高德地图离线地图模块 (iOS)
@@ -66,6 +67,12 @@ public class ExpoGaodeMapOfflineModule: Module {
       self.offlineMapManager?.cancelAll()
       self.downloadingCities.removeAll()
       self.pausedCities.removeAll()
+    }
+
+    AsyncFunction("openOfflineMapUI") { (promise: Promise) in
+      DispatchQueue.main.async {
+        self.openOfflineMapUI(promise: promise)
+      }
     }
     
     // ==================== 1. 地图列表管理 ====================
@@ -505,5 +512,58 @@ public class ExpoGaodeMapOfflineModule: Module {
     }
 
     return false
+  }
+
+  private func openOfflineMapUI(promise: Promise) {
+    guard setupApiKeyIfNeeded() else {
+      promise.reject("ERR_SETUP", "Setup failed")
+      return
+    }
+
+    guard let detailViewController = MAOfflineMapViewController.sharedInstance() else {
+      promise.reject("ERR_OFFLINE_MAP_UI", "Offline map UI is unavailable")
+      return
+    }
+
+    guard let presenter = currentPresenterViewController() else {
+      promise.reject("ERR_NO_VIEW_CONTROLLER", "No active view controller")
+      return
+    }
+
+    if let navigationController = presenter as? UINavigationController {
+      navigationController.pushViewController(detailViewController, animated: true)
+    } else if let navigationController = presenter.navigationController {
+      navigationController.pushViewController(detailViewController, animated: true)
+    } else {
+      let navigationController = UINavigationController(rootViewController: detailViewController)
+      presenter.present(navigationController, animated: true)
+    }
+    promise.resolve(nil)
+  }
+
+  private func currentPresenterViewController() -> UIViewController? {
+    guard let scene = UIApplication.shared.connectedScenes
+      .compactMap({ $0 as? UIWindowScene })
+      .first(where: { $0.activationState == .foregroundActive }) else {
+      return topViewController(from: UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController)
+    }
+
+    let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+      ?? scene.windows.first?.rootViewController
+    return topViewController(from: root)
+  }
+
+  private func topViewController(from root: UIViewController?) -> UIViewController? {
+    guard let root else { return nil }
+    if let presented = root.presentedViewController {
+      return topViewController(from: presented)
+    }
+    if let navigationController = root as? UINavigationController {
+      return topViewController(from: navigationController.visibleViewController)
+    }
+    if let tabBarController = root as? UITabBarController {
+      return topViewController(from: tabBarController.selectedViewController)
+    }
+    return root
   }
 }

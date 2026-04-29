@@ -82,9 +82,8 @@ dependencies {
             throw new FileNotFoundException("ExpoGaodeMap: Could not find custom SDK at ${customSdkPath}. Please check your customMapSdkPath configuration.")
         }
     } else {
-        // 11.1.200 restores Android offline map downloads. Pin the resolved
-        // bundle instead of using latest.integration so Gradle dynamic-version
-        // caching cannot silently keep an older SDK in app builds.
-        implementation('com.amap.api:3dmap-location-search:11.1.200_loc11.1.200_sea9.7.4')
+        // 10.1.600 is the last Android 3D map SDK line that supports offline
+        // map downloads without the separate 11.x offline-download permission.
+        implementation('com.amap.api:3dmap-location-search:10.1.700_loc6.5.1_sea9.7.4')
     }
 }

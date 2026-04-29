@@ -6,9 +6,7 @@ export default function RootLayout() {
   const router = useRouter();
 
   return (
-    <Stack
-  
-    >
+    <Stack>
       <Stack.Screen name="index" options={{ title: '示例中心' }} />
       <Stack.Screen name="examples/[id]" options={{ title: '示例详情' }} />
       <Stack.Screen

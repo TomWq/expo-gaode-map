@@ -1,14 +1,19 @@
 package expo.modules.gaodemap.map
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.StatFs
 import android.os.Environment
 import android.util.Log
+import com.amap.api.maps.offlinemap.OfflineMapActivity
 import com.amap.api.maps.offlinemap.OfflineMapCity
 import com.amap.api.maps.offlinemap.OfflineMapManager
 import com.amap.api.maps.offlinemap.OfflineMapProvince
 import com.amap.api.maps.offlinemap.OfflineMapStatus
 import expo.modules.gaodemap.map.modules.SDKInitializer
+import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -92,12 +97,18 @@ class ExpoGaodeMapOfflineModule : Module() {
       offlineMapManager = null
       downloadingCities.clear()
     }
+
+    AsyncFunction("openOfflineMapUI") {
+      openOfflineMapUI()
+    }
     
     // ==================== 地图列表管理 ====================
     
     AsyncFunction("getAvailableCities") {
-      val cities = getOfflineMapManager()?.offlineMapCityList ?: emptyList()
-      cities.map { city -> convertCityToMap(city) }
+      val manager = getOfflineMapManager()
+      val cities = manager?.offlineMapCityList ?: emptyList()
+      val downloadedCityKeys = getDownloadedCityKeys(manager)
+      cities.map { city -> convertCityToMap(city, downloadedCityKeys) }
     }
     
     AsyncFunction("getAvailableProvinces") {
@@ -106,15 +117,19 @@ class ExpoGaodeMapOfflineModule : Module() {
     }
     
     AsyncFunction("getCitiesByProvince") { provinceCode: String ->
-      val province = getOfflineMapManager()?.offlineMapProvinceList?.find {
-        it.provinceCode == provinceCode 
+      val manager = getOfflineMapManager()
+      val province = manager?.offlineMapProvinceList?.find {
+        it.provinceCode == provinceCode
       }
-      province?.cityList?.map { city -> convertCityToMap(city) } ?: emptyList()
+      val downloadedCityKeys = getDownloadedCityKeys(manager)
+      province?.cityList?.map { city -> convertCityToMap(city, downloadedCityKeys) } ?: emptyList()
     }
     
     AsyncFunction("getDownloadedMaps") {
-      val cities = getOfflineMapManager()?.downloadOfflineMapCityList ?: emptyList()
-      cities.map { city -> convertCityToMap(city) }
+      val manager = getOfflineMapManager()
+      val cities = manager?.downloadOfflineMapCityList ?: emptyList()
+      val downloadedCityKeys = getDownloadedCityKeys(manager)
+      cities.map { city -> convertCityToMap(city, downloadedCityKeys) }
     }
     
     // ==================== 下载管理 ====================
@@ -208,14 +223,17 @@ class ExpoGaodeMapOfflineModule : Module() {
     // ==================== 状态查询 ====================
     
     AsyncFunction("isMapDownloaded") { cityCode: String ->
-      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
-      city?.state == OfflineMapStatus.SUCCESS || 
-      city?.state == OfflineMapStatus.CHECKUPDATES
+      val manager = getOfflineMapManager()
+      val city = manager?.getItemByCityCode(cityCode)
+      city?.state == OfflineMapStatus.SUCCESS ||
+        city?.let { isDownloadedCity(it, getDownloadedCityKeys(manager)) } == true
     }
     
     AsyncFunction("getMapStatus") { cityCode: String ->
-      val city = getOfflineMapManager()?.getItemByCityCode(cityCode)
-      city?.let { convertCityToMap(it) } ?: Bundle()
+      val manager = getOfflineMapManager()
+      val city = manager?.getItemByCityCode(cityCode)
+      val downloadedCityKeys = getDownloadedCityKeys(manager)
+      city?.let { convertCityToMap(it, downloadedCityKeys) } ?: Bundle()
     }
     
     AsyncFunction("getTotalProgress") {
@@ -463,13 +481,37 @@ class ExpoGaodeMapOfflineModule : Module() {
   /**
    * 转换城市对象为 Map
    */
-  private fun convertCityToMap(city: OfflineMapCity): Bundle {
+  private fun getDownloadedCityKeys(manager: OfflineMapManager?): Set<String> {
+    return manager?.downloadOfflineMapCityList
+      ?.flatMap { getCityIdentityKeys(it) }
+      ?.toSet()
+      ?: emptySet()
+  }
+
+  private fun getCityIdentityKeys(city: OfflineMapCity): List<String> {
+    return listOfNotNull(
+      city.code?.trim()?.takeIf { it.isNotEmpty() }?.let { "code:$it" },
+      city.adcode?.trim()?.takeIf { it.isNotEmpty() }?.let { "adcode:$it" },
+      city.city?.trim()?.takeIf { it.isNotEmpty() }?.let { "name:$it" }
+    )
+  }
+
+  private fun isDownloadedCity(city: OfflineMapCity, downloadedCityKeys: Set<String>): Boolean {
+    return getCityIdentityKeys(city).any { downloadedCityKeys.contains(it) }
+  }
+
+  private fun convertCityToMap(
+    city: OfflineMapCity,
+    downloadedCityKeys: Set<String> = emptySet()
+  ): Bundle {
     val isPaused = synchronized(lock) { pausedCities.contains(city.code) }
     val isDownloading = synchronized(lock) { downloadingCities.contains(city.code) }
+    val isDownloaded = isDownloadedCity(city, downloadedCityKeys)
     
     val status = when {
       isPaused -> "paused"
       isDownloading -> "downloading"
+      isDownloaded -> "downloaded"
       else -> getStatusString(city.state)
     }
     
@@ -501,8 +543,9 @@ class ExpoGaodeMapOfflineModule : Module() {
   }
   
   /**
-   * 获取状态字符串
-   * 注意：只有 SUCCESS 状态才表示真正下载完成
+   * 获取状态字符串。
+   * CHECKUPDATES / NEW_VERSION 在 10.1.600 冷启动时可能出现在普通城市列表,
+   * 不能单独作为已下载依据；已下载状态以 downloadOfflineMapCityList 为准。
    */
   private fun getStatusString(state: Int): String {
     return when (state) {
@@ -557,5 +600,30 @@ class ExpoGaodeMapOfflineModule : Module() {
       Log.w("ExpoGaodeMapOffline", "OfflineMapManager 初始化失败: ${e.message}")
       null
     }
+  }
+
+  private fun getActivityLaunchContext(): Context {
+    return appContext.currentActivity
+      ?: appContext.reactContext
+      ?: throw CodedException("NO_CONTEXT", "React context not available", null)
+  }
+
+  private fun openOfflineMapUI() {
+    val context = getActivityLaunchContext()
+    SDKInitializer.restorePersistedState(context.applicationContext)
+
+    if (!SDKInitializer.isPrivacyReady()) {
+      throw CodedException(
+        "PRIVACY_NOT_AGREED",
+        "隐私协议未完成确认，请先调用 setPrivacyConfig",
+        null
+      )
+    }
+
+    val intent = Intent(context, OfflineMapActivity::class.java)
+    if (context !is Activity) {
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(intent)
   }
 }
