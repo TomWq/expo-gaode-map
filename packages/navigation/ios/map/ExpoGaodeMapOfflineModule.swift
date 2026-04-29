@@ -2,7 +2,7 @@ import ExpoModulesCore
 import AMapFoundationKit
 import AMapNaviKit
 import Foundation
-import MAMapKit
+import AMapNaviKit
 import UIKit
 
 /**

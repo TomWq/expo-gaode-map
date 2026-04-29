@@ -2,13 +2,13 @@ PODS:
   - AMapFoundation (1.8.7)
   - AMapLocation (2.11.1):
     - AMapFoundation (>= 1.8.7)
-  - AMapNavi (10.1.600):
-    - AMapFoundation (>= 1.8.2)
+  - AMapNavi (11.1.200):
+    - AMapFoundation (>= 1.8.7)
   - AMapSearch (9.7.5):
     - AMapFoundation (>= 1.8.0)
   - EXConstants (55.0.15):
     - ExpoModulesCore
-  - Expo (55.0.17):
+  - Expo (55.0.18):
     - ExpoModulesCore
     - hermes-engine
     - RCTRequired
@@ -46,7 +46,7 @@ PODS:
   - ExpoGaodeMapNavigation (2.0.12):
     - AMapFoundation
     - AMapLocation
-    - AMapNavi
+    - AMapNavi (= 11.1.200)
     - AMapSearch
     - ExpoModulesCore
   - ExpoGlassEffect (55.0.10):
@@ -2487,16 +2487,16 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AMapFoundation: e99da1cc722528c60b39340b4763a95305f6c55e
   AMapLocation: 6e44f50b044dc54c6b3dcb1dee5ffd6de2689e41
-  AMapNavi: 86bc5bd0100d2fb6a705d608c06b7e1299bd4d56
+  AMapNavi: 1ab847368e406bed60b56525a583554557c4333d
   AMapSearch: 29224a399b56b17da1540e4312fc4d9dc37342bb
   EXConstants: 5caf448ff399f60be9d1053e77aed32e39411900
-  Expo: bfedba58da14bf45546ae57e6a5bd5152a1546b4
+  Expo: 78ab86e6cf5d123b23e8e697b5c7112eebd276a8
   ExpoAsset: f56ed740b6a127da2bfd90832cf688ae309d4410
   ExpoBlur: 7a86e84e7728108fa6908d7103fa527705a3dbbf
   ExpoDomWebView: 2b2fbd9a07de8790569257cbf9dfdaa31cf95c70
   ExpoFileSystem: a0e4a5a09c9c4f84338289b273a172609452dec9
   ExpoFont: cdd7a1d574a376fa003c713eff49e0a4df8672c7
-  ExpoGaodeMapNavigation: 161f69a72f79bac2d2f68b3e5b915925509f6d28
+  ExpoGaodeMapNavigation: 88b8cba6eec1bd5c1c8c287f06075a578a38f2df
   ExpoGlassEffect: 72bcb9dc634262c59897ff7c53c16e2ff03990d0
   ExpoImage: bd9e9c5bc4eff7a6883339be305f8b0bb5a0cf1c
   ExpoKeepAwake: a1baf9810a2dee1905aa9bdd336852598f7220e9
