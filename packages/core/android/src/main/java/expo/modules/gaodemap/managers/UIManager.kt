@@ -87,36 +87,46 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   // ==================== 图层显示 ====================
   
   private var currentLocationStyle: MyLocationStyle? = null
+  private var currentFollowUserLocation: Boolean = false
+  private var explicitLocationType: Int? = null
+
+  private fun parseLocationType(locationType: String): Int? {
+    return when (locationType) {
+      "SHOW" -> MyLocationStyle.LOCATION_TYPE_SHOW
+      "LOCATE" -> MyLocationStyle.LOCATION_TYPE_LOCATE
+      "FOLLOW" -> MyLocationStyle.LOCATION_TYPE_FOLLOW
+      "MAP_ROTATE" -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE
+      "LOCATION_ROTATE" -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE
+      "LOCATION_ROTATE_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
+      "FOLLOW_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_FOLLOW_NO_CENTER
+      "MAP_ROTATE_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE_NO_CENTER
+      else -> null
+    }
+  }
+
+  private fun resolveLocationType(followUserLocation: Boolean): Int {
+    explicitLocationType?.let { return it }
+    return if (followUserLocation) {
+      MyLocationStyle.LOCATION_TYPE_FOLLOW
+    } else {
+      MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
+    }
+  }
   
   /**
    * 设置是否显示用户位置
    */
   fun setShowsUserLocation(show: Boolean, followUserLocation: Boolean = false) {
+    currentFollowUserLocation = followUserLocation
     if (show) {
-      // 创建默认的定位样式
       if (currentLocationStyle == null) {
-        currentLocationStyle = MyLocationStyle().apply {
-          // 根据是否跟随设置定位类型
-          val locationType = if (followUserLocation) {
-            MyLocationStyle.LOCATION_TYPE_FOLLOW  // 连续定位并跟随
-          } else {
-            MyLocationStyle.LOCATION_TYPE_SHOW  // 只显示定位点，不跟随
-          }
-          myLocationType(locationType)
-          interval(2000)  // 2秒定位一次
-          showMyLocation(true)
-        }
-      } else {
-        // 更新定位类型
-        val locationType = if (followUserLocation) {
-          MyLocationStyle.LOCATION_TYPE_FOLLOW
-        } else {
-          MyLocationStyle.LOCATION_TYPE_SHOW
-        }
-        currentLocationStyle?.apply {
-          myLocationType(locationType)
-          interval(2000)
-        }
+        currentLocationStyle = MyLocationStyle()
+      }
+
+      currentLocationStyle?.apply {
+        myLocationType(resolveLocationType(followUserLocation))
+        interval(2000)  // 2秒定位一次
+        showMyLocation(true)
       }
       
       // 监听定位变化（用于通知 React Native）
@@ -171,9 +181,10 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
    */
   @SuppressLint("DiscouragedApi")
   fun setUserLocationRepresentation(config: Map<String, Any>) {
+    explicitLocationType = (config["locationType"] as? String)?.let(::parseLocationType)
+
     if (currentLocationStyle == null) {
       currentLocationStyle = MyLocationStyle().apply {
-        myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE)
         interval(2000)
         showMyLocation(true)
       }
@@ -182,21 +193,7 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
     val style = currentLocationStyle!!
     
     // 定位蓝点展现模式 (locationType) - Android 支持8种模式
-    val locationType = config["locationType"] as? String
-    if (locationType != null) {
-      val locationTypeValue = when (locationType) {
-        "SHOW" -> MyLocationStyle.LOCATION_TYPE_SHOW
-        "LOCATE" -> MyLocationStyle.LOCATION_TYPE_LOCATE
-        "FOLLOW" -> MyLocationStyle.LOCATION_TYPE_FOLLOW
-        "MAP_ROTATE" -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE
-        "LOCATION_ROTATE" -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE
-        "LOCATION_ROTATE_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
-        "FOLLOW_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_FOLLOW_NO_CENTER
-        "MAP_ROTATE_NO_CENTER" -> MyLocationStyle.LOCATION_TYPE_MAP_ROTATE_NO_CENTER
-        else -> MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE // 默认值
-      }
-      style.myLocationType(locationTypeValue)
-    }
+    style.myLocationType(resolveLocationType(currentFollowUserLocation))
     
     // 是否显示定位蓝点 (showMyLocation) - Android 5.1.0+ 支持
     // 注意：这个属性在 iOS 中没有对应项，是 Android 特有的

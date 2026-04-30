@@ -61,7 +61,7 @@
 |------|------|--------|------|
 | `anchorU` | `number` | - | 图标锚点 U 坐标 |
 | `anchorV` | `number` | - | 图标锚点 V 坐标 |
-| `locationType` | `'SHOW' \| 'LOCATE' \| 'FOLLOW' \| 'MAP_ROTATE' \| 'LOCATION_ROTATE' \| 'LOCATION_ROTATE_NO_CENTER' \| 'FOLLOW_NO_CENTER' \| 'MAP_ROTATE_NO_CENTER'` | `'LOCATION_ROTATE'` | 蓝点展现模式 |
+| `locationType` | `'SHOW' \| 'LOCATE' \| 'FOLLOW' \| 'MAP_ROTATE' \| 'LOCATION_ROTATE' \| 'LOCATION_ROTATE_NO_CENTER' \| 'FOLLOW_NO_CENTER' \| 'MAP_ROTATE_NO_CENTER'` | `'LOCATION_ROTATE_NO_CENTER'` | 蓝点展现模式 |
 
 #### Android `locationType` 说明
 
@@ -73,6 +73,8 @@
 - `'LOCATION_ROTATE_NO_CENTER'`：定位点跟随设备方向旋转，但不移动到中心
 - `'FOLLOW_NO_CENTER'`：连续定位，但不移动到中心
 - `'MAP_ROTATE_NO_CENTER'`：地图旋转，但不移动到中心
+
+显式设置 `locationType` 时，会覆盖 `followUserLocation` 的默认模式选择。
 
 ### 地图显示与控件
 

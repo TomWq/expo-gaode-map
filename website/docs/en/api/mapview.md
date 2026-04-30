@@ -61,7 +61,7 @@
 |----------|------|---------|-------------|
 | `anchorU` | `number` | - | Icon anchor U |
 | `anchorV` | `number` | - | Icon anchor V |
-| `locationType` | `'SHOW' \| 'LOCATE' \| 'FOLLOW' \| 'MAP_ROTATE' \| 'LOCATION_ROTATE' \| 'LOCATION_ROTATE_NO_CENTER' \| 'FOLLOW_NO_CENTER' \| 'MAP_ROTATE_NO_CENTER'` | `'LOCATION_ROTATE'` | Blue-dot display mode |
+| `locationType` | `'SHOW' \| 'LOCATE' \| 'FOLLOW' \| 'MAP_ROTATE' \| 'LOCATION_ROTATE' \| 'LOCATION_ROTATE_NO_CENTER' \| 'FOLLOW_NO_CENTER' \| 'MAP_ROTATE_NO_CENTER'` | `'LOCATION_ROTATE_NO_CENTER'` | Blue-dot display mode |
 
 #### Android `locationType`
 
@@ -73,6 +73,8 @@
 - `'LOCATION_ROTATE_NO_CENTER'`: rotate the location icon without re-centering
 - `'FOLLOW_NO_CENTER'`: continuous updates without re-centering
 - `'MAP_ROTATE_NO_CENTER'`: rotate the map without re-centering
+
+When `locationType` is set explicitly, it overrides the default mode selected by `followUserLocation`.
 
 ### Map display and controls
 
