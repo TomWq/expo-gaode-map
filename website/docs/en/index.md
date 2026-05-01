@@ -60,6 +60,12 @@ features:
 npm install expo-gaode-map
 ```
 
+::: warning Search Package Notice
+Native search is built into `expo-gaode-map` and `expo-gaode-map-navigation`. `2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration.
+
+After AMap Android SDK `10.0.700`, the official remote dependency bundle changed from `com.amap.api:3dmap:latest.integration` to `com.amap.api:3dmap-location-search:latest.integration`, so search is maintained with core/navigation instead of as a separate package.
+:::
+
 ### Basic Usage
 
 ```tsx

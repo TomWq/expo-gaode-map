@@ -33,8 +33,8 @@ features:
     title: Web API 服务 （可选）
     details: 纯 JavaScript 实现，提供地理编码、路径规划、POI 搜索等跨平台服务
   - icon: 🔍
-    title: 原生搜索（可选）
-    details: POI 搜索、周边搜索、沿途搜索等，性能更优的原生实现
+    title: 内置原生搜索
+    details: POI 搜索、周边搜索、沿途搜索等，随 core / navigation 一起维护
   - icon: 🎨
     title: 丰富的覆盖物
     details: Circle、Marker、Polyline、Polygon 等多种覆盖物支持
@@ -77,15 +77,20 @@ npm install expo-gaode-map-navigation
 # Web API 服务 🆕
 npm install expo-gaode-map-web-api
 
-# 原生搜索（可选）
-npm install expo-gaode-map-search
+# 搜索能力已内置在 expo-gaode-map / expo-gaode-map-navigation 中
 ```
 
 ::: tip 包选择建议
 - 只需要地图和定位 → `expo-gaode-map`
 - 需要导航功能 → `expo-gaode-map-navigation`（已包含地图）
 - 需要跨平台 Web 服务 → `expo-gaode-map-web-api`
-- 需要原生搜索 → `expo-gaode-map-search`
+- 需要原生搜索 → 直接使用 `expo-gaode-map` 或 `expo-gaode-map-navigation` 内置 API
+:::
+
+::: warning Search 模块维护说明
+`2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。从下个版本开始，搜索能力随 `expo-gaode-map` / `expo-gaode-map-navigation` 一起维护，独立 search 包不再单独维护。
+
+高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。历史项目如仍需独立搜索包，请固定到 `expo-gaode-map-search@2.2.33`。
 :::
 
 
@@ -122,8 +127,8 @@ Web API 服务包，纯 JavaScript 实现，跨平台一致：
 
 [使用指南](/guide/web-api) · [API 文档](/api/web-api)
 
-### 🔍 expo-gaode-map-search
-原生搜索包，性能更优的 POI 搜索实现（可选）。
+### 🔍 内置原生搜索
+原生 POI 搜索能力已内置在 `expo-gaode-map` 和 `expo-gaode-map-navigation` 中。
 
 [搜索文档](/api/search)
 

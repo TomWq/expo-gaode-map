@@ -37,9 +37,15 @@
 
 
 ### 可选模块
-- 🔍 **搜索功能**（expo-gaode-map-search）- POI 搜索、周边搜索、关键字搜索、地理编码等
+- 🔍 **搜索功能** - 已内置在 `expo-gaode-map` 中，提供 POI 搜索、周边搜索、关键字搜索、地理编码等
 - 🧭 **导航功能**（expo-gaode-map-navigation）- 驾车、步行、骑行、货车路径规划，实时导航
 - 🌐 **Web API**（expo-gaode-map-web-api）- 纯 JavaScript 实现的路径规划、地理编码、POI 搜索等
+
+> ⚠️ **Search 模块维护说明**
+>
+> 从下个版本开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中，`expo-gaode-map-search` 将不再作为独立模块继续维护。`2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本；新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。
+>
+> 高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
 
 ## 📦 安装
 
@@ -57,7 +63,6 @@
 npm install expo-gaode-map
 
 # 可选模块
-npm install expo-gaode-map-search      # 搜索功能
 npm install expo-gaode-map-web-api     # Web API
 ```
 
@@ -113,8 +118,8 @@ npx expo run:ios
 | 地图显示 | ✅ | ❌ | ✅ | ❌ |
 | 定位 | ✅ | ❌ | ✅ | ❌ |
 | 覆盖物 | ✅ | ❌ | ✅ | ❌ |
-| POI 搜索 | ❌ | ✅ | ❌ | ✅ |
-| 地理编码 | ❌ | ✅ | ❌ | ✅ |
+| POI 搜索 | ✅ | ⚠️ 2.2.33 及以下 | ✅ | ✅ |
+| 地理编码 | ✅ | ⚠️ 2.2.33 及以下 | ✅ | ✅ |
 | 路径规划 | ❌ | ❌ | ✅ | ✅ |
 | 实时导航 | ❌ | ❌ | ✅ | ❌ |
 | 平台 | 原生 | 原生 | 原生 | Web/原生 |
@@ -125,11 +130,11 @@ npx expo run:ios
 expo-gaode-map/
 ├── packages/
 │   ├── core/                    # expo-gaode-map（核心包）
-│   │   └── 地图显示、定位、覆盖物
-│   ├── search/                  # expo-gaode-map-search（搜索包）
-│   │   └── POI 搜索、地理编码
+│   │   └── 地图显示、定位、覆盖物、搜索
+│   ├── search/                  # expo-gaode-map-search（独立搜索包，2.2.33 后不再维护）
+│   │   └── POI 搜索、地理编码（历史兼容）
 │   ├── navigation/              # expo-gaode-map-navigation（导航包）
-│   │   └── 地图+导航（替代 core）
+│   │   └── 地图+搜索+导航（替代 core）
 │   └── web-api/                 # expo-gaode-map-web-api（Web API）
 │       └── 纯 JS 实现的POI 搜索、地理编码、路径规划等
 └── 注意：core 和 navigation 不能同时安装
@@ -145,7 +150,8 @@ expo-gaode-map/
 
 ### 2. 搜索功能和 Web API 有什么区别？
 
-- **搜索包**（`expo-gaode-map-search`）：原生实现，性能更好，无需网络请求，需要配置原生环境
+- **内置原生搜索**（`expo-gaode-map` / `expo-gaode-map-navigation`）：原生实现，性能更好，无需网络请求，需要配置原生环境
+- **独立搜索包**（`expo-gaode-map-search`）：仅建议历史项目固定 `2.2.33` 使用，后续不再单独维护
 - **Web API**（`expo-gaode-map-web-api`）：纯 JavaScript，无需原生配置，跨平台更好，需要网络请求，但功能更加强大和完善
 
 ### 3. 如何配置 API Key？

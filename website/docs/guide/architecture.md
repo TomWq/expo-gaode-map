@@ -15,7 +15,7 @@ expo-gaode-map/
 │   │   ├── android/        # Android 原生代码
 │   │   └── plugin/         # Config Plugin
 │   │
-│   ├── search/             # expo-gaode-map-search（搜索包）
+│   ├── search/             # expo-gaode-map-search（独立搜索包，2.2.33 后不再维护）
 │   │   ├── src/            # TypeScript 代码
 │   │   ├── ios/            # iOS 原生代码
 │   │   └── android/        # Android 原生代码
@@ -42,15 +42,17 @@ expo-gaode-map/
 
 ## 核心包（expo-gaode-map）
 
-提供基础的地图显示和定位功能。详细结构请参考原文档。
+提供基础的地图显示、定位、覆盖物和搜索功能。详细结构请参考原文档。
 
 ## 搜索包（expo-gaode-map-search）
 
-提供 POI 搜索和输入提示功能。详细结构请参考原文档。
+独立搜索包仅用于历史项目兼容，`2.2.33` 是最后一个支持单独集成的版本。新项目请使用 `expo-gaode-map` 或 `expo-gaode-map-navigation` 内置搜索能力。
+
+高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本。
 
 ## 导航包（expo-gaode-map-navigation）
 
-导航包是一个**独立的集成包**，内置完整的地图功能和导航能力。
+导航包是一个**独立的集成包**，内置完整的地图、搜索和导航能力。
 
 ::: danger 二进制冲突警告
 导航包与核心包（expo-gaode-map）存在二进制冲突，**不能同时安装**。需要根据项目需求选择其一。
@@ -86,8 +88,8 @@ Web API 包是**纯 JavaScript 实现**，通过 HTTP 调用高德 Web 服务 AP
 ### Android
 
 ```
-核心包：com.amap.api:3dmap:10.0.600（统一 SDK）
-搜索包：依赖核心包的 SDK
+核心包：com.amap.api:3dmap-location-search（地图 + 定位 + 搜索）
+搜索包：历史兼容包，2.2.33 后不再维护
 导航包：com.amap.api:navi-3dmap（与核心包冲突）
 Web API 包：无原生依赖
 ```
@@ -95,26 +97,26 @@ Web API 包：无原生依赖
 ### iOS
 
 ```
-核心包：AMapFoundationKit + AMapLocationKit + MAMapKit
-搜索包：AMapFoundationKit + AMapSearchKit
-导航包：AMapFoundationKit + AMapNaviKit + MAMapKit
+核心包：AMapFoundationKit + AMapLocationKit + MAMapKit + AMapSearchKit
+搜索包：AMapFoundationKit + AMapSearchKit（历史兼容）
+导航包：AMapFoundationKit + AMapNaviKit + MAMapKit + AMapSearchKit
 Web API 包：无原生依赖
 ```
 
 ## 包之间的关系
 
 ```
-方案一：核心包 + 扩展包
+方案一：核心包 + 可选 Web API
 ┌─────────────────────────────────────┐
 │         用户应用 (example)           │
 └──────┬──────────────┬───────────────┘
-       │              │
-       ▼              ▼
-┌─────────────┐  ┌──────────────────┐
-│ expo-gaode- │  │ expo-gaode-map-  │
-│    map      │◄─┤     search       │
-│  (核心包)    │  │   (搜索包)        │
-└──────┬──────┘  └──────────────────┘
+       │
+       ▼
+┌─────────────┐
+│ expo-gaode- │
+│    map      │
+│ (地图+搜索)  │
+└──────┬──────┘
        │
        ▼
 ┌─────────────────────────────┐
@@ -130,7 +132,7 @@ Web API 包：无原生依赖
          ┌─────────────────────┐
          │ expo-gaode-map-     │
          │   navigation        │
-         │ (集成地图+导航)      │
+         │ (集成地图+搜索+导航) │
          └──────────┬──────────┘
                     │
                     ▼

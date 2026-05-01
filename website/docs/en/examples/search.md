@@ -1,13 +1,13 @@
 # Search Examples
 
-This page demonstrates how to use the search module to implement various search functionalities.
+This page demonstrates how to use the built-in native search APIs from `expo-gaode-map` or `expo-gaode-map-navigation`.
 
 ## Basic Search
 
 ### Simple POI Search
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 async function searchStarbucks() {
   try {
@@ -31,7 +31,7 @@ async function searchStarbucks() {
 ### Nearby Search
 
 ```typescript
-import { searchNearby } from 'expo-gaode-map-search';
+import { searchNearby } from 'expo-gaode-map';
 
 async function searchNearbyRestaurants(latitude: number, longitude: number) {
   try {
@@ -54,7 +54,7 @@ async function searchNearbyRestaurants(latitude: number, longitude: number) {
 ### Route Search
 
 ```typescript
-import { searchAlong } from 'expo-gaode-map-search';
+import { searchAlong } from 'expo-gaode-map';
 
 async function searchGasStations(
   origin: { latitude: number; longitude: number },
@@ -78,7 +78,7 @@ async function searchGasStations(
 ### Autocomplete Search
 
 ```typescript
-import { getInputTips } from 'expo-gaode-map-search';
+import { getInputTips } from 'expo-gaode-map';
 
 async function getSearchSuggestions(keyword: string) {
   try {
@@ -104,8 +104,7 @@ async function getSearchSuggestions(keyword: string) {
 ```typescript
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { MapView, Marker, type MapViewRef } from 'expo-gaode-map';
-import { searchPOI, getInputTips, type POI, type InputTip } from 'expo-gaode-map-search';
+import { MapView, Marker, searchPOI, getInputTips, type MapViewRef, type POI, type InputTip } from 'expo-gaode-map';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
@@ -368,7 +367,7 @@ const styles = StyleSheet.create({
 ### Paginated Search
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 async function loadMoreResults(query: string, currentPage: number) {
   try {
@@ -394,7 +393,7 @@ async function loadMoreResults(query: string, currentPage: number) {
 ### Search by POI Type
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 async function searchByType(type: string, city: string) {
   try {
@@ -422,7 +421,7 @@ const malls = await searchByType('050000', 'Beijing');
 ### Error Handling
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 async function safeSearch(query: string) {
   try {

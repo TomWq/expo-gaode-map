@@ -2,14 +2,24 @@
 
 高德地图搜索功能模块，提供 POI 搜索、周边搜索、沿途搜索、多边形搜索、输入提示、逆地理编码和 POI 详情查询功能。
 
+> ⚠️ **独立 Search 模块维护说明**
+>
+> `2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。从下个版本开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中，本包将不再作为独立模块继续维护。
+>
+> 新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。历史项目如果仍需要独立搜索包，请固定到 `2.2.33`。
+>
+> 高德官方 Android SDK 在 `10.0.700` 之后调整了远程依赖合包策略，远程依赖由“地图 + 定位”变为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
+
 ## 安装
 
+> 以下安装方式仅适用于仍需使用独立搜索包的历史项目。
+
 ```bash
-bun add expo-gaode-map-search
+bun add expo-gaode-map-search@2.2.33
 # 或
-yarn add expo-gaode-map-search
+yarn add expo-gaode-map-search@2.2.33
 # 或
-npm install expo-gaode-map-search
+npm install expo-gaode-map-search@2.2.33
 ```
 
 **前置依赖：**

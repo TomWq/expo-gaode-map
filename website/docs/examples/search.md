@@ -1,12 +1,14 @@
 # 搜索功能示例
 
-本页面提供 `expo-gaode-map-search` 的完整使用示例。
+本页面提供内置原生搜索 API 的完整使用示例。搜索能力已集成到 `expo-gaode-map` 和 `expo-gaode-map-navigation` 中。
 
 ## 安装
 
 ```bash
-npm install expo-gaode-map-search
+npm install expo-gaode-map
 ```
+
+如使用导航包，请安装 `expo-gaode-map-navigation` 并从该包导入搜索 API。
 
 ## 基础搜索示例
 
@@ -15,7 +17,7 @@ npm install expo-gaode-map-search
 搜索指定关键词的地点：
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 const handleSearch = async () => {
   try {
@@ -43,7 +45,7 @@ const handleSearch = async () => {
 搜索指定位置周边的地点：
 
 ```typescript
-import { searchNearby } from 'expo-gaode-map-search';
+import { searchNearby } from 'expo-gaode-map';
 
 const handleNearbySearch = async () => {
   const result = await searchNearby({
@@ -65,7 +67,7 @@ const handleNearbySearch = async () => {
 获取关键词的自动补全建议：
 
 ```typescript
-import { getInputTips } from 'expo-gaode-map-search';
+import { getInputTips } from 'expo-gaode-map';
 
 const handleInputTips = async (text: string) => {
   const result = await getInputTips({
@@ -97,8 +99,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, type POI } from 'expo-gaode-map-search';
+import { MapView, Marker, searchPOI, type POI } from 'expo-gaode-map';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
@@ -244,7 +245,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { getInputTips, type InputTip } from 'expo-gaode-map-search';
+import { getInputTips, type InputTip } from 'expo-gaode-map';
 
 export default function AutoCompleteSearch() {
   const [keyword, setKeyword] = useState('');
@@ -350,8 +351,7 @@ const styles = StyleSheet.create({
 ```typescript
 import React, { useState, useEffect } from 'react';
 import { View, Button } from 'react-native';
-import { ExpoGaodeMapModule } from 'expo-gaode-map';
-import { searchNearby, type POI } from 'expo-gaode-map-search';
+import { ExpoGaodeMapModule, searchNearby, type POI } from 'expo-gaode-map';
 
 export default function NearbySearch() {
   const [nearbyPOIs, setNearbyPOIs] = useState<POI[]>([]);
@@ -392,7 +392,7 @@ export default function NearbySearch() {
 搜索路线沿途的加油站：
 
 ```typescript
-import { searchAlong } from 'expo-gaode-map-search';
+import { searchAlong } from 'expo-gaode-map';
 
 const searchGasStations = async (route: Array<{ latitude: number; longitude: number }>) => {
   try {
@@ -425,7 +425,7 @@ searchGasStations(route);
 获取指定坐标的地址信息：
 
 ```typescript
-import { reGeocode } from 'expo-gaode-map-search';
+import { reGeocode } from 'expo-gaode-map';
 
 const getAddress = async (latitude: number, longitude: number) => {
   try {
@@ -448,7 +448,7 @@ const getAddress = async (latitude: number, longitude: number) => {
 获取 POI 的详细信息（包括营业时间、评分等）：
 
 ```typescript
-import { getPoiDetail } from 'expo-gaode-map-search';
+import { getPoiDetail } from 'expo-gaode-map';
 
 const showPoiDetail = async (id: string) => {
   try {

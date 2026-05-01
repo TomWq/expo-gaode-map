@@ -17,7 +17,7 @@ expo-gaode-map/
 │   │   ├── android/        # Android native code
 │   │   └── plugin/         # Expo Config Plugin
 │   │
-│   ├── search/             # expo-gaode-map-search (search package)
+│   ├── search/             # expo-gaode-map-search (standalone search package, deprecated after 2.2.33)
 │   │   ├── src/            # TypeScript source code
 │   │   ├── ios/            # iOS native code
 │   │   └── android/        # Android native code
@@ -47,7 +47,7 @@ expo-gaode-map/
 
 ## Core Package (expo-gaode-map)
 
-The core package provides fundamental map rendering and location features.
+The core package provides fundamental map rendering, location, overlays, and native search features.
 
 Key responsibilities:
 
@@ -66,15 +66,16 @@ For detailed APIs, see:
 
 ## Search Package (expo-gaode-map-search)
 
-The search package provides native POI search functionality:
+The standalone search package is kept for legacy compatibility only. `2.2.33`
+is the last version that supports standalone integration. New projects should
+use the built-in search APIs from `expo-gaode-map` or
+`expo-gaode-map-navigation`.
 
-- POI keyword search
-- Nearby search
-- Along-route search
-- Polygon search
-- Input tips (autocomplete)
-
-It is an **optional** package – install it only when search is required.
+After AMap Android SDK `10.0.700`, the official remote dependency bundle
+changed from "map + location" to "map + location + search", and the remote
+dependency coordinate changed from `com.amap.api:3dmap:latest.integration` to
+`com.amap.api:3dmap-location-search:latest.integration`. Keeping search
+standalone now creates unnecessary bundling and dependency-conflict cost.
 
 Related docs:
 
@@ -86,6 +87,7 @@ Related docs:
 
 The navigation package is a **standalone integrated solution** that bundles
 full map rendering and navigation capabilities.
+It also includes native search APIs.
 
 ::: danger Binary Conflict Warning
 expo-gaode-map-navigation conflicts with the core package `expo-gaode-map` at
@@ -136,8 +138,8 @@ Related docs:
 ### Android
 
 ```text
-Core package:      com.amap.api:3dmap:10.0.600 (unified SDK)
-Search package:    depends on core SDK
+Core package:      com.amap.api:3dmap-location-search (map + location + search)
+Search package:    legacy compatibility package; deprecated after 2.2.33
 Navigation package: com.amap.api:navi-3dmap (conflicts with core)
 Web API package:   no native dependencies
 ```
@@ -145,20 +147,19 @@ Web API package:   no native dependencies
 ### iOS
 
 ```text
-Core package:      AMapFoundationKit + AMapLocationKit + MAMapKit
-Search package:    AMapFoundationKit + AMapSearchKit
-Navigation package: AMapFoundationKit + AMapNaviKit + MAMapKit
+Core package:      AMapFoundationKit + AMapLocationKit + MAMapKit + AMapSearchKit
+Search package:    AMapFoundationKit + AMapSearchKit (legacy compatibility)
+Navigation package: AMapFoundationKit + AMapNaviKit + MAMapKit + AMapSearchKit
 Web API package:   no native dependencies
 ```
 
 ## Package Combinations
 
-### Option 1: Core + Extensions
+### Option 1: Core + Optional Web API
 
 ```text
 User App (example)
- ├─ expo-gaode-map           (core map package)
- ├─ expo-gaode-map-search    (search, optional)
+ ├─ expo-gaode-map           (map + location + search)
  └─ expo-gaode-map-web-api   (Web services, optional)
 
       ↓
@@ -169,7 +170,7 @@ User App (example)
 
 ```text
 Navigation App (navigation)
- └─ expo-gaode-map-navigation (integrated map + navigation)
+ └─ expo-gaode-map-navigation (integrated map + search + navigation)
 
       ↓
    AMap Navi SDK (navi-3dmap)

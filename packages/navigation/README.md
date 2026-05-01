@@ -5,6 +5,7 @@
 ## 特性
 
 - 🗺️ **地图渲染**：内置完整地图能力，支持 Marker、Polyline、Polygon、Circle、Cluster、HeatMap 等覆盖物。
+- 🔍 **原生搜索**：内置 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码等搜索能力。
 - 🚗 **多模式路径规划**：支持驾车、步行、骑行、电动车、货车、摩托车等多种出行方式。
 - 🧭 **实时导航 UI**：提供 `NaviView` 官方嵌入视图，并暴露完整事件与原生参数，方便你自行定制导航界面。
 - 🛣️ **独立路径规划**：支持“先算路、再导航”的高级模式，可实现多路线对比与选择。
@@ -13,7 +14,7 @@
 
 ## 安装
 
-本模块已包含地图与导航的所有能力，**不需要**、也不应同时安装 `expo-gaode-map`。
+本模块已包含地图、搜索与导航能力，**不需要**、也不应同时安装 `expo-gaode-map` 或 `expo-gaode-map-search`。
 
 ```bash
 # bun
@@ -28,6 +29,10 @@ npm install expo-gaode-map-navigation
 
 **⚠️ 重要提示：**
 如果项目中已安装 `expo-gaode-map`，请务必先卸载，否则会导致 Android 端二进制冲突（`3dmap` vs `navi-3dmap`）。`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
+
+`expo-gaode-map-search` 的独立集成只维护到 `2.2.33`。从下个版本开始，搜索能力随 `expo-gaode-map` / `expo-gaode-map-navigation` 一起维护；在导航包中请直接从 `expo-gaode-map-navigation` 导入搜索 API。
+
+高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
 
 > ⚠️ **版本兼容性说明**：
 > - 如果你的项目使用 **Expo SDK 54 及以上**，请安装 默认的 版本。

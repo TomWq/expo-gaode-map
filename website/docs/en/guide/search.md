@@ -1,10 +1,18 @@
 # Search Features
 
-The search module provides comprehensive POI (Point of Interest) search functionality based on AMap SDK, including keyword search, nearby search, route search, and autocomplete features.
+Search is built into `expo-gaode-map` and `expo-gaode-map-navigation`. It provides comprehensive POI (Point of Interest) search functionality based on AMap SDK, including keyword search, nearby search, route search, geocoding, and autocomplete features.
+
+::: warning Standalone Search Package Maintenance Notice
+`2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration. Starting with the next version, `expo-gaode-map-search` is no longer maintained as a standalone package.
+
+After AMap Android SDK `10.0.700`, the official remote dependency bundle changed from "map + location" to "map + location + search", and the remote dependency coordinate changed from `com.amap.api:3dmap:latest.integration` to `com.amap.api:3dmap-location-search:latest.integration`. Keeping search as a standalone package now creates unnecessary bundling and dependency-conflict cost, so search is maintained with core/navigation instead.
+
+If a legacy project still needs the standalone package, pin `expo-gaode-map-search@2.2.33`. New projects should import search APIs from `expo-gaode-map` or `expo-gaode-map-navigation`.
+:::
 
 ## Overview
 
-The search module is an **optional** extension package that you can install separately from the core module. This design keeps the core package lightweight while allowing users to add search functionality only when needed.
+The search module is now maintained inside the core package and the navigation package. You do not need to install `expo-gaode-map-search` for new projects.
 
 ### Key Features
 
@@ -14,7 +22,7 @@ The search module is an **optional** extension package that you can install sepa
 - ✅ **Autocomplete** - Get search suggestions in real-time
 - ✅ **Pagination** - Support for large result sets
 - ✅ **Type Filtering** - Filter by POI category
-- ✅ **Optional Module** - Install only if needed to reduce app size
+- ✅ **Built-in Native Search** - Available from `expo-gaode-map` or `expo-gaode-map-navigation`
 
 ---
 
@@ -23,11 +31,14 @@ The search module is an **optional** extension package that you can install sepa
 ### 1. Install the Package
 
 ```bash
-bun add expo-gaode-map-search
-# or
-yarn add expo-gaode-map-search
-# or
-npm install expo-gaode-map-search
+# Map + location + search
+npm install expo-gaode-map
+
+# Or: map + location + search + navigation
+npm install expo-gaode-map-navigation
+
+# Legacy standalone integration only
+npm install expo-gaode-map-search@2.2.33
 
 ```
 
@@ -90,7 +101,22 @@ import {
   type InputTip,
   type SearchResult,
   type InputTipsResult,
-} from 'expo-gaode-map-search';
+} from 'expo-gaode-map';
+```
+
+If you use the navigation package, import from `expo-gaode-map-navigation`:
+
+```typescript
+import {
+  initSearch,
+  searchPOI,
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  type POI,
+  type SearchResult,
+} from 'expo-gaode-map-navigation';
 ```
 
 If you configured keys via Config Plugin, the search module auto-initializes. Otherwise, call `initSearch()` once at startup.
@@ -163,8 +189,7 @@ Here's a complete example of a search map application:
 ```typescript
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MapView, Marker, type MapViewRef } from 'expo-gaode-map';
-import { searchPOI, type POI } from 'expo-gaode-map-search';
+import { MapView, Marker, searchPOI, type MapViewRef, type POI } from 'expo-gaode-map';
 
 export default function SearchMapScreen() {
   const [keyword, setKeyword] = useState('');
@@ -380,11 +405,10 @@ Get input suggestions (autocomplete).
 ### 1. Search Near Current Location
 
 ```typescript
-import { getCurrentLocation } from 'expo-gaode-map';
-import { searchNearby } from 'expo-gaode-map-search';
+import { ExpoGaodeMapModule, searchNearby } from 'expo-gaode-map';
 
 async function searchNearMe(keyword: string) {
-  const location = await getCurrentLocation();
+  const location = await ExpoGaodeMapModule.getCurrentLocation();
   const result = await searchNearby({
     center: {
       latitude: location.latitude,
@@ -401,7 +425,7 @@ async function searchNearMe(keyword: string) {
 ### 2. Search Along Driving Route
 
 ```typescript
-import { searchAlong } from 'expo-gaode-map-search';
+import { searchAlong } from 'expo-gaode-map';
 
 async function findGasStationsOnRoute(start: Coordinate, end: Coordinate) {
   const result = await searchAlong({
@@ -417,7 +441,7 @@ async function findGasStationsOnRoute(start: Coordinate, end: Coordinate) {
 ### 3. Category Search
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 async function searchByCategory(category: string, city: string) {
   // 040000 = Dining, 050000 = Shopping, etc.
@@ -436,9 +460,9 @@ async function searchByCategory(category: string, city: string) {
 
 ## FAQs
 
-### Q: Why is the search module a separate package?
+### Q: Why is the standalone search package no longer recommended?
 
-**A:** To keep the core package lightweight and reduce app size. Many apps only need map display and location features without search functionality. By separating the search module, users can choose to install it only when needed.
+**A:** After AMap Android SDK `10.0.700`, the official remote dependency bundle includes map, location, and search together. Keeping search separate increases dependency-conflict risk, so native search is now maintained inside `expo-gaode-map` and `expo-gaode-map-navigation`. Standalone `expo-gaode-map-search` is only for legacy projects pinned to `2.2.33`.
 
 ### Q: Do I need to configure the API Key separately for the search module?
 

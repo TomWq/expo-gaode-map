@@ -1,22 +1,36 @@
 # 搜索功能
 
-`expo-gaode-map-search` 提供了高德地图的搜索功能，包括 POI 搜索、周边搜索、沿途搜索等。
+搜索功能已经内置在 `expo-gaode-map` 和 `expo-gaode-map-navigation` 中，包括 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码等。
+
+::: warning 独立 Search 模块维护说明
+`2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。从下个版本开始，`expo-gaode-map-search` 不再作为独立模块维护。
+
+原因是高德官方 Android SDK 在 `10.0.700` 之后调整了远程依赖合包策略：远程依赖由“地图 + 定位”变为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
+
+历史项目如果仍需要独立搜索包，请固定到 `expo-gaode-map-search@2.2.33`；新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。
+:::
 
 ## 安装
 
-搜索功能是**可选的**，需要单独安装：
+### 新版本
+
+搜索功能随核心包或导航包一起安装，不需要再安装 `expo-gaode-map-search`：
 
 ```bash
-bun add expo-gaode-map-search
-# 或
-yarn add expo-gaode-map-search
-# 或
-npm install expo-gaode-map-search
+# 地图 + 定位 + 搜索
+npm install expo-gaode-map
+
+# 或：地图 + 定位 + 搜索 + 导航
+npm install expo-gaode-map-navigation
 ```
 
-::: tip 提示
-搜索包依赖核心包 `expo-gaode-map`，请确保已安装核心包。
-:::
+### 历史独立搜索包
+
+仅在历史项目需要继续单独集成 search 模块时使用：
+
+```bash
+npm install expo-gaode-map-search@2.2.33
+```
 
 ## 配置
 
@@ -69,7 +83,9 @@ ExpoGaodeMapModule.initSDK({
 搜索指定关键词的地点：
 
 ```typescript
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
+// 如果使用导航包：
+// import { searchPOI } from 'expo-gaode-map-navigation';
 
 const result = await searchPOI({
   keyword: '酒店',
@@ -91,7 +107,9 @@ result.pois.forEach(poi => {
 搜索指定位置周边的地点：
 
 ```typescript
-import { searchNearby } from 'expo-gaode-map-search';
+import { searchNearby } from 'expo-gaode-map';
+// 如果使用导航包：
+// import { searchNearby } from 'expo-gaode-map-navigation';
 
 const result = await searchNearby({
   keyword: '餐厅',
@@ -111,7 +129,9 @@ result.pois.forEach(poi => {
 搜索路线沿途的特定地点（如加油站、ATM）：
 
 ```typescript
-import { searchAlong } from 'expo-gaode-map-search';
+import { searchAlong } from 'expo-gaode-map';
+// 如果使用导航包：
+// import { searchAlong } from 'expo-gaode-map-navigation';
 
 const result = await searchAlong({
   keyword: '加油站',  // 支持：加油站、ATM、汽修、厕所
@@ -136,7 +156,9 @@ const result = await searchAlong({
 在指定多边形区域内搜索：
 
 ```typescript
-import { searchPolygon } from 'expo-gaode-map-search';
+import { searchPolygon } from 'expo-gaode-map';
+// 如果使用导航包：
+// import { searchPolygon } from 'expo-gaode-map-navigation';
 
 const result = await searchPolygon({
   keyword: '学校',
@@ -156,7 +178,9 @@ const result = await searchPolygon({
 获取关键词的自动补全建议：
 
 ```typescript
-import { getInputTips } from 'expo-gaode-map-search';
+import { getInputTips } from 'expo-gaode-map';
+// 如果使用导航包：
+// import { getInputTips } from 'expo-gaode-map-navigation';
 
 const result = await getInputTips({
   keyword: '天安门',
@@ -221,8 +245,7 @@ interface SearchResult {
 ```typescript
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, TouchableOpacity } from 'react-native';
-import { MapView, Marker } from 'expo-gaode-map';
-import { searchPOI, type POI } from 'expo-gaode-map-search';
+import { MapView, Marker, searchPOI, type POI } from 'expo-gaode-map';
 
 export default function SearchScreen() {
   const [keyword, setKeyword] = useState('');

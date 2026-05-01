@@ -1,15 +1,22 @@
 # Search API
 
-The Search module provides native POI (Point of Interest) search functionality based on AMap SDK.
+The Search API provides native POI (Point of Interest) search functionality based on AMap SDK.
+
+> ⚠️ **Standalone Search Package Maintenance Notice**: `2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration. Starting with the next version, search is maintained inside `expo-gaode-map` and `expo-gaode-map-navigation`; the standalone search package is no longer maintained.
+>
+> After AMap Android SDK `10.0.700`, the official remote dependency bundle changed from "map + location" to "map + location + search", and the remote dependency coordinate changed from `com.amap.api:3dmap:latest.integration` to `com.amap.api:3dmap-location-search:latest.integration`. Keeping search standalone now creates unnecessary bundling and dependency-conflict cost.
 
 ## Installation
 
 ```bash
-bun add expo-gaode-map-search
-# or
-yarn add expo-gaode-map-search
-# or
-npm install expo-gaode-map-search
+# Map + location + search
+npm install expo-gaode-map
+
+# Or: map + location + search + navigation
+npm install expo-gaode-map-navigation
+
+# Legacy standalone integration only
+npm install expo-gaode-map-search@2.2.33
 ```
 
 ## Import
@@ -26,7 +33,22 @@ import {
   type SearchResult,
   type InputTip,
   type InputTipsResult,
-} from 'expo-gaode-map-search';
+} from 'expo-gaode-map';
+```
+
+If you use the navigation package, import from `expo-gaode-map-navigation`:
+
+```typescript
+import {
+  initSearch,
+  searchPOI,
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  type POI,
+  type SearchResult,
+} from 'expo-gaode-map-navigation';
 ```
 
 ## API Methods

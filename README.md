@@ -35,9 +35,9 @@ Includes complete API documentation, usage guides, and example code:
 | China map readiness (AMap) | ✅ Designed around native AMap capabilities | ⚠️ Primarily generic abstraction; in Mainland China, Android delivery often faces Google Maps/GMS availability constraints | ✅ Core AMap capabilities |
 | Expo integration experience | ✅ Expo Modules + Config Plugin (auto key/permission setup) | ⚠️ Usually requires additional project wiring | ⚠️ Often requires manual adaptation |
 | React Native New Architecture (Fabric/TurboModules) | ✅ Explicit New + Old Architecture support | ✅/⚠️ Depends on official support scope | ⚠️ No clear New Architecture support statement |
-| Unified stack (Map + Search + Navigation + Web API) | ✅ Four coordinated packages in one monorepo | ❌ Usually multi-library assembly | ❌ Primarily map-layer scope |
+| Unified stack (Map + Search + Navigation + Web API) | ✅ Search is built into core/navigation; Web API remains optional | ❌ Usually multi-library assembly | ❌ Primarily map-layer scope |
 | Navigation (route planning + nav view) | ✅ `expo-gaode-map-navigation` | ❌ | ❌ |
-| Search stack (POI/nearby/geocode) | ✅ `expo-gaode-map-search` + `web-api` | ❌ | ⚠️ Usually requires extra composition |
+| Search stack (POI/nearby/geocode) | ✅ Built into `expo-gaode-map` / `expo-gaode-map-navigation` + `web-api` | ❌ | ⚠️ Usually requires extra composition |
 | Offline maps | ✅ Built-in APIs | ⚠️ Usually needs extra implementation | ⚠️ Depends on fork/version |
 | Geometry utilities (TS + C++) | ✅ Built in (distance/area/simplification/nearest point, etc.) | ❌ | ❌ |
 | Privacy compliance + typed error guidance | ✅ Built in with solution links | ⚠️ Usually app-side implementation | ⚠️ Usually app-side implementation |
@@ -61,9 +61,17 @@ Includes complete API documentation, usage guides, and example code:
 - ✅ Lean native implementation with simpler lifecycle management and lower maintenance cost
 
 ### Optional Modules
-- 🔍 **Search Functionality** (expo-gaode-map-search) - POI search, nearby search, keyword search, geocoding, etc.
+- 🔍 **Search Functionality** - Built into `expo-gaode-map` and `expo-gaode-map-navigation`: POI search, nearby search, keyword search, geocoding, etc.
 - 🧭 **Navigation Functionality** (expo-gaode-map-navigation) - Driving, walking, cycling, truck route planning, real-time navigation
 - 🌐 **Web API** (expo-gaode-map-web-api) - Pure JavaScript implementation of route planning, geocoding, POI search, etc.
+
+> ⚠️ **Search Module Maintenance Notice**
+>
+> Starting with the next version, native search is maintained inside `expo-gaode-map` (core) and the map layer of `expo-gaode-map-navigation`. `expo-gaode-map-search` will no longer be maintained as a standalone integration package.
+>
+> `2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration. If your project still needs the standalone search package, pin it to `2.2.33`; new projects should import search APIs from `expo-gaode-map` or `expo-gaode-map-navigation`.
+>
+> Why: after AMap Android SDK `10.0.700`, the official remote dependency bundle changed from "map + location" to "map + location + search", and the remote dependency coordinate changed from `com.amap.api:3dmap:latest.integration` to `com.amap.api:3dmap-location-search:latest.integration`. Maintaining search as a separate package now creates unnecessary bundling and dependency-conflict cost, so search is maintained with core/navigation instead.
 
 ## 📦 Installation
 
@@ -81,7 +89,6 @@ Includes complete API documentation, usage guides, and example code:
 npm install expo-gaode-map
 
 # Optional modules
-npm install expo-gaode-map-search      # Search functionality
 npm install expo-gaode-map-web-api     # Web API
 ```
 
@@ -198,8 +205,8 @@ For detailed initialization and usage guides, please see:
 | Map Display | ✅ | ❌ | ✅ | ❌ |
 | Location | ✅ | ❌ | ✅ | ❌ |
 | Overlays | ✅ | ❌ | ✅ | ❌ |
-| POI Search | ❌ | ✅ | ❌ | ✅ |
-| Geocoding | ❌ | ✅ | ❌ | ✅ |
+| POI Search | ✅ | ⚠️ 2.2.33 and lower | ✅ | ✅ |
+| Geocoding | ✅ | ⚠️ 2.2.33 and lower | ✅ | ✅ |
 | Route Planning | ❌ | ❌ | ✅ | ✅ |
 | Real-time Navigation | ❌ | ❌ | ✅ | ❌ |
 | Platform | Native | Native | Native | Web/Native |
@@ -210,11 +217,11 @@ For detailed initialization and usage guides, please see:
 expo-gaode-map/
 ├── packages/
 │   ├── core/                    # expo-gaode-map (Core package)
-│   │   └── Map display, location, overlays
-│   ├── search/                  # expo-gaode-map-search (Search package)
-│   │   └── POI search, geocoding
+│   │   └── Map display, location, overlays, search
+│   ├── search/                  # expo-gaode-map-search (standalone search package, deprecated after 2.2.33)
+│   │   └── POI search, geocoding (legacy compatibility)
 │   ├── navigation/              # expo-gaode-map-navigation (Navigation package)
-│   │   └── Map + navigation (replaces core)
+│   │   └── Map + search + navigation (replaces core)
 │   └── web-api/                 # expo-gaode-map-web-api (Web API)
 │       └── Pure JS route planning, etc.
 └── Note: core and navigation cannot be installed together
@@ -230,7 +237,8 @@ expo-gaode-map/
 
 ### 2. What's the difference between Search and Web API?
 
-- **Search package** (`expo-gaode-map-search`): Native implementation, better performance, requires native environment configuration
+- **Built-in native search** (`expo-gaode-map` / `expo-gaode-map-navigation`): Native implementation, better performance, requires native environment configuration
+- **Standalone search package** (`expo-gaode-map-search`): legacy-only; pin to `2.2.33` if you still need standalone integration
 - **Web API** (`expo-gaode-map-web-api`): Pure JavaScript, no native configuration needed, better cross-platform compatibility
 
 ### 3. How to configure API keys?

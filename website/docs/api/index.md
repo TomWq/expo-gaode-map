@@ -24,7 +24,7 @@
 
 ### 扩展功能
 
-- [搜索 API](/api/search) - `expo-gaode-map-search`（可选安装）
+- [搜索 API](/api/search) - 内置在 `expo-gaode-map` / `expo-gaode-map-navigation`
 - [导航 API](/api/navigation) - `expo-gaode-map-navigation`（独立包，与核心包二选一）
 - [Web API](/api/web-api) - `expo-gaode-map-web-api`（可选安装）
 
@@ -70,7 +70,7 @@ const location = await ExpoGaodeMapModule.getCurrentLocation();
 ### 搜索功能
 
 ```tsx
-import { searchPOI } from 'expo-gaode-map-search';
+import { searchPOI } from 'expo-gaode-map';
 
 // POI 搜索
 const result = await searchPOI({
@@ -128,7 +128,7 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 expo-gaode-map 采用 Monorepo 架构：
 
 - **核心包** (`expo-gaode-map`) - 地图显示、定位、覆盖物
-- **搜索包** (`expo-gaode-map-search`) - POI 搜索、周边搜索等（可选）
+- **内置搜索** (`expo-gaode-map` / `expo-gaode-map-navigation`) - POI 搜索、周边搜索等
 - **导航包** (`expo-gaode-map-navigation`) - 路径规划、实时导航（独立包，与核心包二选一）
 - **Web API 包** (`expo-gaode-map-web-api`) - Web 服务 API（可选）
 

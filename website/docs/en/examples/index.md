@@ -185,7 +185,7 @@ function LocationTracker() {
 ### Search Features
 
 ```tsx
-import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map-search';
+import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map';
 
 // Keyword search
 const result = await searchPOI({

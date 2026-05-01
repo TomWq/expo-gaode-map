@@ -24,7 +24,7 @@ Complete API reference documentation.
 
 ### Extended Features
 
-- [Search API](/en/api/search) - POI search, nearby search, along-route search, input tips
+- [Search API](/en/api/search) - built into `expo-gaode-map` / `expo-gaode-map-navigation`
 - [Navigation API](/en/api/navigation) - Route planning and navigation
 - [Offline Maps API](/en/api/offline-map) - City map download and management
 - [Web API](/en/api/web-api) - AMap Web Service API (pure JavaScript)
@@ -83,7 +83,7 @@ import { Circle, Marker, Polyline, Polygon } from 'expo-gaode-map';
 ### Search Features
 
 ```tsx
-import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map-search';
+import { searchPOI, searchNearby, getInputTips } from 'expo-gaode-map';
 
 // Keyword search
 const result = await searchPOI({

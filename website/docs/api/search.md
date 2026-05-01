@@ -1,13 +1,22 @@
 # 搜索 API
 
-`expo-gaode-map-search` 包提供了高德地图的搜索功能。
+搜索 API 提供高德地图原生搜索功能，包括 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码和 POI 详情查询。
 
-> ⚠️ **安装要求**: 搜索功能需要单独安装 `expo-gaode-map-search` 包。
+> ⚠️ **独立 Search 模块维护说明**: `2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。从下个版本开始，搜索能力随 `expo-gaode-map` 和 `expo-gaode-map-navigation` 一起维护，独立 search 包不再单独维护。
+>
+> 高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。因此继续单独维护 search 模块会带来重复合包和依赖冲突成本。
 
 ## 安装
 
 ```bash
-npm install expo-gaode-map-search
+# 地图 + 定位 + 搜索
+npm install expo-gaode-map
+
+# 或：地图 + 定位 + 搜索 + 导航
+npm install expo-gaode-map-navigation
+
+# 历史项目如需独立搜索包，请固定到最后支持版本
+npm install expo-gaode-map-search@2.2.33
 ```
 
 ## 导入
@@ -26,7 +35,24 @@ import {
   type SearchResult,
   type InputTipsResult,
   type ReGeocodeResult,
-} from 'expo-gaode-map-search';
+} from 'expo-gaode-map';
+```
+
+如果使用导航包，请从 `expo-gaode-map-navigation` 导入：
+
+```typescript
+import {
+  searchPOI,
+  searchNearby,
+  searchAlong,
+  searchPolygon,
+  getInputTips,
+  reGeocode,
+  getPoiDetail,
+  initSearch,
+  type POI,
+  type SearchResult,
+} from 'expo-gaode-map-navigation';
 ```
 
 ## 方法
