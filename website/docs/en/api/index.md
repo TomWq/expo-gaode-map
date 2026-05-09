@@ -16,7 +16,7 @@ Complete API reference documentation.
 ### Core Features
 
 - [MapView Props & Methods](/en/api/mapview)
-- [Components & Hooks](/en/api/mapview#components-and-hooks)
+- [Components & Hooks](/en/api/components)
 - [Location API](/en/api/location)
 - [Geometry Utils](/en/api/geometry)
 - [Overlay Components](/en/api/overlays)
@@ -28,6 +28,21 @@ Complete API reference documentation.
 - [Navigation API](/en/api/navigation) - Route planning and navigation
 - [Offline Maps API](/en/api/offline-map) - City map download and management
 - [Web API](/en/api/web-api) - AMap Web Service API (pure JavaScript)
+
+## Module Layout
+
+`expo-gaode-map` uses a monorepo layout:
+
+- **Core package** (`expo-gaode-map`) - map display, location, and overlays
+- **Built-in search** (`expo-gaode-map` / `expo-gaode-map-navigation`) - POI search and nearby search
+- **Navigation package** (`expo-gaode-map-navigation`) - route planning and real-time navigation; install it instead of the core package
+- **Web API package** (`expo-gaode-map-web-api`) - optional web service APIs
+
+Install only the packages you need to keep the app smaller.
+
+::: warning Navigation package note
+The navigation package is an all-in-one solution with built-in map functionality. It **cannot** be installed together with the core package `expo-gaode-map`.
+:::
 
 ## Quick Navigation
 
@@ -107,7 +122,9 @@ const tips = await getInputTips({
 
 ## Related Documentation
 
-- [Examples](/en/examples/) - Detailed code examples
-- [Search Examples](/en/examples/search) - Search feature examples
-- [Initialization Guide](/en/guide/initialization) - SDK initialization and permission management
 - [Getting Started](/en/guide/getting-started) - Quick start guide
+- [Search Guide](/en/guide/search) - Search feature guide
+- [Navigation Guide](/en/guide/navigation) - Navigation feature guide
+- [Web API Guide](/en/guide/web-api) - Web API usage guide
+- [Architecture](/en/guide/architecture) - Monorepo layout and module overview
+- [Examples](/en/examples/) - Detailed code examples

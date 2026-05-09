@@ -8,6 +8,17 @@ Quick start guide to help you integrate expo-gaode-map into your Expo project.
 - Expo SDK >= 50
 - React Native >= 0.73
 
+## Project Structure
+
+`expo-gaode-map` uses a monorepo architecture and provides modular packages:
+
+- **`expo-gaode-map`** - core package for map display, location, and overlays
+- **Built-in search** - already included in `expo-gaode-map` and `expo-gaode-map-navigation`
+- **`expo-gaode-map-navigation`** - optional navigation package; do not install it together with `expo-gaode-map`
+- **`expo-gaode-map-web-api`** - optional Web API package
+
+Install only the packages you need to avoid unnecessary app size growth.
+
 ## Installation
 
 ::: warning Version Compatibility
@@ -32,6 +43,45 @@ yarn add expo-gaode-map
 # Using npm
 npm install expo-gaode-map
 
+```
+
+### Search features
+
+Search is built into the core package and navigation package, so you do not need to install `expo-gaode-map-search` separately.
+
+::: warning Standalone search package notice
+`2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration. From the next version onward, the separate search package is no longer maintained.
+
+After AMap Android SDK `10.0.700`, the official remote dependency bundle changed from "map + location" to "map + location + search", and the dependency coordinate changed from `com.amap.api:3dmap:latest.integration` to `com.amap.api:3dmap-location-search:latest.integration`. Legacy projects that still need the standalone package should pin `expo-gaode-map-search@2.2.33`.
+:::
+
+### Navigation package (optional)
+
+If you need navigation features:
+
+```bash
+npm install expo-gaode-map-navigation
+```
+
+### Web API package (optional)
+
+If you need Web API services:
+
+```bash
+npm install expo-gaode-map-web-api
+```
+
+### Expo projects
+
+If you are using an Expo-managed project, rebuild native code after installation:
+
+```bash
+# With EAS Build
+eas build --platform android
+
+# Or with a local build
+npx expo prebuild
+npx expo run:android
 ```
 
 ### Bare React Native (non-Expo managed) projects
@@ -154,6 +204,87 @@ export default function App() {
 />
 ```
 
+### 4. Add overlays
+
+```tsx
+import { MapView, Marker, Circle } from 'expo-gaode-map';
+
+export default function MapScreen() {
+  return (
+    <MapView
+      style={{ flex: 1 }}
+      initialCameraPosition={{
+        target: { latitude: 39.9, longitude: 116.4 },
+        zoom: 10,
+      }}
+    >
+      <Marker position={{ latitude: 39.9, longitude: 116.4 }} title="Beijing" />
+      <Circle
+        center={{ latitude: 39.9, longitude: 116.4 }}
+        radius={1000}
+        fillColor="#8800FF00"
+        strokeColor="#FFFF0000"
+      />
+    </MapView>
+  );
+}
+```
+
+### 5. Custom map styles
+
+`expo-gaode-map` supports custom map styles so your map can match your app's visual language.
+
+Use an online style:
+
+```tsx
+<MapView
+  style={{ flex: 1 }}
+  initialCameraPosition={{
+    target: { latitude: 39.9, longitude: 116.4 },
+    zoom: 10,
+  }}
+  customMapStyle={{
+    styleId: 'your-style-id',
+  }}
+/>
+```
+
+Use local style files:
+
+```tsx
+<MapView
+  style={{ flex: 1 }}
+  initialCameraPosition={{
+    target: { latitude: 39.9, longitude: 116.4 },
+    zoom: 10,
+  }}
+  customMapStyle={{
+    styleDataPath: 'style.data',
+    extraStyleDataPath: 'style.extra',
+  }}
+/>
+```
+
+### 6. Use search features
+
+After installing `expo-gaode-map` or `expo-gaode-map-navigation`:
+
+```tsx
+import { searchPOI, searchNearby } from 'expo-gaode-map';
+
+const results = await searchPOI({
+  keyword: 'hotel',
+  city: 'Beijing',
+  pageSize: 20,
+});
+
+const nearby = await searchNearby({
+  keyword: 'restaurant',
+  center: { latitude: 39.9, longitude: 116.4 },
+  radius: 1000,
+});
+```
+
 ## Complete Example
 
 For runnable apps, prefer the local `example/` and `example-navigation/` projects in this repository.
@@ -263,6 +394,36 @@ cd android && ./gradlew clean && cd ..
 npx expo prebuild --clean
 ```
 
+### Do I still need to configure API keys in code after configuring native keys?
+
+**No.** If API keys are already configured in the native project through Config Plugin or manual setup, you do not need to pass `androidKey` or `iosKey` in JavaScript again. Only Web API services need `webKey`:
+
+```tsx
+ExpoGaodeMapModule.initSDK({
+  webKey: 'your-web-api-key',
+});
+```
+
+### Why keep mobile keys in native projects?
+
+Keeping mobile keys in native projects is safer because it avoids exposing sensitive keys in JavaScript. Expo projects should use Config Plugin when possible; bare React Native projects can write keys manually into `AndroidManifest.xml` / `Info.plist`. Web API keys are the exception because they are used from JavaScript.
+
+### How do I install only the modules I need?
+
+```bash
+# Map and location only
+npm install expo-gaode-map
+
+# Map, location, and search
+npm install expo-gaode-map
+
+# Web API services
+npm install expo-gaode-map expo-gaode-map-web-api
+
+# Navigation features
+npm install expo-gaode-map-navigation
+```
+
 ## Next Steps
 
 - [Initialization Guide](./initialization) - Detailed initialization and permission setup
@@ -273,5 +434,5 @@ npx expo prebuild --clean
 ## Need Help?
 
 - [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
-- [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
+- View and participate in [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - QQ Group: 952241387

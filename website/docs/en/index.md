@@ -23,9 +23,18 @@ features:
   - icon: 📍
     title: Accurate Location
     details: Continuous location, single location, coordinate conversion
+  - icon: 🚗
+    title: Navigation (Optional)
+    details: Route planning and navigation for driving, walking, cycling, trucks, and more
   - icon: 📥
     title: Offline Maps 🆕
     details: City map download management, real-time progress monitoring, storage management, works without network
+  - icon: 🌐
+    title: Web API Service (Optional)
+    details: Pure JavaScript services for geocoding, route planning, POI search, and other cross-platform flows
+  - icon: 🔍
+    title: Built-in Native Search
+    details: POI search, nearby search, and search along route are maintained with core / navigation packages
   - icon: 🎨
     title: Rich Overlays
     details: Circle, Marker, Polyline, Polygon and more
@@ -57,8 +66,24 @@ features:
 ### Installation
 
 ```bash
+# Core package (map + location)
 npm install expo-gaode-map
+
+# Navigation package (includes map + navigation)
+npm install expo-gaode-map-navigation
+
+# Web API service
+npm install expo-gaode-map-web-api
+
+# Search is built into expo-gaode-map / expo-gaode-map-navigation
 ```
+
+::: tip Package Selection
+- Only need map and location → `expo-gaode-map`
+- Need navigation → `expo-gaode-map-navigation` (includes map features)
+- Need cross-platform Web services → `expo-gaode-map-web-api`
+- Need native search → use the built-in APIs from `expo-gaode-map` or `expo-gaode-map-navigation`
+:::
 
 ::: warning Search Package Notice
 Native search is built into `expo-gaode-map` and `expo-gaode-map-navigation`. `2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration.
@@ -93,16 +118,65 @@ import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
 />
 ```
 
+::: tip Important Notes
+- Native keys can be written automatically with Config Plugin or configured manually in Android `AndroidManifest.xml` and iOS `Info.plist`
+- If native keys are configured and you only use map/location features, you usually do not need `initSDK({ androidKey, iosKey })`; call `initSDK({ webKey })` only for `expo-gaode-map-web-api`
+- Only call `initSDK({ androidKey, iosKey })` when native keys are not configured
+- Test on real devices when possible; emulators may show blank maps or crash
+:::
+
+See full examples in [Getting Started](/en/guide/getting-started). For navigation examples, check the local `example-navigation/` project.
+
+## Core Modules
+
+### 📦 expo-gaode-map
+
+Core map package for map display, location, overlays, offline maps, geometry utilities, and built-in native search.
+
+[Getting Started](/en/guide/getting-started) · [API Reference](/en/api/mapview)
+
+### 🚗 expo-gaode-map-navigation 🆕
+
+Navigation package with complete route planning and navigation capabilities:
+
+- **Route planning**: driving, walking, cycling, truck, motorcycle, and e-bike routes
+- **Navigation view**: official navigation UI with real-time guidance and traffic information
+- **Independent route planning**: calculate routes without affecting the current navigation state
+
+[Guide](/en/guide/navigation) · [API Reference](/en/api/navigation)
+
+### 🌐 expo-gaode-map-web-api 🆕
+
+Pure JavaScript Web API package with cross-platform behavior:
+
+- **Geocoding**: convert addresses and coordinates
+- **Route planning**: driving, walking, cycling, transit, and more
+- **POI search**: keyword search, nearby search, polygon search
+- **Input tips**: live search suggestions
+
+[Guide](/en/guide/web-api) · [API Reference](/en/api/web-api)
+
+### 🔍 Built-in Native Search
+
+Native POI search is built into `expo-gaode-map` and `expo-gaode-map-navigation`.
+
+[Search API](/en/api/search)
+
 ## Why expo-gaode-map?
+
+If you are replacing `react-native-amap3d` in a new Expo or React Native project, `expo-gaode-map` is the Expo-first AMap replacement to start with.
 
 - ✅ **Built with Expo Modules**: Modern development experience
 - ✅ **Feature Complete**: Cover main AMap features
+- ✅ **Modular Design**: Install only the packages your app needs
 - ✅ **Well Documented**: Detailed documentation in Chinese and English
 - ✅ **Actively Maintained**: Continuous updates and community support
+- ✅ **New & Old Architecture**: Compatible with React Native Fabric / TurboModules and the legacy architecture
+- ✅ **Rich Scenarios**: Suitable for ride-hailing, delivery, navigation, check-in, and location-driven apps
 - ✅ **Open Source**: MIT license, free for commercial use
 
 ## Community
 
 - 📝 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
-- 💬 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
+- 💬 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - 💬 QQ Group: 952241387

@@ -6,6 +6,8 @@
 
 A fully-featured AMap (Gaode Map) library built with **Expo Modules API**. Use it when you need a China-ready map stack with map rendering, location, search, navigation, offline maps, and Web API support in one place.
 
+If you are migrating from `react-native-amap3d`, `expo-gaode-map` is the Expo-first AMap replacement for new projects.
+
 > 💡 This library is built using [Expo Modules API](https://docs.expo.dev/modules/overview/), providing type-safe native module interfaces and an excellent developer experience.
 
 <div align="center">
@@ -315,6 +317,7 @@ expo-gaode-map/
 
 - **Only need map and location** → Install `expo-gaode-map`
 - **Need navigation functionality** → Install `expo-gaode-map-navigation` (includes map functionality)
+- **Replacing `react-native-amap3d` in a new project** → Start with `expo-gaode-map`; use `expo-gaode-map-navigation` if you also need route planning or turn-by-turn navigation
 - **Cannot install both**: Due to native SDK conflicts, you can only choose one
 
 ### 2. What's the difference between Search and Web API?
@@ -386,6 +389,8 @@ Thank you to all contributors of these open-source projects!
 If you encounter any issues or have any suggestions during usage, please feel free to:
 
 - 📝 Submit a [GitHub Issue](https://github.com/TomWq/expo-gaode-map/issues)
-- 💬 Join [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
+- 💬 Join [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - ⭐ Give the project a Star to show your support
-- QQ：582752848 （如果有咨询的，随时联系我）
+- email：582752848@qq.com
+
+## 🙌 Thank you for your support!

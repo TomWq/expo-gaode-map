@@ -146,9 +146,9 @@ Web API 服务包，纯 JavaScript 实现，跨平台一致：
 ## 社区
 
 - 📝 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
-- 💬 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
+- 💬 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - 💬 QQ 群: 952241387
 
 ## 致谢
 
-本项目参考了 [react-native-amap3d](https://github.com/qiuxiang/react-native-amap3d) 的优秀设计。
+本项目早期开发参考过 [react-native-amap3d](https://github.com/qiuxiang/react-native-amap3d) 等社区项目的生态经验，并在 Expo Modules、新架构、搜索、导航、离线地图和文档体系上继续扩展。

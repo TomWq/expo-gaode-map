@@ -516,4 +516,4 @@ npm install expo-gaode-map-navigation
 
 - 查看 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - 加入 QQ 群: 952241387
-- 参与 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
+- 查看并参与 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)

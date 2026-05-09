@@ -13,7 +13,7 @@ export default defineConfig({
       'meta',
       {
         name: 'keywords',
-        content: 'rn 高德地图, react native 高德地图, expo 高德地图, react native amap, expo amap, gaode map react native, amap react native'
+        content: 'rn 高德地图, react native 高德地图, expo 高德地图, react native amap, expo amap, gaode map react native, amap react native, react-native-amap3d, amap3d, expo-gaode-map, gaode map, china map'
       }
     ],
     [
@@ -195,6 +195,7 @@ export default defineConfig({
               items: [
                 { text: 'API Overview', link: '/en/api/' },
                 { text: 'MapView & Components', link: '/en/api/mapview' },
+                { text: 'Components & Hooks', link: '/en/api/components' },
                 { text: 'Location API', link: '/en/api/location' },
                 { text: 'Geometry Utils', link: '/en/api/geometry' },
                 { text: 'Overlays', link: '/en/api/overlays' },

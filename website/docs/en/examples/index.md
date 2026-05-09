@@ -219,8 +219,126 @@ Learn more: [Search Examples](/en/examples/search)
 - [Search API](/en/api/search) - Search module API reference
 - [Initialization Guide](/en/guide/initialization) - SDK initialization guide
 
+## Complete Example
+
+This example includes privacy compliance, permission handling, and loading states:
+
+```tsx
+import { useEffect, useState } from 'react';
+import { View, Text, Alert, Linking, Platform } from 'react-native';
+import {
+  MapView,
+  ExpoGaodeMapModule,
+  type LatLng,
+} from 'expo-gaode-map';
+
+export default function App() {
+  const [initialPosition, setInitialPosition] = useState<{
+    target: LatLng;
+    zoom: number;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
+          ExpoGaodeMapModule.setPrivacyConfig({
+            hasShow: true,
+            hasContainsPrivacy: true,
+            hasAgree: true,
+          });
+        }
+
+        const status = await ExpoGaodeMapModule.checkLocationPermission();
+
+        if (!status.granted) {
+          const result = await ExpoGaodeMapModule.requestLocationPermission();
+
+          if (!result.granted) {
+            setInitialPosition({
+              target: { latitude: 39.9, longitude: 116.4 },
+              zoom: 10,
+            });
+
+            Alert.alert(
+              'Location permission required',
+              'Please enable location permission in settings',
+              [
+                { text: 'Cancel' },
+                {
+                  text: 'Open Settings',
+                  onPress: () => {
+                    if (Platform.OS === 'ios') {
+                      Linking.openURL('app-settings:');
+                    } else {
+                      Linking.openSettings();
+                    }
+                  },
+                },
+              ]
+            );
+            return;
+          }
+        }
+
+        const location = await ExpoGaodeMapModule.getCurrentLocation();
+        setInitialPosition({
+          target: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          },
+          zoom: 15,
+        });
+      } catch (err) {
+        console.error('Initialization failed:', err);
+        setError('Initialization failed');
+        setInitialPosition({
+          target: { latitude: 39.9, longitude: 116.4 },
+          zoom: 10,
+        });
+      }
+    };
+
+    initialize();
+  }, []);
+
+  if (!initialPosition && !error) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading map...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>{error}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <MapView
+      style={{ flex: 1 }}
+      initialCameraPosition={initialPosition!}
+      myLocationEnabled={true}
+      onLoad={() => console.log('Map loaded')}
+    />
+  );
+}
+```
+
+## Next Steps
+
+- [Basic Map](/en/examples/basic-map) - learn the basics
+- [Location Tracking](/en/examples/location-tracking) - learn location features
+- [Overlays](/en/examples/overlays) - learn overlay usage
+- [API Documentation](/en/api/) - full API reference
+
 ## Need Help?
 
 - [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues) - Report bugs or request features
-- [Discussions](https://github.com/TomWq/expo-gaode-map/discussions) - Ask questions and share experiences
+- [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues) - Ask questions and share experiences
 - QQ Group: 952241387

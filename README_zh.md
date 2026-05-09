@@ -18,6 +18,8 @@
 
 如果你的目标是中国地图业务，而且希望在 Expo / React Native 里直接使用高德能力，而不是自己拼多套地图、搜索、导航库，`expo-gaode-map` 更接近可直接落地的默认方案。
 
+如果你正在寻找 `react-native-amap3d` 的 Expo / React Native 现代替代方案，新项目优先看 `expo-gaode-map`；如果还需要导航，则优先看 `expo-gaode-map-navigation`。
+
 - 不是通用地图抽象，而是围绕高德原生能力设计
 - 基于 Expo Modules + Config Plugin，接入和维护成本更低
 - 地图、搜索、导航、离线地图、Web API 形成一套一致的能力栈
@@ -393,6 +395,8 @@ MIT
 如果你在使用过程中遇到问题或有任何建议，欢迎：
 
 - 📝 提交 [GitHub Issue](https://github.com/TomWq/expo-gaode-map/issues)
-- 💬 参与 [Discussions](https://github.com/TomWq/expo-gaode-map/discussions)
+- 💬 查看并参与 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - ⭐ 给项目点个 Star 支持一下
-- QQ：582752848 （有需要的随时联系）
+- email：582752848@qq.com
+
+## 🙌 感谢您的支持! 是我继续维护的重要动力！
