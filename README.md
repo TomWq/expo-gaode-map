@@ -2,9 +2,9 @@
 
 [![oosmetrics](https://api.oosmetrics.com/api/v1/badge/achievement/48b42d9e-d007-4a63-9252-347a56d4fa12.svg)](https://oosmetrics.com/repo/TomWq/expo-gaode-map)
 
-> React Native / Expo AMap (Gaode Map) solution for China map apps, with map rendering, location, search, navigation, and offline map support.
+> Production-first AMap (Gaode Map) stack for Expo and React Native apps in China.
 
-A fully-featured Amap (Gaode Map) React Native library, **built with Expo Modules API**, using Monorepo architecture. It provides complete functionality including map display, location, search, navigation, and Web API.
+A fully-featured AMap (Gaode Map) library built with **Expo Modules API**. Use it when you need a China-ready map stack with map rendering, location, search, navigation, offline maps, and Web API support in one place.
 
 > 💡 This library is built using [Expo Modules API](https://docs.expo.dev/modules/overview/), providing type-safe native module interfaces and an excellent developer experience.
 
@@ -14,11 +14,83 @@ A fully-featured Amap (Gaode Map) React Native library, **built with Expo Module
 
 </div>
 
-## 📖 Complete Documentation
+## Why expo-gaode-map?
 
-**👉 [Online Documentation](https://TomWq.github.io/expo-gaode-map/)** · **👉 Local examples: [`example/`](./example) / [`example-navigation/`](./example-navigation)**
+If your product targets China map workflows and you want Expo integration without stitching together multiple libraries, `expo-gaode-map` is built for that path.
 
-Includes complete API documentation, usage guides, and example code:
+- China-ready AMap integration instead of a generic global map abstraction
+- Expo Modules + Config Plugin workflow for smoother setup and maintenance
+- Map + search + navigation + offline capabilities with one consistent API family
+- New Architecture and classic architecture support
+- Production-focused details such as privacy compliance flow, typed errors, and geometry utilities
+
+## Best Fit
+
+- You are building an Expo or React Native app for users in Mainland China
+- You need AMap-native capabilities, not just a generic map view
+- You want one stack for map, POI search, route planning, navigation, and optional Web API usage
+- You need a library that is actively iterated and documented
+
+## Quick Start
+
+Choose one native package:
+
+```bash
+# Map + location + overlays + built-in native search
+npm install expo-gaode-map
+
+# Optional Web API package
+npm install expo-gaode-map-web-api
+```
+
+```bash
+# Map + navigation + built-in native search
+npm install expo-gaode-map-navigation
+
+# Optional Web API package
+npm install expo-gaode-map-web-api
+```
+
+> `expo-gaode-map` and `expo-gaode-map-navigation` cannot be installed together because they wrap overlapping native SDK layers. Choose one.
+
+Add the config plugin in `app.json`:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "androidKey": "your-android-key",
+          "iosKey": "your-ios-key"
+        }
+      ]
+    ]
+  }
+}
+```
+
+Then rebuild:
+
+```bash
+npx expo prebuild --clean
+npx expo run:android
+npx expo run:ios
+```
+
+## Packages
+
+- `expo-gaode-map`: map rendering, location, overlays, offline maps, geometry utilities, built-in native search
+- `expo-gaode-map-navigation`: map + route planning + embedded navigation + official navigation page support
+- `expo-gaode-map-web-api`: pure JavaScript geocoding, route planning, POI search, input tips, and other Web API flows
+
+## Documentation and Examples
+
+**👉 [Online Documentation](https://TomWq.github.io/expo-gaode-map/)**  
+**👉 Local examples: [`example/`](./example) / [`example-navigation/`](./example-navigation)**
+
+Start here if you want runnable examples or API details:
 - [Getting Started](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - [Initialization Guide](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
 - [Search Functionality](https://TomWq.github.io/expo-gaode-map/guide/search.html)
@@ -26,6 +98,14 @@ Includes complete API documentation, usage guides, and example code:
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API Reference](https://TomWq.github.io/expo-gaode-map/api/)
 - [Local Map Example](./example) / [Navigation Example](./example-navigation)
+
+## What You Can Build
+
+- Map-centric consumer apps with AMap-native rendering and overlays
+- Delivery, fleet, field-service, and check-in flows with precise location and route tools
+- POI search, address picker, reverse geocoding, and route preview experiences
+- Turn-by-turn navigation experiences with embedded navigation UI or official navigation pages
+- Offline-first or network-variable map workflows
 
 ## 🚀 Why Choose expo-gaode-map?
 

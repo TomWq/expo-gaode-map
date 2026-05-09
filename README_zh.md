@@ -2,9 +2,9 @@
 
 [![oosmetrics](https://api.oosmetrics.com/api/v1/badge/achievement/48b42d9e-d007-4a63-9252-347a56d4fa12.svg)](https://oosmetrics.com/repo/TomWq/expo-gaode-map)
 
-> 面向 React Native / Expo 的高德地图（AMap）解决方案，覆盖地图渲染、定位、搜索、导航与离线地图能力。
+> 面向中国地图业务的 Expo / React Native 高德地图生产级方案。
 
-一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，采用 Monorepo 架构，提供地图显示、定位、搜索、导航、Web API 等完整功能。
+一个基于 **Expo Modules API** 构建的高德地图能力栈，适合需要地图渲染、定位、搜索、导航、离线地图和 Web API 的 Expo / React Native 项目。
 
 > 💡 本组件使用 [Expo Modules API](https://docs.expo.dev/modules/overview/) 构建，提供了类型安全的原生模块接口和优秀的开发体验。
 
@@ -14,11 +14,83 @@
 
 </div>
 
-## 📖 完整文档
+## 为什么选 expo-gaode-map？
 
-**👉 [在线文档网站](https://TomWq.github.io/expo-gaode-map/)** · **👉 本地示例：[`example/`](./example) / [`example-navigation/`](./example-navigation)**
+如果你的目标是中国地图业务，而且希望在 Expo / React Native 里直接使用高德能力，而不是自己拼多套地图、搜索、导航库，`expo-gaode-map` 更接近可直接落地的默认方案。
 
-包含完整的 API 文档、使用指南和示例代码：
+- 不是通用地图抽象，而是围绕高德原生能力设计
+- 基于 Expo Modules + Config Plugin，接入和维护成本更低
+- 地图、搜索、导航、离线地图、Web API 形成一套一致的能力栈
+- 同时兼容 React Native 新旧架构
+- 内置隐私合规接入、类型化错误信息、几何工具等生产向能力
+
+## 适合哪些项目
+
+- 面向中国大陆用户的 Expo / React Native App
+- 需要高德原生能力，而不只是一个通用地图 View
+- 希望用一套技术栈覆盖地图、POI 搜索、路径规划、导航和 Web API
+- 希望使用一个持续维护、文档完整、示例较丰富的开源方案
+
+## 快速开始
+
+先二选一安装原生包：
+
+```bash
+# 地图 + 定位 + 覆盖物 + 内置原生搜索
+npm install expo-gaode-map
+
+# 可选 Web API 包
+npm install expo-gaode-map-web-api
+```
+
+```bash
+# 地图 + 导航 + 内置原生搜索
+npm install expo-gaode-map-navigation
+
+# 可选 Web API 包
+npm install expo-gaode-map-web-api
+```
+
+> `expo-gaode-map` 和 `expo-gaode-map-navigation` 由于底层原生 SDK 能力重叠，不能同时安装，二选一使用。
+
+然后在 `app.json` 中配置 Config Plugin：
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-gaode-map",
+        {
+          "androidKey": "your-android-key",
+          "iosKey": "your-ios-key"
+        }
+      ]
+    ]
+  }
+}
+```
+
+接着重新构建：
+
+```bash
+npx expo prebuild --clean
+npx expo run:android
+npx expo run:ios
+```
+
+## 包能力概览
+
+- `expo-gaode-map`：地图显示、定位、覆盖物、离线地图、几何工具、内置原生搜索
+- `expo-gaode-map-navigation`：地图 + 算路 + 嵌入式导航 + 官方导航页能力
+- `expo-gaode-map-web-api`：纯 JavaScript 的地理编码、路径规划、POI 搜索、输入提示等 Web API 能力
+
+## 文档与示例
+
+**👉 [在线文档网站](https://TomWq.github.io/expo-gaode-map/)**  
+**👉 本地示例：[`example/`](./example) / [`example-navigation/`](./example-navigation)**
+
+如果你要快速上手或查 API，建议从这里开始：
 - [快速开始](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - [初始化指南](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
 - [搜索功能](https://TomWq.github.io/expo-gaode-map/guide/search.html)
@@ -26,6 +98,14 @@
 - [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
 - [API 参考](https://TomWq.github.io/expo-gaode-map/api/)
 - [本地示例工程](./example) / [导航示例工程](./example-navigation)
+
+## 可以拿它做什么
+
+- 面向消费者的地图类应用和位置服务应用
+- 外卖、配送、巡检、签到、车队、现场作业等位置驱动场景
+- POI 搜索、地址选择、逆地理编码、路线预览等典型业务流程
+- 嵌入式导航 UI、官方导航页调起、实时导航相关体验
+- 弱网或离线场景下的地图能力接入
 
 ## 🚀 为什么选择 expo-gaode-map？
 
