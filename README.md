@@ -1,5 +1,7 @@
 # expo-gaode-map
 
+[![oosmetrics](https://api.oosmetrics.com/api/v1/badge/achievement/48b42d9e-d007-4a63-9252-347a56d4fa12.svg)](https://oosmetrics.com/repo/TomWq/expo-gaode-map)
+
 > React Native / Expo AMap (Gaode Map) solution for China map apps, with map rendering, location, search, navigation, and offline map support.
 
 A fully-featured Amap (Gaode Map) React Native library, **built with Expo Modules API**, using Monorepo architecture. It provides complete functionality including map display, location, search, navigation, and Web API.

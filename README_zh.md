@@ -1,5 +1,7 @@
 # expo-gaode-map
 
+[![oosmetrics](https://api.oosmetrics.com/api/v1/badge/achievement/48b42d9e-d007-4a63-9252-347a56d4fa12.svg)](https://oosmetrics.com/repo/TomWq/expo-gaode-map)
+
 > 面向 React Native / Expo 的高德地图（AMap）解决方案，覆盖地图渲染、定位、搜索、导航与离线地图能力。
 
 一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，采用 Monorepo 架构，提供地图显示、定位、搜索、导航、Web API 等完整功能。
