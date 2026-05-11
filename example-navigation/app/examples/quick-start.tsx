@@ -224,7 +224,7 @@ export default function QuickStartScreen() {
           <Text style={styles.cardTitle}>本页验证点</Text>
           <Text style={styles.feature}>• `setPrivacyConfig` / `initSDK` 启动链路</Text>
           <Text style={styles.feature}>• 定位权限申请和 `getCurrentLocation`</Text>
-          <Text style={styles.feature}>• `NaviView.startNavigation` / `stopNavigation`</Text>
+          <Text style={styles.feature}>• `ExpoGaodeMapNaviViewRef.startNavigation` / `stopNavigation`</Text>
           <Text style={styles.feature}>• Android 顶部状态栏、锚点、路口模型、车道信息等 UI props</Text>
           <Text style={styles.feature}>• iOS `driveViewEdgePadding` / `screenAnchor` / `showBackupRoute`</Text>
         </View>

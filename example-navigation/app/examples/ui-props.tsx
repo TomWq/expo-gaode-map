@@ -1,4 +1,4 @@
-import type { ExpoGaodeMapNaviViewRef,  } from "expo-gaode-map-navigation";
+import type { ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Alert,
@@ -130,11 +130,11 @@ export default function UiPropsExampleScreen() {
           <Text style={styles.badge}>custom-embedded</Text>
           <Text style={styles.title}>自定义 UI 导航界面</Text>
           <Text style={styles.description}>
-            这个页面展示的是“基于 `NaviView` 事件自己拼装导航界面”的参考实现：顶部 HUD、车道 HUD、
+            这个页面展示的是“基于 `ExpoGaodeMapNaviView` 事件自己拼装导航界面”的参考实现：顶部 HUD、车道 HUD、
             路况光柱、路口大图联动、退出按钮，以及更适合嵌入式页面的地图聚焦。
           </Text>
           <Text style={styles.heroHint}>
-            这里不再承担“逐个开关调试官方 UI”的职责。若你要验证原生嵌入式 `NaviView`
+            这里不再承担“逐个开关调试官方 UI”的职责。若你要验证原生嵌入式 `ExpoGaodeMapNaviView`
             的界面元素开关，请去第二个示例“纯官方嵌入式 UI”页面。
           </Text>
         </View>

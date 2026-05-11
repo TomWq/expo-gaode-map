@@ -1,6 +1,6 @@
 /**
  * 自定义嵌入式导航页的总装组件。
- * 这个文件主要负责承载原生 `NaviView`，并统一编排顶部 HUD、车道信息、
+ * 这个文件主要负责承载原生 `ExpoGaodeMapNaviView`，并统一编排顶部 HUD、车道信息、
  * 底部摘要、路况光柱、全览按钮以及它们之间的布局联动。
  */
 import { BlurTargetView } from "expo-blur";
@@ -13,8 +13,7 @@ import type {
 } from "expo-gaode-map-navigation";
 import {
   ExpoGaodeMapNaviView,
-  NaviView,
-  type NaviViewRef,
+  type ExpoGaodeMapNaviViewRef,
 } from "expo-gaode-map-navigation";
 import React from "react";
 import {
@@ -80,7 +79,7 @@ export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   onExitPress?: () => void;
 }
 
-export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewProps>(
+export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, EmbeddedNaviViewProps>(
   (
     {
       style,
@@ -228,6 +227,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
 
     // iOS 在 showUIElements=false 时，地图可视区域不再由官方控件自动管理，
     // 所以这里把官方层降为“数据提供者”，改由示例 HUD/按钮布局来反推 padding。
+    // 这能让官方控件和自绘 HUD 共享同一套布局逻辑。
     const usesManagedCustomChrome =
       Platform.OS === "ios" && (showDefaultHud || showDefaultLaneHud || showDefaultTrafficBar);
     const resolvedShowUIElements =
@@ -269,6 +269,7 @@ export const EmbeddedNaviView = React.forwardRef<NaviViewRef, EmbeddedNaviViewPr
     const compactLaneHeight = 56 * resolvedLaneScale;
     // 原生层只告诉我们“路口大图显示中”，不会直接给出大图 frame，
     // 所以这里按容器高度估一个稳定区间，把车道 HUD 锚到大图底部附近。
+    // 这是示例侧的经验值，不是 SDK 的精确布局接口。
     const estimatedCrossHeight = Math.min(Math.max(containerHeight * 0.3, 156), 220);
     const autoLaneCrossTopOffset = Math.max(
       compactBaseTop + 10,

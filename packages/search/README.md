@@ -4,7 +4,7 @@
 
 > ⚠️ **独立 Search 模块维护说明**
 >
-> `2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。从下个版本开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中，本包将不再作为独立模块继续维护。
+> `2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。从 `expo-gaode-map@2.2.34` / `expo-gaode-map-navigation@2.0.13` 开始，搜索能力已经集成到 core 和 navigation 的 map 能力中，本包将不再作为独立模块继续维护。
 >
 > 新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。历史项目如果仍需要独立搜索包，请固定到 `2.2.33`。
 >

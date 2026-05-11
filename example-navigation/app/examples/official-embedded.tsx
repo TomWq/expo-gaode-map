@@ -1,4 +1,4 @@
-import { ExpoGaodeMapNaviView,  ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
+import { ExpoGaodeMapNaviView, type ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
 import React from "react";
 import {
   Alert,
@@ -165,7 +165,7 @@ export default function OfficialEmbeddedNaviExampleScreen() {
           "SDK 已就绪",
           `起点: ${formatPoint(nextScenario.from)}`,
           `终点: ${formatPoint(nextScenario.to)}`,
-          "本页只使用原始 NaviView，用来验证官方嵌入式 UI 开关是否生效。",
+          "本页只使用原始 ExpoGaodeMapNaviView，用来验证官方嵌入式 UI 开关是否生效。",
         ].join("\n")
       );
     } catch (error) {
@@ -233,7 +233,7 @@ export default function OfficialEmbeddedNaviExampleScreen() {
           <Text style={styles.badge}>official-embedded</Text>
           <Text style={styles.title}>纯官方嵌入式 UI</Text>
           <Text style={styles.description}>
-            这个页面不叠加示例侧自定义 HUD，只保留原始 `NaviView`。
+            这个页面不叠加示例侧自定义 HUD，只保留原始 `ExpoGaodeMapNaviView`。
             这里是官方嵌入式界面元素的调试台，专门用来验证各类显示开关在当前宿主中的真实表现。
           </Text>
         </View>

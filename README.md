@@ -55,6 +55,12 @@ npm install expo-gaode-map-web-api
 
 > `expo-gaode-map` and `expo-gaode-map-navigation` cannot be installed together because they wrap overlapping native SDK layers. Choose one.
 
+| Need | Install |
+|---|---|
+| Map, location, overlays | `expo-gaode-map` |
+| Map + navigation UI | `expo-gaode-map-navigation` |
+| Web API on top of either base package | `expo-gaode-map-web-api` |
+
 Add the config plugin in `app.json`:
 
 ```json
@@ -151,9 +157,7 @@ Start here if you want runnable examples or API details:
 
 > ⚠️ **Search Module Maintenance Notice**
 >
-> Starting with the next version, native search is maintained inside `expo-gaode-map` (core) and the map layer of `expo-gaode-map-navigation`. `expo-gaode-map-search` will no longer be maintained as a standalone integration package.
->
-> `2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration. If your project still needs the standalone search package, pin it to `2.2.33`; new projects should import search APIs from `expo-gaode-map` or `expo-gaode-map-navigation`.
+> From `2.2.34` onward, native search is maintained inside `expo-gaode-map` (core) and the map layer of `expo-gaode-map-navigation`. `2.2.33` is the last version that supports standalone `expo-gaode-map-search` integration. If your project still needs the standalone search package, pin it to `2.2.33`; new projects should import search APIs from `expo-gaode-map` or `expo-gaode-map-navigation`.
 >
 > Why: after AMap Android SDK `10.0.700`, the official remote dependency bundle changed from "map + location" to "map + location + search", and the remote dependency coordinate changed from `com.amap.api:3dmap:latest.integration` to `com.amap.api:3dmap-location-search:latest.integration`. Maintaining search as a separate package now creates unnecessary bundling and dependency-conflict cost, so search is maintained with core/navigation instead.
 

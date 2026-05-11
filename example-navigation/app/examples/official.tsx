@@ -120,7 +120,7 @@ export default function OfficialNaviExampleScreen() {
           <Text style={styles.title}>调起官方黑盒导航页面</Text>
           <Text style={styles.description}>
             这个示例验证 `openOfficialNaviPage`。你可以直接打开路线页，也可以直接进入官方导航页，对比嵌入式
-            `NaviView` 和官方黑盒 UI 的差异。
+            `ExpoGaodeMapNaviView` 和官方黑盒 UI 的差异。
           </Text>
         </View>
 
@@ -178,7 +178,7 @@ export default function OfficialNaviExampleScreen() {
           <Text style={styles.cardTitle}>本页验证点</Text>
           <Text style={styles.feature}>• `openOfficialNaviPage` 是否可直接调起官方黑盒页面</Text>
           <Text style={styles.feature}>• 多路线、鹰眼图、语音设置等官方 UI 开关是否生效</Text>
-          <Text style={styles.feature}>• 官方页面和 `NaviView` 嵌入式页面的视觉差异</Text>
+          <Text style={styles.feature}>• 官方页面和 `ExpoGaodeMapNaviView` 嵌入式页面的视觉差异</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

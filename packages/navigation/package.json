@@ -15,7 +15,7 @@
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
-    "test": "expo-module test",
+    "test": "npx jest --no-watchman --config jest.config.js --runInBand",
     "prepare": "expo-module prepare && yarn build:plugin",
     "postinstall": "node scripts/check-expo-modules.js",
     "prepublishOnly": "echo 'Skipping proofread check' && exit 0",

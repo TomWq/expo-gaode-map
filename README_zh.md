@@ -153,9 +153,7 @@ npx expo run:ios
 
 > ⚠️ **Search 模块维护说明**
 >
-> 从下个版本开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中，`expo-gaode-map-search` 将不再作为独立模块继续维护。
->
-> `2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。如果你的项目仍需要独立搜索包，请固定到 `2.2.33`；新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。
+> 从 `2.2.34` 开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中。`2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本。如果你的项目仍需要独立搜索包，请固定到 `2.2.33`；新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。
 >
 > 变更原因：高德官方 Android SDK 在 `10.0.700` 之后调整了远程依赖合包策略，远程依赖由“地图 + 定位”变为“地图 + 定位 + 搜索”，依赖地址也从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
 
@@ -188,6 +186,12 @@ npm install expo-gaode-map-web-api     # Web API
 ```
 
 > ⚠️ **重要**：`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
+
+| 需求 | 安装 |
+|---|---|
+| 地图、定位、覆盖物 | `expo-gaode-map` |
+| 地图 + 导航界面 | `expo-gaode-map-navigation` |
+| 在任一基础包之上使用 Web API | `expo-gaode-map-web-api` |
 
 ### 纯 React Native（非 Expo 托管）项目
 

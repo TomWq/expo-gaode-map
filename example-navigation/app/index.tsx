@@ -44,7 +44,7 @@ const EXAMPLE_SECTIONS: ExampleSection[] = [
       {
         href: "/examples/official-embedded",
         title: "纯官方嵌入式 UI",
-        body: "只用原始 `NaviView`，不叠自定义 HUD。主要用于观察官方嵌入式 UI 表现。",
+        body: "只用原始 `ExpoGaodeMapNaviView`，不叠自定义 HUD。主要用于观察官方嵌入式 UI 表现。",
         outcome: "最终页: 官方嵌入式导航页",
       },
       {
@@ -68,7 +68,7 @@ const EXAMPLE_SECTIONS: ExampleSection[] = [
       {
         href: "/examples/ui-props",
         title: "自定义 UI 导航界面",
-        body: "重点不在算路，而在基于 `NaviView` 事件自绘 HUD、车道 HUD 和路况光柱。",
+        body: "重点不在算路，而在基于 `ExpoGaodeMapNaviView` 事件自绘 HUD、车道 HUD 和路况光柱。",
         outcome: "最终页: 自定义嵌入式导航页",
       },
     ],

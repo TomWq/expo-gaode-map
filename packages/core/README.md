@@ -43,7 +43,7 @@
 
 > ⚠️ **Search 模块维护说明**
 >
-> 从下个版本开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中，`expo-gaode-map-search` 将不再作为独立模块继续维护。`2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本；新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。
+> 从 `2.2.34` 开始，搜索能力已经集成到 `expo-gaode-map`（core）和 `expo-gaode-map-navigation` 的 map 能力中，`expo-gaode-map-search` 将不再作为独立模块继续维护。`2.2.33` 是最后一个支持 `expo-gaode-map-search` 单独集成的版本；新项目请直接从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 导入搜索 API。
 >
 > 高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
 

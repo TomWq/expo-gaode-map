@@ -7,7 +7,7 @@
 - 🗺️ **地图渲染**：内置完整地图能力，支持 Marker、Polyline、Polygon、Circle、Cluster、HeatMap 等覆盖物。
 - 🔍 **原生搜索**：内置 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码等搜索能力。
 - 🚗 **多模式路径规划**：支持驾车、步行、骑行、电动车、货车、摩托车等多种出行方式。
-- 🧭 **实时导航 UI**：提供 `NaviView` 官方嵌入视图，并暴露完整事件与原生参数，方便你自行定制导航界面。
+- 🧭 **实时导航 UI**：提供 `ExpoGaodeMapNaviView` 官方嵌入视图，并暴露完整事件与原生参数，方便你自行定制导航界面。
 - 🛣️ **独立路径规划**：支持“先算路、再导航”的高级模式，可实现多路线对比与选择。
 - ⚙️ **策略丰富**：支持速度优先、避让拥堵、少收费、不走高速等多种算路策略。
 - ✅ **开箱即用**：封装了 Android/iOS 原生导航 SDK，统一 JS 接口。
@@ -30,7 +30,7 @@ npm install expo-gaode-map-navigation
 **⚠️ 重要提示：**
 如果项目中已安装 `expo-gaode-map`，请务必先卸载，否则会导致 Android 端二进制冲突（`3dmap` vs `navi-3dmap`）。`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
 
-`expo-gaode-map-search` 的独立集成只维护到 `2.2.33`。从下个版本开始，搜索能力随 `expo-gaode-map` / `expo-gaode-map-navigation` 一起维护；在导航包中请直接从 `expo-gaode-map-navigation` 导入搜索 API。
+`expo-gaode-map-search` 的独立集成只维护到 `2.2.33`。从 `2.0.13` 开始，搜索能力随 `expo-gaode-map` / `expo-gaode-map-navigation` 一起维护；在导航包中请直接从 `expo-gaode-map-navigation` 导入搜索 API。
 
 高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。继续单独维护 search 模块会带来重复合包和依赖冲突成本，因此搜索能力改为随 core / navigation 一起维护。
 
@@ -80,8 +80,8 @@ npx expo run:ios
 - `enableBackgroundAudio` 仅 iOS 生效（默认随 `enableBackgroundLocation` 自动开启），用于注入 `UIBackgroundModes: audio`，保障后台导航语音持续播报。
 - `enableIOSLiveActivity` 仅 iOS 生效，用于注入 `NSSupportsLiveActivities`。
 - `enableIOSLiveActivityFrequentUpdates` 仅 iOS 生效，用于注入 `NSSupportsLiveActivitiesFrequentUpdates`。
-- 运行时还需要在 `NaviView` 里显式传 `androidBackgroundNavigationNotificationEnabled={true}` 才会在应用退到后台后显示导航常驻通知。
-- iOS 运行时还需要在 `NaviView` 里显式传 `iosLiveActivityEnabled={true}` 才会持续更新 Live Activity。
+- 运行时还需要在 `ExpoGaodeMapNaviView` 里显式传 `androidBackgroundNavigationNotificationEnabled={true}` 才会在应用退到后台后显示导航常驻通知。
+- iOS 运行时还需要在 `ExpoGaodeMapNaviView` 里显式传 `iosLiveActivityEnabled={true}` 才会持续更新 Live Activity。
 
 ## 示例工程
 
@@ -89,7 +89,7 @@ npx expo run:ios
 
 推荐场景：
 
-- 调试 `NaviView` 与示例工程里的自定义 HUD / 车道 HUD / 路况光柱
+- 调试 `ExpoGaodeMapNaviView` 与示例工程里的自定义 HUD / 车道 HUD / 路况光柱
 - 对比官方黑盒页、官方嵌入式页、自绘嵌入式页
 - 验证独立算路、多路线选择、近似跟线导航
 
@@ -170,15 +170,16 @@ export default function BasicMapScreen() {
 
 ### 2. 嵌入导航视图
 
-使用 `NaviView` 组件直接嵌入导航界面：
+使用 `ExpoGaodeMapNaviView` 组件直接嵌入导航界面：
 
 ```tsx
 import React, { useEffect, useRef } from 'react';
 import { View } from 'react-native';
-import { NaviView, type NaviViewRef } from 'expo-gaode-map-navigation';
+import { ExpoGaodeMapNaviView } from 'expo-gaode-map-navigation';
+import type { ExpoGaodeMapNaviViewRef } from 'expo-gaode-map-navigation';
 
 export default function NavigationScreen() {
-  const naviRef = useRef<NaviViewRef>(null);
+  const naviRef = useRef<ExpoGaodeMapNaviViewRef>(null);
 
   useEffect(() => {
     // 延迟 1 秒后开始导航
@@ -196,7 +197,7 @@ export default function NavigationScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NaviView
+      <ExpoGaodeMapNaviView
         ref={naviRef}
         style={{ flex: 1 }}
         showCamera={true} // 显示摄像头
@@ -211,17 +212,17 @@ export default function NavigationScreen() {
 
 ### 3. 自定义嵌入式导航 UI
 
-如果你要做“嵌入在自己页面里的导航页”，库本身提供的是底层 `NaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md)。
+如果你要做“嵌入在自己页面里的导航页”，库本身提供的是底层 `ExpoGaodeMapNaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md)。
 
 建议做法：
 
-- 用 `NaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
+- 用 `ExpoGaodeMapNaviView` 负责底层导航地图、语音、车道事件、路况事件、路口大图事件
 - 用 `onNaviInfoUpdate`、`onLaneInfoUpdate`、`onTrafficStatusesUpdate`、`onNaviVisualStateChange` 在业务侧自绘 HUD
 - 直接参考 `example-navigation/lib/navigation-ui/EmbeddedNaviView.tsx` 及配套 UI 文件，按你的产品需求裁剪
 
 注意：
 
-- Android 官方嵌入式 `NaviView` 在部分 React Native / Expo 宿主中，顶部信息区、车道条、路口大图联动效果可能与高德官方 Demo 不完全一致
+- Android 官方嵌入式 `ExpoGaodeMapNaviView` 在部分 React Native / Expo 宿主中，顶部信息区、车道条、路口大图联动效果可能与高德官方 Demo 不完全一致
 - 如果你要验证官方嵌入式 UI 本身，请直接跑 `example-navigation` 里的 `official-embedded` 示例页
 - 如果你要交付稳定的嵌入式导航页，建议以示例工程里的“自定义 UI 导航界面”作为起点
 
@@ -494,6 +495,13 @@ const result = await calculateTransitRoute({
 - 可共享的范围仅限纯 TS 的 route / AOI 数据适配工具、文档和测试思路
 - 原生地图桥接、overlay 宿主逻辑、MapView facade 不会和核心包合并
 
+### 导入入口
+
+- 运行时能力优先使用命名导出，例如 `calculateRoute`、`ExpoGaodeMapNaviView`、`openOfficialNaviPage`
+- 类型请用 `import type`，例如 `RouteOptions`、`FollowWebPlannedRouteResult`
+- 默认导出保留给需要整包挂载的场景，内容与常用路径规划和导航函数一致
+- `NaviView` / `NaviViewRef` 仍作为兼容别名保留，新代码建议使用 `ExpoGaodeMapNaviView` / `ExpoGaodeMapNaviViewRef`
+
 ## API 参考
 
 ### DriveStrategy (驾车策略)
@@ -527,7 +535,7 @@ const result = await calculateTransitRoute({
 - 基于 `onTrafficStatusesUpdate` 的自绘路况光柱
 - “全览 / 锁车”与路况开关等浮层控制按钮
 
-### NaviView Props
+### ExpoGaodeMapNaviView Props
 
 | 属性 | 类型 | 说明 |
 |---|---|---|
@@ -569,7 +577,7 @@ const result = await calculateTransitRoute({
 | `onNaviInfoUpdate` | function | 导航信息更新（剩余距离、时间等） |
 | `onLaneInfoUpdate` | function | Android / iOS 车道信息更新，用于自绘车道 HUD |
 
-### NaviView UI 能力清单
+### ExpoGaodeMapNaviView UI 能力清单
 
 已开放且两端都有实现：
 
@@ -641,7 +649,7 @@ const result = await calculateTransitRoute({
 2.  **Web API**：如果需要更灵活的 HTTP 算路（如公交跨城规划、Web端展示），推荐配合 `expo-gaode-map-web-api` 使用。
 3.  **权限**：使用导航功能前，请确保应用已获取定位权限（`ACCESS_FINE_LOCATION`）。
 4.  **Android 状态栏兼容性**：`naviStatusBarEnabled` 依赖高德 Android 导航 SDK 某些版本才提供的 `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`。当前封装已做兼容处理：若宿主工程解析到的 SDK 不包含该方法，则不会再编译失败，而是在运行时跳过该设置并输出 warning。此时该 prop 在 Android 上等价于 no-op。
-5.  **嵌入式 UI 边界**：库导出的是底层 `NaviView` 能力；完整自定义导航界面请参考 `example-navigation` 里的示例实现，它也不是高德官方黑盒导航页的 UI 替代品。
+5.  **嵌入式 UI 边界**：库导出的是底层 `ExpoGaodeMapNaviView` 能力；完整自定义导航界面请参考 `example-navigation` 里的示例实现，它也不是高德官方黑盒导航页的 UI 替代品。
 
 
 ## 📚 文档与资源
