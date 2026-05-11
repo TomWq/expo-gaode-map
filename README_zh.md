@@ -1,5 +1,11 @@
 # expo-gaode-map
 
+[![CI](https://github.com/TomWq/expo-gaode-map/actions/workflows/ci.yml/badge.svg)](https://github.com/TomWq/expo-gaode-map/actions/workflows/ci.yml)
+[![Deploy Docs](https://github.com/TomWq/expo-gaode-map/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/TomWq/expo-gaode-map/actions/workflows/deploy-docs.yml)
+[![npm version](https://img.shields.io/npm/v/expo-gaode-map.svg)](https://www.npmjs.com/package/expo-gaode-map)
+[![downloads](https://img.shields.io/npm/dm/expo-gaode-map.svg)](https://www.npmjs.com/package/expo-gaode-map)
+[![license](https://img.shields.io/npm/l/expo-gaode-map.svg)](https://www.npmjs.com/package/expo-gaode-map)
+[![commit activity](https://img.shields.io/github/commit-activity/m/TomWq/expo-gaode-map.svg)](https://github.com/TomWq/expo-gaode-map/commits/main)
 [![oosmetrics](https://api.oosmetrics.com/api/v1/badge/achievement/48b42d9e-d007-4a63-9252-347a56d4fa12.svg)](https://oosmetrics.com/repo/TomWq/expo-gaode-map)
 
 > 面向中国地图业务的 Expo / React Native 高德地图生产级方案。
