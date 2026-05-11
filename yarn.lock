@@ -6872,8 +6872,8 @@ __metadata:
     expo-blur: "npm:~55.0.14"
     expo-constants: "npm:~55.0.15"
     expo-font: "npm:~55.0.6"
-    expo-gaode-map-navigation: "file:../packages/navigation"
-    expo-gaode-map-web-api: "file:../packages/web-api"
+    expo-gaode-map-navigation: "workspace:*"
+    expo-gaode-map-web-api: "workspace:*"
     expo-linking: "npm:~55.0.14"
     expo-router: "npm:~55.0.13"
     expo-splash-screen: "npm:~55.0.19"
@@ -7041,23 +7041,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"expo-gaode-map-navigation@file:../packages/navigation::locator=example-navigation%40workspace%3Aexample-navigation":
-  version: 2.0.14
-  resolution: "expo-gaode-map-navigation@file:../packages/navigation#../packages/navigation::hash=8ac744&locator=example-navigation%40workspace%3Aexample-navigation"
-  peerDependencies:
-    "@expo/vector-icons": "*"
-    expo: "*"
-    react: "*"
-    react-native: "*"
-    react-native-safe-area-context: "*"
-  peerDependenciesMeta:
-    expo:
-      optional: true
-  checksum: 10c0/0028180b8625839163f93ed1f52c4e06e994623e9ed9d9b3055ff80c9a8ae069b4ccfb01dd85cc93fc7a71983a8a4f39e05695fed4b164261fa7d817cd26ae80
-  languageName: node
-  linkType: hard
-
-"expo-gaode-map-navigation@workspace:packages/navigation":
+"expo-gaode-map-navigation@workspace:*, expo-gaode-map-navigation@workspace:packages/navigation":
   version: 0.0.0-use.local
   resolution: "expo-gaode-map-navigation@workspace:packages/navigation"
   dependencies:
@@ -7097,15 +7081,6 @@ __metadata:
       optional: true
   languageName: unknown
   linkType: soft
-
-"expo-gaode-map-web-api@file:../packages/web-api::locator=example-navigation%40workspace%3Aexample-navigation":
-  version: 2.0.4
-  resolution: "expo-gaode-map-web-api@file:../packages/web-api#../packages/web-api::hash=3d1946&locator=example-navigation%40workspace%3Aexample-navigation"
-  peerDependencies:
-    react-native: "*"
-  checksum: 10c0/5e6ca2c9e4ae5b38fd3baa4d82092699910d770d6d2e0b922aed9f2db2ad2571851be53ba3c48cd07fef96be2dcf161f4a577b48f7277dcb61fea99676dad837
-  languageName: node
-  linkType: hard
 
 "expo-gaode-map-web-api@workspace:*, expo-gaode-map-web-api@workspace:packages/web-api":
   version: 0.0.0-use.local
