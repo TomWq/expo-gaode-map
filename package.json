@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/*",
     "example",
-    "example-navigation"
+    "example-navigation",
+    "website"
   ],
   "description": "高德地图 Expo 模块 Monorepo 包含核心模块、导航模块和 Web API 模块",
   "scripts": {
