@@ -7,14 +7,14 @@
 ### 安装依赖
 
 ```bash
-cd website
-npm install
+# 在仓库根目录执行
+yarn install --immutable
 ```
 
 ### 启动开发服务器
 
 ```bash
-npm run docs:dev
+yarn workspace expo-gaode-map-docs docs:dev
 ```
 
 访问 http://localhost:5173 查看文档。
@@ -22,7 +22,7 @@ npm run docs:dev
 ### 构建生产版本
 
 ```bash
-npm run docs:build
+yarn workspace expo-gaode-map-docs docs:build
 ```
 
 构建产物将输出到 `docs/.vitepress/dist` 目录。
@@ -30,7 +30,7 @@ npm run docs:build
 ### 预览生产版本
 
 ```bash
-npm run docs:preview
+yarn workspace expo-gaode-map-docs docs:preview
 ```
 
 ## 📦 部署到 GitHub Pages
@@ -62,8 +62,9 @@ npm run docs:preview
 
 1. **构建网站**
    ```bash
-   cd website
-   npm run docs:build
+   # 在仓库根目录执行
+   yarn install --immutable
+   yarn workspace expo-gaode-map-docs docs:build
    ```
 
 2. **部署到 GitHub Pages**

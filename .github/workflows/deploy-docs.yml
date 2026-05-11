@@ -29,19 +29,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
-        run: |
-          cd website
-          npm install
+        run: yarn install --immutable
 
       - name: Build with VitePress
-        run: |
-          cd website
-          npm run docs:build
+        run: yarn workspace expo-gaode-map-docs docs:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -62,7 +62,6 @@ yarn-error.log
 !.yarn/sdks
 !.yarn/versions
 !yarn.lock
-!website/yarn.lock
 
 # Expo
 .expo/*
