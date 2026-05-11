@@ -48,7 +48,7 @@ export default defineConfig({
       'meta',
       {
         property: 'og:image',
-        content: 'https://tomwq.github.io/expo-gaode-map/hero-map.svg'
+        content: 'https://tomwq.github.io/expo-gaode-map/bg.png'
       }
     ],
     [
@@ -76,7 +76,7 @@ export default defineConfig({
       'meta',
       {
         name: 'twitter:image',
-        content: 'https://tomwq.github.io/expo-gaode-map/hero-map.svg'
+        content: 'https://tomwq.github.io/expo-gaode-map/bg.png'
       }
     ]
   ],
@@ -89,6 +89,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
+          { text: '概览', link: '/overview' },
           { text: '快速开始', link: '/guide/getting-started' },
           { text: 'API', link: '/api/' },
           { text: '示例', link: '/examples/' },
@@ -166,6 +167,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },
+          { text: 'Overview', link: '/en/overview' },
           { text: 'Get Started', link: '/en/guide/getting-started' },
           { text: 'API', link: '/en/api/' },
           { text: 'Examples', link: '/en/examples/' },

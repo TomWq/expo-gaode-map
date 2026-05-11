@@ -1,57 +1,91 @@
 # Testing & QA
 
-expo-gaode-map uses automated tests to keep the core module and related packages stable.
+expo-gaode-map uses automated tests across the whole monorepo: `core`, `navigation`, `web-api`, and the key `example-navigation` flows.
 
 ## What Is Covered
 
-- Core module APIs (SDK init, privacy compliance, location APIs)
-- MapView and overlay components (rendering and props)
-- Utilities (error handling, module loading)
+### Core package
+
+- SDK init, privacy, location, and permissions
+- `MapView` and overlay components
+- Utilities and error handling
+
+### Navigation package
+
+- Route geometry and anchor extraction
+- Web API fallback mapping
+- follow-web navigation
+- independent route chain behavior
+
+### Example app
+
+- `example-navigation` smoke tests
+- key navigation screen startup and rendering checks
 
 ## Run Tests
 
 From the monorepo root:
 
 ```bash
-bun test
+yarn test
 ```
 
-Run tests for a specific package:
+Run a specific package:
 
 ```bash
-cd packages/core
-bun test
+yarn test:core
+yarn test:navigation
+yarn test:web-api
 ```
 
-Run a single test file or filter:
+Run the example app tests:
 
 ```bash
-cd packages/core
-bun test ExpoGaodeMapModule
-bun test --testNamePattern="SDK init"
+yarn test:example-navigation
 ```
 
-Generate a coverage report:
+Run the full verification flow:
 
 ```bash
-cd packages/core
-bun test --coverage
+yarn verify
 ```
 
-## Lint
-
-From the monorepo root:
+If you want to work in a single package manually:
 
 ```bash
-bun run lint
+cd packages/core && bun test
+cd packages/navigation && yarn test
+cd example-navigation && npm test -- --runInBand
 ```
 
-## Debug Tips
+Generate coverage:
 
-- Prefer running tests in a package directory when iterating on one module.
-- If a test depends on React Native environment, keep it inside the package using `expo-module test`.
+```bash
+cd packages/core && bun test --coverage
+cd packages/navigation && yarn test --coverage
+```
 
-## Related Documentation
+> Coverage reports are generated per package, so the numbers depend on the package you run.
 
-- [Error Handling](/en/guide/error-handling)
+## Testing Tips
+
+- Prefer unit tests for pure logic helpers such as route parsing, normalizers, and scoring functions.
+- Prefer component tests for prop passing, event callbacks, and conditional rendering.
+- Prefer integration tests for multi-step flows such as independent route planning and navigation startup.
+- For web adaptation work, test the adapter or fallback branch too, not just the native path.
+
+## Debug
+
+```bash
+yarn test:navigation -- --testNamePattern="followWebPlannedRoute"
+```
+
+```bash
+cd packages/navigation && yarn test --watch
+```
+
+## Related Docs
+
 - [Architecture](/en/guide/architecture)
+- [Navigation Guide](/en/guide/navigation)
+- [Web API Guide](/en/guide/web-api)
