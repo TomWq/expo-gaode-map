@@ -6,6 +6,28 @@
 📦 可运行示例请优先参考仓库内 `example/` 和 `example-navigation/`；导航入口说明见 `example-navigation/README.md`
 :::
 
+## AI 自动接入 Skill
+
+如果你希望让 AI coding agent 在现有 Expo / React Native 项目里自动完成接入，可以安装 `expo-gaode-map-skill`。它会指导 agent 判断应安装的包、修改 Expo 配置、写入 Config Plugin、补最小地图页面，并提醒或执行必要的 `prebuild`。
+
+### Codex 安装
+
+```bash
+npx skills add TomWq/expo-gaode-map-skill
+```
+
+安装后重启 Codex，让新 Skill 生效。然后在你的 App 项目里输入类似提示词：
+
+```text
+在当前 Expo 项目中接入 expo-gaode-map，保留现有导航结构，补一个最小可运行地图页。
+```
+
+### 其他 AI 工具
+
+对于 Claude Code、Cursor、Windsurf、Cline、Roo Code 等工具，可以让 agent 读取 Skill 仓库中的 `AGENTS.md`，或把 `AGENTS.md` / `references/` 中的规则复制到对应工具的 rules 文件中。
+
+Skill 仓库：[TomWq/expo-gaode-map-skill](https://github.com/TomWq/expo-gaode-map-skill)
+
 ## 项目架构
 
 expo-gaode-map 采用 **Monorepo 架构**，提供模块化的功能包：
@@ -48,7 +70,7 @@ npm install expo-gaode-map
 高德官方 Android SDK 在 `10.0.700` 之后将远程依赖由“地图 + 定位”调整为“地图 + 定位 + 搜索”，依赖地址从 `com.amap.api:3dmap:latest.integration` 调整为 `com.amap.api:3dmap-location-search:latest.integration`。历史项目如仍需要独立搜索包，请固定到 `expo-gaode-map-search@2.2.33`。
 :::
 
-### 导航功能（可选」
+### 导航功能（可选）
 
 如果需要使用导航功能：（可选）
 ```bash

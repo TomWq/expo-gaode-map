@@ -153,6 +153,18 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
+.landing-button--ai {
+  color: #fff;
+  background: rgba(44, 143, 110, 0.8);
+  border-color: rgba(128, 232, 182, 0.38);
+  backdrop-filter: blur(16px);
+}
+
+.landing-button--ai:hover {
+  border-color: rgba(176, 255, 216, 0.58);
+  background: rgba(52, 165, 126, 0.88);
+}
+
 .landing-tags {
   margin-top: 1.4rem;
   display: flex;

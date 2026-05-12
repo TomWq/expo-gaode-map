@@ -2,6 +2,28 @@
 
 Quick start guide to help you integrate expo-gaode-map into your Expo project.
 
+## AI-assisted integration Skill
+
+If you want an AI coding agent to wire `expo-gaode-map` into an existing Expo / React Native project, install `expo-gaode-map-skill`. It guides the agent through package selection, Expo config changes, Config Plugin setup, a minimal map screen, and the required `prebuild` step.
+
+### Install in Codex
+
+```bash
+npx skills add TomWq/expo-gaode-map-skill
+```
+
+Restart Codex after installation so the new Skill is loaded. Then use a prompt like:
+
+```text
+Integrate expo-gaode-map into the current Expo project, keep the existing navigation structure, and add a minimal runnable map screen.
+```
+
+### Other AI tools
+
+For Claude Code, Cursor, Windsurf, Cline, Roo Code, and similar tools, ask the agent to read `AGENTS.md` from the Skill repository, or copy `AGENTS.md` / `references/` into the rules file used by your tool.
+
+Skill repository: [TomWq/expo-gaode-map-skill](https://github.com/TomWq/expo-gaode-map-skill)
+
 ## Prerequisites
 
 - Node.js >= 16

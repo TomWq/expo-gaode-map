@@ -18,6 +18,7 @@ const copy = computed(() => {
         'expo-gaode-map brings map, location, search, navigation, offline maps, and Web API support into one entry point for Expo / React Native projects.',
       primary: 'Open docs',
       secondary: 'Get started',
+      aiAction: 'AI setup',
       route1Title: 'Documentation overview',
       route1Text: 'Keep the original home content for a quick scan of installation, capabilities, and package layout.',
       route2Title: 'Get started',
@@ -27,6 +28,7 @@ const copy = computed(() => {
       tags: ['Maps', 'Location', 'Search', 'Navigation', 'Offline maps', 'Web API'],
       overviewLink: 'overview',
       gettingStartedLink: 'guide/getting-started',
+      skillLink: 'guide/getting-started#ai-assisted-integration-skill',
       examplesLink: 'examples/'
     }
   }
@@ -39,6 +41,7 @@ const copy = computed(() => {
       'expo-gaode-map 把地图、定位、搜索、导航、离线地图和 Web API 放在同一个入口里，适合 Expo / React Native 项目直接上手。',
     primary: '进入文档',
     secondary: '快速开始',
+    aiAction: 'AI 自动接入',
     route1Title: '文档概览',
     route1Text: '保留原首页内容，适合快速扫一遍安装、能力和包结构。',
     route2Title: '快速开始',
@@ -48,6 +51,7 @@ const copy = computed(() => {
     tags: ['地图', '定位', '搜索', '导航', '离线地图', 'Web API'],
     overviewLink: 'overview',
     gettingStartedLink: 'guide/getting-started',
+    skillLink: 'guide/getting-started#ai-自动接入-skill',
     examplesLink: 'examples/'
   }
 })
@@ -72,6 +76,9 @@ const resolve = (path: string) => withBase(`${base}${path}`)
             </a>
             <a class="landing-button landing-button--secondary" :href="resolve(copy.gettingStartedLink)">
               {{ copy.secondary }}
+            </a>
+            <a class="landing-button landing-button--ai" :href="resolve(copy.skillLink)">
+              {{ copy.aiAction }}
             </a>
             <a class="landing-button landing-button--secondary" href="https://github.com/TomWq/expo-gaode-map">GitHub</a>
           </div>
