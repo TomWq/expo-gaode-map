@@ -97,7 +97,7 @@ jest.mock('expo-gaode-map-navigation', () => {
       return React.createElement(View, { ...props, testID: 'embedded-navi-view' }, props.children);
     }),
   };
-});
+}, { virtual: true });
 
 jest.mock('@/lib/navigation-ui', () => {
   return {
