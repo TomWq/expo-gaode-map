@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map API 文档
+description: expo-gaode-map API 总览，包含 MapView、定位、覆盖物、搜索、导航、离线地图与 Web API 文档入口。
+---
+
 # API 文档
 
 完整的 API 参考文档。

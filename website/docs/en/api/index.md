@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map API Documentation
+description: API index for expo-gaode-map, including MapView, location, overlays, search, navigation, offline maps, and Web API references.
+---
+
 # API Documentation
 
 Complete API reference documentation.

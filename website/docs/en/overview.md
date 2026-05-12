@@ -1,5 +1,7 @@
 ---
 layout: home
+title: expo-gaode-map Overview
+description: Product overview of expo-gaode-map for Expo and React Native, including maps, location, navigation, search, and offline maps.
 
 hero:
   name: "expo-gaode-map"

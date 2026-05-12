@@ -1,5 +1,7 @@
 ---
 layout: home
+title: expo-gaode-map 概览
+description: expo-gaode-map 产品概览，快速了解 Expo / React Native 高德地图、定位、导航、搜索与离线地图能力。
 
 hero:
   name: "expo-gaode-map"

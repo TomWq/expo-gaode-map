@@ -1,4 +1,98 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, type HeadConfig, type TransformContext } from 'vitepress'
+
+const siteUrl = 'https://tomwq.github.io'
+const siteBase = '/expo-gaode-map/'
+const siteOrigin = `${siteUrl}${siteBase}`
+const defaultOgImage = `${siteOrigin}bg.png`
+
+function toRoutePath(relativePath: string): string {
+  if (relativePath === 'index.md') {
+    return '/'
+  }
+
+  if (relativePath.endsWith('/index.md')) {
+    return `/${relativePath.slice(0, -'index.md'.length)}`
+  }
+
+  return `/${relativePath.replace(/\.md$/, '')}`
+}
+
+function resolveCanonicalUrl(routePath: string): string {
+  const normalizedPath = routePath === '/' ? '' : routePath.replace(/^\//, '')
+
+  return `${siteOrigin}${normalizedPath}`
+}
+
+function resolveAlternateLinks(routePath: string): Array<{ lang: string; url: string }> {
+  if (routePath.startsWith('/en/')) {
+    const zhPath = routePath.replace(/^\/en/, '') || '/'
+
+    return [
+      { lang: 'en', url: resolveCanonicalUrl(routePath) },
+      { lang: 'zh-CN', url: resolveCanonicalUrl(zhPath) },
+      { lang: 'x-default', url: resolveCanonicalUrl(zhPath) },
+    ]
+  }
+
+  const enPath = routePath === '/' ? '/en/' : `/en${routePath}`
+
+  return [
+    { lang: 'zh-CN', url: resolveCanonicalUrl(routePath) },
+    { lang: 'en', url: resolveCanonicalUrl(enPath) },
+    { lang: 'x-default', url: resolveCanonicalUrl(routePath) },
+  ]
+}
+
+function createJsonLd(context: TransformContext, canonicalUrl: string): string {
+  const pageTitle = context.pageData.title || 'expo-gaode-map'
+  const pageDescription = context.pageData.description || 'Expo / React Native AMap documentation site.'
+  const inEnglish = context.pageData.relativePath.startsWith('en/')
+
+  return JSON.stringify(
+    {
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: pageTitle,
+      description: pageDescription,
+      url: canonicalUrl,
+      inLanguage: inEnglish ? 'en-US' : 'zh-CN',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'expo-gaode-map',
+        url: siteOrigin,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'expo-gaode-map',
+        url: siteOrigin,
+      },
+      image: defaultOgImage,
+    },
+    null,
+    0
+  )
+}
+
+function buildSeoHead(context: TransformContext): HeadConfig[] {
+  const routePath = toRoutePath(context.pageData.relativePath)
+  const canonicalUrl = resolveCanonicalUrl(routePath)
+  const alternateLinks = resolveAlternateLinks(routePath)
+  const pageTitle = context.pageData.title || 'expo-gaode-map'
+  const pageDescription = context.pageData.description || 'Expo / React Native AMap documentation site.'
+  const locale = context.pageData.relativePath.startsWith('en/') ? 'en_US' : 'zh_CN'
+
+  return [
+    ['link', { rel: 'canonical', href: canonicalUrl }],
+    ...alternateLinks.map(({ lang, url }) => ['link', { rel: 'alternate', hreflang: lang, href: url }] as HeadConfig),
+    ['meta', { property: 'og:url', content: canonicalUrl }],
+    ['meta', { property: 'og:title', content: pageTitle }],
+    ['meta', { property: 'og:description', content: pageDescription }],
+    ['meta', { property: 'og:locale', content: locale }],
+    ['meta', { name: 'twitter:title', content: pageTitle }],
+    ['meta', { name: 'twitter:description', content: pageDescription }],
+    ['script', { type: 'application/ld+json' }, createJsonLd(context, canonicalUrl)],
+  ]
+}
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -6,7 +100,10 @@ export default defineConfig({
   title: "expo-gaode-map",
   description: "Expo / React Native 高德地图（AMap）组件库文档：地图、定位、搜索、导航、离线地图。",
   sitemap: {
-    hostname: 'https://tomwq.github.io/expo-gaode-map/'
+    hostname: siteOrigin
+  },
+  transformHead(context) {
+    return buildSeoHead(context)
   },
   head: [
     [
@@ -41,14 +138,14 @@ export default defineConfig({
       'meta',
       {
         property: 'og:url',
-        content: 'https://tomwq.github.io/expo-gaode-map/'
+        content: siteOrigin
       }
     ],
     [
       'meta',
       {
         property: 'og:image',
-        content: 'https://tomwq.github.io/expo-gaode-map/bg.png'
+        content: defaultOgImage
       }
     ],
     [
@@ -76,11 +173,11 @@ export default defineConfig({
       'meta',
       {
         name: 'twitter:image',
-        content: 'https://tomwq.github.io/expo-gaode-map/bg.png'
+        content: defaultOgImage
       }
     ]
   ],
-  base: '/expo-gaode-map/',
+  base: siteBase,
   
   locales: {
     root: {

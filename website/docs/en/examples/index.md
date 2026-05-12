@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map Examples
+description: Example index for expo-gaode-map, including basic maps, location tracking, overlays, search, and practical integration patterns.
+---
+
 # Examples
 
 Complete code examples to help you get started quickly.
