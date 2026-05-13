@@ -1,3 +1,6 @@
+/**
+ * 地理位置工具类
+ */
 import { LatLng, LatLngPoint } from '../types/common.types';
 
 type LatLngLike = {

@@ -1,10 +1,13 @@
+/**
+ * 几何模块
+ */
+
 import type { LatLng, LatLngPoint } from '../types';
 import { ErrorHandler, ErrorLogger } from '../utils/ErrorHandler';
 import { normalizeLatLng, normalizeLatLngList } from '../utils/GeoUtils';
 import { nativeModule } from './nativeModule';
 
 export const geometryMethods = {
-
 
   /**
    * 计算两个坐标点之间的距离

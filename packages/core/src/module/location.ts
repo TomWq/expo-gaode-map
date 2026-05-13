@@ -1,3 +1,7 @@
+/**
+ * 位置模块
+ */
+
 import { Platform } from 'react-native';
 
 import type {
@@ -23,7 +27,11 @@ import {
 } from './normalizers';
 import { assertPrivacyReady } from './privacy';
 
+
 export const locationMethods = {
+  /**
+   * 开始位置更新
+   */
   start(): void {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
@@ -34,7 +42,9 @@ export const locationMethods = {
       ErrorLogger.warn('start 失败', { error });
     }
   },
-
+  /**
+   * 停止位置更新
+   */
   stop(): void {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
@@ -46,6 +56,10 @@ export const locationMethods = {
     }
   },
 
+  /**
+   * 检查是否正在定位
+   * @returns 是否正在定位
+   */
   isStarted(): Promise<boolean> {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
@@ -57,7 +71,10 @@ export const locationMethods = {
       return Promise.resolve(false);
     }
   },
-
+  /**
+   * 获取当前位置
+   * @returns 当前位置
+   */
   async getCurrentLocation(): Promise<Coordinates | ReGeocode> {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
@@ -71,7 +88,12 @@ export const locationMethods = {
       throw ErrorHandler.wrapNativeError(error, '获取当前位置');
     }
   },
-
+  /**
+   * 坐标转换
+   * @param coordinate 坐标点
+   * @param type 坐标类型
+   * @returns 转换后的坐标
+   */
   async coordinateConvert(coordinate: LatLngPoint, type: CoordinateType): Promise<LatLng> {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();
@@ -91,7 +113,10 @@ export const locationMethods = {
       throw ErrorHandler.wrapNativeError(error, '坐标转换');
     }
   },
-
+  /**
+   * 设置语言
+   * @param language 语言
+   */
   setGeoLanguage(language: GeoLanguage | string): void {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
@@ -102,7 +127,10 @@ export const locationMethods = {
       ErrorLogger.warn('setGeoLanguage 失败', { language, error });
     }
   },
-
+  /**
+   * 设置是否使用逆地理编码
+   * @param isReGeocode 是否使用逆地理编码
+   */
   setLocatingWithReGeocode(isReGeocode: boolean): void {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule(true);
@@ -113,7 +141,10 @@ export const locationMethods = {
       ErrorLogger.warn('setLocatingWithReGeocode 失败', { isReGeocode, error });
     }
   },
-
+  /**
+   * 检查是否已启用后台位置更新
+   * @returns 是否已启用后台位置更新
+   */
   get isBackgroundLocationEnabled(): boolean {
     const nativeModule = getNativeModule(true);
     if (!nativeModule) return false;
@@ -192,7 +223,10 @@ export const locationMethods = {
       throw ErrorHandler.wrapNativeError(error, '打开设置');
     }
   },
-
+  /**
+   * 设置是否允许后台位置更新
+   * @param allows 是否允许后台位置更新
+   */
   setAllowsBackgroundLocationUpdates(allows: boolean): void {
     assertPrivacyReady('sdk');
     const nativeModule = getNativeModule();

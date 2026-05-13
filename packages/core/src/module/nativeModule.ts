@@ -1,3 +1,6 @@
+/**
+ * 高德地图原生模块
+ */
 import { requireNativeModule } from 'expo';
 
 import type { NativeExpoGaodeMapModule } from '../types/native-module.types';
@@ -5,6 +8,11 @@ import { ErrorHandler, ErrorLogger } from '../utils/ErrorHandler';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
 
+/**
+ * 获取原生模块
+ * @param optional 是否可选
+ * @returns 原生模块
+ */
 export function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
   if (nativeModuleCache) {
     return nativeModuleCache;
@@ -23,6 +31,12 @@ export function getNativeModule(optional = false): NativeExpoGaodeMapModule | nu
   }
 }
 
+/**
+ * 获取原生模块的属性或方法
+ * @param module 原生模块
+ * @param prop 属性或方法名
+ * @returns 原生模块的属性或方法
+ */
 export function getBoundNativeValue(
   module: NativeExpoGaodeMapModule,
   prop: PropertyKey

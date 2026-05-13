@@ -8,9 +8,9 @@ import { PermissionResponse } from 'expo-modules-core';
  * SDK 配置参数
  */
 export interface SDKConfig {
-  /** Android 平台的高德地图 API Key */
+  /** Android 平台的高德地图 API Key,一般不要主动配置，推荐使用 Config Plugin 配置 */
   androidKey?: string;
-  /** iOS 平台的高德地图 API Key */
+  /** iOS 平台的高德地图 API Key,一般不要主动配置，推荐使用 Config Plugin 配置 */
   iosKey?: string;
   /** web api key 如果要使用expo-gaode-map-web-api相关的功能，需要配置web api key*/
   webKey?: string;

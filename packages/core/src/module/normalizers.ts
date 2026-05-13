@@ -1,3 +1,7 @@
+
+/**
+ * 坐标类型归一化器
+ */
 import type {
   Coordinates,
   CoordinateType,
@@ -10,6 +14,12 @@ import type { PermissionStatus } from '../types/common.types';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { CoordinateType as CoordinateTypeValue } from '../types';
 
+
+/**
+ * 归一化坐标类型
+ * @param type 坐标类型
+ * @returns 归一化后的坐标类型
+ */
 export function normalizeCoordinateType(type: CoordinateType): number | null {
   switch (type) {
     case CoordinateTypeValue.AMap:
@@ -33,6 +43,11 @@ export function normalizeCoordinateType(type: CoordinateType): number | null {
   }
 }
 
+/**
+ * 归一化语言语言
+ * @param language 语言
+ * @returns 归一化后的语言
+ */
 export function normalizeGeoLanguage(language: GeoLanguage | string): GeoLanguage {
   const normalized = String(language).trim().toUpperCase();
 
@@ -60,6 +75,11 @@ export function normalizeGeoLanguage(language: GeoLanguage | string): GeoLanguag
   }
 }
 
+/**
+ * 归一化位置结果
+ * @param location 位置结果
+ * @returns 归一化后的位置结果
+ */
 export function normalizeLocationResult<T extends Coordinates | ReGeocode>(location: T): T {
   const rawLocation = location as T & { bearing?: number; heading?: number };
   const heading = rawLocation.heading ?? rawLocation.bearing ?? 0;
@@ -70,6 +90,11 @@ export function normalizeLocationResult<T extends Coordinates | ReGeocode>(locat
   };
 }
 
+/**
+ * 归一化方向更新事件
+ * @param payload 方向更新事件
+ * @returns 归一化后的方向更新事件
+ */
 export function normalizeHeadingEvent(payload: HeadingUpdate | Record<string, unknown>): HeadingUpdate {
   const raw = payload as Record<string, unknown>;
   const fallbackHeading = Number(raw.heading ?? raw.trueHeading ?? raw.magneticHeading ?? 0);
@@ -86,6 +111,11 @@ export function normalizeHeadingEvent(payload: HeadingUpdate | Record<string, un
   };
 }
 
+/**
+ * 归一化权限状态
+ * @param permission 权限状态
+ * @returns 归一化后的权限状态
+ */
 export function normalizePermissionStatus(permission: PermissionStatus | Record<string, unknown>): PermissionStatus {
   const raw = permission as Partial<PermissionStatus> & Record<string, unknown>;
   const rawStatus = String(raw.status ?? '');

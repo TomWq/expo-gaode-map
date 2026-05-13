@@ -1,3 +1,6 @@
+/**
+ * 懒加载原生视图管理器
+ */
 import type { ComponentType } from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
 

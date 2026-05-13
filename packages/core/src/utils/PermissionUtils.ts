@@ -1,3 +1,6 @@
+/**
+ * 权限工具类
+ */
 import { Platform } from 'react-native';
 import { PlatformDetector } from './PlatformDetector';
 

@@ -1,3 +1,6 @@
+/**
+ * SDK 模块
+ */
 import type { SDKConfig } from '../types/common.types';
 import { ErrorHandler, ErrorLogger } from '../utils/ErrorHandler';
 import { getNativeModule } from './nativeModule';

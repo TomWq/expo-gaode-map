@@ -1,3 +1,6 @@
+/**
+ * 隐私模块模块
+ */
 import type { PrivacyConfig, PrivacyStatus } from '../types/common.types';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { getNativeModule } from './nativeModule';
@@ -35,7 +38,7 @@ export const privacyMethods = {
 
   /**
    * 一次性同步完整的隐私状态
-   * 推荐业务层只调用这个方法
+   * 强烈推荐业务层只调用这个方法
    */
   setPrivacyConfig(config: PrivacyConfig): void {
     const nativeModule = getNativeModule();
@@ -43,6 +46,9 @@ export const privacyMethods = {
     nativeModule.setPrivacyConfig(config);
   },
 
+  /**
+   * 获取当前隐私状态
+   */
   getPrivacyStatus(): PrivacyStatus {
     const nativeModule = getNativeModule();
     if (!nativeModule) {

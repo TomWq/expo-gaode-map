@@ -22,6 +22,16 @@ const DEFAULT_STATE: RoutePlaybackState = {
   durationSeconds: 0,
 };
 
+
+/**
+ * 获取标记角度
+ * @param path 路径点
+ * @param totalDistance 总距离
+ * @param targetDistance 目标距离
+ * @param lastAngle 上一个角度
+ * @param options 回放选项
+ * @returns 角度和点
+ */
 function getMarkerAngle(
   path: LatLng[],
   totalDistance: number,
@@ -64,6 +74,12 @@ function getMarkerAngle(
   };
 }
 
+/**
+ * 路由回放
+ * @param points 路径点
+ * @param options 回放选项
+ * @returns 回放控制器
+ */
 export function useRoutePlayback(
   points: Array<LatLng | [number, number] | number[]>,
   options: RoutePlaybackOptions = {}
