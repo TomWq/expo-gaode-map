@@ -107,6 +107,18 @@ npx expo run:ios
 - [API 参考](https://TomWq.github.io/expo-gaode-map/api/)
 - [本地示例工程](./example) / [导航示例工程](./example-navigation)
 
+## AI 自动接入
+
+如果你希望让 AI coding agent 在现有 Expo / React Native 项目里自动完成接入，可以安装配套 Skill：
+
+```bash
+npx skills add TomWq/expo-gaode-map-skill
+```
+
+这个 Skill 会帮助 agent 判断应安装的包、修改 Expo 配置、写入 Config Plugin、补最小地图页面，并提醒或执行必要的 `prebuild`。
+
+查看：[expo-gaode-map-skill](https://github.com/TomWq/expo-gaode-map-skill)
+
 ## 可以拿它做什么
 
 - 面向消费者的地图类应用和位置服务应用

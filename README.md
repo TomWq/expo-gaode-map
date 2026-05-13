@@ -113,6 +113,18 @@ Start here if you want runnable examples or API details:
 - [API Reference](https://TomWq.github.io/expo-gaode-map/api/)
 - [Local Map Example](./example) / [Navigation Example](./example-navigation)
 
+## AI-assisted Setup
+
+If you want an AI coding agent to integrate `expo-gaode-map` into an existing Expo / React Native project, install the companion Skill:
+
+```bash
+npx skills add TomWq/expo-gaode-map-skill
+```
+
+The Skill helps the agent choose the right package, update Expo config, add the Config Plugin, create a minimal map screen, and run or remind you to run `prebuild`.
+
+See: [expo-gaode-map-skill](https://github.com/TomWq/expo-gaode-map-skill)
+
 ## What You Can Build
 
 - Map-centric consumer apps with AMap-native rendering and overlays
