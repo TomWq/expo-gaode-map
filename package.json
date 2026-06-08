@@ -35,7 +35,7 @@
     "publish:core:beta": "cd packages/core && npm publish --access public --tag beta",
     "publish:navigation:beta": "cd packages/navigation && npm publish --access public --tag beta",
     "publish:web-api:beta": "cd packages/web-api && npm publish --access public --tag beta",
-    "npm:login": "npm login --auth-type=web",
+    "npm:login": "npm login --auth-type=web --registry=https://registry.npmjs.org/",
     "publish:interactive": "bash scripts/publish.sh",
     "version:core": "cd packages/core && npm version",
     "version:navigation": "cd packages/navigation && npm version",

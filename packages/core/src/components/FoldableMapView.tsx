@@ -112,12 +112,41 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
   const [currentFoldState, setCurrentFoldState] = useState<FoldState>(FoldState.UNKNOWN);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(PlatformDetector.getDeviceInfo());
   const config = useMemo(() => createFoldableConfig(foldableConfig), [foldableConfig]);
-  const configRef = useRef(config);
   const foldStateRef = useRef(currentFoldState);
 
-  useEffect(() => {
-    configRef.current = config;
-  }, [config]);
+  const handleFoldStateChange = React.useEffectEvent(
+    async (newInfo: DeviceInfo, debugPrefix: 'FoldableMapView' | 'useFoldableMap') => {
+      const newFoldState = PlatformDetector.getFoldState();
+      const previousFoldState = foldStateRef.current;
+
+      if (config.debug) {
+        console.log(`[${debugPrefix}] 屏幕尺寸变化`);
+        console.log('新设备信息:', newInfo);
+        console.log('新折叠状态:', newFoldState);
+      }
+
+      if (newFoldState !== previousFoldState && previousFoldState !== FoldState.UNKNOWN) {
+        try {
+          await applyFoldStateCameraAdjustment(
+            mapRef,
+            previousFoldState,
+            newFoldState,
+            config,
+            debugPrefix
+          );
+        } catch (error) {
+          if (config.debug) {
+            console.error(`[${debugPrefix}] 处理折叠状态变化失败:`, error);
+          }
+        }
+      }
+
+      foldStateRef.current = newFoldState;
+      setCurrentFoldState(newFoldState);
+      setDeviceInfo(newInfo);
+      config.onFoldStateChange(newFoldState, newInfo);
+    }
+  );
 
   useEffect(() => {
     foldStateRef.current = currentFoldState;
@@ -131,7 +160,7 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
   useEffect(() => {
     // 仅在 Android 折叠屏设备上启用
     if (Platform.OS !== 'android' || !deviceInfo.isFoldable) {
-      if (configRef.current.debug) {
+      if (config.debug) {
         console.log('[FoldableMapView] 非折叠屏设备，跳过适配');
       }
       return;
@@ -141,7 +170,7 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
     foldStateRef.current = initialState;
     setCurrentFoldState(initialState);
 
-    if (configRef.current.debug) {
+    if (config.debug) {
       console.log('[FoldableMapView] 初始化折叠屏适配');
       console.log('设备信息:', deviceInfo);
       console.log('初始折叠状态:', initialState);
@@ -150,46 +179,14 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
     // 监听屏幕尺寸变化
     const removeListener = PlatformDetector.addDimensionChangeListener(
       async (newInfo: DeviceInfo) => {
-        const newFoldState = PlatformDetector.getFoldState();
-        const previousFoldState = foldStateRef.current;
-        const latestConfig = configRef.current;
-        
-        if (latestConfig.debug) {
-          console.log('[FoldableMapView] 屏幕尺寸变化');
-          console.log('新设备信息:', newInfo);
-          console.log('新折叠状态:', newFoldState);
-        }
-
-        // 折叠状态变化时的处理
-        if (newFoldState !== previousFoldState && previousFoldState !== FoldState.UNKNOWN) {
-          try {
-            await applyFoldStateCameraAdjustment(
-              mapRef,
-              previousFoldState,
-              newFoldState,
-              latestConfig,
-              'FoldableMapView'
-            );
-          } catch (error) {
-            if (latestConfig.debug) {
-              console.error('[FoldableMapView] 处理折叠状态变化失败:', error);
-            }
-          }
-        }
-
-        foldStateRef.current = newFoldState;
-        setCurrentFoldState(newFoldState);
-        setDeviceInfo(newInfo);
-        
-        // 触发回调
-        latestConfig.onFoldStateChange(newFoldState, newInfo);
+        await handleFoldStateChange(newInfo, 'FoldableMapView');
       }
     );
 
     return () => {
       removeListener();
     };
-  }, [deviceInfo.isFoldable]);
+  }, [config.debug, deviceInfo.isFoldable]);
 
   return (
     <ExpoGaodeMapView
@@ -212,15 +209,36 @@ export function useFoldableMap(
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(PlatformDetector.getDeviceInfo());
   const mergedConfig = useMemo(() => createFoldableConfig(config), [config]);
   const foldStateRef = useRef(foldState);
-  const configRef = useRef(mergedConfig);
 
   useEffect(() => {
     foldStateRef.current = foldState;
   }, [foldState]);
 
-  useEffect(() => {
-    configRef.current = mergedConfig;
-  }, [mergedConfig]);
+  const handleFoldStateChange = React.useEffectEvent(async (newInfo: DeviceInfo) => {
+    const newFoldState = PlatformDetector.getFoldState();
+    const previousFoldState = foldStateRef.current;
+
+    if (newFoldState !== previousFoldState && previousFoldState !== FoldState.UNKNOWN) {
+      try {
+        await applyFoldStateCameraAdjustment(
+          mapRef,
+          previousFoldState,
+          newFoldState,
+          mergedConfig,
+          'useFoldableMap'
+        );
+      } catch (error) {
+        if (mergedConfig.debug) {
+          console.error('[useFoldableMap] 调整失败:', error);
+        }
+      }
+    }
+
+    foldStateRef.current = newFoldState;
+    setFoldState(newFoldState);
+    setDeviceInfo(newInfo);
+    mergedConfig.onFoldStateChange(newFoldState, newInfo);
+  });
 
   useEffect(() => {
     if (Platform.OS !== 'android' || !deviceInfo.isFoldable) {
@@ -233,30 +251,7 @@ export function useFoldableMap(
 
     const removeListener = PlatformDetector.addDimensionChangeListener(
       async (newInfo: DeviceInfo) => {
-        const newFoldState = PlatformDetector.getFoldState();
-        const previousFoldState = foldStateRef.current;
-        const latestConfig = configRef.current;
-        
-        if (newFoldState !== previousFoldState && previousFoldState !== FoldState.UNKNOWN) {
-          try {
-            await applyFoldStateCameraAdjustment(
-              mapRef,
-              previousFoldState,
-              newFoldState,
-              latestConfig,
-              'useFoldableMap'
-            );
-          } catch (error) {
-            if (latestConfig.debug) {
-              console.error('[useFoldableMap] 调整失败:', error);
-            }
-          }
-        }
-
-        foldStateRef.current = newFoldState;
-        setFoldState(newFoldState);
-        setDeviceInfo(newInfo);
-        latestConfig.onFoldStateChange(newFoldState, newInfo);
+        await handleFoldStateChange(newInfo);
       }
     );
 

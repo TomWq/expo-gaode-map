@@ -26,6 +26,8 @@ class ExpoGaodeMapModule : Module() {
   /** 定位管理器实例 */
   private var locationManager: LocationManager? = null
 
+  private fun jsValue(value: Any?): Any? = value
+
   override fun definition() = ModuleDefinition {
     Name("ExpoGaodeMap")
 
@@ -93,7 +95,7 @@ class ExpoGaodeMapModule : Module() {
     }
 
     Function("getPrivacyStatus") {
-      SDKInitializer.getPrivacyStatus()
+      jsValue(SDKInitializer.getPrivacyStatus())
     }
 
     /**
@@ -109,14 +111,14 @@ class ExpoGaodeMapModule : Module() {
      * @return SDK 版本号
      */
     Function("getVersion") {
-      SDKInitializer.getVersion()
+      jsValue(SDKInitializer.getVersion())
     }
 
     /**
     * 检查原生 SDK 是否已配置 API Key
     */
     Function("isNativeSDKConfigured") {
-      try {
+      jsValue(try {
         val context = appContext.reactContext!!
         val apiKey = context.packageManager
           .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
@@ -124,7 +126,7 @@ class ExpoGaodeMapModule : Module() {
         !apiKey.isNullOrEmpty()
       } catch (_: Exception) {
         false
-      }
+      })
     }
 
 
@@ -187,11 +189,11 @@ class ExpoGaodeMapModule : Module() {
     Function("distanceBetweenCoordinates") { p1: Map<String, Any>?, p2: Map<String, Any>? ->
       val cord1 = LatLngParser.parseLatLng(p1)
       val cord2 = LatLngParser.parseLatLng(p2)
-      if (cord1 != null && cord2 != null) {
+      jsValue(if (cord1 != null && cord2 != null) {
         GeometryUtils.calculateDistance(cord1, cord2)
       } else {
         0.0
-      }
+      })
     }
 
     /**
@@ -213,16 +215,16 @@ class ExpoGaodeMapModule : Module() {
       val normalized = LatLngParser.parseLatLngList(points)
       val safeMinZoom = minZoom ?: 3
       val safeMaxZoom = maxZoom ?: 20
-      if (normalized.isEmpty()) return@Function safeMinZoom.toDouble()
+      if (normalized.isEmpty()) return@Function jsValue(safeMinZoom.toDouble())
 
-      GeometryUtils.calculateFitZoom(
+      jsValue(GeometryUtils.calculateFitZoom(
         normalized,
         viewportWidthPx ?: 390.0,
         viewportHeightPx ?: 844.0,
         paddingPx ?: 48.0,
         safeMinZoom,
         safeMaxZoom
-      )
+      ))
     }
 
     /**
@@ -232,7 +234,7 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("calculatePolygonArea") { points: List<Any>? ->
       val rings = LatLngParser.parseLatLngListList(points)
-      if (rings.isEmpty()) return@Function 0.0
+      if (rings.isEmpty()) return@Function jsValue(0.0)
       
       // 第一项是外轮廓
       var totalArea = GeometryUtils.calculatePolygonArea(rings[0])
@@ -245,7 +247,7 @@ class ExpoGaodeMapModule : Module() {
       }
       
       // 确保面积不为负数
-      max(0.0, totalArea)
+      jsValue(max(0.0, totalArea))
     }
 
     /**
@@ -255,24 +257,24 @@ class ExpoGaodeMapModule : Module() {
      * @return 是否在多边形内
      */
     Function("isPointInPolygon") { point: Map<String, Any>?, polygon: List<Any>? ->
-      val pt = LatLngParser.parseLatLng(point) ?: return@Function false
+      val pt = LatLngParser.parseLatLng(point) ?: return@Function jsValue(false)
       val rings = LatLngParser.parseLatLngListList(polygon)
-      if (rings.isEmpty()) return@Function false
+      if (rings.isEmpty()) return@Function jsValue(false)
       
       // 点必须在外轮廓内
       val inOuter = GeometryUtils.isPointInPolygon(pt, rings[0])
-      if (!inOuter) return@Function false
+      if (!inOuter) return@Function jsValue(false)
       
       // 点不能在任何内孔内
       if (rings.size > 1) {
         for (i in 1 until rings.size) {
           if (GeometryUtils.isPointInPolygon(pt, rings[i])) {
-            return@Function false
+            return@Function jsValue(false)
           }
         }
       }
       
-      true
+      jsValue(true)
     }
 
     /**
@@ -285,11 +287,11 @@ class ExpoGaodeMapModule : Module() {
     Function("isPointInCircle") { point: Map<String, Any>?, center: Map<String, Any>?, radius: Double ->
       val pt = LatLngParser.parseLatLng(point)
       val cn = LatLngParser.parseLatLng(center)
-      if (pt != null && cn != null) {
+      jsValue(if (pt != null && cn != null) {
         GeometryUtils.isPointInCircle(pt, cn, radius)
       } else {
         false
-      }
+      })
     }
 
     /**
@@ -301,11 +303,11 @@ class ExpoGaodeMapModule : Module() {
     Function("calculateRectangleArea") { southWest: Map<String, Any>?, northEast: Map<String, Any>? ->
       val sw = LatLngParser.parseLatLng(southWest)
       val ne = LatLngParser.parseLatLng(northEast)
-      if (sw != null && ne != null) {
+      jsValue(if (sw != null && ne != null) {
         GeometryUtils.calculateRectangleArea(sw, ne)
       } else {
         0.0
-      }
+      })
     }
 
     /**
@@ -318,7 +320,7 @@ class ExpoGaodeMapModule : Module() {
       val pathPoints = LatLngParser.parseLatLngList(path)
       val targetPoint = LatLngParser.parseLatLng(target)
       
-      if (targetPoint != null && pathPoints.isNotEmpty()) {
+      jsValue(if (targetPoint != null && pathPoints.isNotEmpty()) {
         val result = GeometryUtils.getNearestPointOnPath(pathPoints, targetPoint)
         if (result != null) {
           mapOf(
@@ -332,7 +334,7 @@ class ExpoGaodeMapModule : Module() {
         }
       } else {
         null
-      }
+      })
     }
 
     /**
@@ -342,16 +344,16 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("calculateCentroid") { polygon: List<Any>? ->
       val rings = LatLngParser.parseLatLngListList(polygon)
-      if (rings.isEmpty()) return@Function null
+      if (rings.isEmpty()) return@Function jsValue(null)
       
       if (rings.size == 1) {
         val result = GeometryUtils.calculateCentroid(rings[0])
-        return@Function result?.let {
+        return@Function jsValue(result?.let {
           mapOf(
             "latitude" to it.latitude,
             "longitude" to it.longitude
           )
-        }
+        })
       }
       
       // 带孔多边形的质心计算: Σ(Area_i * Centroid_i) / Σ(Area_i)
@@ -376,14 +378,14 @@ class ExpoGaodeMapModule : Module() {
         }
       }
       
-      if (abs(totalArea) > 1e-9) {
+      jsValue(if (abs(totalArea) > 1e-9) {
         mapOf(
           "latitude" to sumLat / totalArea,
           "longitude" to sumLon / totalArea
         )
       } else {
         null
-      }
+      })
     }
 
     /**
@@ -393,10 +395,10 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("calculatePathBounds") { pointsList: List<Any>? ->
       val points = LatLngParser.parseLatLngList(pointsList)
-      if (points.isEmpty()) return@Function null
+      if (points.isEmpty()) return@Function jsValue(null)
 
       val result = GeometryUtils.calculatePathBounds(points)
-      result?.let {
+      jsValue(result?.let {
         mapOf(
           "north" to it.north,
           "south" to it.south,
@@ -407,7 +409,7 @@ class ExpoGaodeMapModule : Module() {
             "longitude" to it.centerLon
           )
         )
-      }
+      })
     }
 
     /**
@@ -418,11 +420,11 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("encodeGeoHash") { coordinate: Map<String, Any>?, precision: Int ->
       val latLng = LatLngParser.parseLatLng(coordinate)
-      if (latLng != null) {
+      jsValue(if (latLng != null) {
         GeometryUtils.encodeGeoHash(latLng, precision)
       } else {
         ""
-      }
+      })
     }
 
     /**
@@ -434,12 +436,12 @@ class ExpoGaodeMapModule : Module() {
     Function("simplifyPolyline") { points: List<Any>?, tolerance: Double ->
       val poly = LatLngParser.parseLatLngList(points)
       val simplified = GeometryUtils.simplifyPolyline(poly, tolerance)
-      simplified.map {
+      jsValue(simplified.map {
         mapOf(
           "latitude" to it.latitude,
           "longitude" to it.longitude
         )
-      }
+      })
     }
 
     /**
@@ -449,7 +451,7 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("calculatePathLength") { points: List<Any>? ->
       val poly = LatLngParser.parseLatLngList(points)
-      GeometryUtils.calculatePathLength(poly)
+      jsValue(GeometryUtils.calculatePathLength(poly))
     }
 
     /**
@@ -459,12 +461,12 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("parsePolyline") { polylineStr: String? ->
       val result = GeometryUtils.parsePolyline(polylineStr)
-      result.map {
+      jsValue(result.map {
         mapOf(
           "latitude" to it.latitude,
           "longitude" to it.longitude
         )
-      }
+      })
     }
 
     /**
@@ -476,7 +478,7 @@ class ExpoGaodeMapModule : Module() {
     Function("getPointAtDistance") { points: List<Any>?, distance: Double ->
       val poly = LatLngParser.parseLatLngList(points)
       val result = GeometryUtils.getPointAtDistance(poly, distance)
-      if (result != null) {
+      jsValue(if (result != null) {
         mapOf(
           "latitude" to result.point.latitude,
           "longitude" to result.point.longitude,
@@ -484,7 +486,7 @@ class ExpoGaodeMapModule : Module() {
         )
       } else {
         null
-      }
+      })
     }
 
     /**
@@ -495,7 +497,7 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("latLngToTile") { coordinate: Map<String, Any>?, zoom: Int ->
       val latLng = LatLngParser.parseLatLng(coordinate)
-      if (latLng != null) {
+      jsValue(if (latLng != null) {
         val result = GeometryUtils.latLngToTile(latLng, zoom)
         if (result != null && result.size >= 2) {
           mapOf("x" to result[0], "y" to result[1])
@@ -504,7 +506,7 @@ class ExpoGaodeMapModule : Module() {
         }
       } else {
         null
-      }
+      })
     }
 
     /**
@@ -517,9 +519,9 @@ class ExpoGaodeMapModule : Module() {
       val y = (tile?.get("y") as? Number)?.toInt() ?: 0
       val zoom = (tile?.get("z") as? Number)?.toInt() ?: (tile?.get("zoom") as? Number)?.toInt() ?: 0
       val result = GeometryUtils.tileToLatLng(x, y, zoom)
-      result?.let {
+      jsValue(result?.let {
         mapOf("latitude" to it.latitude, "longitude" to it.longitude)
-      }
+      })
     }
 
     /**
@@ -530,7 +532,7 @@ class ExpoGaodeMapModule : Module() {
      */
     Function("latLngToPixel") { coordinate: Map<String, Any>?, zoom: Int ->
       val latLng = LatLngParser.parseLatLng(coordinate)
-      if (latLng != null) {
+      jsValue(if (latLng != null) {
         val result = GeometryUtils.latLngToPixel(latLng, zoom)
         if (result != null && result.size >= 2) {
           mapOf("x" to result[0], "y" to result[1])
@@ -539,7 +541,7 @@ class ExpoGaodeMapModule : Module() {
         }
       } else {
         null
-      }
+      })
     }
 
     /**
@@ -552,9 +554,9 @@ class ExpoGaodeMapModule : Module() {
       val x = (pixel?.get("x") as? Number)?.toDouble() ?: 0.0
       val y = (pixel?.get("y") as? Number)?.toDouble() ?: 0.0
       val result = GeometryUtils.pixelToLatLng(x, y, zoom)
-      result?.let {
+      jsValue(result?.let {
         mapOf("latitude" to it.latitude, "longitude" to it.longitude)
-      }
+      })
     }
 
     /**
@@ -566,11 +568,11 @@ class ExpoGaodeMapModule : Module() {
     Function("findPointInPolygons") { point: Map<String, Any>?, polygons: List<List<Any>>? ->
       val pt = LatLngParser.parseLatLng(point)
       val polys = polygons?.map { LatLngParser.parseLatLngList(it) }
-      if (pt != null && polys != null) {
+      jsValue(if (pt != null && polys != null) {
         GeometryUtils.findPointInPolygons(pt, polys)
       } else {
         -1
-      }
+      })
     }
 
     /**
@@ -579,7 +581,7 @@ class ExpoGaodeMapModule : Module() {
      * @param gridSizeMeters 网格大小（米）
      */
     Function("generateHeatmapGrid") { points: List<Map<String, Any>>?, gridSizeMeters: Double ->
-      if (points.isNullOrEmpty()) return@Function emptyList<Map<String, Any>>()
+      if (points.isNullOrEmpty()) return@Function jsValue(emptyList<Map<String, Any>>())
       
       val count = points.size
       val latitudes = DoubleArray(count)
@@ -593,13 +595,13 @@ class ExpoGaodeMapModule : Module() {
       }
       
       val result = GeometryUtils.generateHeatmapGrid(latitudes, longitudes, weights, gridSizeMeters)
-      result.map {
+      jsValue(result.map {
         mapOf(
           "latitude" to it.latitude,
           "longitude" to it.longitude,
           "intensity" to it.intensity
         )
-      }
+      })
     }
 
     // ==================== 定位配置 ====================

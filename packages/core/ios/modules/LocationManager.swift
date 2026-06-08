@@ -101,10 +101,8 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         ensureLocationManager()?.allowsBackgroundLocationUpdates = allows
     }
 
-    private func setReGeocodeLanguage(_ rawValue: AMapRegionLanguageType.RawValue) {
-        if let language = AMapRegionLanguageType(rawValue: rawValue) {
-            ensureLocationManager()?.reGeocodeLanguage = language
-        }
+    private func setReGeocodeLanguage(_ rawValue: Int) {
+        ensureLocationManager()?.setValue(rawValue, forKey: "reGeocodeLanguage")
     }
 
     func setGeoLanguage(_ language: String) {

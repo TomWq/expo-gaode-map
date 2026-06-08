@@ -100,6 +100,14 @@ export function useRoutePlayback(
     optionsRef.current = options;
   }, [options]);
 
+  const emitProgress = React.useEffectEvent((nextState: RoutePlaybackState) => {
+    options.onProgress?.(nextState);
+  });
+
+  const emitComplete = React.useEffectEvent((nextState: RoutePlaybackState) => {
+    options.onComplete?.(nextState);
+  });
+
   const normalizedPath = React.useMemo(() => {
     // 长路径可选走一次抽稀，减少轨迹回放期间的计算量。
     const normalized = normalizeLatLngList(points) as LatLng[];
@@ -146,7 +154,7 @@ export function useRoutePlayback(
       // 统一从这里下发状态，避免不同控制分支各自维护回调时机。
       stateRef.current = nextState;
       setState(nextState);
-      optionsRef.current.onProgress?.(nextState);
+      emitProgress(nextState);
     },
     []
   );
@@ -223,7 +231,7 @@ export function useRoutePlayback(
       elapsedBeforePauseRef.current = 0;
       startAtRef.current = 0;
       const completedState = await syncProgress(1, false);
-      optionsRef.current.onComplete?.(completedState);
+      emitComplete(completedState);
       return;
     }
 

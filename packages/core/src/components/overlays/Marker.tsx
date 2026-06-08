@@ -40,10 +40,33 @@ function Marker(props: MarkerProps) {
     cacheKey,
     ...restProps
   } = props;
+
+  const smoothMoveDuration = props.smoothMoveDuration;
   
   // 归一化坐标处理
-  const normalizedPosition = normalizeLatLng(position);
-  const normalizedSmoothMovePath = smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined;
+  const normalizedPosition = React.useMemo(() => normalizeLatLng(position), [position]);
+  const normalizedSmoothMovePath = React.useMemo(
+    () => (smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined),
+    [smoothMovePath]
+  );
+
+  const emitSmoothMoveProgress = React.useEffectEvent((nativeEvent: {
+    position: { latitude: number; longitude: number };
+    angle: number;
+    progress: number;
+    distance: number;
+    totalDistance: number;
+  }) => {
+    props.onSmoothMoveProgress?.({ nativeEvent } as never);
+  });
+
+  const emitSmoothMoveEnd = React.useEffectEvent((nativeEvent: {
+    position: { latitude: number; longitude: number };
+    angle: number;
+    totalDistance: number;
+  }) => {
+    props.onSmoothMoveEnd?.({ nativeEvent } as never);
+  });
 
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
@@ -58,25 +81,23 @@ function Marker(props: MarkerProps) {
     if (
       !normalizedSmoothMovePath ||
       normalizedSmoothMovePath.length < 2 ||
-      !props.smoothMoveDuration ||
-      props.smoothMoveDuration <= 0
+      !smoothMoveDuration ||
+      smoothMoveDuration <= 0
     ) {
       return undefined;
     }
 
     const totalDistance = ExpoGaodeMapModule.calculatePathLength(normalizedSmoothMovePath);
     if (totalDistance <= 0) {
-      props.onSmoothMoveEnd?.({
-        nativeEvent: {
-          position: normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1],
-          angle: 0,
-          totalDistance,
-        },
-      } as never);
+      emitSmoothMoveEnd({
+        position: normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1],
+        angle: 0,
+        totalDistance,
+      });
       return undefined;
     }
 
-    const durationMs = props.smoothMoveDuration * 1000;
+    const durationMs = smoothMoveDuration * 1000;
     const startedAt = Date.now();
     const tick = () => {
       const progress = Math.min(1, (Date.now() - startedAt) / durationMs);
@@ -87,24 +108,20 @@ function Marker(props: MarkerProps) {
         : normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1];
       const angle = pointInfo?.angle ?? 0;
 
-      props.onSmoothMoveProgress?.({
-        nativeEvent: {
-          position: point,
-          angle,
-          progress,
-          distance,
-          totalDistance,
-        },
-      } as never);
+      emitSmoothMoveProgress({
+        position: point,
+        angle,
+        progress,
+        distance,
+        totalDistance,
+      });
 
       if (progress >= 1) {
-        props.onSmoothMoveEnd?.({
-          nativeEvent: {
-            position: point,
-            angle,
-            totalDistance,
-          },
-        } as never);
+        emitSmoothMoveEnd({
+          position: point,
+          angle,
+          totalDistance,
+        });
       }
     };
 
@@ -117,12 +134,7 @@ function Marker(props: MarkerProps) {
     }, 100);
 
     return () => clearInterval(intervalId);
-  }, [
-    normalizedSmoothMovePath,
-    props.onSmoothMoveEnd,
-    props.onSmoothMoveProgress,
-    props.smoothMoveDuration,
-  ]);
+  }, [normalizedSmoothMovePath, smoothMoveDuration]);
 
   const handleAutoMeasure = (event: LayoutChangeEvent) => {
     const nextWidth = Math.ceil(event.nativeEvent.layout.width);

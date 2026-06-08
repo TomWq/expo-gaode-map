@@ -736,36 +736,42 @@ class MarkerView: ExpoView {
         pendingUpdateTask?.cancel(); pendingUpdateTask = nil
         pendingSubviewRefreshTask?.cancel(); pendingSubviewRefreshTask = nil
 
-        guard let mapView = mapView else { 
-            isRemoving = false
-            return 
-        }
-        
-        // 确保在主线程执行移除操作
-        let cleanup = { [weak self, weak mapView] in
-            guard let self = self, let mapView = mapView else { return }
-            
-            // 1. 停止任何正在进行的平滑移动
-            if self.animatedAnnotation != nil {
-                self.stopSmoothMove()
-            }
-            
-            // 2. 移除普通标记点
-            if let annotation = self.annotation {
-                mapView.removeAnnotation(annotation)
-                self.annotation = nil
-            }
-
-            self.annotationView = nil
-            self.animatedAnnotationView = nil
-            self.isRemoving = false
-        }
-
         if Thread.isMainThread {
-            cleanup()
+            cleanupAnnotationFromMap()
         } else {
-            DispatchQueue.main.async(execute: cleanup)
+            DispatchQueue.main.sync {
+                cleanupAnnotationFromMap()
+            }
         }
+    }
+
+    private func cleanupAnnotationFromMap() {
+        defer { isRemoving = false }
+
+        guard let mapView = mapView else { return }
+
+        if let animAnnotation = animatedAnnotation {
+            if let animations = animAnnotation.allMoveAnimations() {
+                for animation in animations {
+                    animation.cancel()
+                }
+            }
+            mapView.removeAnnotation(animAnnotation)
+            animatedAnnotation = nil
+        }
+
+        if let annotation = annotation {
+            mapView.removeAnnotation(annotation)
+            self.annotation = nil
+        }
+
+        annotationView?.annotation = nil
+        animatedAnnotationView?.annotation = nil
+        annotationView = nil
+        animatedAnnotationView = nil
+        isAnimating = false
+        lastSetMapView = nil
+        self.mapView = nil
     }
 
     override func willRemoveSubview(_ subview: UIView) {
@@ -791,10 +797,12 @@ class MarkerView: ExpoView {
     }
 
     private func scheduleSubviewRefresh(allowFallbackToDefault: Bool) {
+        guard superview != nil else { return }
+
         pendingSubviewRefreshTask?.cancel()
 
         let task = DispatchWorkItem { [weak self] in
-            guard let self = self, !self.isRemoving else { return }
+            guard let self = self, !self.isRemoving, self.superview != nil else { return }
             self.refreshAnnotationForSubviewChanges(allowFallbackToDefault: allowFallbackToDefault)
         }
 
@@ -1273,11 +1281,17 @@ class MarkerView: ExpoView {
         pendingAddTask?.cancel()
         pendingUpdateTask?.cancel()
         pendingSubviewRefreshTask?.cancel()
+
+        if Thread.isMainThread {
+            cleanupAnnotationFromMap()
+        }
         
         // 清理引用，防止内存泄漏
         mapView = nil
         annotation = nil
         annotationView = nil
+        animatedAnnotation = nil
+        animatedAnnotationView = nil
         lastSetMapView = nil
     }
 }
