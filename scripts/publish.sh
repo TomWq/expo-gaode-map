@@ -11,6 +11,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
 
 # 检查是否有未提交的更改
 if [[ -n $(git status -s) ]]; then
@@ -109,12 +110,13 @@ esac
 # 检查 npm 登录状态
 echo ""
 echo "🔐 检查 npm 登录状态..."
-if ! npm whoami > /dev/null 2>&1; then
-  echo -e "${RED}❌ 未登录 npm，请先执行: npm login${NC}"
+echo "npm registry: ${NPM_REGISTRY}"
+if ! npm whoami --registry "$NPM_REGISTRY" > /dev/null 2>&1; then
+  echo -e "${RED}❌ 未登录 npm，请先执行: npm login --auth-type=web --registry=${NPM_REGISTRY}${NC}"
   exit 1
 fi
 
-NPM_USER=$(npm whoami)
+NPM_USER=$(npm whoami --registry "$NPM_REGISTRY")
 echo -e "${GREEN}✓ 已登录为: ${NPM_USER}${NC}"
 
 build_package() {
@@ -164,7 +166,7 @@ bump_version() {
 version_exists() {
   local name="$1"
   local ver="$2"
-  npm view "${name}@${ver}" version > /dev/null 2>&1
+  npm view "${name}@${ver}" version --registry "$NPM_REGISTRY" > /dev/null 2>&1
 }
 
 # 计算下一个预发布版本（如 1.1.1-next.0 -> 1.1.1-next.1；1.1.1 -> 1.1.1-next.0）
@@ -224,7 +226,7 @@ ensure_unique_version() {
 get_latest_dist_tag_version() {
   local package_name="$1"
   local latest_version
-  latest_version="$(npm view "$package_name" dist-tags.latest 2>/dev/null | tr -d '\n' || true)"
+  latest_version="$(npm view "$package_name" dist-tags.latest --registry "$NPM_REGISTRY" 2>/dev/null | tr -d '\n' || true)"
   if [ -z "$latest_version" ] || [ "$latest_version" == "undefined" ] || [ "$latest_version" == "null" ]; then
     echo ""
   else
@@ -268,9 +270,9 @@ publish_core() {
   echo "版本: ${BASE_VERSION} -> ${NEW_VERSION}"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public
+    npm publish --access public --registry "$NPM_REGISTRY"
   else
-    npm publish --access public --tag $RELEASE_TAG
+    npm publish --access public --tag $RELEASE_TAG --registry "$NPM_REGISTRY"
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map@${NEW_VERSION}"
@@ -315,9 +317,9 @@ publish_search() {
   echo "⚠️  Search 包独立发布，跳过 expo-gaode-map 依赖注入"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public
+    npm publish --access public --registry "$NPM_REGISTRY"
   else
-    npm publish --access public --tag $RELEASE_TAG
+    npm publish --access public --tag $RELEASE_TAG --registry "$NPM_REGISTRY"
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map-search@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map-search@${NEW_VERSION}"
@@ -362,9 +364,9 @@ publish_navigation() {
   echo "⚠️  navigation 包是独立包，跳过 expo-gaode-map 依赖更新"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public
+    npm publish --access public --registry "$NPM_REGISTRY"
   else
-    npm publish --access public --tag $RELEASE_TAG
+    npm publish --access public --tag $RELEASE_TAG --registry "$NPM_REGISTRY"
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map-navigation@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map-navigation@${NEW_VERSION}"
@@ -412,9 +414,9 @@ publish_web_api() {
   node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));if(!pkg.dependencies) pkg.dependencies={}; if (pkg.dependencies['expo-gaode-map']!==undefined){pkg.dependencies['expo-gaode-map']='^${CORE_VERSION}';} fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
   
   if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public
+    npm publish --access public --registry "$NPM_REGISTRY"
   else
-    npm publish --access public --tag $RELEASE_TAG
+    npm publish --access public --tag $RELEASE_TAG --registry "$NPM_REGISTRY"
     echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
     echo "   安装命令: npm install expo-gaode-map-web-api@${RELEASE_TAG}"
     echo "   或指定版本: npm install expo-gaode-map-web-api@${NEW_VERSION}"
