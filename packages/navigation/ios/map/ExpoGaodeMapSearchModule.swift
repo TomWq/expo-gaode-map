@@ -30,8 +30,8 @@ public class ExpoGaodeMapSearchModule: Module {
       
       let city = options["city"] as? String ?? ""
       let types = options["types"] as? String ?? ""
-      let pageSize = options["pageSize"] as? Int ?? 20
-      let pageNum = options["pageNum"] as? Int ?? 1
+      let pageSize = self.intOption(options, "pageSize", defaultValue: 20)
+      let pageNum = self.intOption(options, "pageNum", defaultValue: 1)
       
       let request = AMapPOIKeywordsSearchRequest()
       request.keywords = keyword
@@ -65,10 +65,10 @@ public class ExpoGaodeMapSearchModule: Module {
         return
       }
       
-      let radius = options["radius"] as? Int ?? 1000
+      let radius = self.intOption(options, "radius", defaultValue: 1000)
       let types = options["types"] as? String ?? ""
-      let pageSize = options["pageSize"] as? Int ?? 20
-      let pageNum = options["pageNum"] as? Int ?? 1
+      let pageSize = self.intOption(options, "pageSize", defaultValue: 20)
+      let pageNum = self.intOption(options, "pageNum", defaultValue: 1)
       
       let request = AMapPOIAroundSearchRequest()
       request.keywords = keyword
@@ -136,7 +136,7 @@ public class ExpoGaodeMapSearchModule: Module {
       let request = AMapRoutePOISearchRequest()
       request.polyline = Array(points.prefix(100))
       request.searchType = searchType
-      request.range = min(max(options["range"] as? Int ?? 250, 0), 500)
+      request.range = min(max(self.intOption(options, "range", defaultValue: 250), 0), 500)
       request.strategy = 0
       
       guard let searchAPI = self.createSearchAPI(promise: promise, errorCode: "SEARCH_ERROR") else {
@@ -160,8 +160,8 @@ public class ExpoGaodeMapSearchModule: Module {
       }
       
       let types = options["types"] as? String ?? ""
-      let pageSize = options["pageSize"] as? Int ?? 20
-      let pageNum = options["pageNum"] as? Int ?? 1
+      let pageSize = self.intOption(options, "pageSize", defaultValue: 20)
+      let pageNum = self.intOption(options, "pageNum", defaultValue: 1)
       
       // 转换路线点
       var points: [AMapGeoPoint] = []
@@ -224,7 +224,7 @@ public class ExpoGaodeMapSearchModule: Module {
         return
       }
       
-      let radius = options["radius"] as? Int ?? 1000
+      let radius = self.intOption(options, "radius", defaultValue: 1000)
       let requireExtension = options["requireExtension"] as? Bool ?? true
       
       let request = AMapReGeocodeSearchRequest()
@@ -259,6 +259,18 @@ public class ExpoGaodeMapSearchModule: Module {
 
   
   // MARK: - Private Methods
+
+  private func intOption(_ options: [String: Any], _ key: String, defaultValue: Int) -> Int {
+    if let value = options[key] as? Int {
+      return value
+    }
+
+    if let value = options[key] as? NSNumber {
+      return value.intValue
+    }
+
+    return defaultValue
+  }
   
   private func limitReGeocodeRadius(_ radius: Int) -> Int {
      // AMapReGeocodeSearchRequest radius property is NSInteger
