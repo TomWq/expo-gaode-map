@@ -663,6 +663,14 @@ class ExpoGaodeMapModule : Module() {
     }
 
     /**
+     * 设置是否允许返回模拟位置
+     * @param mockEnable 是否允许模拟位置
+     */
+    Function("setMockEnable") { mockEnable: Boolean ->
+      getLocationManager().setMockEnable(mockEnable)
+    }
+
+    /**
      * 设置是否等待 WIFI 列表刷新
      * @param onceLocationLatest 是否等待刷新
      */

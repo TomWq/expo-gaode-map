@@ -44,6 +44,30 @@ export interface Coordinates extends LatLng {
    * 格式化地址（仅在启用逆地理编码时可用）
    */
   address?: string;
+
+  /**
+   * 是否来自模拟位置
+   * @platform android
+   */
+  isMock?: boolean;
+
+  /**
+   * 定位可信度等级（1-4）
+   * @platform android
+   */
+  trustedLevel?: number;
+
+  /**
+   * 是否由软件模拟产生
+   * @platform ios iOS 15+
+   */
+  isSimulatedBySoftware?: boolean;
+
+  /**
+   * 是否由外接设备产生
+   * @platform ios iOS 15+
+   */
+  isProducedByAccessory?: boolean;
 }
 
 /**
@@ -320,6 +344,13 @@ export interface LocationOptions {
   gpsFirst?: boolean;
 
   /**
+   * 是否允许返回模拟位置
+   * @platform android
+   * @default false
+   */
+  mockEnable?: boolean;
+
+  /**
    * 是否等待WIFI列表刷新
    * 定位精度会更高，但是定位速度会变慢1-3秒
    * @platform android
@@ -402,4 +433,3 @@ export interface HeadingUpdate {
  * 方向事件监听器
  */
 export type HeadingListener = (heading: HeadingUpdate) => void;
-

@@ -206,6 +206,13 @@ public class ExpoGaodeMapModule: Module {
                         "speed": location.speed,
                         "timestamp": location.timestamp.timeIntervalSince1970 * 1000
                     ]
+
+                    if #available(iOS 15.0, *) {
+                        if let sourceInformation = location.sourceInformation {
+                            locationData["isSimulatedBySoftware"] = sourceInformation.isSimulatedBySoftware
+                            locationData["isProducedByAccessory"] = sourceInformation.isProducedByAccessory
+                        }
+                    }
                     
                     if let regeocode = regeocode {
                         locationData["address"] = regeocode.formattedAddress
@@ -682,6 +689,13 @@ public class ExpoGaodeMapModule: Module {
          * 设置是否 GPS 优先 (Android 专用,iOS 空实现)
          */
         Function("setGpsFirst") { (_: Bool) in
+            // iOS 不支持此配置
+        }
+
+        /**
+         * 设置是否允许模拟位置 (Android 专用,iOS 空实现)
+         */
+        Function("setMockEnable") { (_: Bool) in
             // iOS 不支持此配置
         }
         

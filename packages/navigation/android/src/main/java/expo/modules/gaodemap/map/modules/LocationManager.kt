@@ -33,6 +33,8 @@ class LocationManager(context: Context) {
     private var onLocationUpdate: ((Map<String, Any?>) -> Unit)? = null
     /** 是否启用后台定位 */
     private var allowsBackgroundLocationUpdates = false
+    /** 是否允许返回模拟位置 */
+    private var mockEnable = false
 
     init {
         initLocationClient()
@@ -93,6 +95,7 @@ class LocationManager(context: Context) {
                 locationMode = opt.locationMode
                 isNeedAddress = opt.isNeedAddress
                 httpTimeOut = opt.httpTimeOut
+                setMockEnable(mockEnable)
             }
         }
 
@@ -209,6 +212,13 @@ class LocationManager(context: Context) {
         applyLocationOption()
     }
 
+    /** 设置是否允许返回模拟位置 */
+    fun setMockEnable(mockEnable: Boolean) {
+        this.mockEnable = mockEnable
+        getOrCreateLocationOption().setMockEnable(mockEnable)
+        applyLocationOption()
+    }
+
     /** 设置是否等待 WIFI 列表刷新 */
     fun setOnceLocationLatest(onceLocationLatest: Boolean) {
         getOrCreateLocationOption().isOnceLocationLatest = onceLocationLatest
@@ -280,6 +290,7 @@ class LocationManager(context: Context) {
                 isNeedAddress = true
                 interval = 2000
                 httpTimeOut = 30000
+                setMockEnable(mockEnable)
             }
             locationClient?.setLocationOption(locationOption)
         }
@@ -330,7 +341,27 @@ class LocationManager(context: Context) {
             "aoiName" to location.aoiName,
             "description" to location.locationDetail,
             "coordType" to location.coordType,
-            "buildingId" to location.buildingId
+            "buildingId" to location.buildingId,
+            "isMock" to isMockLocation(location),
+            "trustedLevel" to getTrustedLevel(location)
         )
+    }
+
+    private fun isMockLocation(location: AMapLocation): Boolean {
+        return try {
+            val method = location.javaClass.getMethod("isMock")
+            method.invoke(location) as? Boolean ?: location.isFromMockProvider
+        } catch (_: Exception) {
+            location.isFromMockProvider
+        }
+    }
+
+    private fun getTrustedLevel(location: AMapLocation): Int? {
+        return try {
+            val method = location.javaClass.getMethod("getTrustedLevel")
+            (method.invoke(location) as? Number)?.toInt()
+        } catch (_: Exception) {
+            null
+        }
     }
 }

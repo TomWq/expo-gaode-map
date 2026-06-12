@@ -70,6 +70,7 @@ const privacySensitiveMethodNames = new Set<string>([
   'setSensorEnable',
   'setWifiScan',
   'setGpsFirst',
+  'setMockEnable',
   'setOnceLocationLatest',
   'setGeoLanguage',
   'setLocationCacheEnable',

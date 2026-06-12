@@ -108,6 +108,33 @@ describe('ExpoGaodeMapModule', () => {
       expect(typeof location.longitude).toBe('number');
     });
 
+    it('应该保留原生定位结果中的虚拟定位检测字段', async () => {
+      const nativeModule = getNativeMock();
+      nativeModule.getCurrentLocation.mockResolvedValue({
+        latitude: 39.9,
+        longitude: 116.4,
+        accuracy: 10,
+        altitude: 50,
+        speed: 0,
+        bearing: 30,
+        timestamp: 1000,
+        isMock: true,
+        trustedLevel: 2,
+        isSimulatedBySoftware: true,
+        isProducedByAccessory: false,
+      });
+
+      const location = await ExpoGaodeMapModule.getCurrentLocation();
+
+      expect(location).toMatchObject({
+        heading: 30,
+        isMock: true,
+        trustedLevel: 2,
+        isSimulatedBySoftware: true,
+        isProducedByAccessory: false,
+      });
+    });
+
     it('位置数据应该在合理范围内', async () => {
       const location = await ExpoGaodeMapModule.getCurrentLocation?.();
       
@@ -359,6 +386,16 @@ describe('ExpoGaodeMapModule', () => {
       expect(() => {
         ExpoGaodeMapModule.setGpsFirst?.(true);
       }).not.toThrow();
+    });
+
+    it('应该能够设置是否允许模拟位置', () => {
+      const nativeModule = getNativeMock();
+
+      expect(() => {
+        ExpoGaodeMapModule.setMockEnable?.(true);
+      }).not.toThrow();
+
+      expect(nativeModule.setMockEnable).toHaveBeenCalledWith(true);
     });
 
     it('应该能够设置等待 WiFi 刷新', () => {

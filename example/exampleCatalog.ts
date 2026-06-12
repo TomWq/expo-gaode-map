@@ -14,6 +14,7 @@ import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 import MayDayFiveDayTripExample from './MayDayFiveDayTripExample';
 import MarkerTravelCardExample from './MarkerTravelCardExample';
+import MockLocationDetectionExample from './MockLocationDetectionExample';
 import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
 import OverlayPlaygroundExample from './OverlayPlaygroundExample';
@@ -146,6 +147,13 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '演示增强权限接口与后台定位相关能力。',
     outcome: '进入新权限接口示例页',
     component: TestNewPermissionMethods,
+  },
+  'mock-location-detection': {
+    id: 'mock-location-detection',
+    title: '虚拟定位检测',
+    description: '演示 isMock、trustedLevel、iOS 来源字段和 Android mockEnable 配置。',
+    outcome: '进入虚拟定位检测页',
+    component: MockLocationDetectionExample,
   },
 
   'offline-map': {
@@ -286,6 +294,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
       'map-debug',
       'permissions',
       'new-permissions',
+      'mock-location-detection',
       'offline-map',
       'taxi-location-picker',
     ],

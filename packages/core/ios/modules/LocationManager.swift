@@ -192,6 +192,13 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
             "timestamp": location.timestamp.timeIntervalSince1970 * 1000
         ]
 
+        if #available(iOS 15.0, *) {
+            if let sourceInformation = location.sourceInformation {
+                data["isSimulatedBySoftware"] = sourceInformation.isSimulatedBySoftware
+                data["isProducedByAccessory"] = sourceInformation.isProducedByAccessory
+            }
+        }
+
         if let geo = reGeocode {
             data["address"] = geo.formattedAddress
             data["province"] = geo.province

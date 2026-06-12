@@ -154,6 +154,12 @@ export interface NativeExpoGaodeMapModule
   setGpsFirst(gpsFirst: boolean): void;
 
   /**
+   * 设置是否允许返回模拟位置（Android）
+   * @param mockEnable true: 允许; false: 不允许
+   */
+  setMockEnable(mockEnable: boolean): void;
+
+  /**
    * 设置是否等待 WiFi 列表刷新（Android）
    * @param onceLocationLatest true: 等待; false: 不等待
    */
