@@ -10,6 +10,7 @@ import type {
 } from '../types/route-playback.types';
 import { normalizeLatLngList } from '../utils/GeoUtils';
 import { fitCameraToCoordinates } from '../utils/RouteUtils';
+import { useEventCallback } from './useEventCallback';
 
 const DEFAULT_STATE: RoutePlaybackState = {
   isPlaying: false,
@@ -100,11 +101,11 @@ export function useRoutePlayback(
     optionsRef.current = options;
   }, [options]);
 
-  const emitProgress = React.useEffectEvent((nextState: RoutePlaybackState) => {
+  const emitProgress = useEventCallback((nextState: RoutePlaybackState) => {
     options.onProgress?.(nextState);
   });
 
-  const emitComplete = React.useEffectEvent((nextState: RoutePlaybackState) => {
+  const emitComplete = useEventCallback((nextState: RoutePlaybackState) => {
     options.onComplete?.(nextState);
   });
 
@@ -156,7 +157,7 @@ export function useRoutePlayback(
       setState(nextState);
       emitProgress(nextState);
     },
-    []
+    [emitProgress]
   );
 
   const syncProgress = React.useCallback(
@@ -236,7 +237,7 @@ export function useRoutePlayback(
     }
 
     await syncProgress(progress, true);
-  }, [durationSeconds, stopTimer, syncProgress]);
+  }, [durationSeconds, emitComplete, stopTimer, syncProgress]);
 
   const startTimer = React.useCallback(() => {
     stopTimer();

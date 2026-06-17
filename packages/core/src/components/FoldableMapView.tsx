@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import ExpoGaodeMapView from '../ExpoGaodeMapView';
 
+import { useEventCallback } from '../hooks/useEventCallback';
 import { PlatformDetector, DeviceInfo, FoldState } from '../utils/PlatformDetector';
 import { MapViewProps, MapViewRef } from '../types';
 
@@ -114,7 +115,7 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
   const config = useMemo(() => createFoldableConfig(foldableConfig), [foldableConfig]);
   const foldStateRef = useRef(currentFoldState);
 
-  const handleFoldStateChange = React.useEffectEvent(
+  const handleFoldStateChange = useEventCallback(
     async (newInfo: DeviceInfo, debugPrefix: 'FoldableMapView' | 'useFoldableMap') => {
       const newFoldState = PlatformDetector.getFoldState();
       const previousFoldState = foldStateRef.current;
@@ -186,7 +187,7 @@ export const FoldableMapView: React.FC<FoldableMapViewProps> = ({
     return () => {
       removeListener();
     };
-  }, [config.debug, deviceInfo.isFoldable]);
+  }, [config.debug, deviceInfo.isFoldable, handleFoldStateChange]);
 
   return (
     <ExpoGaodeMapView
@@ -214,7 +215,7 @@ export function useFoldableMap(
     foldStateRef.current = foldState;
   }, [foldState]);
 
-  const handleFoldStateChange = React.useEffectEvent(async (newInfo: DeviceInfo) => {
+  const handleFoldStateChange = useEventCallback(async (newInfo: DeviceInfo) => {
     const newFoldState = PlatformDetector.getFoldState();
     const previousFoldState = foldStateRef.current;
 
@@ -258,7 +259,7 @@ export function useFoldableMap(
     return () => {
       removeListener();
     };
-  }, [deviceInfo.isFoldable, mapRef]);
+  }, [deviceInfo.isFoldable, handleFoldStateChange, mapRef]);
 
   return {
     foldState,

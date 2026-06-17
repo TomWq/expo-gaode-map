@@ -3,6 +3,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { StyleSheet, View } from 'react-native';
 import type { MarkerProps } from '../../types';
 import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
+import { useEventCallback } from '../../hooks/useEventCallback';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
 import { createLazyNativeViewManager } from '../../utils/lazyNativeViewManager';
 
@@ -50,7 +51,7 @@ function Marker(props: MarkerProps) {
     [smoothMovePath]
   );
 
-  const emitSmoothMoveProgress = React.useEffectEvent((nativeEvent: {
+  const emitSmoothMoveProgress = useEventCallback((nativeEvent: {
     position: { latitude: number; longitude: number };
     angle: number;
     progress: number;
@@ -60,7 +61,7 @@ function Marker(props: MarkerProps) {
     props.onSmoothMoveProgress?.({ nativeEvent } as never);
   });
 
-  const emitSmoothMoveEnd = React.useEffectEvent((nativeEvent: {
+  const emitSmoothMoveEnd = useEventCallback((nativeEvent: {
     position: { latitude: number; longitude: number };
     angle: number;
     totalDistance: number;
@@ -134,7 +135,7 @@ function Marker(props: MarkerProps) {
     }, 100);
 
     return () => clearInterval(intervalId);
-  }, [normalizedSmoothMovePath, smoothMoveDuration]);
+  }, [emitSmoothMoveEnd, emitSmoothMoveProgress, normalizedSmoothMovePath, smoothMoveDuration]);
 
   const handleAutoMeasure = (event: LayoutChangeEvent) => {
     const nextWidth = Math.ceil(event.nativeEvent.layout.width);
