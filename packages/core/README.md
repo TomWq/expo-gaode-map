@@ -227,9 +227,6 @@ try {
 
 欢迎提交 Issue 和 Pull Request！
 
-## 📄 许可证
-
-MIT
 
 ## 📚 文档与资源
 
@@ -258,3 +255,7 @@ MIT
 - 💬 查看并参与 [GitHub Issues](https://github.com/TomWq/expo-gaode-map/issues)
 - ⭐ 给项目点个 Star 支持一下
 - QQ：582752848 
+
+## 📄 License
+
+MIT

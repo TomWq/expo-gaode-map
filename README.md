@@ -384,9 +384,6 @@ Supported error types:
 
 Issues and Pull Requests are welcome!
 
-## 📄 License
-
-MIT
 
 ## 📚 Documentation & Resources
 
@@ -416,3 +413,7 @@ If you encounter any issues or have any suggestions during usage, please feel fr
 - email：582752848@qq.com
 
 ## 🙌 Thank you for your support!
+
+## 📄 License
+
+MIT
