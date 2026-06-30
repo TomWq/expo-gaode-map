@@ -36,11 +36,10 @@ fi
 echo ""
 echo "选择要发布的包："
 echo "1) expo-gaode-map (核心包)"
-echo "2) expo-gaode-map-search (搜索包)"
-echo "3) expo-gaode-map-navigation (导航包)"
-echo "4) expo-gaode-map-web-api (Web API 包)"
-echo "5) 四个包都发布"
-read -p "请选择 (1/2/3/4/5): " choice
+echo "2) expo-gaode-map-navigation (导航包)"
+echo "3) expo-gaode-map-web-api (Web API 包)"
+echo "4) 三个包都发布"
+read -p "请选择 (1/2/3/4): " choice
 
 echo ""
 echo "选择发布类型："
@@ -125,9 +124,6 @@ build_package() {
     core)
       (cd packages/core && CI=1 expo-module build && cd plugin && tsc)
       ;;
-    search)
-      (cd packages/search && CI=1 expo-module build)
-      ;;
     navigation)
       (cd packages/navigation && CI=1 expo-module build)
       ;;
@@ -145,12 +141,10 @@ echo ""
 echo "🔨 构建包..."
 case $choice in
   1) build_package core ;;
-  2) build_package search ;;
-  3) build_package navigation ;;
-  4) build_package web-api ;;
-  5)
+  2) build_package navigation ;;
+  3) build_package web-api ;;
+  4)
     build_package core
-    build_package search
     build_package navigation
     build_package web-api
     ;;
@@ -295,53 +289,6 @@ publish_core() {
   echo -e "${GREEN}✓ 核心包发布成功: v${NEW_VERSION} [${RELEASE_TAG}]${NC}"
 }
 
-publish_search() {
-  echo ""
-  echo "📦 发布搜索包 (expo-gaode-map-search) [${RELEASE_TAG}]..."
-  cd packages/search
-  
-  LOCAL_VERSION=$(node -p "require('./package.json').version" | tr -d '\n')
-  BASE_VERSION=$(resolve_base_version "expo-gaode-map-search" "$LOCAL_VERSION" | tr -d '\n')
-  
-  echo "计算新版本号..."
-  NEW_VERSION=$(bump_version "$BASE_VERSION" "$VERSION_FLAG" | tr -d '\n')
-  NEW_VERSION=$(ensure_unique_version "expo-gaode-map-search" "$NEW_VERSION" "$PRERELEASE" | tr -d '\n')
-  
-  node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.version='${NEW_VERSION}';fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');"
-  if [ "$BASE_VERSION" != "$LOCAL_VERSION" ]; then
-    echo "版本基准(线上 latest): ${BASE_VERSION}（本地: ${LOCAL_VERSION}）"
-  fi
-  echo "版本: ${BASE_VERSION} -> ${NEW_VERSION}"
-  
-  # Search 包现在支持独立运行（配合 navigation），不再强制依赖 core 包
-  echo "⚠️  Search 包独立发布，跳过 expo-gaode-map 依赖注入"
-  
-  if [ "$RELEASE_TAG" == "latest" ]; then
-    npm publish --access public --registry "$NPM_REGISTRY"
-  else
-    npm publish --access public --tag $RELEASE_TAG --registry "$NPM_REGISTRY"
-    echo -e "${YELLOW}⚠️  注意: 这是一个 ${RELEASE_TAG} 版本，用户需要显式安装${NC}"
-    echo "   安装命令: npm install expo-gaode-map-search@${RELEASE_TAG}"
-    echo "   或指定版本: npm install expo-gaode-map-search@${NEW_VERSION}"
-  fi
-  
-  cd ../..
-  
-  git add packages/search/package.json || true
-  if ! git diff --cached --quiet; then
-    if [ "$PRERELEASE" != "" ]; then
-      git commit -m "chore(search): release v${NEW_VERSION} [${PRERELEASE}]"
-    else
-      git commit -m "chore(search): release v${NEW_VERSION}"
-    fi
-  else
-    echo -e "${YELLOW}⚠️  搜索包无改动可提交（已恢复 workspace 依赖），跳过 commit${NC}"
-  fi
-  git tag "search-v${NEW_VERSION}"
-  
-  echo -e "${GREEN}✓ 搜索包发布成功: v${NEW_VERSION} [${RELEASE_TAG}]${NC}"
-}
-
 publish_navigation() {
   echo ""
   echo "📦 发布导航包 (expo-gaode-map-navigation) [${RELEASE_TAG}]..."
@@ -445,12 +392,10 @@ publish_web_api() {
 # 根据选择发布
 case $choice in
   1) publish_core ;;
-  2) publish_search ;;
-  3) publish_navigation ;;
-  4) publish_web_api ;;
-  5)
+  2) publish_navigation ;;
+  3) publish_web_api ;;
+  4)
     publish_core
-    publish_search
     publish_navigation
     publish_web_api
     ;;
@@ -474,7 +419,7 @@ echo "发布信息："
 echo "发布类型: ${RELEASE_TAG}"
 echo ""
 
-if [ "$choice" == "1" ] || [ "$choice" == "5" ]; then
+if [ "$choice" == "1" ] || [ "$choice" == "4" ]; then
   CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
   echo "  📦 expo-gaode-map: v${CORE_VERSION}"
   if [ "$RELEASE_TAG" == "latest" ]; then
@@ -486,19 +431,7 @@ if [ "$choice" == "1" ] || [ "$choice" == "5" ]; then
   fi
 fi
 
-if [ "$choice" == "2" ] || [ "$choice" == "5" ]; then
-  SEARCH_VERSION=$(node -p "require('./packages/search/package.json').version")
-  echo "  📦 expo-gaode-map-search: v${SEARCH_VERSION}"
-  if [ "$RELEASE_TAG" == "latest" ]; then
-    echo "     npm install expo-gaode-map-search"
-    echo "     或: npm install expo-gaode-map-search@${SEARCH_VERSION}"
-  else
-    echo "     npm install expo-gaode-map-search@${RELEASE_TAG}"
-    echo "     或: npm install expo-gaode-map-search@${SEARCH_VERSION}"
-  fi
-fi
-
-if [ "$choice" == "3" ] || [ "$choice" == "5" ]; then
+if [ "$choice" == "2" ] || [ "$choice" == "4" ]; then
   NAVI_VERSION=$(node -p "require('./packages/navigation/package.json').version")
   echo "  📦 expo-gaode-map-navigation: v${NAVI_VERSION}"
   if [ "$RELEASE_TAG" == "latest" ]; then
@@ -510,7 +443,7 @@ if [ "$choice" == "3" ] || [ "$choice" == "5" ]; then
   fi
 fi
 
-if [ "$choice" == "4" ] || [ "$choice" == "5" ]; then
+if [ "$choice" == "3" ] || [ "$choice" == "4" ]; then
   WEBAPI_VERSION=$(node -p "require('./packages/web-api/package.json').version")
   echo "  📦 expo-gaode-map-web-api: v${WEBAPI_VERSION}"
   if [ "$RELEASE_TAG" == "latest" ]; then
