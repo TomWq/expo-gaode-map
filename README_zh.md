@@ -27,7 +27,7 @@
 
 `react-native-amap3d` 是 React Native 高德生态里的重要老库。它的上游 README 已标注“只维护，不加新功能”，因此新的 Expo 项目通常更适合从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 开始。
 
-更多说明：[Expo 高德地图选型指南](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html) · [从 react-native-amap3d 迁移到 expo-gaode-map](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
+更多说明：[Expo 高德地图选型指南](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html) · [兼容性矩阵](https://TomWq.github.io/expo-gaode-map/guide/compatibility.html) · [从 react-native-amap3d 迁移到 expo-gaode-map](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
 
 <div align="center">
 
@@ -115,6 +115,7 @@ npx expo run:ios
 
 如果你要快速上手或查 API，建议从这里开始：
 - [Expo 高德地图选型指南](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [兼容性矩阵](https://TomWq.github.io/expo-gaode-map/guide/compatibility.html)
 - [从 react-native-amap3d 迁移到 expo-gaode-map](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
 - [快速开始](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - [初始化指南](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)

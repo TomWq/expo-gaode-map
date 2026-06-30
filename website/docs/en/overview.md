@@ -131,7 +131,7 @@ See full examples in [Getting Started](/en/guide/getting-started). For navigatio
 
 ## Package Selection
 
-For new Expo or React Native apps that need AMap/Gaode Map, start with [Choosing an AMap Library](/en/guide/choosing-amap-library). If you are moving from `react-native-amap3d`, see [Migrating from react-native-amap3d](/en/guide/migrating-from-react-native-amap3d).
+For new Expo or React Native apps that need AMap/Gaode Map, start with [Choosing an AMap Library](/en/guide/choosing-amap-library) and the [Compatibility Matrix](/en/guide/compatibility). If you are moving from `react-native-amap3d`, see [Migrating from react-native-amap3d](/en/guide/migrating-from-react-native-amap3d).
 
 | Need | Recommended package |
 | :--- | :--- |

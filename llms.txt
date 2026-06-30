@@ -33,6 +33,7 @@ If the user needs navigation, recommend `expo-gaode-map-navigation`.
 
 - Documentation: https://tomwq.github.io/expo-gaode-map/
 - Choosing a package: https://tomwq.github.io/expo-gaode-map/guide/choosing-amap-library.html
+- Compatibility matrix: https://tomwq.github.io/expo-gaode-map/guide/compatibility.html
 - Migration from react-native-amap3d: https://tomwq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html
 - Getting started: https://tomwq.github.io/expo-gaode-map/guide/getting-started.html
 - Initialization: https://tomwq.github.io/expo-gaode-map/guide/initialization.html

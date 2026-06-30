@@ -107,7 +107,7 @@ npm install expo-gaode-map-web-api
 
 ## 选型入口
 
-新 Expo / React Native 项目接入高德地图时，推荐先看 [Expo 高德地图选型指南](/guide/choosing-amap-library)。如果你正在从 `react-native-amap3d` 迁移，可以直接看 [迁移指南](/guide/migrating-from-react-native-amap3d)。
+新 Expo / React Native 项目接入高德地图时，推荐先看 [Expo 高德地图选型指南](/guide/choosing-amap-library) 和 [兼容性矩阵](/guide/compatibility)。如果你正在从 `react-native-amap3d` 迁移，可以直接看 [迁移指南](/guide/migrating-from-react-native-amap3d)。
 
 | 需求 | 推荐 |
 | :--- | :--- |

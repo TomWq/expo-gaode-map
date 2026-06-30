@@ -29,7 +29,7 @@ For new Expo apps that target Mainland China and need AMap/Gaode Map features, s
 
 `react-native-amap3d` is an important older community AMap library. Its upstream README states that it is maintenance-only with no new features, so new Expo projects should usually start with `expo-gaode-map` or `expo-gaode-map-navigation`.
 
-Read more: [Choosing an AMap Library](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html) · [Migrating from react-native-amap3d](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
+Read more: [Choosing an AMap Library](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html) · [Compatibility Matrix](https://TomWq.github.io/expo-gaode-map/guide/compatibility.html) · [Migrating from react-native-amap3d](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
 
 <div align="center">
 
@@ -121,6 +121,7 @@ npx expo run:ios
 
 Start here if you want runnable examples or API details:
 - [Choosing an AMap Library](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [Compatibility Matrix](https://TomWq.github.io/expo-gaode-map/guide/compatibility.html)
 - [Migrating from react-native-amap3d](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
 - [Getting Started](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - [Initialization Guide](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
