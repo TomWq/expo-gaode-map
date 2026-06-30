@@ -36,6 +36,7 @@ import UseMapExample from './UseMapExample';
 import WebAPIAdvancedTest from './WebAPIAdvancedTest';
 import WebAPIExample from './WebAPIExample';
 import NavigationWithLocationExample from './navigationWithLocation';
+import AISmartSearchExample from './AISmartSearchExample';
 
 type ExampleCategory =
   | 'featured'
@@ -172,6 +173,13 @@ const EXAMPLES: ExampleDefinition[] = [
     description: '演示离线城市列表、下载、暂停、取消和存储信息。',
     category: 'location',
     component: OfflineMapExample,
+  },
+  {
+    id: 'ai-smart-search',
+    title: 'AI 沿途推荐',
+    description: '把自然语言行程转成路线、沿途 POI 候选和可解释推荐。',
+    category: 'web-api',
+    component: AISmartSearchExample,
   },
   {
     id: 'web-api-basic',

@@ -1,4 +1,5 @@
 #include "ClusterEngine.hpp"
+#include "GeometryEngine.hpp"
 #include "QuadTree.hpp"
 #include <cmath>
 #include <algorithm>
@@ -11,19 +12,8 @@ static inline double cluster_toRadians(double degrees) {
     return degrees * 0.017453292519943295;
 }
 
-static double haversineMeters(const ClusterPoint& a, const ClusterPoint& b) {
-    const double lat1 = cluster_toRadians(a.lat);
-    const double lat2 = cluster_toRadians(b.lat);
-    const double dLat = lat2 - lat1;
-    const double dLon = cluster_toRadians(b.lon - a.lon);
-
-    const double sinHalfLat = std::sin(dLat * 0.5);
-    const double sinHalfLon = std::sin(dLon * 0.5);
-
-    const double h = sinHalfLat * sinHalfLat + std::cos(lat1) * std::cos(lat2) * sinHalfLon * sinHalfLon;
-    const double c = 2.0 * std::atan2(std::sqrt(h), std::sqrt(1.0 - h));
-
-    return 6371000.0 * c;
+static double clusterDistanceMeters(const ClusterPoint& a, const ClusterPoint& b) {
+    return calculateDistance(a.lat, a.lon, b.lat, b.lon);
 }
 
 std::vector<ClusterOutput> clusterPoints(const std::vector<ClusterPoint>& points, double radiusMeters) {
@@ -95,7 +85,7 @@ std::vector<ClusterOutput> clusterPoints(const std::vector<ClusterPoint>& points
             if (globalVisited[neighbor.index]) continue;
             
             // Precise check
-            if (haversineMeters(p, neighbor) <= radiusMeters) {
+            if (clusterDistanceMeters(p, neighbor) <= radiusMeters) {
                 cluster.indices.push_back(neighbor.index);
                 globalVisited[neighbor.index] = true;
             }

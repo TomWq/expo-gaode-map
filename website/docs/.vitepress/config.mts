@@ -187,6 +187,7 @@ export default defineConfig({
         nav: [
           { text: '首页', link: '/' },
           { text: '概览', link: '/overview' },
+          { text: '选型', link: '/guide/choosing-amap-library' },
           { text: '快速开始', link: '/guide/getting-started' },
           { text: 'API', link: '/api/' },
           { text: '示例', link: '/examples/' },
@@ -197,6 +198,8 @@ export default defineConfig({
             {
               text: '指南',
               items: [
+                { text: '选型指南', link: '/guide/choosing-amap-library' },
+                { text: '从 react-native-amap3d 迁移', link: '/guide/migrating-from-react-native-amap3d' },
                 { text: '快速开始', link: '/guide/getting-started' },
                 { text: '初始化', link: '/guide/initialization' },
                 { text: 'Config Plugin', link: '/guide/config-plugin' },
@@ -265,6 +268,7 @@ export default defineConfig({
         nav: [
           { text: 'Home', link: '/en/' },
           { text: 'Overview', link: '/en/overview' },
+          { text: 'Choosing', link: '/en/guide/choosing-amap-library' },
           { text: 'Get Started', link: '/en/guide/getting-started' },
           { text: 'API', link: '/en/api/' },
           { text: 'Examples', link: '/en/examples/' },
@@ -275,6 +279,8 @@ export default defineConfig({
             {
               text: 'Guide',
               items: [
+                { text: 'Choosing an AMap Library', link: '/en/guide/choosing-amap-library' },
+                { text: 'Migrating from react-native-amap3d', link: '/en/guide/migrating-from-react-native-amap3d' },
                 { text: 'Getting Started', link: '/en/guide/getting-started' },
                 { text: 'Initialization', link: '/en/guide/initialization' },
                 { text: 'Config Plugin', link: '/en/guide/config-plugin' },

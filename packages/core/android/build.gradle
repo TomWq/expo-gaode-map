@@ -55,7 +55,11 @@ android {
   }
 }
 
-
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-Xskip-metadata-version-check"]
+    }
+}
 
 dependencies {
     // 高德地图组合 SDK：地图 + 定位 + 搜索。

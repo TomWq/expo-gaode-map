@@ -1,0 +1,70 @@
+package:core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/core/**
+
+package:navigation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/navigation/**
+
+package:web-api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/web-api/**
+
+package:search:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/search/**
+
+example:
+  - changed-files:
+      - any-glob-to-any-file:
+          - example/**
+          - example-navigation/**
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - README.md
+          - README_zh.md
+          - website/**
+          - packages/*/README.md
+
+github-actions:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+
+android:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/*/android/**
+          - example/android/**
+          - example-navigation/android/**
+
+ios:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/*/ios/**
+          - example/ios/**
+          - example-navigation/ios/**
+
+native:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/*/android/**
+          - packages/*/ios/**
+          - packages/*/shared/**
+          - packages/*/cpp/**
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - yarn.lock
+          - packages/*/package.json
+          - example/package.json
+          - example-navigation/package.json
+          - website/package.json

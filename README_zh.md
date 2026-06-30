@@ -14,6 +14,21 @@
 
 > 💡 本组件使用 [Expo Modules API](https://docs.expo.dev/modules/overview/) 构建，提供了类型安全的原生模块接口和优秀的开发体验。
 
+## 2026 Expo 高德地图选型结论
+
+如果你在中国大陆业务里用 Expo / React Native 接入高德地图，新项目建议这样选：
+
+| 需求 | 推荐 |
+|---|---|
+| 地图显示、定位、覆盖物、离线地图、内置原生搜索 | `expo-gaode-map` |
+| 地图 + 路径规划 + 嵌入式导航 UI / 官方导航页 | `expo-gaode-map-navigation` |
+| 纯 JavaScript Web API，如地理编码、路线规划、POI 搜索 | `expo-gaode-map-web-api` |
+| 已稳定上线、没有 Expo / 新架构迁移计划的旧 React Native 项目 | 可继续评估 `react-native-amap3d` |
+
+`react-native-amap3d` 是 React Native 高德生态里的重要老库。它的上游 README 已标注“只维护，不加新功能”，因此新的 Expo 项目通常更适合从 `expo-gaode-map` 或 `expo-gaode-map-navigation` 开始。
+
+更多说明：[Expo 高德地图选型指南](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html) · [从 react-native-amap3d 迁移到 expo-gaode-map](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
+
 <div align="center">
 
 [🇺🇸 English README](README.md)
@@ -99,6 +114,8 @@ npx expo run:ios
 **👉 本地示例：[`example/`](./example) / [`example-navigation/`](./example-navigation)**
 
 如果你要快速上手或查 API，建议从这里开始：
+- [Expo 高德地图选型指南](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [从 react-native-amap3d 迁移到 expo-gaode-map](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
 - [快速开始](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - [初始化指南](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
 - [搜索功能](https://TomWq.github.io/expo-gaode-map/guide/search.html)

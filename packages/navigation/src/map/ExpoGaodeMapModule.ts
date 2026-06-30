@@ -16,6 +16,14 @@ import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
 
+function describeConfig(config: SDKConfig) {
+  return {
+    hasAndroidKey: Boolean(config.androidKey),
+    hasIOSKey: Boolean(config.iosKey),
+    hasWebKey: Boolean(config.webKey),
+  };
+}
+
 function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
   if (nativeModuleCache) {
     return nativeModuleCache;
@@ -123,17 +131,17 @@ const helperMethods = {
           throw ErrorHandler.invalidApiKey('both');
         }
          // 如果原生已配置,或者只提供了 webKey,继续初始化
-          ErrorLogger.warn(
+          ErrorLogger.info(
             isNativeConfigured 
               ? 'SDK 使用原生端配置的 API Key' 
               : 'SDK 初始化仅使用 webKey',
-            { config }
+            describeConfig(config)
           );
        }
       _sdkConfig = config ?? null;
       nativeModule.initSDK(config);
       _isSDKInitialized = true;
-      ErrorLogger.warn('SDK 初始化成功', { config });
+      ErrorLogger.info('SDK 初始化成功', describeConfig(config));
     } catch (error) {
       _isSDKInitialized = false;
       throw ErrorHandler.wrapNativeError(error, 'SDK 初始化');

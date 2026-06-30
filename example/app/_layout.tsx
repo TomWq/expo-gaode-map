@@ -1,13 +1,22 @@
 import React from 'react';
-import { Stack, useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Stack } from 'expo-router';
+
+const SCREEN_BACKGROUND = '#f8fafc';
 
 export default function RootLayout() {
-  const router = useRouter();
-
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: '示例中心' }} />
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: SCREEN_BACKGROUND },
+      }}
+    >
+      <Stack.Screen
+        name="index"
+        options={{
+          title: '示例中心',
+          navigationBarColor: SCREEN_BACKGROUND,
+        }}
+      />
       <Stack.Screen name="examples/[id]" options={{ title: '示例详情' }} />
       <Stack.Screen
         name="trip-stop-sheet"
@@ -17,8 +26,20 @@ export default function RootLayout() {
           presentation: 'formSheet',
           sheetAllowedDetents: [0.5, 1],
           sheetInitialDetentIndex: 0,
-          sheetCornerRadius:20
+          sheetCornerRadius: 20,
           // sheetGrabberVisible: true,
+        }}
+      />
+      <Stack.Screen
+        name="ai-route-sheet"
+        options={{
+          title: '沿途候选',
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.5, 1],
+          sheetInitialDetentIndex: 0,
+          sheetCornerRadius: 20,
+          sheetLargestUndimmedDetentIndex: 0,
         }}
       />
     </Stack>

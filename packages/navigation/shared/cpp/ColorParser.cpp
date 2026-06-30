@@ -1,5 +1,6 @@
 #include "ColorParser.hpp"
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 #include <vector>
 #include <map>
@@ -109,13 +110,29 @@ static const std::map<std::string, uint32_t> NAMED_COLORS = {
     {"transparent", 0x00000000}
 };
 
+static bool isSpace(unsigned char ch) {
+    return std::isspace(ch) != 0;
+}
+
+static char toLower(unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+}
+
+static bool isHexDigit(unsigned char ch) {
+    return std::isxdigit(ch) != 0;
+}
+
 uint32_t parseColor(const std::string& colorString) {
     std::string str = colorString;
     // Remove whitespace
-    str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
+    str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) {
+        return isSpace(ch);
+    }), str.end());
     // Lowercase for named colors check
     std::string lowerStr = str;
-    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), [](unsigned char ch) {
+        return toLower(ch);
+    });
 
     if (NAMED_COLORS.count(lowerStr)) {
         return NAMED_COLORS.at(lowerStr);
@@ -125,7 +142,9 @@ uint32_t parseColor(const std::string& colorString) {
         return parseRgba(str); // pass original str with potential spaces if needed, but we removed them
     }
 
-    if (lowerStr.find("#") == 0 || std::all_of(lowerStr.begin(), lowerStr.end(), ::isxdigit)) {
+    if (lowerStr.find("#") == 0 || std::all_of(lowerStr.begin(), lowerStr.end(), [](unsigned char ch) {
+        return isHexDigit(ch);
+    })) {
         return parseHex(str);
     }
 

@@ -105,6 +105,16 @@ npm install expo-gaode-map-web-api
 
 查看完整示例 → [快速开始指南](/guide/getting-started) · 导航相关示例请直接查看仓库内 `example-navigation/`
 
+## 选型入口
+
+新 Expo / React Native 项目接入高德地图时，推荐先看 [Expo 高德地图选型指南](/guide/choosing-amap-library)。如果你正在从 `react-native-amap3d` 迁移，可以直接看 [迁移指南](/guide/migrating-from-react-native-amap3d)。
+
+| 需求 | 推荐 |
+| :--- | :--- |
+| 地图、定位、覆盖物、离线地图、原生搜索 | `expo-gaode-map` |
+| 地图 + 路径规划 + 导航 UI | `expo-gaode-map-navigation` |
+| 纯 JS Web API | `expo-gaode-map-web-api` |
+
 ## 核心功能模块
 
 ### 📦 expo-gaode-map

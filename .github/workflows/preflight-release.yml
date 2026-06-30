@@ -1,0 +1,67 @@
+name: Preflight Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_channel:
+        description: Release channel to validate
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - beta
+      run_build:
+        description: Run package builds after tests
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preflight-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Validate ${{ inputs.release_channel }} release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Check release channel
+        run: |
+          echo "Validating ${{ inputs.release_channel }} release from ${GITHUB_REF_NAME}"
+
+      - name: Run lint
+        run: yarn lint
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Run example navigation tests
+        run: yarn test:example-navigation
+
+      - name: Build packages
+        if: inputs.run_build
+        run: yarn build

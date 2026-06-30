@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <memory>
-#include "ClusterEngine.hpp"
+#include "ClusterTypes.hpp"
 
 namespace gaodemap {
 

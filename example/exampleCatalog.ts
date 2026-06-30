@@ -33,6 +33,10 @@ import UseMapExample from './UseMapExample';
 import WebAPIAdvancedTest from './WebAPIAdvancedTest';
 import WebAPIExample from './WebAPIExample';
 import NavigationWithLocationExample from './navigationWithLocation';
+import AISmartSearchExample from './AISmartSearchExample';
+
+export const EXAMPLE_LIGHT_BACKGROUND = '#f8fafc';
+export const EXAMPLE_DARK_BACKGROUND = '#0f172a';
 
 export type ExampleDefinition = {
   id: string;
@@ -42,6 +46,7 @@ export type ExampleDefinition = {
   component: ComponentType;
   requiresRuntimeGate?: boolean;
   immersive?: boolean;
+  navigationBarColor?: string;
 };
 
 export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
@@ -52,6 +57,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     outcome: '完成 SDK 初始化与权限准备',
     component: PrivacyInitializationExample,
     requiresRuntimeGate: false,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
   'map-basics': {
     id: 'map-basics',
@@ -59,6 +65,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '聚合查看 MapView、相机事件、定位按钮和连续定位的标准写法。',
     outcome: '进入基础地图交互页',
     component: MapBasicsExample,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
   'overlay-playground': {
     id: 'overlay-playground',
@@ -66,6 +73,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '集中查看 Circle、Marker、Polyline、Polygon 以及 fitToCoordinates。',
     outcome: '进入基础覆盖物验证页',
     component: OverlayPlaygroundExample,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
   'advanced-playground': {
     id: 'advanced-playground',
@@ -73,6 +81,7 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '集中查看 HeatMap、MultiPoint、Cluster、AreaMaskOverlay 和截图能力。',
     outcome: '进入高级覆盖物验证页',
     component: AdvancedOverlayExample,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
  
   'use-map': {
@@ -193,6 +202,15 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '集中验证 getTips/getPOITips/getBusTips 等输入提示能力。',
     outcome: '进入输入提示测试页',
     component: InputTipsExample,
+  },
+  'ai-smart-search': {
+    id: 'ai-smart-search',
+    title: 'AI 沿途推荐',
+    description: '把自然语言行程转成路线、沿途 POI 候选和可解释推荐。',
+    outcome: '进入 AI 沿途推荐演示页',
+    component: AISmartSearchExample,
+    immersive: true,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
   'poi-search-native': {
     id: 'poi-search-native',
@@ -321,6 +339,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
       'web-api-basic',
       'search-module',
       'input-tips-web',
+      'ai-smart-search',
       'poi-search-native',
       'poi-search-map-native',
       'poi-search-map-web',

@@ -44,7 +44,7 @@ static inline double mercatorY01(double lat) {
     return y;
 }
 
-static double wrappedSpan01(std::vector<double> xs) {
+static double wrappedSpan01(std::vector<double>& xs) {
     if (xs.size() <= 1) {
         return 0.0;
     }

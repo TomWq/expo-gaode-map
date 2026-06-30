@@ -1,4 +1,5 @@
 import React from 'react';
+import { Stack } from 'expo-router';
 import {
   ActivityIndicator,
   Modal,
@@ -16,6 +17,8 @@ import {
   EXAMPLE_IOS_KEY,
   EXAMPLE_WEB_API_KEY,
 } from './exampleConfig';
+
+const GATE_BACKGROUND = '#0f172a';
 
 type ExampleRuntimeGateProps = {
   children: React.ReactNode;
@@ -84,78 +87,85 @@ export default function ExampleRuntimeGate({
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.heroCard}>
-        <Text style={styles.badge}>expo-gaode-map</Text>
-        <Text style={styles.title}>示例中心入口</Text>
-        <Text style={styles.description}>
-          这里先做一次统一的隐私确认和 SDK 初始化，后面的地图、覆盖物、Web
-          API 示例就都可以直接打开查看。
-        </Text>
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => setShowPrivacyModal(true)}
-        >
-          <Text style={styles.primaryButtonText}>查看隐私说明并进入</Text>
-        </Pressable>
-        <Text style={styles.metaText}>当前状态：{privacyStatusText}</Text>
-        <Text style={styles.noticeText}>
-          `navigation` 的地图仍然保持独立实现，不在这里和 `core` 共用 MapView。
-        </Text>
-      </View>
-
-      <Modal
-        visible={showPrivacyModal}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => {
-          if (!initializing) {
-            setShowPrivacyModal(false);
-          }
+    <>
+      <Stack.Screen
+        options={{
+          navigationBarColor: GATE_BACKGROUND,
         }}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>隐私与初始化说明</Text>
-            <Text style={styles.modalText}>
-              地图渲染、定位与搜索相关示例，在进入前需要先完成隐私确认，并初始化高德
-              SDK。你同意后，示例中心会统一完成这一步，后续各个示例页就能直接查看。
-            </Text>
-            <Text style={styles.modalMeta}>
-              如果定位权限未授予，地图本身仍可查看，但依赖当前位置的示例可能会退回到默认坐标。
-            </Text>
-
-            <View style={styles.modalButtonRow}>
-              <Pressable
-                style={[styles.modalButton, styles.secondaryButton]}
-                onPress={() => setShowPrivacyModal(false)}
-                disabled={initializing}
-              >
-                <Text style={styles.secondaryButtonText}>暂不进入</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalButton, styles.primaryModalButton]}
-                onPress={() => {
-                  void handleEnterExamples();
-                }}
-                disabled={initializing}
-              >
-                <Text style={styles.primaryModalButtonText}>
-                  {initializing ? '初始化中...' : '同意并进入'}
-                </Text>
-              </Pressable>
-            </View>
-            {initializing ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator color="#2563eb" />
-                <Text style={styles.loadingText}>正在准备示例环境</Text>
-              </View>
-            ) : null}
-          </View>
+      />
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <View style={styles.heroCard}>
+          <Text style={styles.badge}>expo-gaode-map</Text>
+          <Text style={styles.title}>示例中心入口</Text>
+          <Text style={styles.description}>
+            这里先做一次统一的隐私确认和 SDK 初始化，后面的地图、覆盖物、Web
+            API 示例就都可以直接打开查看。
+          </Text>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => setShowPrivacyModal(true)}
+          >
+            <Text style={styles.primaryButtonText}>查看隐私说明并进入</Text>
+          </Pressable>
+          <Text style={styles.metaText}>当前状态：{privacyStatusText}</Text>
+          <Text style={styles.noticeText}>
+            `navigation` 的地图仍然保持独立实现，不在这里和 `core` 共用 MapView。
+          </Text>
         </View>
-      </Modal>
-    </SafeAreaView>
+
+        <Modal
+          visible={showPrivacyModal}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => {
+            if (!initializing) {
+              setShowPrivacyModal(false);
+            }
+          }}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>隐私与初始化说明</Text>
+              <Text style={styles.modalText}>
+                地图渲染、定位与搜索相关示例，在进入前需要先完成隐私确认，并初始化高德
+                SDK。你同意后，示例中心会统一完成这一步，后续各个示例页就能直接查看。
+              </Text>
+              <Text style={styles.modalMeta}>
+                如果定位权限未授予，地图本身仍可查看，但依赖当前位置的示例可能会退回到默认坐标。
+              </Text>
+
+              <View style={styles.modalButtonRow}>
+                <Pressable
+                  style={[styles.modalButton, styles.secondaryButton]}
+                  onPress={() => setShowPrivacyModal(false)}
+                  disabled={initializing}
+                >
+                  <Text style={styles.secondaryButtonText}>暂不进入</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalButton, styles.primaryModalButton]}
+                  onPress={() => {
+                    void handleEnterExamples();
+                  }}
+                  disabled={initializing}
+                >
+                  <Text style={styles.primaryModalButtonText}>
+                    {initializing ? '初始化中...' : '同意并进入'}
+                  </Text>
+                </Pressable>
+              </View>
+              {initializing ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#2563eb" />
+                  <Text style={styles.loadingText}>正在准备示例环境</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#0f172a',
+    backgroundColor: GATE_BACKGROUND,
   },
   heroCard: {
     borderRadius: 28,

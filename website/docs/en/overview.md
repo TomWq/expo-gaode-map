@@ -129,6 +129,16 @@ import { MapView, ExpoGaodeMapModule } from 'expo-gaode-map';
 
 See full examples in [Getting Started](/en/guide/getting-started). For navigation examples, check the local `example-navigation/` project.
 
+## Package Selection
+
+For new Expo or React Native apps that need AMap/Gaode Map, start with [Choosing an AMap Library](/en/guide/choosing-amap-library). If you are moving from `react-native-amap3d`, see [Migrating from react-native-amap3d](/en/guide/migrating-from-react-native-amap3d).
+
+| Need | Recommended package |
+| :--- | :--- |
+| Maps, location, overlays, offline maps, native search | `expo-gaode-map` |
+| Maps + route planning + navigation UI | `expo-gaode-map-navigation` |
+| Pure JS Web API flows | `expo-gaode-map-web-api` |
+
 ## Core Modules
 
 ### 📦 expo-gaode-map

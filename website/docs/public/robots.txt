@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
+LLMS: https://tomwq.github.io/expo-gaode-map/llms.txt
 Sitemap: https://tomwq.github.io/expo-gaode-map/sitemap.xml

@@ -11,6 +11,8 @@ import {
 } from '../exampleConfig';
 import { StatusBar } from 'expo-status-bar';
 
+const SCREEN_BACKGROUND = '#f8fafc';
+
 function ExampleLinkCard({
   id,
 }: {
@@ -38,7 +40,11 @@ export default function ExampleCenterScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.hero}>
           <Text style={styles.title}>示例中心</Text>
           <Text style={styles.subtitle}>
@@ -83,12 +89,17 @@ export default function ExampleCenterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: SCREEN_BACKGROUND,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: SCREEN_BACKGROUND,
   },
   content: {
-    padding: 20,
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 36,
+    gap: 16,
   },
   hero: {
     borderRadius: 24,

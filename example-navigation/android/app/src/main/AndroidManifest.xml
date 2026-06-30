@@ -31,7 +31,12 @@
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
     <service android:name="expo.modules.gaodemap.map.services.LocationForegroundService" android:enabled="true" android:exported="false" android:foregroundServiceType="location"/>
     <service android:name="expo.modules.gaodemap.navigation.services.NavigationForegroundService" android:enabled="true" android:exported="false" android:foregroundServiceType="location"/>
-    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
+    <activity android:name=".MainActivity"
+     android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" 
+     android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" 
+     android:theme="@style/Theme.App.SplashScreen" 
+     android:exported="true" 
+     android:screenOrientation="portrait">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>

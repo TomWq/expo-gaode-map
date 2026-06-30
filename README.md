@@ -16,6 +16,21 @@ If you are migrating from `react-native-amap3d`, `expo-gaode-map` is the Expo-fi
 
 > 💡 This library is built using [Expo Modules API](https://docs.expo.dev/modules/overview/), providing type-safe native module interfaces and an excellent developer experience.
 
+## 2026 Expo AMap Package Selection
+
+For new Expo apps that target Mainland China and need AMap/Gaode Map features, start with:
+
+| Need | Choose |
+|---|---|
+| Map display, location, overlays, offline maps, built-in native search | `expo-gaode-map` |
+| Map + route planning + embedded navigation UI / official navigation pages | `expo-gaode-map-navigation` |
+| Pure JavaScript Web API flows such as geocoding, route planning, POI search | `expo-gaode-map-web-api` |
+| Stable legacy React Native app with no Expo / New Architecture migration plan | You can still evaluate `react-native-amap3d` |
+
+`react-native-amap3d` is an important older community AMap library. Its upstream README states that it is maintenance-only with no new features, so new Expo projects should usually start with `expo-gaode-map` or `expo-gaode-map-navigation`.
+
+Read more: [Choosing an AMap Library](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html) · [Migrating from react-native-amap3d](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
+
 <div align="center">
 
 [🇨🇳 中文文档](README_zh.md)
@@ -105,6 +120,8 @@ npx expo run:ios
 **👉 Local examples: [`example/`](./example) / [`example-navigation/`](./example-navigation)**
 
 Start here if you want runnable examples or API details:
+- [Choosing an AMap Library](https://TomWq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [Migrating from react-native-amap3d](https://TomWq.github.io/expo-gaode-map/guide/migrating-from-react-native-amap3d.html)
 - [Getting Started](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - [Initialization Guide](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
 - [Search Functionality](https://TomWq.github.io/expo-gaode-map/guide/search.html)

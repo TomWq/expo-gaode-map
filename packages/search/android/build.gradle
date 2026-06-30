@@ -45,6 +45,12 @@ android {
   }
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-Xskip-metadata-version-check"]
+    }
+}
+
 allprojects {
     repositories {
         mavenCentral()

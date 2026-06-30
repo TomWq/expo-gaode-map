@@ -3,7 +3,11 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import ExampleRuntimeGate from '../../ExampleRuntimeGate';
-import { EXAMPLE_REGISTRY, type ExampleId } from '../../exampleCatalog';
+import {
+  EXAMPLE_LIGHT_BACKGROUND,
+  EXAMPLE_REGISTRY,
+  type ExampleId,
+} from '../../exampleCatalog';
 
 export default function ExampleDetailScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -31,6 +35,7 @@ export default function ExampleDetailScreen() {
         options={{
           title: entry.title,
           headerShown: !entry.immersive,
+          navigationBarColor: entry.navigationBarColor ?? EXAMPLE_LIGHT_BACKGROUND,
         }}
       />
       {entry.requiresRuntimeGate === false ? (
@@ -47,7 +52,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: EXAMPLE_LIGHT_BACKGROUND,
     paddingHorizontal: 24,
   },
   fallbackTitle: {

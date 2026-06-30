@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: oosmetrics/health-check-action@v1
         env:
-          GITHUB_TOKEN: $
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

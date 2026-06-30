@@ -509,4 +509,13 @@ export class ErrorLogger {
     
     console.warn(`⚠️  expo-gaode-map-navigation: ${message}`, details || '');
   }
+
+  /**
+   * 记录调试信息
+   */
+  static info(message: string, details?: unknown) {
+    if (!this.isEnabled) return;
+
+    console.info(`expo-gaode-map-navigation: ${message}`, details || '');
+  }
 }

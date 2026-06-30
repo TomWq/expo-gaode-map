@@ -8,6 +8,15 @@ export const EXAMPLE_WEB_API_KEY =
   process.env.EXPO_PUBLIC_AMAP_WEB_KEY?.trim() ||
   '';
 
+/**
+ * AI 示例使用的 DeepSeek Key。
+ *
+ * 注意：EXPO_PUBLIC_* 会进入客户端 bundle，仅适合本地示例验证；
+ * 真实业务应通过后端代理调用 LLM，避免把模型密钥下发到 App。
+ */
+export const EXAMPLE_DEEPSEEK_API_KEY =
+  process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY?.trim() || '';
+
 export const EXAMPLE_ANDROID_KEY =
   process.env.EXPO_PUBLIC_AMAP_ANDROID_KEY?.trim() || undefined;
 

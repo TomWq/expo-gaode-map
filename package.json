@@ -8,7 +8,7 @@
     "example-navigation",
     "website"
   ],
-  "description": "高德地图 Expo 模块 Monorepo 包含核心模块、导航模块和 Web API 模块",
+  "description": "Expo / React Native 高德地图 Monorepo：Expo Modules、Config Plugin、地图定位、搜索、导航、离线地图与 Web API。",
   "scripts": {
     "build": "yarn build:core && yarn build:navigation && yarn build:web-api",
     "build:core": "cd packages/core && expo-module build && cd plugin && tsc",

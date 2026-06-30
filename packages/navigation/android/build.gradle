@@ -41,6 +41,12 @@ android {
   }
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-Xskip-metadata-version-check"]
+    }
+}
+
 dependencies {
     def customSdkPath = null
     println "ExpoGaodeMapNavigation: Checking for custom SDK property in rootProject: ${rootProject.name}"
