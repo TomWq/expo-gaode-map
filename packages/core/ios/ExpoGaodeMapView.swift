@@ -28,6 +28,12 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     var showsScale: Bool = true
     /// 是否启用缩放手势
     var isZoomEnabled: Bool = true
+    /// 缩放手势锚点：gesture 跟随手势中心点；center 固定地图中心点
+    var zoomGestureAnchor: String = "gesture" {
+        didSet {
+            applyZoomGestureSettings()
+        }
+    }
     /// 是否启用滚动手势
     var isScrollEnabled: Bool = true
     /// 是否启用旋转手势
@@ -113,9 +119,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private var pendingCameraMoveData: [String: Any]?
     private var cameraMoveDispatchWorkItem: DispatchWorkItem?
     private var lastCameraMoveDispatchTime: CFTimeInterval = 0
+    /// iOS 缩放惯性/连续 setZoom 可能多次触发 regionDidChange，合并后再派发 idle。
+    private var pendingCameraIdleData: [String: Any]?
+    private var cameraIdleDispatchWorkItem: DispatchWorkItem?
+    private let cameraIdleDebounceMs = 160
     
     /// 缩放手势识别器（用于模拟惯性）
     private var pinchGesture: UIPinchGestureRecognizer!
+    private var centerAnchoredPinchStartZoom: CGFloat?
+    private var centerAnchoredZoomCoordinate: CLLocationCoordinate2D?
     
     // 惯性动画相关属性
     private var displayLink: CADisplayLink?
@@ -361,12 +373,11 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setMapType(1)
         uiManager.setShowsScale(showsScale)
         uiManager.setShowsCompass(showsCompass)
-        uiManager.setZoomEnabled(isZoomEnabled)
+        applyZoomGestureSettings()
         uiManager.setScrollEnabled(isScrollEnabled)
         uiManager.setRotateEnabled(isRotateEnabled)
         uiManager.setTiltEnabled(isTiltEnabled)
         uiManager.setShowsUserLocation(showsUserLocation, followUser: followUserLocation)
-        updatePinchGestureState()
     }
     
     /**
@@ -390,7 +401,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         
         uiManager.setShowsScale(showsScale)
         uiManager.setShowsCompass(showsCompass)
-        uiManager.setZoomEnabled(isZoomEnabled)
+        applyZoomGestureSettings()
         uiManager.setScrollEnabled(isScrollEnabled)
         uiManager.setRotateEnabled(isRotateEnabled)
         uiManager.setTiltEnabled(isTiltEnabled)
@@ -398,13 +409,12 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setShowsTraffic(showsTraffic)
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
-        updatePinchGestureState()
         mapView.distanceFilter = distanceFilter
         mapView.headingFilter = headingFilter
         if let customMapStyleData {
             uiManager.setCustomMapStyle(customMapStyleData)
         }
-        
+
         // 更新苹果地图样式
         updateAppleMapStyle()
         
@@ -439,6 +449,13 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     // MARK: - 手势处理
     
     @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        guard isZoomEnabled else { return }
+
+        if zoomGestureAnchor == "center" {
+            handleCenterAnchoredPinch(gesture)
+            return
+        }
+
         if gesture.state == .began {
             // 手势开始，立即停止之前的惯性动画，避免冲突
             stopInertiaAnimation()
@@ -454,6 +471,44 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
                 startInertiaAnimation()
             }
         }
+    }
+
+    private func handleCenterAnchoredPinch(_ gesture: UIPinchGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            stopInertiaAnimation()
+            centerAnchoredPinchStartZoom = mapView.zoomLevel
+            centerAnchoredZoomCoordinate = mapView.centerCoordinate
+        case .changed:
+            let startZoom = centerAnchoredPinchStartZoom ?? mapView.zoomLevel
+            let center = centerAnchoredZoomCoordinate ?? mapView.centerCoordinate
+            let zoomDelta = log2(Double(max(gesture.scale, 0.0001)))
+            applyCenterAnchoredZoom(CGFloat(Double(startZoom) + zoomDelta), center: center)
+        case .ended, .cancelled, .failed:
+            centerAnchoredPinchStartZoom = nil
+            let velocity = gesture.velocity
+            if abs(velocity) > 0.1 {
+                zoomVelocity = Double(velocity) * 0.02
+                if centerAnchoredZoomCoordinate == nil {
+                    centerAnchoredZoomCoordinate = mapView.centerCoordinate
+                }
+                startInertiaAnimation()
+            } else {
+                centerAnchoredZoomCoordinate = nil
+            }
+        default:
+            break
+        }
+    }
+
+    private func applyCenterAnchoredZoom(_ zoom: CGFloat, center: CLLocationCoordinate2D) {
+        let validZoom = max(mapView.minZoomLevel, min(mapView.maxZoomLevel, zoom))
+        let status = MAMapStatus()
+        status.centerCoordinate = center
+        status.zoomLevel = validZoom
+        status.rotationDegree = mapView.rotationDegree
+        status.cameraDegree = mapView.cameraDegree
+        mapView.setMapStatus(status, animated: false, duration: 0)
     }
     
     private func startInertiaAnimation() {
@@ -476,12 +531,21 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
             // 碰到边界，停止动画
             newZoom = max(mapView.minZoomLevel, min(mapView.maxZoomLevel, newZoom))
             stopInertiaAnimation()
-            mapView.setZoomLevel(newZoom, animated: false)
+            if zoomGestureAnchor == "center" {
+                applyCenterAnchoredZoom(newZoom, center: centerAnchoredZoomCoordinate ?? mapView.centerCoordinate)
+                centerAnchoredZoomCoordinate = nil
+            } else {
+                mapView.setZoomLevel(newZoom, animated: false)
+            }
             return
         }
         
         // 更新地图缩放级别（animated: false 以保证逐帧控制的流畅性）
-        mapView.setZoomLevel(newZoom, animated: false)
+        if zoomGestureAnchor == "center" {
+            applyCenterAnchoredZoom(newZoom, center: centerAnchoredZoomCoordinate ?? mapView.centerCoordinate)
+        } else {
+            mapView.setZoomLevel(newZoom, animated: false)
+        }
         
         // 减速（应用摩擦力）
         zoomVelocity *= friction
@@ -489,6 +553,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 停止条件
         if abs(zoomVelocity) < velocityThreshold {
             stopInertiaAnimation()
+            centerAnchoredZoomCoordinate = nil
         }
     }
     
@@ -806,6 +871,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         pendingCameraMoveData = nil
         cameraMoveDispatchWorkItem?.cancel()
         cameraMoveDispatchWorkItem = nil
+        pendingCameraIdleData = nil
+        cameraIdleDispatchWorkItem?.cancel()
+        cameraIdleDispatchWorkItem = nil
         if let privacyObserver {
             NotificationCenter.default.removeObserver(privacyObserver)
         }
@@ -879,13 +947,20 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         pinchGesture.delegate = self
         resolvedMapView.addGestureRecognizer(pinchGesture)
         self.pinchGesture = pinchGesture
-        updatePinchGestureState()
+        applyZoomGestureSettings()
     }
 
-    private func updatePinchGestureState() {
+    private func applyZoomGestureSettings() {
+        uiManager?.setZoomEnabled(isZoomEnabled && zoomGestureAnchor != "center")
         pinchGesture?.isEnabled = isZoomEnabled
+        if zoomGestureAnchor != "center" {
+            centerAnchoredPinchStartZoom = nil
+            centerAnchoredZoomCoordinate = nil
+        }
         if !isZoomEnabled {
             stopInertiaAnimation()
+            centerAnchoredPinchStartZoom = nil
+            centerAnchoredZoomCoordinate = nil
         }
     }
 }
@@ -958,7 +1033,7 @@ extension ExpoGaodeMapView {
      */
     public func mapView(_ mapView: MAMapView, regionDidChangeAnimated animated: Bool) {
         flushPendingCameraMoveEvent()
-        onCameraIdle(buildCameraEventData(for: mapView))
+        scheduleCameraIdleEvent(buildCameraEventData(for: mapView))
 
         // 这里的 overlayViews 是 [UIView] 类型，可能包含 ClusterView
         for view in overlayViews {
@@ -1037,6 +1112,27 @@ extension ExpoGaodeMapView {
         pendingCameraMoveData = nil
         lastCameraMoveDispatchTime = timestamp
         onCameraMove(eventData)
+    }
+
+    private func scheduleCameraIdleEvent(_ eventData: [String: Any]) {
+        pendingCameraIdleData = eventData
+        cameraIdleDispatchWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self, let latestEventData = self.pendingCameraIdleData else {
+                return
+            }
+
+            self.pendingCameraIdleData = nil
+            self.cameraIdleDispatchWorkItem = nil
+            self.onCameraIdle(latestEventData)
+        }
+
+        cameraIdleDispatchWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + Double(cameraIdleDebounceMs) / 1000.0,
+            execute: workItem
+        )
     }
     
     /**

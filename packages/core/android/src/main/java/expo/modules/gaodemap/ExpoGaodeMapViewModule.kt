@@ -39,6 +39,8 @@ class ExpoGaodeMapViewModule : Module() {
       Prop<Boolean>("scaleControlsEnabled") { view, show -> view.setShowsScale(show) }
 
       Prop<Boolean>("zoomGesturesEnabled") { view, enabled -> view.setZoomEnabled(enabled) }
+      // 缩放手势锚点：gesture 使用手势焦点，center 固定地图中心点
+      Prop<String?>("zoomGestureAnchor") { view, anchor -> view.setZoomGestureAnchor(anchor) }
       Prop<Boolean>("scrollGesturesEnabled") { view, enabled -> view.setScrollEnabled(enabled) }
       Prop<Boolean>("rotateGesturesEnabled") { view, enabled -> view.setRotateEnabled(enabled) }
       Prop<Boolean>("tiltGesturesEnabled") { view, enabled -> view.setTiltEnabled(enabled) }

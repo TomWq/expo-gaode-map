@@ -1,4 +1,4 @@
-import { LatLng, LatLngPoint } from '../types/common.types';
+import type { LatLng, LatLngPoint } from '../types/common.types';
 
 type LatLngLike = {
   latitude?: unknown;
@@ -15,8 +15,8 @@ type LatLngLike = {
  */
 export function normalizeLatLng(point: LatLngPoint): LatLng {
   if (Array.isArray(point)) {
-    let longitude = point[0];
-    let latitude = point[1];
+    const longitude = point[0];
+    const latitude = point[1];
 
     // 智能纠错：如果纬度超出范围 [-90, 90] 且交换后在范围内，则认为是用户传反了
     if (Math.abs(latitude) > 90 && Math.abs(longitude) <= 90) {

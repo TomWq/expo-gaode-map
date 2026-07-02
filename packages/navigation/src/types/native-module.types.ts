@@ -1,6 +1,6 @@
 import type { NativeModule } from 'expo';
-import { DriveRouteOptions, DriveRouteResult, EBikeRouteOptions, OfficialNaviPageOptions, RideRouteOptions, RouteResult, TruckRouteOptions, WalkRouteOptions } from './route.types';
-import { 
+import type { DriveRouteOptions, DriveRouteResult, EBikeRouteOptions, OfficialNaviPageOptions, RideRouteOptions, RouteResult, TruckRouteOptions, WalkRouteOptions } from './route.types';
+import type {
   MotorcycleRouteOptions, 
   IndependentDriveRouteOptions, 
   IndependentTruckRouteOptions, 

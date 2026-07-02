@@ -1,4 +1,4 @@
-import { ViewProps, NativeSyntheticEvent, ImageSourcePropType } from "react-native";
+import type { ViewProps, NativeSyntheticEvent, ImageSourcePropType } from "react-native";
 
 export type NaviColorValue = string | number;
 export type NaviImageSource = string | ImageSourcePropType;

@@ -96,6 +96,7 @@ When `locationType` is set explicitly, it overrides the default mode selected by
 | `maxZoom` | `number` | `20` | Maximum zoom level |
 | `minZoom` | `number` | `3` | Minimum zoom level |
 | `zoomGesturesEnabled` | `boolean` | `true` | Enable pinch zoom |
+| `zoomGestureAnchor` | `'gesture' \| 'center'` | `'gesture'` | Pinch zoom anchor. `gesture` follows the gesture focal point, `center` keeps the map center fixed |
 | `scrollGesturesEnabled` | `boolean` | `true` | Enable pan gestures |
 | `rotateGesturesEnabled` | `boolean` | `true` | Enable rotate gestures |
 | `tiltGesturesEnabled` | `boolean` | `true` | Enable tilt gestures |

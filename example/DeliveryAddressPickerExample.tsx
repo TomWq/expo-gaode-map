@@ -386,7 +386,7 @@ export default function DeliveryAddressPicker() {
             <BlurView
                         intensity={50}
                         tint={'light'}
-                        style={StyleSheet.absoluteFillObject}
+                        style={StyleSheet.absoluteFill}
                        
                       />
           {isLoadingPois ? (
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   markerFixed: {
     position: 'absolute',
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   suggestionOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#FFF',
     zIndex: 100,
   },

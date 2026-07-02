@@ -1585,7 +1585,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#d8e6f6",
   },
   mapView:{
-     ...StyleSheet.absoluteFillObject,
+     ...StyleSheet.absoluteFill,
   },
   overlayLayer: {
     flex: 1,

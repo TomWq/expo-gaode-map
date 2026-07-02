@@ -14,6 +14,9 @@ const config = getDefaultConfig(projectRoot);
 const escapePathForRegex = (value) =>
   value.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
 
+const resolveNodeModule = (name) =>
+  path.dirname(require.resolve(`${name}/package.json`, { paths: [projectRoot, monorepoRoot] }));
+
 // 1. 只监听 example 实际依赖的 workspace 包。不要监听整个 monorepo，
 // 否则 packages/*/node_modules 也会进入 Metro 文件图，容易污染依赖解析缓存。
 config.watchFolders = [
@@ -40,16 +43,9 @@ config.resolver.extraNodeModules = {
   'expo-gaode-map': corePackageRoot,
   'expo-gaode-map-web-api': webApiPackageRoot,
   // 强制所有包使用同一个 React 实例
-  'react': path.resolve(projectRoot, 'node_modules/react'),
-  'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
-  'react/jsx-runtime': path.resolve(projectRoot, 'node_modules/react/jsx-runtime'),
+  'react': resolveNodeModule('react'),
+  'react-native': resolveNodeModule('react-native'),
+  'react/jsx-runtime': path.join(resolveNodeModule('react'), 'jsx-runtime'),
 };
-
-config.transformer.getTransformOptions = async () => ({
-  transform: {
-    experimentalImportSupport: false,
-    inlineRequires: true,
-  },
-});
 
 module.exports = config;

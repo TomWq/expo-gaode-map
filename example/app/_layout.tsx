@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import SplashScreen from 'react-native-splash-screen-newarch';
 
 const SCREEN_BACKGROUND = '#f8fafc';
 
 export default function RootLayout() {
+  useEffect(() => {
+    SplashScreen.hide({ animation: 'scaleFade', duration: 1500, scale:1.5});
+  }, []);
+
   return (
     <Stack
       screenOptions={{

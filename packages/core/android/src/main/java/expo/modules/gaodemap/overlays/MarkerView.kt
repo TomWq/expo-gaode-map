@@ -480,9 +480,16 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             return
         }
 
-        invalidateAppliedCustomMarkerCaches(clearGlobalCache = true)
         cacheKey = key
-        updateMarkerIcon()
+        if (isNotEmpty()) {
+            // cacheKey 通常和 selected/zoom level 同帧变化。延后一帧截图，避免在 RN
+            // children 样式尚未完成更新时生成空图，同时保留旧图直到新图准备好。
+            scheduleMarkerIconUpdate(32)
+        } else {
+            pendingIconUri?.let { iconUri ->
+                marker?.let { loadAndSetIcon(iconUri, it) }
+            }
+        }
     }
 
     /**
@@ -1344,8 +1351,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         mainHandler.removeCallbacksAndMessages(null)
         pendingMarkerIconUpdate = null
 
-        // 延迟检查 parent 状态
-        mainHandler.post {
+        // 延迟检查 parent 状态。React 更新 children 时可能会短暂 detach/attach，
+        // 过早删除会导致点击后其它 Marker 消失。
+        mainHandler.postDelayed({
             if (parent == null) {
                 // 标记正在移除
                 isRemoving = true
@@ -1357,7 +1365,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 // 移除 marker
                 removeMarker()
             }
-        }
+        }, 500)
     }
 
 }

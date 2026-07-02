@@ -23,6 +23,7 @@ export { MapType } from './common.types';
 export type {
   LocationEvent,
   CameraEvent,
+  ZoomGestureAnchor,
   MapViewProps,
   MapViewMethods,
   MapViewRef,

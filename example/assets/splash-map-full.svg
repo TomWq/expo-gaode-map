@@ -1,0 +1,81 @@
+<svg width="1440" height="3120" viewBox="0 0 1440 3120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="180" y1="0" x2="1260" y2="3120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5FBF8"/>
+      <stop offset="0.45" stop-color="#EEF8FF"/>
+      <stop offset="1" stop-color="#F8FAF5"/>
+    </linearGradient>
+    <linearGradient id="route" x1="170" y1="2660" x2="1220" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16A085"/>
+      <stop offset="0.45" stop-color="#1E88E5"/>
+      <stop offset="1" stop-color="#FF7A45"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="544" y1="1110" x2="896" y2="1512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1F9CF0"/>
+      <stop offset="0.52" stop-color="#1174D8"/>
+      <stop offset="1" stop-color="#0E4DA4"/>
+    </linearGradient>
+    <radialGradient id="pinGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(720 1320) rotate(90) scale(410 410)">
+      <stop stop-color="#2FA7FF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#2FA7FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="466" y1="1018" x2="976" y2="1606" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#EAF7FF" stop-opacity="0.38"/>
+    </linearGradient>
+    <pattern id="minorGrid" width="160" height="160" patternUnits="userSpaceOnUse">
+      <path d="M0 78H160M82 0V160" stroke="#CFE3DD" stroke-width="2" stroke-opacity="0.34"/>
+    </pattern>
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="34" stdDeviation="42" flood-color="#175B82" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="3120" fill="url(#bg)"/>
+  <rect width="1440" height="3120" fill="url(#minorGrid)" opacity="0.48"/>
+
+  <path d="M-80 440C150 390 322 452 500 554C704 671 890 688 1132 568C1278 495 1413 468 1528 496" stroke="#B7D4D0" stroke-width="20" stroke-linecap="round" opacity="0.32"/>
+  <path d="M-72 742C158 664 352 690 548 808C782 948 1008 976 1518 780" stroke="#B9D8E8" stroke-width="14" stroke-linecap="round" opacity="0.52"/>
+  <path d="M-58 1840C170 1766 326 1816 528 1940C800 2108 1058 2074 1510 1846" stroke="#B9D8E8" stroke-width="18" stroke-linecap="round" opacity="0.45"/>
+  <path d="M-34 2328C214 2248 424 2288 650 2428C858 2556 1076 2568 1478 2398" stroke="#BEDFD6" stroke-width="16" stroke-linecap="round" opacity="0.48"/>
+  <path d="M160 3210C178 2882 324 2618 526 2376C790 2058 902 1764 864 1402C820 984 936 694 1226 384" stroke="#D9C7A8" stroke-width="12" stroke-linecap="round" opacity="0.34"/>
+  <path d="M-48 1250C188 1158 418 1184 642 1314C858 1440 1098 1458 1500 1306" stroke="#CADDE8" stroke-width="22" stroke-linecap="round" opacity="0.36"/>
+
+  <path d="M210 146L408 242L336 466L112 392L68 224L210 146Z" fill="#DDF0E8" opacity="0.66"/>
+  <path d="M1048 106L1308 194L1272 458L1062 518L904 330L1048 106Z" fill="#E8F0D7" opacity="0.70"/>
+  <path d="M92 908L350 808L552 948L476 1222L180 1260L40 1080L92 908Z" fill="#EAF2D9" opacity="0.62"/>
+  <path d="M918 858L1234 786L1364 1016L1230 1248L950 1190L820 1018L918 858Z" fill="#DCEFF5" opacity="0.70"/>
+  <path d="M156 1640L432 1552L618 1708L566 1978L272 2046L82 1888L156 1640Z" fill="#E4F3EB" opacity="0.66"/>
+  <path d="M934 1690L1270 1622L1390 1834L1268 2074L1008 2058L840 1886L934 1690Z" fill="#F2EADC" opacity="0.60"/>
+  <path d="M168 2470L452 2378L650 2578L580 2858L258 2898L76 2704L168 2470Z" fill="#DCEFF5" opacity="0.62"/>
+  <path d="M934 2482L1234 2390L1398 2604L1288 2878L986 2852L806 2666L934 2482Z" fill="#E3F1DF" opacity="0.72"/>
+
+  <path d="M132 2620C242 2508 320 2404 418 2282C536 2136 690 2072 832 1994C1024 1888 1124 1718 1094 1514C1062 1300 866 1214 704 1096C568 996 498 858 584 704C662 562 824 514 1034 424" stroke="#FFFFFF" stroke-width="62" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+  <path d="M132 2620C242 2508 320 2404 418 2282C536 2136 690 2072 832 1994C1024 1888 1124 1718 1094 1514C1062 1300 866 1214 704 1096C568 996 498 858 584 704C662 562 824 514 1034 424" stroke="url(#route)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M132 2620C242 2508 320 2404 418 2282C536 2136 690 2072 832 1994C1024 1888 1124 1718 1094 1514C1062 1300 866 1214 704 1096C568 996 498 858 584 704C662 562 824 514 1034 424" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 62" opacity="0.86"/>
+
+  <circle cx="132" cy="2620" r="58" fill="#14B87A"/>
+  <circle cx="132" cy="2620" r="26" fill="#FFFFFF"/>
+  <path d="M1034 340C960 340 900 400 900 474C900 586 1034 704 1034 704C1034 704 1168 586 1168 474C1168 400 1108 340 1034 340Z" fill="#FF7043"/>
+  <circle cx="1034" cy="474" r="44" fill="#FFFFFF"/>
+
+  <ellipse cx="720" cy="1596" rx="266" ry="86" fill="#1B6B8C" opacity="0.12"/>
+  <circle cx="720" cy="1320" r="410" fill="url(#pinGlow)"/>
+  <g filter="url(#softShadow)">
+    <path d="M720 1012C550 1012 412 1150 412 1320C412 1574 720 1848 720 1848C720 1848 1028 1574 1028 1320C1028 1150 890 1012 720 1012Z" fill="url(#pin)"/>
+    <path d="M720 1076C586 1076 478 1184 478 1318C478 1518 720 1734 720 1734C720 1734 962 1518 962 1318C962 1184 854 1076 720 1076Z" fill="url(#glass)"/>
+    <circle cx="720" cy="1318" r="146" fill="#FFFFFF"/>
+    <circle cx="720" cy="1318" r="86" fill="#1E88E5"/>
+    <path d="M720 1210L752 1304L846 1336L752 1368L720 1462L688 1368L594 1336L688 1304L720 1210Z" fill="#FFFFFF"/>
+  </g>
+
+  <circle cx="1170" cy="2254" r="126" fill="#FFFFFF" opacity="0.78"/>
+  <path d="M1170 2160L1216 2254L1170 2348L1124 2254L1170 2160Z" fill="#FFB547"/>
+  <path d="M1170 2160L1216 2254H1124L1170 2160Z" fill="#2B7DE9"/>
+  <circle cx="1170" cy="2254" r="22" fill="#FFFFFF"/>
+
+  <circle cx="286" cy="640" r="18" fill="#1E88E5" opacity="0.72"/>
+  <circle cx="1228" cy="1398" r="14" fill="#14B87A" opacity="0.68"/>
+  <circle cx="316" cy="2206" r="16" fill="#FF7043" opacity="0.70"/>
+  <circle cx="1114" cy="2844" r="20" fill="#1E88E5" opacity="0.55"/>
+</svg>

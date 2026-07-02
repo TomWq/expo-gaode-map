@@ -301,7 +301,7 @@ export default function EnterpriseCheckIn() {
          <BlurView
               intensity={10}
               tint={'light'}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               // experimentalBlurMethod={'dimezisBlurView'}
             />
         <View style={styles.panelHeader}>

@@ -43,7 +43,7 @@ function Marker(props: MarkerProps) {
   } = props;
 
   const smoothMoveDuration = props.smoothMoveDuration;
-  
+
   // 归一化坐标处理
   const normalizedPosition = React.useMemo(() => normalizeLatLng(position), [position]);
   const normalizedSmoothMovePath = React.useMemo(
@@ -88,10 +88,15 @@ function Marker(props: MarkerProps) {
       return undefined;
     }
 
+    const lastPoint = normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1];
+    if (!lastPoint) {
+      return undefined;
+    }
+
     const totalDistance = ExpoGaodeMapModule.calculatePathLength(normalizedSmoothMovePath);
     if (totalDistance <= 0) {
       emitSmoothMoveEnd({
-        position: normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1],
+        position: lastPoint,
         angle: 0,
         totalDistance,
       });
@@ -106,7 +111,7 @@ function Marker(props: MarkerProps) {
       const pointInfo = ExpoGaodeMapModule.getPointAtDistance(normalizedSmoothMovePath, distance);
       const point = pointInfo
         ? { latitude: pointInfo.latitude, longitude: pointInfo.longitude }
-        : normalizedSmoothMovePath[normalizedSmoothMovePath.length - 1];
+        : lastPoint;
       const angle = pointInfo?.angle ?? 0;
 
       emitSmoothMoveProgress({

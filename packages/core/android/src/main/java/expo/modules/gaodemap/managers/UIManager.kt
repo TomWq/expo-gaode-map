@@ -62,6 +62,14 @@ class UIManager(private val aMap: AMap, private val context: Context) : Location
   fun setZoomEnabled(enabled: Boolean) {
     aMap.uiSettings.isZoomGesturesEnabled = enabled
   }
+
+  /**
+   * 设置缩放手势锚点
+   */
+  fun setZoomGestureAnchor(anchor: String?) {
+    val scaleByMapCenter = anchor == "center"
+    aMap.uiSettings.setGestureScaleByMapCenter(scaleByMapCenter)
+  }
   
   /**
    * 设置是否启用滚动手势

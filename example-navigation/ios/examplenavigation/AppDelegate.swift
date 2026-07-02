@@ -1,6 +1,7 @@
 internal import Expo
 import React
 import ReactAppDependencyProvider
+import rnsplashscreen
 
 @main
 class AppDelegate: ExpoAppDelegate {
@@ -28,7 +29,9 @@ class AppDelegate: ExpoAppDelegate {
       launchOptions: launchOptions)
 #endif
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let splashScreenDidFinishLaunching = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    RNSplashScreen.show()
+    return splashScreenDidFinishLaunching
   }
 
   // Linking API

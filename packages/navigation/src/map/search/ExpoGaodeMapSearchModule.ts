@@ -1,7 +1,7 @@
 
 import { requireNativeModule } from 'expo-modules-core';
 
-import {
+import type {
   AlongSearchOptions,
   InputTipsOptions,
   InputTipsResult,

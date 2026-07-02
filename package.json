@@ -48,11 +48,11 @@
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
-    "@types/react": "~19.1.0",
+    "@types/react": "~19.2.10",
     "eslint": "^9.25.1",
-    "expo": "^55.0.17",
-    "expo-module-scripts": "^55.0.2",
-    "typescript": "^5.9.3"
+    "expo": "^57.0.1",
+    "expo-module-scripts": "^56.0.3",
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "expo": ">=54.0.0"

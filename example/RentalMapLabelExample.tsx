@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlayRoot: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     paddingHorizontal: 10,
   },
   topArea: {

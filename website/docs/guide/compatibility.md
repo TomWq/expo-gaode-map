@@ -22,13 +22,14 @@ description: expo-gaode-map、expo-gaode-map-navigation 与 expo-gaode-map-web-a
 
 | Expo SDK | React Native | 推荐包版本 | iOS | Android | 新架构 | EAS Build | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| SDK 55 | RN 0.83.x | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | 已验证 | 已验证 | 支持 | 支持 | 推荐 |
-| SDK 54 | RN 0.81 / 0.82 | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | 理论支持 | 理论支持 | 支持 | 支持 | 推荐 |
+| SDK 56 | RN 0.85.x | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | 示例配置已验证 | 示例配置已验证 | 支持 | 支持 | 推荐 |
+| SDK 55 | RN 0.83.x | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | 理论支持 | 理论支持 | 支持 | 支持 | 维护 |
+| SDK 54 | RN 0.81 / 0.82 | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | 理论支持 | 理论支持 | 支持 | 支持 | 维护 |
 | SDK 53 及以下 | RN 0.79 / 0.80 及更早 | `expo-gaode-map@v1` | 历史兼容 | 历史兼容 | 旧架构为主 | 需自行验证 | 维护 |
 | SDK 52 及以下 | 旧版本 RN | `expo-gaode-map@v1` 或更早版本 | 需自行验证 | 需自行验证 | 不推荐 | 需自行验证 | 历史项目 |
 
 ::: tip 当前主线
-当前仓库示例工程使用 Expo SDK 55、React Native 0.83.x。新项目建议优先使用 SDK 55 + `expo-gaode-map@2.2.x` 或 `expo-gaode-map-navigation@2.0.x`。
+当前仓库示例工程使用 Expo SDK 56、React Native 0.85.x。新项目建议优先使用 SDK 56 + `expo-gaode-map@2.2.x` 或 `expo-gaode-map-navigation@2.0.x`。
 :::
 
 ## 包兼容性
@@ -48,9 +49,9 @@ description: expo-gaode-map、expo-gaode-map-navigation 与 expo-gaode-map-web-a
 
 | 日期 | 包版本 | Expo SDK | React Native | 平台 | 构建方式 | 新架构 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-06-30 | `expo-gaode-map@2.2.38` | SDK 55 | RN 0.83.x | Android / iOS | CI verification suite + 示例工程 | 支持 | 通过 |
-| 2026-06-30 | `expo-gaode-map-navigation@2.0.18` | SDK 55 | RN 0.83.x | Android / iOS | CI verification suite + 示例工程 | 支持 | 通过 |
-| 2026-06-30 | `expo-gaode-map-web-api@2.0.x` | SDK 55 | RN 0.83.x | JS / Native 环境 | CI verification suite + 示例工程 | 无原生依赖 | 通过 |
+| 2026-06-30 | `expo-gaode-map@2.2.38` | SDK 56 | RN 0.85.x | Android / iOS 配置 | `expo-doctor` + 依赖校验 + 示例工程 | 支持 | 通过 |
+| 2026-06-30 | `expo-gaode-map-navigation@2.0.18` | SDK 56 | RN 0.85.x | Android / iOS 配置 | 依赖校验 + navigation 示例 smoke test | 支持 | 通过 |
+| 2026-06-30 | `expo-gaode-map-web-api@2.0.x` | SDK 56 | RN 0.85.x | JS / Native 环境 | 依赖校验 + 示例工程 | 无原生依赖 | 通过 |
 
 ## 发版前验证清单
 

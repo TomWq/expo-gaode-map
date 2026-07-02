@@ -1,6 +1,6 @@
 
 import { requireNativeModule } from 'expo-modules-core';
-import { ExpoGaodeMapNavigationModule as ExpoGaodeMapNavigationModuleType } from './types/native-module.types';
+import type { ExpoGaodeMapNavigationModule as ExpoGaodeMapNavigationModuleType } from './types/native-module.types';
 /**
  * 高德地图导航模块
  * 

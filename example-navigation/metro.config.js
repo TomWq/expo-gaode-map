@@ -6,6 +6,9 @@ const monorepoRoot = path.resolve(projectRoot, "..");
 
 const config = getDefaultConfig(projectRoot);
 
+const resolveNodeModule = (name) =>
+  path.dirname(require.resolve(`${name}/package.json`, { paths: [projectRoot, monorepoRoot] }));
+
 config.watchFolders = [monorepoRoot];
 
 config.resolver.nodeModulesPaths = [
@@ -13,16 +16,13 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-config.resolver.unstable_enableSymlinks = true;
-config.resolver.disableHierarchicalLookup = true;
-
 config.resolver.extraNodeModules = {
   "expo-gaode-map": path.resolve(monorepoRoot, "packages/navigation"),
   "expo-gaode-map-navigation": path.resolve(monorepoRoot, "packages/navigation"),
   "expo-gaode-map-web-api": path.resolve(monorepoRoot, "packages/web-api"),
-  react: path.resolve(projectRoot, "node_modules/react"),
-  "react-native": path.resolve(projectRoot, "node_modules/react-native"),
-  "react/jsx-runtime": path.resolve(projectRoot, "node_modules/react/jsx-runtime"),
+  react: resolveNodeModule("react"),
+  "react-native": resolveNodeModule("react-native"),
+  "react/jsx-runtime": path.join(resolveNodeModule("react"), "jsx-runtime"),
 };
 
 module.exports = config;

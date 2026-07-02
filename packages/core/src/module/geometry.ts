@@ -388,7 +388,8 @@ export const geometryMethods = {
         );
 
         for (let index = 0; index < normalizedMultiPolygons.length; index += 1) {
-          if (nativeModule.isPointInPolygon(normalizedPoint, normalizedMultiPolygons[index])) {
+          const polygon = normalizedMultiPolygons[index];
+          if (polygon && nativeModule.isPointInPolygon(normalizedPoint, polygon)) {
             return index;
           }
         }

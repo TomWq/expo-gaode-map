@@ -37,6 +37,10 @@ export function dedupeAdjacentPoints(points: NaviPoint[]): NaviPoint[] {
     }
 
     const previous = points[index - 1];
+    if (!previous) {
+      return true;
+    }
+
     return (
       previous.latitude !== point.latitude ||
       previous.longitude !== point.longitude
@@ -74,7 +78,12 @@ export function calculatePathLengthSafe(points: NaviPoint[]): number {
   } catch {
     let total = 0;
     for (let index = 1; index < points.length; index += 1) {
-      total += distanceBetweenCoordinatesSafe(points[index - 1], points[index]);
+      const previous = points[index - 1];
+      const current = points[index];
+      if (!previous || !current) {
+        continue;
+      }
+      total += distanceBetweenCoordinatesSafe(previous, current);
     }
     return total;
   }
@@ -121,6 +130,10 @@ export function samplePolyline(points: NaviPoint[], targetSamples = 36): NaviPoi
   const step = Math.max(1, Math.floor(points.length / targetSamples));
   const samples = points.filter((_, index) => index % step === 0);
   const lastPoint = points[points.length - 1];
+  if (!lastPoint) {
+    return samples;
+  }
+
   const lastSample = samples[samples.length - 1];
   if (
     !lastSample ||
@@ -137,10 +150,15 @@ export function selectEvenlySpacedPoints(points: NaviPoint[], count: number): Na
     return points;
   }
 
+  const fallbackPoint = points[0];
+  if (!fallbackPoint) {
+    return [];
+  }
+
   return Array.from({ length: count }, (_, index) => {
     const rawIndex = Math.round(((index + 1) * (points.length + 1)) / (count + 1)) - 1;
     const boundedIndex = Math.min(points.length - 1, Math.max(0, rawIndex));
-    return points[boundedIndex];
+    return points[boundedIndex] ?? fallbackPoint;
   });
 }
 
@@ -181,7 +199,11 @@ export function buildAnchorWaypointsFromWebRoute(
 
   // 优先用离前一个锚点足够远的点，避免途经点过密导致原生算路失真。
   const spacedPoints: NaviPoint[] = [];
-  let previousPoint = polyline[0];
+  const firstPoint = polyline[0];
+  if (!firstPoint) {
+    return [];
+  }
+  let previousPoint = firstPoint;
 
   for (const point of interiorPoints) {
     if (distanceBetweenCoordinatesSafe(previousPoint, point) < minSpacingMeters) {
@@ -191,11 +213,8 @@ export function buildAnchorWaypointsFromWebRoute(
     previousPoint = point;
   }
 
-  const waypoints = spacedPoints.length > 0
-    ? spacedPoints
-    : candidatePoints.length > 2
-      ? [candidatePoints[Math.floor(candidatePoints.length / 2)]]
-      : [];
+  const midpoint = candidatePoints[Math.floor(candidatePoints.length / 2)];
+  const waypoints = spacedPoints.length > 0 ? spacedPoints : midpoint ? [midpoint] : [];
 
   return dedupeAdjacentPoints(selectEvenlySpacedPoints(waypoints, maxViaPoints));
 }

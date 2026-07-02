@@ -2,7 +2,7 @@
  * 高德地图通用类型定义
  * 基于 Expo Modules API
  */
-import { PermissionResponse } from 'expo-modules-core';
+import type { PermissionResponse } from 'expo-modules-core';
 
 /**
  * SDK 配置参数

@@ -32,6 +32,7 @@ import TaxiLocationPickerExample from './TaxiLocationPickerExample';
 import UseMapExample from './UseMapExample';
 import WebAPIAdvancedTest from './WebAPIAdvancedTest';
 import WebAPIExample from './WebAPIExample';
+import ZoomAnchorMarkerStateExample from './ZoomAnchorMarkerStateExample';
 import NavigationWithLocationExample from './navigationWithLocation';
 import AISmartSearchExample from './AISmartSearchExample';
 
@@ -111,6 +112,14 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '演示 smoothMovePath 和 smoothMoveDuration 的使用方式。',
     outcome: '进入平滑移动效果页',
     component: SmoothMoveExample,
+  },
+  'zoom-anchor-marker-state': {
+    id: 'zoom-anchor-marker-state',
+    title: '缩放锚点与选中态 Marker',
+    description: '演示按地图中心缩放，以及自定义 Marker 选中/恢复时的 cacheKey 切换。',
+    outcome: '进入缩放锚点与 Marker 状态页',
+    component: ZoomAnchorMarkerStateExample,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
  
 
@@ -324,6 +333,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     entries: [
       'polyline',
       'smooth-move',
+      'zoom-anchor-marker-state',
    
       'rental-map-label',
      

@@ -39,6 +39,8 @@ android.iml
 android/app/libs
 android/keystores/debug.keystore
 
+
+
 # Cocoapods
 #
 example/ios/Pods
@@ -75,3 +77,5 @@ coverage
 
 # Local Harmony host workspace (generated, not part of this repo)
 rn-harmony-host/
+
+packages/search/

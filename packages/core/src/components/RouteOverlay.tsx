@@ -25,6 +25,9 @@ export function RouteOverlay({
 
   const start = normalizedPoints[0];
   const end = normalizedPoints[normalizedPoints.length - 1];
+  if (!start || !end) {
+    return null;
+  }
 
   return (
     <>

@@ -96,6 +96,7 @@
 | `maxZoom` | `number` | `20` | 最大缩放级别 |
 | `minZoom` | `number` | `3` | 最小缩放级别 |
 | `zoomGesturesEnabled` | `boolean` | `true` | 是否启用缩放手势 |
+| `zoomGestureAnchor` | `'gesture' \| 'center'` | `'gesture'` | 缩放手势锚点。`gesture` 跟随手势中心点，`center` 固定地图中心点 |
 | `scrollGesturesEnabled` | `boolean` | `true` | 是否启用平移手势 |
 | `rotateGesturesEnabled` | `boolean` | `true` | 是否启用旋转手势 |
 | `tiltGesturesEnabled` | `boolean` | `true` | 是否启用倾斜手势 |

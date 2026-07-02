@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(10, 14, 22, 0.18)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     maxWidth: "84%",
   },
   blurFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   compactShell: {
     minHeight: 74,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     
   },
   compactOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(3, 8, 18, 0.12)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",

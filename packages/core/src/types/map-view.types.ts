@@ -45,6 +45,13 @@ export interface CameraEvent {
 }
 
 /**
+ * 缩放手势锚点
+ * - `gesture`: 跟随手势中心点缩放（默认）
+ * - `center`: 固定地图中心点缩放
+ */
+export type ZoomGestureAnchor = 'gesture' | 'center';
+
+/**
  * 地图视图属性
  */
 export interface MapViewProps {
@@ -190,6 +197,12 @@ export interface MapViewProps {
    * 是否启用缩放手势
    */
   zoomGesturesEnabled?: boolean;
+
+  /**
+   * 缩放手势锚点
+   * @default 'gesture'
+   */
+  zoomGestureAnchor?: ZoomGestureAnchor;
 
   /**
    * 是否启用滑动手势

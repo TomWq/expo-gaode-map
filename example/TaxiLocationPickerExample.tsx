@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
    
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   markerFixed: {
     position: 'absolute',
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   initialLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',

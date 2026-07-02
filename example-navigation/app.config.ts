@@ -11,12 +11,6 @@ const config: ExpoConfig = {
   icon: "./assets/images/icon.png",
   scheme: "examplenavigation",
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
-  splash: {
-    image: "./assets/images/splash-icon.png",
-    resizeMode: "contain",
-    backgroundColor: "#ffffff",
-  },
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.wangqiang.examplenavigation"
@@ -26,7 +20,6 @@ const config: ExpoConfig = {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: "com.wangqiang.examplenavigation"
   },
@@ -37,6 +30,32 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-font",
+    [
+      "react-native-splash-screen-newarch",
+      {
+        image: "./assets/images/splash-map-full.png",
+        backgroundColor: "#F5FBF8",
+        resizeMode: "cover",
+        android: {
+          fullScreen: true,
+          createLayout: true,
+          overwriteLayout: true,
+          backgroundColor: "#F5FBF8",
+          image: "./assets/images/splash-map-full.png",
+          imageResizeMode: "centerCrop",
+          imageGravity: "center",
+          systemImage: false,
+          windowIsTranslucent: false,
+        },
+        ios: {
+          image: "./assets/images/splash-map-full.png",
+          backgroundColor: "#F5FBF8",
+          resizeMode: "cover",
+        },
+      },
+    ],
+    "expo-web-browser",
     [
       "expo-gaode-map-navigation",
       {

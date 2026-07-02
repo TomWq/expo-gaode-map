@@ -13,7 +13,7 @@ import type {
   MultiRingPolyline,
   RouteBounds,
 } from '../types/route-playback.types';
-import { normalizeLatLng, normalizeLatLngList } from './GeoUtils';
+import { normalizeLatLngList } from './GeoUtils';
 
 const MIN_ZOOM = 3; // 最小缩放级别
 const MAX_ZOOM = 20; // 最大缩放级别
@@ -267,7 +267,10 @@ export async function fitCameraToCoordinates(
     await map.getCameraPosition().catch(() => ({}));
 
   if (normalized.length === 1) {
-    const single = normalizeLatLng(normalized[0]);
+    const single = normalized[0];
+    if (!single) {
+      return;
+    }
     await map.moveCamera(
       {
         target: single,

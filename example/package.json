@@ -9,29 +9,35 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "^55.0.17",
-    "expo-blur": "~55.0.14",
-    "expo-constants": "~55.0.15",
+    "@expo/vector-icons": "^15.0.3",
+    "expo": "^57.0.1",
+    "expo-blur": "~57.0.0",
+    "expo-constants": "~57.0.2",
+    "expo-font": "~57.0.0",
     "expo-gaode-map": "workspace:*",
     "expo-gaode-map-web-api": "workspace:*",
-    "expo-linking": "~55.0.14",
-    "expo-media-library": "~55.0.15",
-    "expo-router": "~55.0.13",
-    "expo-status-bar": "~55.0.5",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-native": "0.83.6",
-    "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0",
+    "expo-linking": "~57.0.1",
+    "expo-media-library": "~57.0.0",
+    "expo-router": "~57.0.2",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-splash-screen-newarch": "^2.0.2",
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.10",
-    "babel-preset-expo": "~55.0.8",
-    "typescript": "~5.9.2"
+    "babel-preset-expo": "~57.0.0",
+    "typescript": "~6.0.3"
   },
   "expo": {
     "autolinking": {
+      "searchPaths": [
+        "../node_modules"
+      ],
       "nativeModulesDir": "../packages",
       "exclude": [
         "expo-gaode-map-navigation",

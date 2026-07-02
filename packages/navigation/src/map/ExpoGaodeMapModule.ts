@@ -1,17 +1,11 @@
 import { requireNativeModule } from 'expo';
 import { Platform } from 'react-native';
 
-import {
-  LatLng,
-  Coordinates,
-  ReGeocode,
-  LocationListener,
-  LatLngPoint,
-  CoordinateType,
-} from './types';
+import { CoordinateType } from './types';
+import type { LatLng, Coordinates, ReGeocode, LocationListener, LatLngPoint } from './types';
 import type { ExpoGaodeMapModule as NativeExpoGaodeMapModule } from './types/native-module.types';
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
-import { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
+import type { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
@@ -815,7 +809,8 @@ const helperMethods = {
         );
 
         for (let index = 0; index < normalizedMultiPolygons.length; index += 1) {
-          if (nativeModule.isPointInPolygon(normalizedPoint, normalizedMultiPolygons[index])) {
+          const polygon = normalizedMultiPolygons[index];
+          if (polygon && nativeModule.isPointInPolygon(normalizedPoint, polygon)) {
             return index;
           }
         }

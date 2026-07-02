@@ -4,7 +4,6 @@ import { parsePolyline } from './route-geometry';
 
 async function loadWebApiFallback(feature: '公交路径规划' | '规避路线预览') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const webApi = require('expo-gaode-map-web-api');
     if (typeof webApi?.GaodeWebAPI !== 'function') {
       throw new Error('expo-gaode-map-web-api 未导出 GaodeWebAPI');

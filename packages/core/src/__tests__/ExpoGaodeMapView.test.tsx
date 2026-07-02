@@ -176,6 +176,13 @@ describe('ExpoGaodeMapView', () => {
     expect(result).toBeTruthy();
   });
 
+  it('应该支持缩放手势锚点配置', () => {
+    const result = render(
+      <ExpoGaodeMapView zoomGestureAnchor="center" />
+    );
+    expect(result).toBeTruthy();
+  });
+
   it('应该支持手势控制 - 滑动', () => {
     const result = render(
       <ExpoGaodeMapView scrollGesturesEnabled={false} />

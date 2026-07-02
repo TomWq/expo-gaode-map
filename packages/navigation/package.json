@@ -14,7 +14,7 @@
     "build": "expo-module build && yarn build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean",
-    "lint": "expo-module lint",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "npx jest --no-watchman --config jest.config.js --runInBand",
     "prepare": "expo-module prepare && yarn build:plugin",
     "postinstall": "node scripts/check-expo-modules.js",
@@ -25,11 +25,14 @@
   },
   "devDependencies": {
     "@expo/vector-icons": "^15.0.3",
-    "@types/react": "~19.1.0",
-    "expo": "^55.0.8",
-    "expo-module-scripts": "^55.0.2",
-    "react-native": "0.83.2",
-    "typescript": "^5.9.3"
+    "@types/node": "^22.18.0",
+    "@types/react": "~19.2.10",
+    "eslint": "^9.25.1",
+    "expo": "^57.0.1",
+    "expo-font": "~57.0.0",
+    "expo-module-scripts": "^56.0.3",
+    "react-native": "0.86.0",
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "@expo/vector-icons": "*",

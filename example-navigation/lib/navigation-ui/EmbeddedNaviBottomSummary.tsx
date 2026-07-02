@@ -149,10 +149,10 @@ const styles = StyleSheet.create({
     boxShadow: "0px 8px 22px rgba(0, 0, 0, 0.22)",
   },
   blurFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",

@@ -43,6 +43,11 @@ public class ExpoGaodeMapViewModule: Module {
             Prop("zoomGesturesEnabled") { (view: ExpoGaodeMapView, enabled: Bool) in
                 view.isZoomEnabled = enabled
             }
+
+            // 缩放手势锚点：gesture 使用手势焦点，center 固定地图中心点
+            Prop("zoomGestureAnchor") { (view: ExpoGaodeMapView, anchor: String?) in
+                view.zoomGestureAnchor = anchor == "center" ? "center" : "gesture"
+            }
             
             Prop("scrollGesturesEnabled") { (view: ExpoGaodeMapView, enabled: Bool) in
                 view.isScrollEnabled = enabled

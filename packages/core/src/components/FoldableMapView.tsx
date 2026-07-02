@@ -3,8 +3,9 @@ import { Platform } from 'react-native';
 import ExpoGaodeMapView from '../ExpoGaodeMapView';
 
 import { useEventCallback } from '../hooks/useEventCallback';
-import { PlatformDetector, DeviceInfo, FoldState } from '../utils/PlatformDetector';
-import { MapViewProps, MapViewRef } from '../types';
+import { PlatformDetector, FoldState } from '../utils/PlatformDetector';
+import type { DeviceInfo } from '../utils/PlatformDetector';
+import type { MapViewProps, MapViewRef } from '../types';
 
 /**
  * 折叠屏适配配置

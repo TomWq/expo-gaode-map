@@ -22,13 +22,14 @@ This matrix explains the recommended support status for the `expo-gaode-map` pac
 
 | Expo SDK | React Native | Recommended package version | iOS | Android | New Architecture | EAS Build | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| SDK 55 | RN 0.83.x | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | Verified | Verified | Supported | Supported | Recommended |
-| SDK 54 | RN 0.81 / 0.82 | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | Theoretical | Theoretical | Supported | Supported | Recommended |
+| SDK 56 | RN 0.85.x | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | Example config verified | Example config verified | Supported | Supported | Recommended |
+| SDK 55 | RN 0.83.x | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | Theoretical | Theoretical | Supported | Supported | Maintained |
+| SDK 54 | RN 0.81 / 0.82 | `expo-gaode-map@2.2.x` / `expo-gaode-map-navigation@2.0.x` | Theoretical | Theoretical | Supported | Supported | Maintained |
 | SDK 53 and lower | RN 0.79 / 0.80 and older | `expo-gaode-map@v1` | Legacy | Legacy | Mostly legacy architecture | Verify yourself | Maintained |
 | SDK 52 and lower | Older RN versions | `expo-gaode-map@v1` or older | Verify yourself | Verify yourself | Not recommended | Verify yourself | Legacy projects |
 
 ::: tip Current mainline
-The current example apps use Expo SDK 55 and React Native 0.83.x. New projects should prefer SDK 55 with `expo-gaode-map@2.2.x` or `expo-gaode-map-navigation@2.0.x`.
+The current example apps use Expo SDK 56 and React Native 0.85.x. New projects should prefer SDK 56 with `expo-gaode-map@2.2.x` or `expo-gaode-map-navigation@2.0.x`.
 :::
 
 ## Package Compatibility
@@ -48,9 +49,9 @@ The current example apps use Expo SDK 55 and React Native 0.83.x. New projects s
 
 | Date | Package version | Expo SDK | React Native | Platform | Build workflow | New Architecture | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-06-30 | `expo-gaode-map@2.2.38` | SDK 55 | RN 0.83.x | Android / iOS | CI verification suite + example apps | Supported | Passed |
-| 2026-06-30 | `expo-gaode-map-navigation@2.0.18` | SDK 55 | RN 0.83.x | Android / iOS | CI verification suite + example apps | Supported | Passed |
-| 2026-06-30 | `expo-gaode-map-web-api@2.0.x` | SDK 55 | RN 0.83.x | JS / native runtime | CI verification suite + example apps | No native dependency | Passed |
+| 2026-06-30 | `expo-gaode-map@2.2.38` | SDK 56 | RN 0.85.x | Android / iOS config | `expo-doctor` + dependency validation + example app | Supported | Passed |
+| 2026-06-30 | `expo-gaode-map-navigation@2.0.18` | SDK 56 | RN 0.85.x | Android / iOS config | Dependency validation + navigation example smoke tests | Supported | Passed |
+| 2026-06-30 | `expo-gaode-map-web-api@2.0.x` | SDK 56 | RN 0.85.x | JS / native runtime | Dependency validation + example apps | No native dependency | Passed |
 
 ## Release Checklist
 

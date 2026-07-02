@@ -56,11 +56,11 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
-    "expo": "^55.0.8",
-    "expo-module-scripts": "^55.0.2",
-    "react-native": "0.83.2",
-    "typescript": "^5.9.3"
+    "@types/react": "~19.2.10",
+    "expo": "^57.0.1",
+    "expo-module-scripts": "^56.0.3",
+    "react-native": "0.86.0",
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "expo": "*",

@@ -216,8 +216,9 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
         const apiKeyIndex = mainApplication['meta-data'].findIndex(
           (item) => item.$?.['android:name'] === 'com.amap.api.v2.apikey'
         );
-        if (apiKeyIndex !== -1) {
-          mainApplication['meta-data'][apiKeyIndex].$ = {
+        const apiKeyMetaData = mainApplication['meta-data'][apiKeyIndex];
+        if (apiKeyMetaData) {
+          apiKeyMetaData.$ = {
             'android:name': 'com.amap.api.v2.apikey',
             'android:value': props.androidKey,
           };
