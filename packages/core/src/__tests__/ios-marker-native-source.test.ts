@@ -6,6 +6,10 @@ describe('iOS Marker native source guards', () => {
     path.resolve(__dirname, '../../ios/overlays/MarkerView.swift'),
     'utf8'
   );
+  const mapViewSource = fs.readFileSync(
+    path.resolve(__dirname, '../../ios/ExpoGaodeMapView.swift'),
+    'utf8'
+  );
 
   it('guards children image refresh against stale annotation view reuse', () => {
     expect(markerViewSource).toContain(
@@ -37,6 +41,18 @@ describe('iOS Marker native source guards', () => {
     expect(markerViewSource).toContain('override func didMoveToSuperview()');
     expect(markerViewSource).not.toContain(`if newSuperview == nil {
             removeAnnotationFromMap()
+        }`);
+  });
+
+  it('keeps marker overlay registration during transient detach', () => {
+    expect(mapViewSource).toContain(
+      'private var pendingMarkerOverlayUnregisterTasks: [ObjectIdentifier: DispatchWorkItem] = [:]'
+    );
+    expect(mapViewSource).toContain('scheduleMarkerOverlayUnregister(markerView)');
+    expect(mapViewSource).toContain('cancelPendingMarkerOverlayUnregister(for: view)');
+    expect(mapViewSource).not.toContain(`if let markerView = subview as? MarkerView {
+            unregisterOverlayView(markerView)
+            // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
         }`);
   });
 });

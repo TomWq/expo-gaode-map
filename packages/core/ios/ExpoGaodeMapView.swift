@@ -114,6 +114,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private var overlayContainer: UIView!
     /// 显式跟踪所有覆盖物视图（新架构下 subviews 可能不可靠）
     private var overlayViews: [UIView] = []
+    /// MarkerView 短暂 detach 时延迟注销，避免 annotation 暂时找不到自定义 view 而回退默认样式
+    private var pendingMarkerOverlayUnregisterTasks: [ObjectIdentifier: DispatchWorkItem] = [:]
     
     // MARK: - 事件节流控制
     
@@ -251,6 +253,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     }
 
     private func registerOverlayView(_ view: UIView) {
+        cancelPendingMarkerOverlayUnregister(for: view)
+
         guard !overlayViews.contains(where: { $0 === view }) else {
             return
         }
@@ -258,7 +262,29 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     }
 
     private func unregisterOverlayView(_ view: UIView) {
+        cancelPendingMarkerOverlayUnregister(for: view)
         overlayViews.removeAll { $0 === view }
+    }
+
+    private func scheduleMarkerOverlayUnregister(_ markerView: MarkerView) {
+        cancelPendingMarkerOverlayUnregister(for: markerView)
+
+        let identifier = ObjectIdentifier(markerView)
+        let task = DispatchWorkItem { [weak self, weak markerView] in
+            guard let self = self, let markerView = markerView else { return }
+            self.pendingMarkerOverlayUnregisterTasks[identifier] = nil
+            guard markerView.superview == nil else { return }
+            self.unregisterOverlayView(markerView)
+        }
+
+        pendingMarkerOverlayUnregisterTasks[identifier] = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: task)
+    }
+
+    private func cancelPendingMarkerOverlayUnregister(for view: UIView) {
+        let identifier = ObjectIdentifier(view)
+        pendingMarkerOverlayUnregisterTasks[identifier]?.cancel()
+        pendingMarkerOverlayUnregisterTasks[identifier] = nil
     }
 
     private func prepareOverlayViewForHosting(_ view: UIView) {
@@ -336,8 +362,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 🔑 处理所有覆盖物 - 从跟踪数组中移除并确保 native 对象也从地图移除
         // 🔑 关键修复：先从数组移除，再调用 super，防止 super 触发的事件回调中引用已卸载的视图
         if let markerView = subview as? MarkerView {
-            unregisterOverlayView(markerView)
-            // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
+            scheduleMarkerOverlayUnregister(markerView)
+            // MarkerView 内部也会延迟确认 annotation 移除，避免 transient detach 闪烁。
         } else if let circleView = subview as? CircleView {
             unregisterOverlayView(circleView)
             if let mapView, let circle = circleView.circle {
@@ -898,6 +924,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         appleMapView?.removeOverlays(appleMapView?.overlays ?? [])
         
         // 清空覆盖物数组
+        pendingMarkerOverlayUnregisterTasks.values.forEach { $0.cancel() }
+        pendingMarkerOverlayUnregisterTasks.removeAll()
         overlayViews.removeAll()
         
         // 移除所有子视图
