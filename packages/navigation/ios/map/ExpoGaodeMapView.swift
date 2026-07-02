@@ -96,6 +96,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private var uiManager: UIManager!
     /// 地图是否已加载完成
     private var isMapLoaded = false
+    /// 定位 annotation 首次出现后是否已补应用定位样式
+    private var hasAppliedUserLocationStyleAfterLocationUpdate = false
     /// 初始相机是否已应用（仅应用一次，避免与运行时相机控制冲突）
     private var hasAppliedInitialCameraPosition = false
     /// 是否正在处理 annotation 选择事件
@@ -481,6 +483,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setRotateEnabled(isRotateEnabled)
         uiManager.setTiltEnabled(isTiltEnabled)
         uiManager.setShowsUserLocation(showsUserLocation, followUser: followUserLocation)
+        applyUserLocationStyle()
         mapView.distanceFilter = distanceFilter
         mapView.headingFilter = headingFilter
     }
@@ -511,6 +514,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         uiManager.setRotateEnabled(isRotateEnabled)
         uiManager.setTiltEnabled(isTiltEnabled)
         uiManager.setShowsUserLocation(showsUserLocation, followUser: followUserLocation)
+        applyUserLocationStyle()
         uiManager.setShowsTraffic(showsTraffic)
         uiManager.setShowsBuildings(showsBuildings)
         uiManager.setShowsIndoorMap(showsIndoorMap)
@@ -683,6 +687,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     func setFollowUserLocation(_ follow: Bool) {
         followUserLocation = follow
         uiManager?.setShowsUserLocation(showsUserLocation, followUser: follow)
+        if showsUserLocation {
+            applyUserLocationStyle()
+        }
     }
     
     func setShowsUserLocation(_ show: Bool) {
@@ -695,6 +702,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     
     func setUserLocationRepresentation(_ config: [String: Any]) {
         userLocationRepresentation = config
+        hasAppliedUserLocationStyleAfterLocationUpdate = false
         if showsUserLocation {
             uiManager?.setUserLocationRepresentation(config)
         }
@@ -704,7 +712,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 应用用户位置样式
      */
     private func applyUserLocationStyle() {
-        guard let config = userLocationRepresentation else { return }
+        guard showsUserLocation, let config = userLocationRepresentation else { return }
         uiManager?.setUserLocationRepresentation(config)
     }
     
@@ -974,6 +982,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         super.addSubview(resolvedMapView)
         isMapLoaded = false
         hasAppliedInitialCameraPosition = false
+        hasAppliedUserLocationStyleAfterLocationUpdate = false
 
         cameraManager = CameraManager(mapView: resolvedMapView)
         uiManager = UIManager(mapView: resolvedMapView)
@@ -1042,8 +1051,36 @@ extension ExpoGaodeMapView {
         if let styleData = customMapStyleData {
             uiManager.setCustomMapStyle(styleData)
         }
+
+        applyUserLocationStyle()
         
         onLoad(["loaded": true])
+    }
+
+    /**
+     * 定位更新回调
+     */
+    public func mapView(_ mapView: MAMapView, didUpdate userLocation: MAUserLocation, updatingLocation: Bool) {
+        guard updatingLocation, let location = userLocation.location else { return }
+
+        if !hasAppliedUserLocationStyleAfterLocationUpdate {
+            applyUserLocationStyle()
+            hasAppliedUserLocationStyleAfterLocationUpdate = true
+        }
+
+        let latitude = location.coordinate.latitude
+        let longitude = location.coordinate.longitude
+        guard latitude >= -90 && latitude <= 90,
+              longitude >= -180 && longitude <= 180 else {
+            return
+        }
+
+        onLocation([
+            "latitude": latitude,
+            "longitude": longitude,
+            "accuracy": location.horizontalAccuracy,
+            "timestamp": Date().timeIntervalSince1970 * 1000
+        ])
     }
     
     /**
@@ -1367,13 +1404,118 @@ extension ExpoGaodeMapView {
         handleGaodePoiTouch(pois)
     }
     
+    private func getUserLocationAnnotationView(for mapView: MAMapView, annotation: MAAnnotation) -> MAAnnotationView? {
+        guard let config = userLocationRepresentation,
+              let imagePath = config["image"] as? String,
+              !imagePath.isEmpty else {
+            return nil
+        }
+
+        let reuseId = "ExpoGaodeMapUserLocationStyleReuseIdentifier"
+        let annotationView: MAAnnotationView
+        if let reusableView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) {
+            annotationView = reusableView
+        } else {
+            annotationView = MAAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+        }
+        annotationView.annotation = annotation
+        annotationView.canShowCallout = false
+
+        let imageWidth = config["imageWidth"] as? Double
+        let imageHeight = config["imageHeight"] as? Double
+        let cacheKey = userLocationImageCacheKey(imagePath: imagePath, imageWidth: imageWidth, imageHeight: imageHeight)
+        annotationView.accessibilityIdentifier = cacheKey
+
+        if let cached = IconBitmapCache.shared.image(forKey: cacheKey) {
+            annotationView.image = cached
+            return annotationView
+        }
+
+        annotationView.image = nil
+        loadUserLocationImage(imagePath: imagePath, imageWidth: imageWidth, imageHeight: imageHeight, cacheKey: cacheKey) { [weak annotationView] image in
+            guard let annotationView = annotationView,
+                  annotationView.accessibilityIdentifier == cacheKey else {
+                return
+            }
+            annotationView.image = image
+        }
+
+        return annotationView
+    }
+
+    private func userLocationImageCacheKey(imagePath: String, imageWidth: Double?, imageHeight: Double?) -> String {
+        let widthPart = imageWidth.map { String(Int($0.rounded())) } ?? "auto"
+        let heightPart = imageHeight.map { String(Int($0.rounded())) } ?? "auto"
+        return "userLocation|\(imagePath)|\(widthPart)x\(heightPart)"
+    }
+
+    private func loadUserLocationImage(
+        imagePath: String,
+        imageWidth: Double?,
+        imageHeight: Double?,
+        cacheKey: String,
+        completion: @escaping (UIImage?) -> Void
+    ) {
+        let finish: (UIImage?) -> Void = { image in
+            if let image = image {
+                IconBitmapCache.shared.setImage(image, forKey: cacheKey)
+            }
+            DispatchQueue.main.async {
+                completion(image)
+            }
+        }
+
+        if imagePath.hasPrefix("http://") || imagePath.hasPrefix("https://") {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self,
+                      let url = URL(string: imagePath),
+                      let data = try? Data(contentsOf: url),
+                      let image = UIImage(data: data) else {
+                    finish(nil)
+                    return
+                }
+                finish(self.resizeUserLocationImage(image, imageWidth: imageWidth, imageHeight: imageHeight))
+            }
+            return
+        }
+
+        let image: UIImage?
+        if imagePath.hasPrefix("file://") {
+            let path = String(imagePath.dropFirst(7))
+            image = UIImage(contentsOfFile: path)
+        } else {
+            image = UIImage(named: imagePath)
+        }
+
+        guard let image = image else {
+            finish(nil)
+            return
+        }
+        finish(resizeUserLocationImage(image, imageWidth: imageWidth, imageHeight: imageHeight))
+    }
+
+    private func resizeUserLocationImage(_ image: UIImage, imageWidth: Double?, imageHeight: Double?) -> UIImage {
+        guard let imageWidth = imageWidth,
+              let imageHeight = imageHeight,
+              imageWidth > 0,
+              imageHeight > 0 else {
+            return image
+        }
+
+        let targetSize = CGSize(width: imageWidth, height: imageHeight)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+
     /**
      * 创建标注视图
-     * 定位蓝点返回 nil 使用系统默认样式
+     * 定位蓝点默认返回 nil 使用系统样式；传入 image 时按官方建议自定义定位 annotationView。
      */
     public func mapView(_ mapView: MAMapView, viewFor annotation: MAAnnotation) -> MAAnnotationView? {
         if annotation.isKind(of: MAUserLocation.self) {
-            return nil
+            return getUserLocationAnnotationView(for: mapView, annotation: annotation)
         }
         
         // 🔑 支持 MAAnimatedAnnotation（平滑移动）

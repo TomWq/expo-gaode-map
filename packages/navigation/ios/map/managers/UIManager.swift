@@ -172,6 +172,9 @@ class UIManager: NSObject, MAMapViewDelegate {
         // 是否显示方向指示
         if let showsHeadingIndicator = config["showsHeadingIndicator"] as? Bool {
             representation.showsHeadingIndicator = showsHeadingIndicator
+            if showsHeadingIndicator {
+                mapView.userTrackingMode = .followWithHeading
+            }
         }
         
         // 精度圈填充颜色

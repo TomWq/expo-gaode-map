@@ -75,6 +75,12 @@ class MarkerView: ExpoView {
     private var pendingUpdateTask: DispatchWorkItem?
     /// 子视图变化后的延迟刷新任务
     private var pendingSubviewRefreshTask: DispatchWorkItem?
+    /// cacheKey 变化后的延迟刷新任务
+    private var pendingCacheKeyRefreshTask: DispatchWorkItem?
+    /// 视图 detach 后延迟确认移除 annotation，避免 React 更新时短暂 detach 导致闪烁
+    private var pendingAnnotationRemovalTask: DispatchWorkItem?
+    /// cacheKey 刷新代次，用于丢弃过期截图任务
+    private var cacheKeyRefreshGeneration: Int = 0
     /// 最近一次应用到 annotationView 的 children 结构签名
     private var lastRenderedChildrenSignature: String?
     /// 最近一次成功渲染的 children 图片，用于缓存未命中时避免闪烁
@@ -159,7 +165,7 @@ class MarkerView: ExpoView {
         guard cacheKey != key else { return }
         self.cacheKey = key
         if !subviews.isEmpty {
-            scheduleChildrenImageRefresh()
+            scheduleCacheKeyChildrenImageRefresh()
         } else {
             refreshAnnotationAppearance()
         }
@@ -508,11 +514,11 @@ class MarkerView: ExpoView {
     /**
      * 将子视图转换为图片
      */
-    private func createImageFromSubviews(size explicitSize: CGSize? = nil) -> UIImage? {
+    private func createImageFromSubviews(size explicitSize: CGSize? = nil, cacheImage: Bool = true) -> UIImage? {
         let size = explicitSize ?? resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
         let key = childrenCacheKey(for: size)
 
-        if let cachedImage = IconBitmapCache.shared.image(forKey: key) {
+        if cacheImage, let cachedImage = IconBitmapCache.shared.image(forKey: key) {
             return cachedImage
         }
         
@@ -553,7 +559,9 @@ class MarkerView: ExpoView {
         
    
         
-        IconBitmapCache.shared.setImage(image, forKey: key)
+        if cacheImage {
+            IconBitmapCache.shared.setImage(image, forKey: key)
+        }
         
         return image
     }
@@ -569,7 +577,31 @@ class MarkerView: ExpoView {
         }
     }
 
-    private func refreshChildrenImageInPlace(invalidateChildrenCache: Bool = false) {
+    private func currentChildrenAnnotationView() -> MAAnnotationView? {
+        if let annotationView,
+           let annotation,
+           isAnnotationView(annotationView, boundTo: annotation) {
+            return annotationView
+        }
+
+        if annotationView != nil {
+            annotationView = nil
+        }
+
+        if let animatedAnnotationView,
+           let animatedAnnotation,
+           isAnnotationView(animatedAnnotationView, boundTo: animatedAnnotation) {
+            return animatedAnnotationView
+        }
+
+        if animatedAnnotationView != nil {
+            animatedAnnotationView = nil
+        }
+
+        return nil
+    }
+
+    private func refreshChildrenImageInPlace(invalidateChildrenCache: Bool = false, cacheImage: Bool = true) {
         guard !isRemoving else { return }
 
         let refresh = { [weak self] in
@@ -580,7 +612,7 @@ class MarkerView: ExpoView {
                 self.invalidateCurrentChildrenCache()
             }
 
-            guard let targetView = self.annotationView ?? self.animatedAnnotationView else {
+            guard let targetView = self.currentChildrenAnnotationView() else {
                 self.refreshAnnotationAppearance(invalidateChildrenCache: invalidateChildrenCache)
                 return
             }
@@ -589,12 +621,12 @@ class MarkerView: ExpoView {
             let key = self.childrenCacheKey(for: size)
             let signature = self.childrenRenderSignature()
 
-            if let cached = IconBitmapCache.shared.image(forKey: key) {
+            if cacheImage, let cached = IconBitmapCache.shared.image(forKey: key) {
                 self.applyChildrenImage(cached, to: targetView, signature: signature)
                 return
             }
 
-            if let generated = self.createImageFromSubviews(size: size) {
+            if let generated = self.createImageFromSubviews(size: size, cacheImage: cacheImage) {
                 self.applyChildrenImage(generated, to: targetView, signature: signature)
                 return
             }
@@ -611,15 +643,47 @@ class MarkerView: ExpoView {
         }
     }
 
-    private func scheduleChildrenImageRefresh(invalidateChildrenCache: Bool = false) {
+    private func scheduleChildrenImageRefresh(
+        invalidateChildrenCache: Bool = false,
+        cacheImage: Bool = true,
+        delay: TimeInterval = 0.02
+    ) {
         pendingSubviewRefreshTask?.cancel()
 
         let task = DispatchWorkItem { [weak self] in
-            self?.refreshChildrenImageInPlace(invalidateChildrenCache: invalidateChildrenCache)
+            self?.refreshChildrenImageInPlace(invalidateChildrenCache: invalidateChildrenCache, cacheImage: cacheImage)
         }
 
         pendingSubviewRefreshTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: task)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: task)
+    }
+
+    private func scheduleCacheKeyChildrenImageRefresh() {
+        pendingSubviewRefreshTask?.cancel()
+        pendingSubviewRefreshTask = nil
+        pendingCacheKeyRefreshTask?.cancel()
+
+        cacheKeyRefreshGeneration += 1
+        let generation = cacheKeyRefreshGeneration
+
+        lastRenderedChildrenSignature = nil
+        invalidateCurrentChildrenCache()
+
+        let uncachedTask = DispatchWorkItem { [weak self] in
+            guard let self = self, !self.isRemoving, self.cacheKeyRefreshGeneration == generation else { return }
+            self.refreshChildrenImageInPlace(invalidateChildrenCache: true, cacheImage: false)
+
+            let cachedTask = DispatchWorkItem { [weak self] in
+                guard let self = self, !self.isRemoving, self.cacheKeyRefreshGeneration == generation else { return }
+                self.refreshChildrenImageInPlace(invalidateChildrenCache: true, cacheImage: true)
+            }
+
+            self.pendingCacheKeyRefreshTask = cachedTask
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: cachedTask)
+        }
+
+        pendingCacheKeyRefreshTask = uncachedTask
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: uncachedTask)
     }
 
     private func iconCacheKey(for iconUri: String) -> String {
@@ -792,11 +856,38 @@ class MarkerView: ExpoView {
      */
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
-        
-        // 如果 newSuperview 为 nil，说明视图正在被移除
+
         if newSuperview == nil {
-            removeAnnotationFromMap()
+            scheduleAnnotationRemovalFromMap()
+        } else {
+            cancelPendingAnnotationRemoval()
         }
+    }
+
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+
+        if superview != nil {
+            cancelPendingAnnotationRemoval()
+        }
+    }
+
+    private func scheduleAnnotationRemovalFromMap() {
+        cancelPendingAnnotationRemoval()
+
+        let task = DispatchWorkItem { [weak self] in
+            guard let self = self, self.superview == nil else { return }
+            self.pendingAnnotationRemovalTask = nil
+            self.removeAnnotationFromMap()
+        }
+
+        pendingAnnotationRemovalTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: task)
+    }
+
+    private func cancelPendingAnnotationRemoval() {
+        pendingAnnotationRemovalTask?.cancel()
+        pendingAnnotationRemovalTask = nil
     }
     
     /**
@@ -805,9 +896,11 @@ class MarkerView: ExpoView {
     private func removeAnnotationFromMap() {
         guard !isRemoving else { return }
         isRemoving = true
+        cancelPendingAnnotationRemoval()
         pendingAddTask?.cancel(); pendingAddTask = nil
         pendingUpdateTask?.cancel(); pendingUpdateTask = nil
         pendingSubviewRefreshTask?.cancel(); pendingSubviewRefreshTask = nil
+        pendingCacheKeyRefreshTask?.cancel(); pendingCacheKeyRefreshTask = nil
 
         if Thread.isMainThread {
             cleanupAnnotationFromMap()
@@ -919,7 +1012,7 @@ class MarkerView: ExpoView {
             return
         }
 
-        guard let annotationView = annotationView else {
+        guard let annotationView = currentChildrenAnnotationView() else {
             mapView.removeAnnotation(annotation)
             mapView.addAnnotation(annotation)
             return
@@ -1353,6 +1446,8 @@ class MarkerView: ExpoView {
         pendingAddTask?.cancel()
         pendingUpdateTask?.cancel()
         pendingSubviewRefreshTask?.cancel()
+        pendingCacheKeyRefreshTask?.cancel()
+        pendingAnnotationRemovalTask?.cancel()
 
         if Thread.isMainThread {
             cleanupAnnotationFromMap()

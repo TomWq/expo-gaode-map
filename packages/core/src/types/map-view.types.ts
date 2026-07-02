@@ -82,7 +82,7 @@ export interface MapViewProps {
   userLocationRepresentation?: {
     /** 精度圈是否显示 @default true */
     showsAccuracyRing?: boolean;
-    /** 是否显示方向指示 @default true @platform ios */
+    /** 是否显示 SDK 方向指示扇形；iOS 无默认箭头图片，如需箭头请配合 image 传自定义定位图 @default true @platform ios */
     showsHeadingIndicator?: boolean;
     /** 精度圈填充颜色 支持 '#RRGGBB'、'red' 或 ARGB 数字 */
     fillColor?: string | number;
@@ -118,7 +118,7 @@ export interface MapViewProps {
      *
      * 🧭 **方向指示说明**：
      * - Android 通过 locationType 实现方向指示（定位点依照设备方向旋转）
-     * - iOS 通过 showsHeadingIndicator 实现方向指示（显示扇形方向指示器）
+     * - iOS 通过 showsHeadingIndicator 显示方向指示扇形；SDK 无默认箭头图片，如需箭头请配合 image 传自定义定位图
      *
      * 📱 **Android 方向指示模式**（推荐使用以下两种）：
      * - 'LOCATION_ROTATE': 定位点依照设备方向旋转，视角跟随移动到中心

@@ -10,6 +10,7 @@ import {
 } from 'expo-gaode-map';
 
 type MarkerLevel = 'compact' | 'normal' | 'large';
+type ReactKeyMode = 'stable' | 'selected';
 
 type DemoMarker = {
   id: 'sanlitun' | 'guomao' | 'wangjing' | 'olympic';
@@ -71,6 +72,18 @@ function resolveMarkerLevel(zoom: number): MarkerLevel {
   }
 
   return 'compact';
+}
+
+function markerCacheKey(marker: DemoMarker, level: MarkerLevel, selected: boolean) {
+  return `zoom-anchor-marker-${marker.id}-${level}-${selected ? 'selected' : 'normal'}`;
+}
+
+function markerReactKey(marker: DemoMarker, selected: boolean, mode: ReactKeyMode) {
+  if (mode === 'selected') {
+    return `${marker.id}-${selected ? 'selected' : 'normal'}`;
+  }
+
+  return marker.id;
 }
 
 function DemoMarkerView({
@@ -140,7 +153,7 @@ const DemoMapMarker = React.memo(
     return (
       <Marker
         position={marker.position}
-        cacheKey={`zoom-anchor-marker-${marker.id}-${level}-${selected ? 'selected' : 'normal'}`}
+        cacheKey={markerCacheKey(marker, level, selected)}
         zIndex={selected ? 100 : 10 + index}
         onMarkerPress={() => onSelect(marker.id)}
       >
@@ -157,6 +170,7 @@ const DemoMapMarker = React.memo(
 
 export default function ZoomAnchorMarkerStateExample() {
   const [zoomAnchor, setZoomAnchor] = React.useState<ZoomGestureAnchor>('gesture');
+  const [reactKeyMode, setReactKeyMode] = React.useState<ReactKeyMode>('stable');
   const [markerLevel, setMarkerLevel] = React.useState<MarkerLevel>('normal');
   const [selectedId, setSelectedId] = React.useState<DemoMarker['id']>('sanlitun');
   const handleSelectMarker = React.useCallback((id: DemoMarker['id']) => {
@@ -178,7 +192,7 @@ export default function ZoomAnchorMarkerStateExample() {
           const selected = marker.id === selectedId;
           return (
             <DemoMapMarker
-              key={marker.id}
+              key={markerReactKey(marker, selected, reactKeyMode)}
               marker={marker}
               level={markerLevel}
               selected={selected}
@@ -213,6 +227,27 @@ export default function ZoomAnchorMarkerStateExample() {
                   );
                 })}
               </View>
+              <View style={styles.segment}>
+                {(['stable', 'selected'] as ReactKeyMode[]).map((mode) => {
+                  const active = reactKeyMode === mode;
+                  return (
+                    <Pressable
+                      key={mode}
+                      style={[styles.segmentButton, active && styles.segmentButtonActive]}
+                      onPress={() => setReactKeyMode(mode)}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentButtonText,
+                          active && styles.segmentButtonTextActive,
+                        ]}
+                      >
+                        {mode === 'stable' ? '稳定 id' : '随选中'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Marker</Text>
                 <Text style={styles.infoValue}>{selectedId}</Text>
@@ -220,6 +255,12 @@ export default function ZoomAnchorMarkerStateExample() {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Level</Text>
                 <Text style={styles.infoValue}>{markerLevel}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Key</Text>
+                <Text style={styles.infoValue}>
+                  {reactKeyMode === 'stable' ? 'id' : 'id+selected'}
+                </Text>
               </View>
             </View>
           </View>

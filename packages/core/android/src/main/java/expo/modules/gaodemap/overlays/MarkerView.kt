@@ -224,6 +224,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isRemoving = false  // 标记是否正在被移除
     private var pendingMarkerIconUpdate: Runnable? = null
+    private var pendingDetachRemovalTask: Runnable? = null
     private var lastAppliedCustomMarkerKey: String? = null
 
     // 缓存属性，在 marker 创建前保存
@@ -482,9 +483,10 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
 
         cacheKey = key
         if (isNotEmpty()) {
-            // cacheKey 通常和 selected/zoom level 同帧变化。延后一帧截图，避免在 RN
-            // children 样式尚未完成更新时生成空图，同时保留旧图直到新图准备好。
-            scheduleMarkerIconUpdate(32)
+            // cacheKey 通常和 selected/zoom level 同帧变化。先淘汰当前 key 可能存在的旧截图，
+            // 再延后一帧重绘，避免切换选中态时命中 stale bitmap。
+            invalidateCurrentSnapshotCache()
+            markCustomMarkerContentDirty(32)
         } else {
             pendingIconUri?.let { iconUri ->
                 marker?.let { loadAndSetIcon(iconUri, it) }
@@ -1000,6 +1002,11 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
     }
 
+    private fun cancelPendingMarkerIconUpdate() {
+        pendingMarkerIconUpdate?.let { mainHandler.removeCallbacks(it) }
+        pendingMarkerIconUpdate = null
+    }
+
     private fun invalidateAppliedCustomMarkerCaches(clearGlobalCache: Boolean) {
         val key = lastAppliedCustomMarkerKey ?: return
         if (clearGlobalCache) {
@@ -1007,6 +1014,12 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             IconBitmapCache.remove(key)
         }
         lastAppliedCustomMarkerKey = null
+    }
+
+    private fun invalidateCurrentSnapshotCache() {
+        val key = resolveMarkerBitmapSnapshot()?.fullCacheKey ?: return
+        BitmapDescriptorCache.remove(key)
+        IconBitmapCache.remove(key)
     }
 
     private fun markCustomMarkerContentDirty(delayMs: Long = 16L) {
@@ -1331,6 +1344,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      * 移除标记
      */
     fun removeMarker() {
+        cancelPendingDetachRemoval()
+        cancelPendingMarkerIconUpdate()
+
         // 停止平滑移动
         stopSmoothMove()
         smoothMoveMarker?.destroy()
@@ -1343,20 +1359,30 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         marker = null
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        cancelPendingDetachRemoval()
+        isRemoving = false
+
+        if (isNotEmpty() && marker != null) {
+            scheduleMarkerIconUpdate(16)
+        }
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
 
         // 🔑 关键修复：使用 post 延迟检查
-        // 清理所有延迟任务
-        mainHandler.removeCallbacksAndMessages(null)
-        pendingMarkerIconUpdate = null
+        cancelPendingDetachRemoval()
 
         // 延迟检查 parent 状态。React 更新 children 时可能会短暂 detach/attach，
         // 过早删除会导致点击后其它 Marker 消失。
-        mainHandler.postDelayed({
+        val task = Runnable {
+            pendingDetachRemovalTask = null
             if (parent == null) {
                 // 标记正在移除
                 isRemoving = true
+                cancelPendingMarkerIconUpdate()
 
                 // 🔑 修复：不要清空全局缓存
                 // 理由：会影响其他 Marker 的性能
@@ -1365,7 +1391,14 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 // 移除 marker
                 removeMarker()
             }
-        }, 500)
+        }
+        pendingDetachRemovalTask = task
+        mainHandler.postDelayed(task, 500)
+    }
+
+    private fun cancelPendingDetachRemoval() {
+        pendingDetachRemovalTask?.let { mainHandler.removeCallbacks(it) }
+        pendingDetachRemovalTask = null
     }
 
 }

@@ -199,6 +199,10 @@ export default function MapBasicsExample() {
             } · 缩放 ${zoom.toFixed(2)}`
           );
         }}
+        userLocationRepresentation={{
+          showsHeadingIndicator: true,
+        }}
+        
       >
         {location ? (
           <Marker
