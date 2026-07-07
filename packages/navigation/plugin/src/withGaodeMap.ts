@@ -232,17 +232,18 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       if (!mainApplication['activity']) {
         mainApplication['activity'] = [];
       }
+      const activities = mainApplication['activity'];
 
       const naviActivityName = 'com.amap.api.navi.AmapRouteActivity';
       const naviConfigChanges = 'orientation|keyboardHidden|screenSize|navigation';
       const naviTheme = '@android:style/Theme.NoTitleBar';
 
-      const activityIndex = mainApplication['activity'].findIndex(
+      const activityIndex = activities.findIndex(
         (item) => item.$?.['android:name'] === naviActivityName
       );
 
       if (activityIndex === -1) {
-        mainApplication['activity'].push({
+        activities.push({
           $: {
             'android:name': naviActivityName,
             'android:theme': naviTheme,
@@ -250,13 +251,15 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
           },
         });
       } else {
-        const existing = mainApplication['activity'][activityIndex];
-        existing.$ = {
-          ...(existing.$ || {}),
-          'android:name': naviActivityName,
-          'android:theme': existing.$?.['android:theme'] || naviTheme,
-          'android:configChanges': existing.$?.['android:configChanges'] || naviConfigChanges,
-        };
+        const existing = activities[activityIndex];
+        if (existing) {
+          existing.$ = {
+            ...(existing.$ || {}),
+            'android:name': naviActivityName,
+            'android:theme': existing.$?.['android:theme'] || naviTheme,
+            'android:configChanges': existing.$?.['android:configChanges'] || naviConfigChanges,
+          };
+        }
       }
     }
 
@@ -265,14 +268,15 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
       if (!mainApplication['meta-data']) {
         mainApplication['meta-data'] = [];
       }
+      const metaData = mainApplication['meta-data'];
 
       // 检查是否已存在
-      const hasApiKey = mainApplication['meta-data'].some(
+      const hasApiKey = metaData.some(
         (item) => item.$?.['android:name'] === 'com.amap.api.v2.apikey'
       );
 
       if (!hasApiKey) {
-        mainApplication['meta-data'].push({
+        metaData.push({
           $: {
             'android:name': 'com.amap.api.v2.apikey',
             'android:value': props.androidKey,
@@ -280,11 +284,12 @@ const withGaodeMapAndroidManifest: ConfigPlugin<GaodeMapPluginProps> = (config, 
         });
       } else {
         // 更新现有的 API Key
-        const apiKeyIndex = mainApplication['meta-data'].findIndex(
+        const apiKeyIndex = metaData.findIndex(
           (item) => item.$?.['android:name'] === 'com.amap.api.v2.apikey'
         );
-        if (apiKeyIndex !== -1) {
-          mainApplication['meta-data'][apiKeyIndex].$ = {
+        const apiKeyMetaData = metaData[apiKeyIndex];
+        if (apiKeyMetaData) {
+          apiKeyMetaData.$ = {
             'android:name': 'com.amap.api.v2.apikey',
             'android:value': props.androidKey,
           };
