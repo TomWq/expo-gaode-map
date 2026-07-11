@@ -121,6 +121,8 @@ class PolylineView: ExpoView {
         if renderer == nil, let polyline = polyline {
             renderer = MAPolylineRenderer(polyline: polyline)
             renderer?.lineWidth = CGFloat(strokeWidth)
+            // MALineDashType 是 C enum,Swift 导入为全局常量 kMALineDashType*;square 与 Android DOTTEDLINE_TYPE_SQUARE 对齐
+            renderer?.lineDashType = isDotted ? kMALineDashTypeSquare : kMALineDashTypeNone
             
             if let url = textureUrl {
                 loadTexture(url: url, renderer: renderer!)
