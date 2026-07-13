@@ -62,5 +62,8 @@
       "optional": true
     }
   },
+  "resolutions": {
+    "uuid@npm:^7.0.3": "npm:11.1.1"
+  },
   "packageManager": "yarn@4.12.0"
 }
