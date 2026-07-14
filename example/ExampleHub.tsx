@@ -19,6 +19,7 @@ import GeometryUtilsExample from './GeometryUtilsExample';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 
+import MarkerStressTestExample from './MarkerStressTestExample';
 import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MultiFormatExample from './MultiFormatExample';
 import OfflineMapExample from './OfflineMapExample';
@@ -144,6 +145,13 @@ const EXAMPLES: ExampleDefinition[] = [
     description: '演示 AreaMaskOverlay 与多环边界输入，适合区域高亮场景。',
     category: 'overlay',
     component: AOIOverlayExample,
+  },
+  {
+    id: 'marker-stress-test',
+    title: 'iOS Marker 批量压力测试',
+    description: '挂载 50-200 个可见自定义 Marker，批量切换 children 样式并观察卡顿和内存压力。',
+    category: 'tooling',
+    component: MarkerStressTestExample,
   },
   {
     id: 'geometry-utils',
