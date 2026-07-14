@@ -8,15 +8,17 @@ const readSource = (relativePath: string) => {
 
 describe('iOS Marker stress example source contract', () => {
   const stressExampleSource = readSource('../../../../example/MarkerStressTestExample.tsx');
-  const exampleHubSource = readSource('../../../../example/ExampleHub.tsx');
+  const exampleCatalogSource = readSource('../../../../example/exampleCatalog.ts');
 
-  it('registers a dedicated performance example in Example Hub', () => {
-    expect(exampleHubSource).toContain(
+  it('registers a dedicated performance example in the Expo Router catalog', () => {
+    expect(exampleCatalogSource).toContain(
       "import MarkerStressTestExample from './MarkerStressTestExample';"
     );
-    expect(exampleHubSource).toContain("id: 'marker-stress-test'");
-    expect(exampleHubSource).toContain('component: MarkerStressTestExample');
-    expect(exampleHubSource).toContain("category: 'tooling'");
+    expect(exampleCatalogSource).toContain("'marker-stress-test': {");
+    expect(exampleCatalogSource).toContain('component: MarkerStressTestExample');
+    expect(exampleCatalogSource).toContain(
+      "entries: ['marker-stress-test', 'geometry-utils']"
+    );
   });
 
   it('provides deterministic 50 to 200 Marker loads with a 100 Marker default', () => {

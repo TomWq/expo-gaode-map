@@ -13,6 +13,7 @@ import InputTipsExample from './InputTipsExample';
 import MapBasicsExample from './MapBasicsExample';
 import MapDebugExample from './MapDebugExample';
 import MayDayFiveDayTripExample from './MayDayFiveDayTripExample';
+import MarkerStressTestExample from './MarkerStressTestExample';
 import MarkerTravelCardExample from './MarkerTravelCardExample';
 import MockLocationDetectionExample from './MockLocationDetectionExample';
 import MultiFormatExample from './MultiFormatExample';
@@ -144,6 +145,14 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
     description: '演示 AreaMaskOverlay 与多环边界输入，适合区域高亮场景。',
     outcome: '进入 AOI 遮罩渲染页',
     component: AOIOverlayExample,
+  },
+  'marker-stress-test': {
+    id: 'marker-stress-test',
+    title: 'iOS Marker 批量压力测试',
+    description: '挂载 50-200 个可见自定义 Marker，批量切换 children 样式并观察卡顿和内存压力。',
+    outcome: '进入 Marker 性能压测页',
+    component: MarkerStressTestExample,
+    navigationBarColor: EXAMPLE_DARK_BACKGROUND,
   },
   'geometry-utils': {
     id: 'geometry-utils',
@@ -373,7 +382,7 @@ export const EXAMPLE_SECTIONS: ExampleSection[] = [
     key: 'tooling',
     title: '工具与兼容',
     description: '用于几何能力校验、平台适配和性能调试。',
-    entries: ['geometry-utils',],
+    entries: ['marker-stress-test', 'geometry-utils'],
   },
   {
     key: 'legacy',
