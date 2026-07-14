@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import MAMapKit
+import QuartzCore
 import UIKit
 
 /**
@@ -58,6 +59,8 @@ class MarkerView: ExpoView {
     var cacheKey: String?
     /// 标记是否正在被移除（防止重复移除）
     private var isRemoving: Bool = false
+    /// 旧架构物理移除完成后通知 Map 容器解除 overlay 强引用
+    var onPermanentDetach: ((MarkerView) -> Void)?
     
     // 平滑移动相关
     var smoothMovePath: [[String: Double]] = []
@@ -75,12 +78,8 @@ class MarkerView: ExpoView {
     private var pendingUpdateTask: DispatchWorkItem?
     /// 子视图变化后的延迟刷新任务
     private var pendingSubviewRefreshTask: DispatchWorkItem?
-    /// cacheKey 变化后的延迟刷新任务
-    private var pendingCacheKeyRefreshTask: DispatchWorkItem?
-    /// 视图 detach 后延迟确认移除 annotation，避免 React 更新时短暂 detach 导致闪烁
-    private var pendingAnnotationRemovalTask: DispatchWorkItem?
-    /// cacheKey 刷新代次，用于丢弃过期截图任务
-    private var cacheKeyRefreshGeneration: Int = 0
+    /// 下一次主队列确认物理 detach 是否仍然成立
+    private var pendingDetachCheckTask: DispatchWorkItem?
     /// 最近一次应用到 annotationView 的 children 结构签名
     private var lastRenderedChildrenSignature: String?
     /// 最近一次成功渲染的 children 图片，用于缓存未命中时避免闪烁
@@ -113,7 +112,19 @@ class MarkerView: ExpoView {
         // 始终返回 false，表示点击不在此视图内
         return false
     }
-    
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        guard !isRemoving,
+              !subviews.isEmpty,
+              currentChildrenAnnotationView() != nil else {
+            return
+        }
+
+        scheduleChildrenImageRefresh(invalidateChildrenCache: true)
+    }
+
     /**
      * 检查地图是否已连接
      */
@@ -165,7 +176,7 @@ class MarkerView: ExpoView {
         guard cacheKey != key else { return }
         self.cacheKey = key
         if !subviews.isEmpty {
-            scheduleCacheKeyChildrenImageRefresh()
+            scheduleChildrenImageRefresh(invalidateChildrenCache: true)
         } else {
             refreshAnnotationAppearance()
         }
@@ -365,7 +376,7 @@ class MarkerView: ExpoView {
             }
 
             // 图片内容可能尚未就绪，保留旧图并延迟重试，避免透明闪烁。
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak annotationView] in
+            DispatchQueue.main.async { [weak self, weak annotationView] in
                 guard let self = self, let annotationView = annotationView else { return }
                 guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
                 // 再次检查缓存（避免重复渲染）
@@ -533,11 +544,9 @@ class MarkerView: ExpoView {
         // 强制子视图使用指定尺寸布局
         firstSubview.frame = CGRect(origin: .zero, size: size)
         
-        // 🔑 多次强制布局，确保 React Native Text 完全渲染
-        for _ in 0..<3 {
-            forceLayoutRecursively(view: firstSubview)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
-        }
+        // 在 React Native 完成当前挂载批次后执行一次确定性布局。
+        // 后续布局变化会再次合并触发快照，不需要阻塞主 RunLoop 猜测内容何时就绪。
+        forceLayoutRecursively(view: firstSubview)
 
         if containsPendingImageContent(in: firstSubview) {
             return nil
@@ -567,10 +576,16 @@ class MarkerView: ExpoView {
     }
 
     private func applyChildrenImage(_ image: UIImage, to annotationView: MAAnnotationView, signature: String? = nil) {
-        annotationView.image = image
-        applyCenterOffset(to: annotationView, defaultOffset: .zero)
-        annotationView.canShowCallout = false
-        annotationView.isDraggable = draggable
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        UIView.performWithoutAnimation {
+            annotationView.image = image
+            applyCenterOffset(to: annotationView, defaultOffset: .zero)
+            annotationView.canShowCallout = false
+            annotationView.isDraggable = draggable
+            annotationView.layoutIfNeeded()
+        }
+        CATransaction.commit()
         lastRenderedChildrenImage = image
         if let resolvedSignature = signature {
             lastRenderedChildrenSignature = resolvedSignature
@@ -645,8 +660,7 @@ class MarkerView: ExpoView {
 
     private func scheduleChildrenImageRefresh(
         invalidateChildrenCache: Bool = false,
-        cacheImage: Bool = true,
-        delay: TimeInterval = 0.02
+        cacheImage: Bool = true
     ) {
         pendingSubviewRefreshTask?.cancel()
 
@@ -655,35 +669,7 @@ class MarkerView: ExpoView {
         }
 
         pendingSubviewRefreshTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: task)
-    }
-
-    private func scheduleCacheKeyChildrenImageRefresh() {
-        pendingSubviewRefreshTask?.cancel()
-        pendingSubviewRefreshTask = nil
-        pendingCacheKeyRefreshTask?.cancel()
-
-        cacheKeyRefreshGeneration += 1
-        let generation = cacheKeyRefreshGeneration
-
-        lastRenderedChildrenSignature = nil
-        invalidateCurrentChildrenCache()
-
-        let uncachedTask = DispatchWorkItem { [weak self] in
-            guard let self = self, !self.isRemoving, self.cacheKeyRefreshGeneration == generation else { return }
-            self.refreshChildrenImageInPlace(invalidateChildrenCache: true, cacheImage: false)
-
-            let cachedTask = DispatchWorkItem { [weak self] in
-                guard let self = self, !self.isRemoving, self.cacheKeyRefreshGeneration == generation else { return }
-                self.refreshChildrenImageInPlace(invalidateChildrenCache: true, cacheImage: true)
-            }
-
-            self.pendingCacheKeyRefreshTask = cachedTask
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: cachedTask)
-        }
-
-        pendingCacheKeyRefreshTask = uncachedTask
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: uncachedTask)
+        DispatchQueue.main.async(execute: task)
     }
 
     private func iconCacheKey(for iconUri: String) -> String {
@@ -849,18 +835,14 @@ class MarkerView: ExpoView {
             forceLayoutRecursively(view: subview)
         }
     }
-    
-    
-    /**
-     * 当视图即将从父视图移除时调用
-     */
+
     override func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
 
         if newSuperview == nil {
-            scheduleAnnotationRemovalFromMap()
+            scheduleDetachCheck()
         } else {
-            cancelPendingAnnotationRemoval()
+            cancelPendingDetachCheck()
         }
     }
 
@@ -868,47 +850,39 @@ class MarkerView: ExpoView {
         super.didMoveToSuperview()
 
         if superview != nil {
-            cancelPendingAnnotationRemoval()
+            cancelPendingDetachCheck()
         }
     }
 
-    private func scheduleAnnotationRemovalFromMap() {
-        cancelPendingAnnotationRemoval()
+    private func scheduleDetachCheck() {
+        cancelPendingDetachCheck()
 
         let task = DispatchWorkItem { [weak self] in
-            guard let self = self, self.superview == nil else { return }
-            self.pendingAnnotationRemovalTask = nil
+            guard let self = self else { return }
+            self.pendingDetachCheckTask = nil
+            guard self.superview == nil else { return }
             self.removeAnnotationFromMap()
         }
 
-        pendingAnnotationRemovalTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: task)
+        pendingDetachCheckTask = task
+        DispatchQueue.main.async(execute: task)
     }
 
-    private func cancelPendingAnnotationRemoval() {
-        pendingAnnotationRemovalTask?.cancel()
-        pendingAnnotationRemovalTask = nil
+    private func cancelPendingDetachCheck() {
+        pendingDetachCheckTask?.cancel()
+        pendingDetachCheckTask = nil
     }
-    
-    /**
-     * 从地图移除标记点
-     */
+
     private func removeAnnotationFromMap() {
         guard !isRemoving else { return }
         isRemoving = true
-        cancelPendingAnnotationRemoval()
+        cancelPendingDetachCheck()
         pendingAddTask?.cancel(); pendingAddTask = nil
         pendingUpdateTask?.cancel(); pendingUpdateTask = nil
         pendingSubviewRefreshTask?.cancel(); pendingSubviewRefreshTask = nil
-        pendingCacheKeyRefreshTask?.cancel(); pendingCacheKeyRefreshTask = nil
-
-        if Thread.isMainThread {
-            cleanupAnnotationFromMap()
-        } else {
-            DispatchQueue.main.sync {
-                cleanupAnnotationFromMap()
-            }
-        }
+        cleanupAnnotationFromMap()
+        onPermanentDetach?(self)
+        onPermanentDetach = nil
     }
 
     private func cleanupAnnotationFromMap() {
@@ -975,7 +949,7 @@ class MarkerView: ExpoView {
         }
 
         pendingSubviewRefreshTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: task)
+        DispatchQueue.main.async(execute: task)
     }
 
     private func refreshAnnotationForSubviewChanges(allowFallbackToDefault: Bool) {
@@ -1438,16 +1412,15 @@ class MarkerView: ExpoView {
     }
     
     /**
-     * 析构函数 - 不执行任何清理
-     * 清理工作已在 willMove(toSuperview:) 中完成
+     * MarkerView 从 React Native 注册表释放时清理原生 annotation。
+     * Map 容器会在移除子视图时立即解除 overlayViews 的强引用。
      */
     deinit {
         // 取消待处理的任务
         pendingAddTask?.cancel()
         pendingUpdateTask?.cancel()
         pendingSubviewRefreshTask?.cancel()
-        pendingCacheKeyRefreshTask?.cancel()
-        pendingAnnotationRemovalTask?.cancel()
+        pendingDetachCheckTask?.cancel()
 
         if Thread.isMainThread {
             cleanupAnnotationFromMap()

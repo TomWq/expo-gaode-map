@@ -23,36 +23,47 @@ describe('iOS Marker native source guards', () => {
     );
   });
 
-  it('does not cache the first children snapshot after cacheKey changes', () => {
-    expect(markerViewSource).toContain('scheduleCacheKeyChildrenImageRefresh()');
+  it('coalesces cacheKey changes into one children snapshot refresh', () => {
     expect(markerViewSource).toContain(
-      'refreshChildrenImageInPlace(invalidateChildrenCache: true, cacheImage: false)'
+      'scheduleChildrenImageRefresh(invalidateChildrenCache: true)'
     );
     expect(markerViewSource).toContain('createImageFromSubviews(size: size, cacheImage: cacheImage)');
     expect(markerViewSource).toContain('if cacheImage {');
+    expect(markerViewSource).not.toContain('scheduleCacheKeyChildrenImageRefresh()');
+    expect(markerViewSource).not.toContain('pendingCacheKeyRefreshTask');
+    expect(markerViewSource).not.toContain('cacheKeyRefreshGeneration');
   });
 
-  it('does not remove annotations immediately during transient detach', () => {
+  it('applies children snapshots atomically without implicit animation', () => {
+    expect(markerViewSource).toContain('import QuartzCore');
+    expect(markerViewSource).toContain('CATransaction.setDisableActions(true)');
+    expect(markerViewSource).toContain('UIView.performWithoutAnimation');
+    expect(markerViewSource).not.toContain('RunLoop.current.run');
+  });
+
+  it('refreshes a mounted children marker after a committed native layout', () => {
+    expect(markerViewSource).toContain('override func layoutSubviews()');
     expect(markerViewSource).toContain(
-      'private var pendingAnnotationRemovalTask: DispatchWorkItem?'
+      'scheduleChildrenImageRefresh(invalidateChildrenCache: true)'
     );
-    expect(markerViewSource).toContain('scheduleAnnotationRemovalFromMap()');
-    expect(markerViewSource).toContain('cancelPendingAnnotationRemoval()');
-    expect(markerViewSource).toContain('override func didMoveToSuperview()');
-    expect(markerViewSource).not.toContain(`if newSuperview == nil {
-            removeAnnotationFromMap()
-        }`);
   });
 
-  it('keeps marker overlay registration during transient detach', () => {
-    expect(mapViewSource).toContain(
-      'private var pendingMarkerOverlayUnregisterTasks: [ObjectIdentifier: DispatchWorkItem] = [:]'
+  it('cleans up a physical detach on the next queue turn without a millisecond timeout', () => {
+    expect(markerViewSource).toContain('private var pendingDetachCheckTask: DispatchWorkItem?');
+    expect(markerViewSource).toContain('scheduleDetachCheck()');
+    expect(markerViewSource).toContain('guard self.superview == nil else { return }');
+    expect(markerViewSource).toContain('DispatchQueue.main.async(execute: task)');
+    expect(mapViewSource).toContain('markerView.onPermanentDetach =');
+  });
+
+  it('does not use time-based guesses for marker teardown', () => {
+    expect(markerViewSource).not.toContain('pendingAnnotationRemovalTask');
+    expect(markerViewSource).not.toContain('scheduleAnnotationRemovalFromMap()');
+    expect(markerViewSource).not.toContain('DispatchQueue.main.sync');
+    expect(mapViewSource).not.toContain('pendingMarkerOverlayUnregisterTasks');
+    expect(mapViewSource).not.toContain('scheduleMarkerOverlayUnregister(markerView)');
+    expect(mapViewSource).toMatch(
+      /if let markerView = subview as\? MarkerView \{[\s\S]*?unregisterOverlayView\(markerView\)/
     );
-    expect(mapViewSource).toContain('scheduleMarkerOverlayUnregister(markerView)');
-    expect(mapViewSource).toContain('cancelPendingMarkerOverlayUnregister(for: view)');
-    expect(mapViewSource).not.toContain(`if let markerView = subview as? MarkerView {
-            unregisterOverlayView(markerView)
-            // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
-        }`);
   });
 });

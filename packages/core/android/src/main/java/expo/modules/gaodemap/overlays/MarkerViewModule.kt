@@ -12,6 +12,10 @@ class MarkerViewModule : Module() {
 
     View(MarkerView::class) {
       Events("onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd")
+
+      OnViewDestroys { view: MarkerView ->
+        view.removeMarker()
+      }
       
       // 纬度
       Prop<Double>("latitude") { view, lat ->

@@ -217,7 +217,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
 
     // 辅助监听器列表
     private val cameraChangeListeners = mutableListOf<AMap.OnCameraChangeListener>()
-    private val pendingMarkerRemovalTasks = mutableMapOf<MarkerView, Runnable>()
 
     fun addCameraChangeListener(listener: AMap.OnCameraChangeListener) {
         if (!cameraChangeListeners.contains(listener)) {
@@ -651,7 +650,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             mainHandler.removeCallbacksAndMessages(null)
             pendingCameraMoveData = null
             pendingCameraMoveDispatch = null
-            pendingMarkerRemovalTasks.clear()
 
             // 清理所有地图监听器
             aMap.setOnMapClickListener(null)
@@ -757,7 +755,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     @SuppressLint("UseKtx")
     override fun addView(child: View?, index: Int) {
         if (child is MarkerView) {
-            cancelPendingMarkerRemoval(child)
             child.setMap(aMap)
             // MarkerView 需要保留可测量尺寸，否则 Android 无法正确处理
             // Text / View 的 maxWidth 等布局约束，最终会被测成整行宽度。
@@ -789,13 +786,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         }
     }
 
-    /**
-     * 移除子视图
-     * 延迟移除 Marker，让它们跟随地图一起延迟销毁
-     */
+    /** 移除子视图，并同步移除对应的原生 Marker。 */
     override fun removeView(child: View?) {
         if (child is MarkerView) {
-            scheduleMarkerRemoval(child)
+            child.removeMarker()
             super.removeView(child)
             return
         }
@@ -807,10 +801,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         }
     }
 
-    /**
-     * 按索引移除视图
-     * 延迟移除 Marker，让它们跟随地图一起延迟销毁
-     */
+    /** 按索引移除视图，并同步移除对应的原生 Marker。 */
     override fun removeViewAt(index: Int) {
         try {
             val child = super.getChildAt(index)
@@ -820,7 +811,7 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
             }
 
             if (child is MarkerView) {
-                scheduleMarkerRemoval(child)
+                child.removeMarker()
             }
 
             super.removeViewAt(index)
@@ -828,24 +819,6 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         } catch (_: Exception) {
             // 忽略异常
         }
-    }
-
-    private fun scheduleMarkerRemoval(markerView: MarkerView) {
-        cancelPendingMarkerRemoval(markerView)
-
-        val task = Runnable {
-            pendingMarkerRemovalTasks.remove(markerView)
-            if (markerView.parent == null) {
-                markerView.removeMarker()
-            }
-        }
-
-        pendingMarkerRemovalTasks[markerView] = task
-        mainHandler.postDelayed(task, 500)
-    }
-
-    private fun cancelPendingMarkerRemoval(markerView: MarkerView) {
-        pendingMarkerRemovalTasks.remove(markerView)?.let(mainHandler::removeCallbacks)
     }
 
     private fun checkDeclarativePolylinePress(latLng: LatLng): Boolean {

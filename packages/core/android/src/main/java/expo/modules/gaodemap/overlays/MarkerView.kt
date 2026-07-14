@@ -224,7 +224,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isRemoving = false  // 标记是否正在被移除
     private var pendingMarkerIconUpdate: Runnable? = null
-    private var pendingDetachRemovalTask: Runnable? = null
+    private var contentInvalidationGeneration: Long = 0
     private var lastAppliedCustomMarkerKey: String? = null
 
     // 缓存属性，在 marker 创建前保存
@@ -338,14 +338,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
 
       flushPendingShowIfNeeded()
       
-      // 🔑 修复：需要延迟更新图标，等待 children 完成布局
-      // 使用 post 延迟到下一帧，确保 children 完成测量和布局
+      // 等待 children 在同一渲染帧内稳定后再生成一次快照。
       if (isNotEmpty() && marker != null) {
-        mainHandler.post {
-          if (!isRemoving && marker != null && isNotEmpty()) {
-            updateMarkerIcon()
-          }
-        }
+        markCustomMarkerContentDirty()
       }
     }
 
@@ -484,9 +479,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         cacheKey = key
         if (isNotEmpty()) {
             // cacheKey 通常和 selected/zoom level 同帧变化。先淘汰当前 key 可能存在的旧截图，
-            // 再延后一帧重绘，避免切换选中态时命中 stale bitmap。
+            // 等待 children 完成当前帧的 props/layout 更新后再重绘。
             invalidateCurrentSnapshotCache()
-            markCustomMarkerContentDirty(32)
+            markCustomMarkerContentDirty()
         } else {
             pendingIconUri?.let { iconUri ->
                 marker?.let { loadAndSetIcon(iconUri, it) }
@@ -981,29 +976,54 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         marker?.let { showMarker(it) }
     }
 
-    private fun scheduleMarkerIconUpdate(delayMs: Long = 16L) {
+    private fun scheduleMarkerIconUpdateAfterContentSettles() {
         if (isRemoving || marker == null || isEmpty()) {
             return
         }
 
-        pendingMarkerIconUpdate?.let { mainHandler.removeCallbacks(it) }
-        val task = Runnable {
+        pendingMarkerIconUpdate?.let { removeCallbacks(it) }
+        val scheduledGeneration = contentInvalidationGeneration
+        val settleTask = Runnable {
             pendingMarkerIconUpdate = null
-            if (!isRemoving && marker != null && isNotEmpty()) {
-                updateMarkerIcon()
+            if (isRemoving || marker == null || isEmpty()) {
+                return@Runnable
             }
-        }
-        pendingMarkerIconUpdate = task
 
-        if (delayMs <= 0L) {
-            mainHandler.post(task)
-        } else {
-            mainHandler.postDelayed(task, delayMs)
+            if (scheduledGeneration != contentInvalidationGeneration) {
+                scheduleMarkerIconUpdateAfterContentSettles()
+                return@Runnable
+            }
+
+            scheduleMarkerIconUpdateForStableGeneration(scheduledGeneration)
         }
+        pendingMarkerIconUpdate = settleTask
+        postOnAnimation(settleTask)
+    }
+
+    private fun scheduleMarkerIconUpdateForStableGeneration(expectedGeneration: Long) {
+        if (isRemoving || marker == null || isEmpty()) {
+            return
+        }
+
+        val renderTask = Runnable {
+            pendingMarkerIconUpdate = null
+            if (isRemoving || marker == null || isEmpty()) {
+                return@Runnable
+            }
+
+            if (expectedGeneration != contentInvalidationGeneration) {
+                scheduleMarkerIconUpdateAfterContentSettles()
+                return@Runnable
+            }
+
+            updateMarkerIcon()
+        }
+        pendingMarkerIconUpdate = renderTask
+        postOnAnimation(renderTask)
     }
 
     private fun cancelPendingMarkerIconUpdate() {
-        pendingMarkerIconUpdate?.let { mainHandler.removeCallbacks(it) }
+        pendingMarkerIconUpdate?.let { removeCallbacks(it) }
         pendingMarkerIconUpdate = null
     }
 
@@ -1022,17 +1042,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         IconBitmapCache.remove(key)
     }
 
-    private fun markCustomMarkerContentDirty(delayMs: Long = 16L) {
+    private fun markCustomMarkerContentDirty() {
         if (isRemoving || isEmpty()) {
             return
         }
+
+        contentInvalidationGeneration += 1
 
         // children（尤其是 Image）异步加载完成后，需要强制淘汰当前 marker 已应用的位图缓存，
         // 否则同一个 cacheKey 会一直命中“占位态”的旧 bitmap，表现为灰块/蒙层不更新。
         // 这里仅清理当前 marker 已应用的 key，不会影响其它 marker。
         invalidateAppliedCustomMarkerCaches(clearGlobalCache = true)
         if (marker != null) {
-            scheduleMarkerIconUpdate(delayMs)
+            scheduleMarkerIconUpdateAfterContentSettles()
         }
     }
 
@@ -1043,8 +1065,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             if (child != null && contains(child)) {
                 super.removeView(child)
                 // 不要在这里恢复默认图标
-                // 如果 MarkerView 整体要被移除，onDetachedFromWindow 会处理
-                // 如果只是移除 children 并保留 Marker，应该由外部重新设置 children
+                // 如果 MarkerView 整体被移除，父 MapView / OnViewDestroys 会清理原生 Marker。
+                // 如果只是替换 children，后续 add/layout invalidation 会生成新快照。
             }
         } catch (_: Exception) {
             // 忽略异常
@@ -1057,10 +1079,10 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
                 super.removeViewAt(index)
                 // 只在还有子视图时更新图标
                 if (!isRemoving && isNotEmpty() && marker != null) {
-                    markCustomMarkerContentDirty(50)
+                    markCustomMarkerContentDirty()
                 }
-                // 如果最后一个子视图被移除，什么都不做
-                // 让 onDetachedFromWindow 处理完整的清理
+                // 最后一个子视图被移除时保留 last-good 快照；新 child 加入后原子替换，
+                // MarkerView 真正销毁则由父 MapView / OnViewDestroys 负责清理。
             }
         } catch (_: Exception) {
             // 忽略异常
@@ -1344,8 +1366,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      * 移除标记
      */
     fun removeMarker() {
-        cancelPendingDetachRemoval()
         cancelPendingMarkerIconUpdate()
+        contentInvalidationGeneration += 1
 
         // 停止平滑移动
         stopSmoothMove()
@@ -1361,44 +1383,18 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        cancelPendingDetachRemoval()
         isRemoving = false
 
         if (isNotEmpty() && marker != null) {
-            scheduleMarkerIconUpdate(16)
+            markCustomMarkerContentDirty()
         }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-
-        // 🔑 关键修复：使用 post 延迟检查
-        cancelPendingDetachRemoval()
-
-        // 延迟检查 parent 状态。React 更新 children 时可能会短暂 detach/attach，
-        // 过早删除会导致点击后其它 Marker 消失。
-        val task = Runnable {
-            pendingDetachRemovalTask = null
-            if (parent == null) {
-                // 标记正在移除
-                isRemoving = true
-                cancelPendingMarkerIconUpdate()
-
-                // 🔑 修复：不要清空全局缓存
-                // 理由：会影响其他 Marker 的性能
-                // 缓存应该由 LruCache 自动管理，或在合适的时机（如内存警告）统一清理
-
-                // 移除 marker
-                removeMarker()
-            }
-        }
-        pendingDetachRemovalTask = task
-        mainHandler.postDelayed(task, 500)
-    }
-
-    private fun cancelPendingDetachRemoval() {
-        pendingDetachRemovalTask?.let { mainHandler.removeCallbacks(it) }
-        pendingDetachRemovalTask = null
+        // Window detach 可能只是页面转场或 Fabric 重挂载，不代表 Marker 已销毁。
+        // 父 MapView 的 removeView/removeViewAt 与 OnViewDestroys 才负责真实清理。
+        cancelPendingMarkerIconUpdate()
     }
 
 }
