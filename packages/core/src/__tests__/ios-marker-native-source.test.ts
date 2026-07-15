@@ -34,6 +34,16 @@ describe('iOS Marker native source guards', () => {
     expect(markerViewSource).not.toContain('cacheKeyRefreshGeneration');
   });
 
+  it('drops superseded refresh tasks before they render or apply a snapshot', () => {
+    expect(markerViewSource).toContain('private var childrenRefreshGeneration: UInt = 0');
+    expect(markerViewSource).toContain('private func cancelPendingSubviewRefresh()');
+    expect(markerViewSource).toContain('childrenRefreshGeneration &+= 1');
+    expect(markerViewSource).toContain('let scheduledGeneration = childrenRefreshGeneration');
+    expect(markerViewSource).toContain(
+      'self.childrenRefreshGeneration == scheduledGeneration else {'
+    );
+  });
+
   it('applies children snapshots atomically without implicit animation', () => {
     expect(markerViewSource).toContain('import QuartzCore');
     expect(markerViewSource).toContain('CATransaction.setDisableActions(true)');

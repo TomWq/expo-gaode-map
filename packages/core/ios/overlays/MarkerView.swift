@@ -78,6 +78,8 @@ class MarkerView: ExpoView {
     private var pendingUpdateTask: DispatchWorkItem?
     /// 子视图变化后的延迟刷新任务
     private var pendingSubviewRefreshTask: DispatchWorkItem?
+    /// 子视图刷新代次，用于丢弃已经过期的主队列任务
+    private var childrenRefreshGeneration: UInt = 0
     /// 下一次主队列确认物理 detach 是否仍然成立
     private var pendingDetachCheckTask: DispatchWorkItem?
     /// 最近一次应用到 annotationView 的 children 结构签名
@@ -616,11 +618,19 @@ class MarkerView: ExpoView {
         return nil
     }
 
-    private func refreshChildrenImageInPlace(invalidateChildrenCache: Bool = false, cacheImage: Bool = true) {
+    private func refreshChildrenImageInPlace(
+        invalidateChildrenCache: Bool = false,
+        cacheImage: Bool = true,
+        expectedGeneration: UInt? = nil
+    ) {
         guard !isRemoving else { return }
 
         let refresh = { [weak self] in
             guard let self = self, !self.isRemoving, !self.subviews.isEmpty else { return }
+            if let expectedGeneration,
+               self.childrenRefreshGeneration != expectedGeneration {
+                return
+            }
 
             if invalidateChildrenCache {
                 self.lastRenderedChildrenSignature = nil
@@ -637,11 +647,19 @@ class MarkerView: ExpoView {
             let signature = self.childrenRenderSignature()
 
             if cacheImage, let cached = IconBitmapCache.shared.image(forKey: key) {
+                if let expectedGeneration,
+                   self.childrenRefreshGeneration != expectedGeneration {
+                    return
+                }
                 self.applyChildrenImage(cached, to: targetView, signature: signature)
                 return
             }
 
             if let generated = self.createImageFromSubviews(size: size, cacheImage: cacheImage) {
+                if let expectedGeneration,
+                   self.childrenRefreshGeneration != expectedGeneration {
+                    return
+                }
                 self.applyChildrenImage(generated, to: targetView, signature: signature)
                 return
             }
@@ -658,14 +676,30 @@ class MarkerView: ExpoView {
         }
     }
 
+    private func cancelPendingSubviewRefresh() {
+        childrenRefreshGeneration &+= 1
+        pendingSubviewRefreshTask?.cancel()
+        pendingSubviewRefreshTask = nil
+    }
+
     private func scheduleChildrenImageRefresh(
         invalidateChildrenCache: Bool = false,
         cacheImage: Bool = true
     ) {
-        pendingSubviewRefreshTask?.cancel()
+        cancelPendingSubviewRefresh()
+        let scheduledGeneration = childrenRefreshGeneration
 
         let task = DispatchWorkItem { [weak self] in
-            self?.refreshChildrenImageInPlace(invalidateChildrenCache: invalidateChildrenCache, cacheImage: cacheImage)
+            guard let self = self,
+                  self.childrenRefreshGeneration == scheduledGeneration else {
+                return
+            }
+            self.pendingSubviewRefreshTask = nil
+            self.refreshChildrenImageInPlace(
+                invalidateChildrenCache: invalidateChildrenCache,
+                cacheImage: cacheImage,
+                expectedGeneration: scheduledGeneration
+            )
         }
 
         pendingSubviewRefreshTask = task
@@ -879,7 +913,7 @@ class MarkerView: ExpoView {
         cancelPendingDetachCheck()
         pendingAddTask?.cancel(); pendingAddTask = nil
         pendingUpdateTask?.cancel(); pendingUpdateTask = nil
-        pendingSubviewRefreshTask?.cancel(); pendingSubviewRefreshTask = nil
+        cancelPendingSubviewRefresh()
         cleanupAnnotationFromMap()
         onPermanentDetach?(self)
         onPermanentDetach = nil
@@ -941,10 +975,17 @@ class MarkerView: ExpoView {
     private func scheduleSubviewRefresh(allowFallbackToDefault: Bool) {
         guard superview != nil else { return }
 
-        pendingSubviewRefreshTask?.cancel()
+        cancelPendingSubviewRefresh()
+        let scheduledGeneration = childrenRefreshGeneration
 
         let task = DispatchWorkItem { [weak self] in
-            guard let self = self, !self.isRemoving, self.superview != nil else { return }
+            guard let self = self,
+                  !self.isRemoving,
+                  self.superview != nil,
+                  self.childrenRefreshGeneration == scheduledGeneration else {
+                return
+            }
+            self.pendingSubviewRefreshTask = nil
             self.refreshAnnotationForSubviewChanges(allowFallbackToDefault: allowFallbackToDefault)
         }
 
@@ -1015,8 +1056,7 @@ class MarkerView: ExpoView {
         let refresh = { [weak self] in
             guard let self = self, let mapView = self.mapView else { return }
 
-            self.pendingSubviewRefreshTask?.cancel()
-            self.pendingSubviewRefreshTask = nil
+            self.cancelPendingSubviewRefresh()
 
             if invalidateChildrenCache {
                 self.lastRenderedChildrenSignature = nil
@@ -1419,7 +1459,7 @@ class MarkerView: ExpoView {
         // 取消待处理的任务
         pendingAddTask?.cancel()
         pendingUpdateTask?.cancel()
-        pendingSubviewRefreshTask?.cancel()
+        cancelPendingSubviewRefresh()
         pendingDetachCheckTask?.cancel()
 
         if Thread.isMainThread {
