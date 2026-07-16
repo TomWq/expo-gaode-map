@@ -23,15 +23,38 @@ describe('iOS Marker native source guards', () => {
     );
   });
 
-  it('coalesces cacheKey changes into one children snapshot refresh', () => {
+  it('uses an immutable request throughout each children snapshot refresh', () => {
+    expect(markerViewSource).toContain('private struct ChildrenSnapshotRequest');
+    expect(markerViewSource).toContain('let size: CGSize');
+    expect(markerViewSource).toContain('let signature: String');
+    expect(markerViewSource).toContain('let cacheKey: String');
+    expect(markerViewSource).toContain('private func makeChildrenSnapshotRequest(');
+    expect(markerViewSource.match(/private func makeChildrenSnapshotRequest\(/g)).toHaveLength(1);
     expect(markerViewSource).toContain(
-      'scheduleChildrenImageRefresh(invalidateChildrenCache: true)'
+      'createImageFromSubviews(request: request, cacheImage: cacheImage)'
     );
-    expect(markerViewSource).toContain('createImageFromSubviews(size: size, cacheImage: cacheImage)');
+    expect(markerViewSource).toContain(
+      'private func createImageFromSubviews(request: ChildrenSnapshotRequest'
+    );
     expect(markerViewSource).toContain('if cacheImage {');
     expect(markerViewSource).not.toContain('scheduleCacheKeyChildrenImageRefresh()');
     expect(markerViewSource).not.toContain('pendingCacheKeyRefreshTask');
     expect(markerViewSource).not.toContain('cacheKeyRefreshGeneration');
+  });
+
+  it('reuses explicit cacheKey snapshots across cacheKey and layout updates', () => {
+    expect(markerViewSource).toContain('private var lastRenderedChildrenCacheKey: String?');
+    expect(markerViewSource).toContain('private var hasExplicitChildrenCacheKey: Bool');
+    expect(markerViewSource).toMatch(
+      /override func layoutSubviews\(\)[\s\S]*?scheduleChildrenImageRefresh\(invalidateChildrenCache: !hasExplicitChildrenCacheKey\)/
+    );
+    expect(markerViewSource).toMatch(
+      /func setCacheKey\(_ key: String\?\)[\s\S]*?scheduleChildrenImageRefresh\(invalidateChildrenCache: !hasExplicitChildrenCacheKey\)/
+    );
+    expect(markerViewSource).toContain(
+      'request.cacheKey == lastRenderedChildrenCacheKey'
+    );
+    expect(markerViewSource).toContain('lastRenderedChildrenCacheKey = request.cacheKey');
   });
 
   it('drops superseded refresh tasks before they render or apply a snapshot', () => {
@@ -54,7 +77,7 @@ describe('iOS Marker native source guards', () => {
   it('refreshes a mounted children marker after a committed native layout', () => {
     expect(markerViewSource).toContain('override func layoutSubviews()');
     expect(markerViewSource).toContain(
-      'scheduleChildrenImageRefresh(invalidateChildrenCache: true)'
+      'scheduleChildrenImageRefresh(invalidateChildrenCache: !hasExplicitChildrenCacheKey)'
     );
   });
 

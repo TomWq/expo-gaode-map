@@ -13,6 +13,12 @@ import UIKit
  * - 支持自定义 children 视图
  */
 class MarkerView: ExpoView {
+    private struct ChildrenSnapshotRequest {
+        let size: CGSize
+        let signature: String
+        let cacheKey: String
+    }
+
     // MARK: - 事件派发器（专属事件名避免冲突）
     var onMarkerPress = EventDispatcher()
     var onMarkerDragStart = EventDispatcher()
@@ -84,6 +90,8 @@ class MarkerView: ExpoView {
     private var pendingDetachCheckTask: DispatchWorkItem?
     /// 最近一次应用到 annotationView 的 children 结构签名
     private var lastRenderedChildrenSignature: String?
+    /// 最近一次应用到 annotationView 的 children 快照缓存 key
+    private var lastRenderedChildrenCacheKey: String?
     /// 最近一次成功渲染的 children 图片，用于缓存未命中时避免闪烁
     private var lastRenderedChildrenImage: UIImage?
     /// 上次设置的地图引用（防止重复调用）
@@ -124,7 +132,7 @@ class MarkerView: ExpoView {
             return
         }
 
-        scheduleChildrenImageRefresh(invalidateChildrenCache: true)
+        scheduleChildrenImageRefresh(invalidateChildrenCache: !hasExplicitChildrenCacheKey)
     }
 
     /**
@@ -178,7 +186,7 @@ class MarkerView: ExpoView {
         guard cacheKey != key else { return }
         self.cacheKey = key
         if !subviews.isEmpty {
-            scheduleChildrenImageRefresh(invalidateChildrenCache: true)
+            scheduleChildrenImageRefresh(invalidateChildrenCache: !hasExplicitChildrenCacheKey)
         } else {
             refreshAnnotationAppearance()
         }
@@ -255,11 +263,14 @@ class MarkerView: ExpoView {
         
         // 1. 如果有 children，使用自定义视图
         if self.subviews.count > 0 {
-            let size = resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
-            let key = childrenCacheKey(for: size)
-            if let cached = IconBitmapCache.shared.image(forKey: key) {
+            let request = makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 60))
+            if request.cacheKey == lastRenderedChildrenCacheKey, annotationView?.image != nil {
+                return annotationView
+            }
+
+            if let cached = IconBitmapCache.shared.image(forKey: request.cacheKey) {
                 if let annotationView = annotationView {
-                    applyChildrenImage(cached, to: annotationView, signature: childrenRenderSignature())
+                    applyChildrenImage(cached, to: annotationView, request: request)
                 }
                 return annotationView
             }
@@ -268,8 +279,14 @@ class MarkerView: ExpoView {
             DispatchQueue.main.async { [weak self, weak annotationView] in
                 guard let self = self, let annotationView = annotationView else { return }
                 guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
-                if let generated = self.createImageFromSubviews(size: size) {
-                    self.applyChildrenImage(generated, to: annotationView, signature: self.childrenRenderSignature())
+                let request = self.makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 60))
+                if request.cacheKey == self.lastRenderedChildrenCacheKey, annotationView.image != nil {
+                    return
+                }
+                if let cached = IconBitmapCache.shared.image(forKey: request.cacheKey) {
+                    self.applyChildrenImage(cached, to: annotationView, request: request)
+                } else if let generated = self.createImageFromSubviews(request: request) {
+                    self.applyChildrenImage(generated, to: annotationView, request: request)
                 }
             }
             return annotationView
@@ -349,23 +366,24 @@ class MarkerView: ExpoView {
             annotationView?.isDraggable = draggable
             self.annotationView = annotationView
 
-            // 生成 cacheKey 或 fallback 到 identifier
-            let size = resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 40))
-            let key = childrenCacheKey(for: size)
-            let signature = childrenRenderSignature()
+            let request = makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 40))
+
+            if request.cacheKey == lastRenderedChildrenCacheKey, annotationView?.image != nil {
+                return annotationView
+            }
 
             // 1) 如果缓存命中，直接同步返回图像（fast path）
-            if let cached = IconBitmapCache.shared.image(forKey: key) {
+            if let cached = IconBitmapCache.shared.image(forKey: request.cacheKey) {
                 if let annotationView = annotationView {
-                    applyChildrenImage(cached, to: annotationView, signature: signature)
+                    applyChildrenImage(cached, to: annotationView, request: request)
                 }
                 return annotationView
             }
 
             // 2) 缓存未命中：先尝试同步渲染，失败时保留旧图，避免点击切态闪烁。
-            if let generated = createImageFromSubviews(size: size) {
+            if let generated = createImageFromSubviews(request: request) {
                 if let annotationView = annotationView {
-                    applyChildrenImage(generated, to: annotationView, signature: signature)
+                    applyChildrenImage(generated, to: annotationView, request: request)
                 }
                 return annotationView
             }
@@ -381,15 +399,19 @@ class MarkerView: ExpoView {
             DispatchQueue.main.async { [weak self, weak annotationView] in
                 guard let self = self, let annotationView = annotationView else { return }
                 guard self.isAnnotationView(annotationView, boundTo: annotation) else { return }
+                let request = self.makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 40))
+                if request.cacheKey == self.lastRenderedChildrenCacheKey, annotationView.image != nil {
+                    return
+                }
                 // 再次检查缓存（避免重复渲染）
-                if let cached = IconBitmapCache.shared.image(forKey: key) {
-                    self.applyChildrenImage(cached, to: annotationView, signature: signature)
+                if let cached = IconBitmapCache.shared.image(forKey: request.cacheKey) {
+                    self.applyChildrenImage(cached, to: annotationView, request: request)
                     return
                 }
                 
                 // 调用你的原生渲染逻辑（保留空白检测、多次 layout）
-                if let generated = self.createImageFromSubviews(size: size) {
-                    self.applyChildrenImage(generated, to: annotationView, signature: signature)
+                if let generated = self.createImageFromSubviews(request: request) {
+                    self.applyChildrenImage(generated, to: annotationView, request: request)
                 } else if self.hasPendingImageContent() {
                     self.scheduleSubviewRefresh(allowFallbackToDefault: false)
                 }
@@ -527,11 +549,8 @@ class MarkerView: ExpoView {
     /**
      * 将子视图转换为图片
      */
-    private func createImageFromSubviews(size explicitSize: CGSize? = nil, cacheImage: Bool = true) -> UIImage? {
-        let size = explicitSize ?? resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
-        let key = childrenCacheKey(for: size)
-
-        if cacheImage, let cachedImage = IconBitmapCache.shared.image(forKey: key) {
+    private func createImageFromSubviews(request: ChildrenSnapshotRequest, cacheImage: Bool = true) -> UIImage? {
+        if cacheImage, let cachedImage = IconBitmapCache.shared.image(forKey: request.cacheKey) {
             return cachedImage
         }
         
@@ -539,12 +558,12 @@ class MarkerView: ExpoView {
             return nil
         }
 
-        guard size.width > 0, size.height > 0 else {
+        guard request.size.width > 0, request.size.height > 0 else {
             return nil
         }
         
         // 强制子视图使用指定尺寸布局
-        firstSubview.frame = CGRect(origin: .zero, size: size)
+        firstSubview.frame = CGRect(origin: .zero, size: request.size)
         
         // 在 React Native 完成当前挂载批次后执行一次确定性布局。
         // 后续布局变化会再次合并触发快照，不需要阻塞主 RunLoop 猜测内容何时就绪。
@@ -554,7 +573,7 @@ class MarkerView: ExpoView {
             return nil
         }
         
-        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        UIGraphicsBeginImageContextWithOptions(request.size, false, 0.0)
         defer { UIGraphicsEndImageContext() }
         
         guard let _ = UIGraphicsGetCurrentContext() else {
@@ -562,7 +581,7 @@ class MarkerView: ExpoView {
         }
         
         // 使用 drawHierarchy 而不是 layer.render，这样能正确渲染 Text
-        firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        firstSubview.drawHierarchy(in: CGRect(origin: .zero, size: request.size), afterScreenUpdates: true)
         
         guard let image = UIGraphicsGetImageFromCurrentImageContext() else {
             return nil
@@ -571,13 +590,17 @@ class MarkerView: ExpoView {
    
         
         if cacheImage {
-            IconBitmapCache.shared.setImage(image, forKey: key)
+            IconBitmapCache.shared.setImage(image, forKey: request.cacheKey)
         }
         
         return image
     }
 
-    private func applyChildrenImage(_ image: UIImage, to annotationView: MAAnnotationView, signature: String? = nil) {
+    private func applyChildrenImage(
+        _ image: UIImage,
+        to annotationView: MAAnnotationView,
+        request: ChildrenSnapshotRequest
+    ) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         UIView.performWithoutAnimation {
@@ -589,9 +612,8 @@ class MarkerView: ExpoView {
         }
         CATransaction.commit()
         lastRenderedChildrenImage = image
-        if let resolvedSignature = signature {
-            lastRenderedChildrenSignature = resolvedSignature
-        }
+        lastRenderedChildrenSignature = request.signature
+        lastRenderedChildrenCacheKey = request.cacheKey
     }
 
     private func currentChildrenAnnotationView() -> MAAnnotationView? {
@@ -632,8 +654,10 @@ class MarkerView: ExpoView {
                 return
             }
 
-            if invalidateChildrenCache {
+            let shouldInvalidateCache = invalidateChildrenCache && !self.hasExplicitChildrenCacheKey
+            if shouldInvalidateCache {
                 self.lastRenderedChildrenSignature = nil
+                self.lastRenderedChildrenCacheKey = nil
                 self.invalidateCurrentChildrenCache()
             }
 
@@ -642,25 +666,27 @@ class MarkerView: ExpoView {
                 return
             }
 
-            let size = self.resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 40))
-            let key = self.childrenCacheKey(for: size)
-            let signature = self.childrenRenderSignature()
+            let request = self.makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 40))
 
-            if cacheImage, let cached = IconBitmapCache.shared.image(forKey: key) {
-                if let expectedGeneration,
-                   self.childrenRefreshGeneration != expectedGeneration {
-                    return
-                }
-                self.applyChildrenImage(cached, to: targetView, signature: signature)
+            if request.cacheKey == self.lastRenderedChildrenCacheKey, targetView.image != nil {
                 return
             }
 
-            if let generated = self.createImageFromSubviews(size: size, cacheImage: cacheImage) {
+            if cacheImage, let cached = IconBitmapCache.shared.image(forKey: request.cacheKey) {
                 if let expectedGeneration,
                    self.childrenRefreshGeneration != expectedGeneration {
                     return
                 }
-                self.applyChildrenImage(generated, to: targetView, signature: signature)
+                self.applyChildrenImage(cached, to: targetView, request: request)
+                return
+            }
+
+            if let generated = self.createImageFromSubviews(request: request, cacheImage: cacheImage) {
+                if let expectedGeneration,
+                   self.childrenRefreshGeneration != expectedGeneration {
+                    return
+                }
+                self.applyChildrenImage(generated, to: targetView, request: request)
                 return
             }
 
@@ -709,6 +735,11 @@ class MarkerView: ExpoView {
     private func iconCacheKey(for iconUri: String) -> String {
         let baseKey = cacheKey ?? "icon|\(iconUri)"
         return "\(baseKey)|\(Int(iconWidth.rounded()))x\(Int(iconHeight.rounded()))"
+    }
+
+    private var hasExplicitChildrenCacheKey: Bool {
+        guard let cacheKey else { return false }
+        return !cacheKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func applyCenterOffset(to annotationView: MAAnnotationView, defaultOffset: CGPoint) {
@@ -789,13 +820,22 @@ class MarkerView: ExpoView {
         return fallback
     }
 
-    private func childrenCacheKey(for size: CGSize) -> String {
-        let signature = childrenRenderSignature()
-        let baseKey = cacheKey.map { "\($0)|\(signature)" }
+    private func makeChildrenSnapshotRequest(
+        size explicitSize: CGSize? = nil,
+        defaultSize: CGSize
+    ) -> ChildrenSnapshotRequest {
+        let size = explicitSize ?? resolvedContentSubviewSize(defaultSize: defaultSize)
+        let explicitCacheKey = hasExplicitChildrenCacheKey ? cacheKey : nil
+        let signature = explicitCacheKey ?? childrenRenderSignature()
+        let baseKey = explicitCacheKey
             ?? "children_\(ObjectIdentifier(self).hashValue)|\(signature)"
         let roundedWidth = Int(ceil(size.width))
         let roundedHeight = Int(ceil(size.height))
-        return "\(baseKey)|\(roundedWidth)x\(roundedHeight)"
+        return ChildrenSnapshotRequest(
+            size: size,
+            signature: signature,
+            cacheKey: "\(baseKey)|\(roundedWidth)x\(roundedHeight)"
+        )
     }
 
     private func childrenRenderSignature() -> String {
@@ -945,6 +985,7 @@ class MarkerView: ExpoView {
         animatedAnnotationView = nil
         lastRenderedChildrenImage = nil
         lastRenderedChildrenSignature = nil
+        lastRenderedChildrenCacheKey = nil
         isAnimating = false
         lastSetMapView = nil
         self.mapView = nil
@@ -1006,6 +1047,7 @@ class MarkerView: ExpoView {
         if subviews.isEmpty {
             if allowFallbackToDefault {
                 lastRenderedChildrenSignature = nil
+                lastRenderedChildrenCacheKey = nil
                 annotationView = nil
                 mapView.removeAnnotation(annotation)
                 mapView.addAnnotation(annotation)
@@ -1013,8 +1055,8 @@ class MarkerView: ExpoView {
             return
         }
 
-        let signature = childrenRenderSignature()
-        if signature == lastRenderedChildrenSignature, annotationView?.image != nil {
+        let request = makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 40))
+        if request.cacheKey == lastRenderedChildrenCacheKey, annotationView?.image != nil {
             return
         }
 
@@ -1033,20 +1075,21 @@ class MarkerView: ExpoView {
             return
         }
 
-        let size = resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 40))
-        if let image = createImageFromSubviews(size: size) {
-            applyChildrenImage(image, to: annotationView, signature: signature)
+        if let image = createImageFromSubviews(request: request) {
+            applyChildrenImage(image, to: annotationView, request: request)
         }
     }
 
     private func invalidateCurrentChildrenCache() {
-        let sizes = [
-            resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 40)),
-            resolvedContentSubviewSize(defaultSize: CGSize(width: 200, height: 60))
+        guard !hasExplicitChildrenCacheKey else { return }
+
+        let requests = [
+            makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 40)),
+            makeChildrenSnapshotRequest(defaultSize: CGSize(width: 200, height: 60))
         ]
 
-        for size in sizes {
-            IconBitmapCache.shared.removeImage(forKey: childrenCacheKey(for: size))
+        for request in requests {
+            IconBitmapCache.shared.removeImage(forKey: request.cacheKey)
         }
     }
 
@@ -1058,8 +1101,10 @@ class MarkerView: ExpoView {
 
             self.cancelPendingSubviewRefresh()
 
-            if invalidateChildrenCache {
+            let shouldInvalidateCache = invalidateChildrenCache && !self.hasExplicitChildrenCacheKey
+            if shouldInvalidateCache {
                 self.lastRenderedChildrenSignature = nil
+                self.lastRenderedChildrenCacheKey = nil
                 if !self.subviews.isEmpty {
                     self.invalidateCurrentChildrenCache()
                 }
@@ -1202,7 +1247,7 @@ class MarkerView: ExpoView {
         guard contentWidth != width else { return }
         contentWidth = width
         if !subviews.isEmpty {
-            scheduleChildrenImageRefresh(invalidateChildrenCache: true)
+            scheduleChildrenImageRefresh(invalidateChildrenCache: !hasExplicitChildrenCacheKey)
         }
     }
 
@@ -1210,7 +1255,7 @@ class MarkerView: ExpoView {
         guard contentHeight != height else { return }
         contentHeight = height
         if !subviews.isEmpty {
-            scheduleChildrenImageRefresh(invalidateChildrenCache: true)
+            scheduleChildrenImageRefresh(invalidateChildrenCache: !hasExplicitChildrenCacheKey)
         }
     }
     
