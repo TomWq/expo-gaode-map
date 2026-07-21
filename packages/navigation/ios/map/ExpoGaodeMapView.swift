@@ -206,22 +206,83 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
 
         // 统一从 overlayViews 数组设置所有覆盖物（包括 MarkerView）
         for view in overlayViews {
-            if let markerView = view as? MarkerView {
-                markerView.setMap(mapView)
-            } else if let circleView = view as? CircleView {
-                circleView.setMap(mapView)
-            } else if let polylineView = view as? PolylineView {
-                polylineView.setMap(mapView)
-            } else if let polygonView = view as? PolygonView {
-                polygonView.setMap(mapView)
-            } else if let heatMapView = view as? HeatMapView {
-                heatMapView.setMap(mapView)
-            } else if let multiPointView = view as? MultiPointView {
-                multiPointView.setMap(mapView)
-            } else if let clusterView = view as? ClusterView {
-                clusterView.setMap(mapView)
+            connectOverlayViewToMap(view, mapView: mapView)
+        }
+    }
+
+    private func connectOverlayViewToMap(_ view: UIView, mapView: MAMapView) {
+        if let markerView = view as? MarkerView {
+            markerView.setMap(mapView)
+        } else if let circleView = view as? CircleView {
+            circleView.setMap(mapView)
+        } else if let polylineView = view as? PolylineView {
+            polylineView.setMap(mapView)
+        } else if let polygonView = view as? PolygonView {
+            polygonView.setMap(mapView)
+        } else if let heatMapView = view as? HeatMapView {
+            heatMapView.setMap(mapView)
+        } else if let multiPointView = view as? MultiPointView {
+            multiPointView.setMap(mapView)
+        } else if let clusterView = view as? ClusterView {
+            clusterView.setMap(mapView)
+        }
+    }
+
+    private func isOverlayView(_ view: UIView) -> Bool {
+        view is MarkerView ||
+        view is CircleView ||
+        view is PolylineView ||
+        view is PolygonView ||
+        view is HeatMapView ||
+        view is MultiPointView ||
+        view is ClusterView
+    }
+
+    private func registerOverlayView(_ view: UIView) {
+        if let markerView = view as? MarkerView {
+            markerView.onPermanentDetach = { [weak self] detachedMarkerView in
+                self?.unregisterOverlayView(detachedMarkerView)
             }
         }
+
+        guard !overlayViews.contains(where: { $0 === view }) else {
+            return
+        }
+        overlayViews.append(view)
+    }
+
+    private func unregisterOverlayView(_ view: UIView) {
+        overlayViews.removeAll { $0 === view }
+        (view as? MarkerView)?.onPermanentDetach = nil
+    }
+
+    private func prepareOverlayViewForHosting(_ view: UIView) {
+        guard !(view is MarkerView) else {
+            return
+        }
+
+        view.alpha = 0
+        view.isHidden = true
+    }
+
+    @discardableResult
+    private func hostOverlayView(_ view: UIView, moveToOverlayContainer: Bool) -> Bool {
+        guard isOverlayView(view) else {
+            return false
+        }
+
+        if moveToOverlayContainer {
+            overlayContainer.addSubview(view)
+        }
+
+        prepareOverlayViewForHosting(view)
+        registerOverlayView(view)
+
+        if let mapView {
+            connectOverlayViewToMap(view, mapView: mapView)
+        }
+
+        return true
     }
     
     /**
@@ -231,77 +292,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     override func addSubview(_ view: UIView) {
         // 🔑 关键修复：旧架构下统一不移动任何覆盖物视图，避免破坏 React Native 布局
         // 所有覆盖物都隐藏并添加到 overlayViews 数组追踪
-        if let markerView = view as? MarkerView {
-            overlayContainer.addSubview(markerView)
-            // 🔑 关键：MarkerView 不能隐藏，否则 children 无法渲染成图片
-            // 通过 hitTest 返回 nil 已经确保不阻挡地图交互
-            overlayViews.append(markerView)
-            if let mapView {
-                markerView.setMap(mapView)
-            }
-          
-            return
-        }
-        
-        if let circleView = view as? CircleView {
-            overlayContainer.addSubview(circleView)
-            circleView.alpha = 0
-            circleView.isHidden = true
-            overlayViews.append(circleView)
-            if let mapView {
-                circleView.setMap(mapView)
-            }
-         
-            return
-        } else if let polylineView = view as? PolylineView {
-            overlayContainer.addSubview(polylineView)
-            polylineView.alpha = 0
-            polylineView.isHidden = true
-            overlayViews.append(polylineView)
-            if let mapView {
-                polylineView.setMap(mapView)
-            }
-           
-            return
-        } else if let polygonView = view as? PolygonView {
-            overlayContainer.addSubview(polygonView)
-            polygonView.alpha = 0
-            polygonView.isHidden = true
-            overlayViews.append(polygonView)
-            if let mapView {
-                polygonView.setMap(mapView)
-            }
-          
-            return
-        } else if let heatMapView = view as? HeatMapView {
-            overlayContainer.addSubview(heatMapView)
-            heatMapView.alpha = 0
-            heatMapView.isHidden = true
-            overlayViews.append(heatMapView)
-            if let mapView {
-                heatMapView.setMap(mapView)
-            }
-           
-            return
-        } else if let multiPointView = view as? MultiPointView {
-            overlayContainer.addSubview(multiPointView)
-            multiPointView.alpha = 0
-            multiPointView.isHidden = true
-            overlayViews.append(multiPointView)
-            if let mapView {
-                multiPointView.setMap(mapView)
-            }
-           
-            return
-        } else if let clusterView = view as? ClusterView {
-            overlayContainer.addSubview(clusterView)
-            clusterView.alpha = 0
-            clusterView.isHidden = true
-            overlayViews.append(clusterView)
-            if let mapView {
-                clusterView.setMap(mapView)
-            }
-            
+        if hostOverlayView(view, moveToOverlayContainer: true) {
             return
         }
         
@@ -325,106 +316,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         }
         
         // 🔑 处理 MarkerView - 新架构下直接连接，旧架构下已在 addSubview 处理
-        if let markerView = subview as? MarkerView {
-            // 检查是否已经在容器中（旧架构下 addSubview 已经处理过）
-            if markerView.superview === overlayContainer {
-             
-                return
-            }
-          
-            // 🔑 新架构下也不能隐藏 MarkerView，否则 children 无法渲染
-            overlayViews.append(markerView)
-            if let mapView {
-                markerView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()，避免所有覆盖物重新设置
-            return
-        }
-        
-        // 🔑 其他覆盖物不移动视图，只设置连接和隐藏
-        if let circleView = subview as? CircleView {
-            if circleView.superview === overlayContainer {
-               
-                return
-            }
-           
-            circleView.alpha = 0
-            circleView.isHidden = true
-            overlayViews.append(circleView)
-            if let mapView {
-                circleView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let polylineView = subview as? PolylineView {
-            if polylineView.superview === overlayContainer {
-               
-                return
-            }
-            
-            polylineView.alpha = 0
-            polylineView.isHidden = true
-            overlayViews.append(polylineView)
-            if let mapView {
-                polylineView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let polygonView = subview as? PolygonView {
-            if polygonView.superview === overlayContainer {
-               
-                return
-            }
-          
-            polygonView.alpha = 0
-            polygonView.isHidden = true
-            overlayViews.append(polygonView)
-            if let mapView {
-                polygonView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let heatMapView = subview as? HeatMapView {
-            if heatMapView.superview === overlayContainer {
-               
-                return
-            }
-          
-            heatMapView.alpha = 0
-            heatMapView.isHidden = true
-            overlayViews.append(heatMapView)
-            if let mapView {
-                heatMapView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let multiPointView = subview as? MultiPointView {
-            if multiPointView.superview === overlayContainer {
-               
-                return
-            }
-          
-            multiPointView.alpha = 0
-            multiPointView.isHidden = true
-            overlayViews.append(multiPointView)
-            if let mapView {
-                multiPointView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
-            return
-        } else if let clusterView = subview as? ClusterView {
-            if clusterView.superview === overlayContainer {
-               
-                return
-            }
-          
-            clusterView.alpha = 0
-            clusterView.isHidden = true
-            overlayViews.append(clusterView)
-            if let mapView {
-                clusterView.setMap(mapView)
-            }
-            // 🔑 关键修复：不再调用 setupAllOverlayViews()
+        if subview.superview !== overlayContainer && hostOverlayView(subview, moveToOverlayContainer: false) {
             return
         }
         
@@ -439,29 +331,30 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         // 🔑 处理所有覆盖物 - 从跟踪数组中移除并确保 native 对象也从地图移除
         // 🔑 关键修复：先从数组移除，再调用 super，防止 super 触发的事件回调中引用已卸载的视图
         if let markerView = subview as? MarkerView {
-            overlayViews.removeAll { $0 === markerView }
-            // MarkerView 内部的 willMove(toSuperview: nil) 会处理 annotation 的移除
+            // 立即解除强引用。短暂重挂载会在 didAddSubview 中重新注册，
+            // 真正卸载则允许 MarkerView deinit 及时清理 annotation。
+            unregisterOverlayView(markerView)
         } else if let circleView = subview as? CircleView {
-            overlayViews.removeAll { $0 === circleView }
+            unregisterOverlayView(circleView)
             if let mapView, let circle = circleView.circle {
                 mapView.remove(circle)
             }
         } else if let polylineView = subview as? PolylineView {
-            overlayViews.removeAll { $0 === polylineView }
+            unregisterOverlayView(polylineView)
             if let mapView, let polyline = polylineView.polyline {
                 mapView.remove(polyline)
             }
         } else if let polygonView = subview as? PolygonView {
-            overlayViews.removeAll { $0 === polygonView }
+            unregisterOverlayView(polygonView)
             if let mapView, let polygon = polygonView.polygon {
                 mapView.remove(polygon)
             }
         } else if let heatMapView = subview as? HeatMapView {
-            overlayViews.removeAll { $0 === heatMapView }
+            unregisterOverlayView(heatMapView)
         } else if let multiPointView = subview as? MultiPointView {
-            overlayViews.removeAll { $0 === multiPointView }
+            unregisterOverlayView(multiPointView)
         } else if let clusterView = subview as? ClusterView {
-            overlayViews.removeAll { $0 === clusterView }
+            unregisterOverlayView(clusterView)
         }
 
         super.willRemoveSubview(subview)
@@ -1003,7 +896,6 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         self.pinchGesture = pinchGesture
     }
 }
-
 // MARK: - AppleMapDelegate
 
 class AppleMapDelegate: NSObject, MKMapViewDelegate {

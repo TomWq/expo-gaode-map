@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
@@ -15,9 +13,9 @@ import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewParent
 import android.text.TextUtils
 import android.widget.LinearLayout
-import android.widget.TextView
 import com.amap.api.maps.AMap
 
 import com.amap.api.maps.model.BitmapDescriptorFactory
@@ -39,8 +37,6 @@ import androidx.core.view.contains
 
 import androidx.core.view.isEmpty
 import androidx.core.graphics.scale
-import android.view.ViewGroup
-import android.widget.ImageView
 import com.amap.api.maps.model.animation.AlphaAnimation
 import com.amap.api.maps.model.animation.AnimationSet
 import com.amap.api.maps.model.animation.ScaleAnimation
@@ -48,13 +44,9 @@ import android.view.animation.DecelerateInterpolator
 import expo.modules.gaodemap.map.companion.BitmapDescriptorCache
 import expo.modules.gaodemap.map.companion.IconBitmapCache
 import expo.modules.gaodemap.map.utils.GeometryUtils
-import kotlin.text.StringBuilder
 import kotlin.math.max
 import kotlin.math.min
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import androidx.core.graphics.createBitmap
 import expo.modules.gaodemap.map.utils.LatLngParser
 
 class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
@@ -170,7 +162,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             )
 
             child.measure(childWidthSpec, childHeightSpec)
-            val childBounds = computeContentBounds(child)
+            val childBounds = MarkerBitmapRenderer.computeContentBounds(child)
             measuredContentWidth = max(measuredContentWidth, childBounds?.width() ?: child.measuredWidth)
             measuredContentHeight = max(measuredContentHeight, childBounds?.height() ?: child.measuredHeight)
         }
@@ -240,6 +232,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isRemoving = false  // 标记是否正在被移除
     private var pendingMarkerIconUpdate: Runnable? = null
+    private var contentInvalidationGeneration: Long = 0
     private var lastAppliedCustomMarkerKey: String? = null
 
     // 缓存属性，在 marker 创建前保存
@@ -353,14 +346,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
 
       flushPendingShowIfNeeded()
       
-      // 🔑 修复：需要延迟更新图标，等待 children 完成布局
-      // 使用 post 延迟到下一帧，确保 children 完成测量和布局
+      // 等待 children 在同一渲染帧内稳定后再生成一次快照。
       if (isNotEmpty() && marker != null) {
-        mainHandler.post {
-          if (!isRemoving && marker != null && isNotEmpty()) {
-            updateMarkerIcon()
-          }
-        }
+        markCustomMarkerContentDirty()
       }
     }
 
@@ -492,7 +480,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      * JS 端传入稳定的缓存 key
      */
     fun setCacheKey(key: String?) {
+        if (cacheKey == key) {
+            return
+        }
+
         cacheKey = key
+        if (isNotEmpty()) {
+            invalidateCurrentSnapshotCache()
+            markCustomMarkerContentDirty()
+        } else {
+            pendingIconUri?.let { iconUri ->
+                marker?.let { loadAndSetIcon(iconUri, it) }
+            }
+        }
     }
 
     /**
@@ -720,7 +720,15 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      */
     fun setIconWidth(width: Int) {
         val density = context.resources.displayMetrics.density
-        iconWidth = (width * density).toInt()
+        val resolvedWidth = (width * density).toInt()
+        if (iconWidth == resolvedWidth) {
+            return
+        }
+
+        iconWidth = resolvedWidth
+        pendingIconUri?.let { iconUri ->
+            marker?.let { loadAndSetIcon(iconUri, it) }
+        }
     }
 
     /**
@@ -729,7 +737,15 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      */
     fun setIconHeight(height: Int) {
         val density = context.resources.displayMetrics.density
-        iconHeight = (height * density).toInt()
+        val resolvedHeight = (height * density).toInt()
+        if (iconHeight == resolvedHeight) {
+            return
+        }
+
+        iconHeight = resolvedHeight
+        pendingIconUri?.let { iconUri ->
+            marker?.let { loadAndSetIcon(iconUri, it) }
+        }
     }
 
     /**
@@ -744,7 +760,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
 
         contentWidth = resolvedWidth
-        scheduleMarkerIconUpdate()
+        markCustomMarkerContentDirty()
     }
 
     /**
@@ -759,7 +775,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
 
         contentHeight = resolvedHeight
-        scheduleMarkerIconUpdate()
+        markCustomMarkerContentDirty()
     }
 
     /**
@@ -892,181 +908,17 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      *
      * 注意：render 会在 UI 线程执行；如果当前线程不是 UI 线程，会同步等待 UI 线程完成（有超时）。
      */
-    private fun createBitmapFromView(): Bitmap? {
+    private fun createBitmapFromView(snapshot: MarkerBitmapSnapshot? = resolveMarkerBitmapSnapshot()): Bitmap? {
         if (isEmpty()) return null
-        if (hasPendingAsyncImageContent(this)) {
-            return null
-        }
 
-        // cacheKey 作为命名空间，真正的 children 缓存还要叠加当前内容指纹，
-        // 避免首次空白截图被稳定 cacheKey 永久复用。
-        val fingerprint = computeViewFingerprint(this)
-        val keyPart = cacheKey?.let { "$it|$fingerprint" } ?: fingerprint
-
-        val measuredChild = if (isNotEmpty()) getChildAt(0) else null
-        val contentView = resolveRenderableContentView(measuredChild)
-        val contentBounds = computeContentBounds(measuredChild)
-        val measuredWidth = contentBounds?.width() ?: contentView?.measuredWidth ?: measuredChild?.measuredWidth ?: 0
-        val measuredHeight = contentBounds?.height() ?: contentView?.measuredHeight ?: measuredChild?.measuredHeight ?: 0
-
-        val finalWidth = if (measuredWidth > 0) measuredWidth else (if (contentWidth > 0) contentWidth else 0)
-        val finalHeight = if (measuredHeight > 0) measuredHeight else (if (contentHeight > 0) contentHeight else 0)
-
-        // 🔑 修复：如果尺寸为 0，说明 View 还没准备好，不要生成 Bitmap，否则会导致动画位置偏移
-        if (finalWidth <= 0 || finalHeight <= 0) {
-            return null
-        }
-
-        val fullCacheKey = "$keyPart|${finalWidth}x${finalHeight}"
-
-        // 1) 尝试缓存命中
-        IconBitmapCache.get(fullCacheKey)?.let { return it }
-
-        // 2) 未命中，则生成 bitmap（同之前逻辑）
-        val bitmap: Bitmap? = if (Looper.myLooper() == Looper.getMainLooper()) {
-            renderViewToBitmapInternal(finalWidth, finalHeight)
-        } else {
-            val latch = CountDownLatch(1)
-            var result: Bitmap? = null
-            mainHandler.post {
-                try {
-                    result = renderViewToBitmapInternal(finalWidth, finalHeight)
-                } finally {
-                    latch.countDown()
-                }
-            }
-            try { latch.await(200, TimeUnit.MILLISECONDS) } catch (_: InterruptedException) {}
-            result
-        }
-
-        bitmap?.let { IconBitmapCache.put(fullCacheKey, it) }
-        return bitmap
-    }
-
-
-    /**
-     * 真正把 view measure/layout/draw 到 Bitmap 的内部方法（必须在主线程调用）
-     */
-    private fun renderViewToBitmapInternal(finalWidth: Int, finalHeight: Int): Bitmap? {
-        try {
-            val childView = if (isNotEmpty()) getChildAt(0) else return null
-
-
-            // 🔑 优化：如果 View 尺寸已经符合要求，直接复用现有布局，避免破坏 React Native 的排版
-            if (childView.width != finalWidth || childView.height != finalHeight) {
-                // 🔑 关键修复：如果子 View 还没完成布局（宽高为 0），不要强行 measure，这会导致布局错乱（如 0x0 -> 252x75）。
-                // 直接返回 null，等待下一次 layout（当子 View 准备好时会再次触发）。
-                if (childView.width == 0 || childView.height == 0) {
-                    return null
-                }
-
-                // 使用给定的尺寸强制测量布局
-                val widthSpec = MeasureSpec.makeMeasureSpec(finalWidth, MeasureSpec.EXACTLY)
-                val heightSpec = MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY)
-
-                // measure + layout
-                childView.measure(widthSpec, heightSpec)
-                childView.layout(0, 0, finalWidth, finalHeight)
-            } else {
-                 // 如果复用布局，必须检查 left/top 是否为 0。如果不为 0，绘制到 bitmap 时会发生偏移。
-                 // 很多时候 RN 会给 view 设置 left/top。
-                 if (childView.left != 0 || childView.top != 0) {
-                     childView.layout(0, 0, finalWidth, finalHeight)
-                 }
-            }
-
-            // 🔑 修复：创建支持透明度的 bitmap 配置
-            val bitmap = createBitmap(finalWidth, finalHeight)
-            val canvas = Canvas(bitmap)
-
-            // 🔑 关键修复：强制启用 view 的绘制缓存，确保内容正确渲染
-            childView.isDrawingCacheEnabled = true
-            childView.buildDrawingCache(true)
-
-            // 绘制 view 到 canvas
-            childView.draw(canvas)
-
-            // 清理绘制缓存
-            childView.isDrawingCacheEnabled = false
-            childView.destroyDrawingCache()
-
-            val shouldTrimTransparentPadding = contentWidth <= 0 && contentHeight <= 0
-            return if (shouldTrimTransparentPadding) trimTransparentPadding(bitmap) else bitmap
-        } catch (_: Exception) {
-            // 遇到异常时返回 null，让上层使用默认图标
-            return null
-        }
-    }
-
-    private fun trimTransparentPadding(bitmap: Bitmap): Bitmap {
-        if (bitmap.width <= 1 || bitmap.height <= 1) {
-            return bitmap
-        }
-
-        if (hasOpaquePixelsOnAllBitmapEdges(bitmap)) {
-            return bitmap
-        }
-
-        var minX = bitmap.width
-        var minY = bitmap.height
-        var maxX = -1
-        var maxY = -1
-
-        for (y in 0 until bitmap.height) {
-            for (x in 0 until bitmap.width) {
-                if (Color.alpha(bitmap.getPixel(x, y)) != 0) {
-                    if (x < minX) minX = x
-                    if (y < minY) minY = y
-                    if (x > maxX) maxX = x
-                    if (y > maxY) maxY = y
-                }
-            }
-        }
-
-        if (maxX < minX || maxY < minY) {
-            return bitmap
-        }
-
-        val trimmedWidth = maxX - minX + 1
-        val trimmedHeight = maxY - minY + 1
-        if (trimmedWidth == bitmap.width && trimmedHeight == bitmap.height) {
-            return bitmap
-        }
-
-        return Bitmap.createBitmap(bitmap, minX, minY, trimmedWidth, trimmedHeight)
-    }
-
-    private fun hasOpaquePixelsOnAllBitmapEdges(bitmap: Bitmap): Boolean {
-        var topEdgeHasPixel = false
-        var bottomEdgeHasPixel = false
-        var leftEdgeHasPixel = false
-        var rightEdgeHasPixel = false
-
-        for (x in 0 until bitmap.width) {
-            if (!topEdgeHasPixel && Color.alpha(bitmap.getPixel(x, 0)) != 0) {
-                topEdgeHasPixel = true
-            }
-            if (!bottomEdgeHasPixel && Color.alpha(bitmap.getPixel(x, bitmap.height - 1)) != 0) {
-                bottomEdgeHasPixel = true
-            }
-            if (topEdgeHasPixel && bottomEdgeHasPixel) {
-                break
-            }
-        }
-
-        for (y in 0 until bitmap.height) {
-            if (!leftEdgeHasPixel && Color.alpha(bitmap.getPixel(0, y)) != 0) {
-                leftEdgeHasPixel = true
-            }
-            if (!rightEdgeHasPixel && Color.alpha(bitmap.getPixel(bitmap.width - 1, y)) != 0) {
-                rightEdgeHasPixel = true
-            }
-            if (leftEdgeHasPixel && rightEdgeHasPixel) {
-                break
-            }
-        }
-
-        return topEdgeHasPixel && bottomEdgeHasPixel && leftEdgeHasPixel && rightEdgeHasPixel
+        val resolvedSnapshot = snapshot ?: return null
+        return MarkerBitmapRenderer.createBitmap(
+            container = this,
+            snapshot = resolvedSnapshot,
+            contentWidth = contentWidth,
+            contentHeight = contentHeight,
+            mainHandler = mainHandler,
+        )
     }
 
     /**
@@ -1085,15 +937,11 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             return
         }
 
-        // cacheKey 作为命名空间，真正的 children 缓存还要叠加当前内容指纹。
-        val fingerprint = computeViewFingerprint(this)
-        val keyPart = cacheKey?.let { "$it|$fingerprint" } ?: fingerprint
-        val child = getChildAt(0)
-        val contentView = resolveRenderableContentView(child)
-        val contentBounds = computeContentBounds(child)
-        val measuredWidth = contentBounds?.width() ?: contentView?.measuredWidth ?: child?.measuredWidth ?: contentWidth
-        val measuredHeight = contentBounds?.height() ?: contentView?.measuredHeight ?: child?.measuredHeight ?: contentHeight
-        val fullCacheKey = "$keyPart|${measuredWidth}x${measuredHeight}"
+        val snapshot = resolveMarkerBitmapSnapshot() ?: run {
+
+            return
+        }
+        val fullCacheKey = snapshot.fullCacheKey
 
         // 确定锚点：优先使用用户指定的 pendingAnchor，否则对于自定义 View 使用中心点 (0.5, 0.5)
         val anchorX = pendingAnchor?.first ?: 0.5f
@@ -1115,14 +963,11 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         }
 
         // 2) Bitmap 缓存命中则生成 Descriptor，或者重新生成
-        val bitmap = IconBitmapCache.get(fullCacheKey) ?: createBitmapFromView() ?: run {
+        val bitmap = IconBitmapCache.get(fullCacheKey) ?: createBitmapFromView(snapshot) ?: run {
             // 🔑 关键修复：如果生成 Bitmap 失败（例如 View 还没准备好）
             // 不要急着切回默认 Marker，这会导致闪烁和位置跳变。
             // 只有在 Marker 从未显示过的情况下，才考虑兜底策略。
-            if (marker?.isVisible != true) {
-                 // 如果从未显示过，可以暂不显示，等待下一次尝试，或者显示默认（取决于需求）
-                 // 这里选择暂不显示，避免闪现蓝点
-            }
+
             return
         }
 
@@ -1137,24 +982,85 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         marker?.let { showMarker(it) }
     }
 
-    private fun scheduleMarkerIconUpdate(delayMs: Long = 16L) {
+    private fun scheduleMarkerIconUpdateAfterContentSettles() {
         if (isRemoving || marker == null || isEmpty()) {
             return
         }
 
-        pendingMarkerIconUpdate?.let { mainHandler.removeCallbacks(it) }
-        val task = Runnable {
+        pendingMarkerIconUpdate?.let { removeCallbacks(it) }
+        val scheduledGeneration = contentInvalidationGeneration
+        val settleTask = Runnable {
             pendingMarkerIconUpdate = null
-            if (!isRemoving && marker != null && isNotEmpty()) {
-                updateMarkerIcon()
+            if (isRemoving || marker == null || isEmpty()) {
+                return@Runnable
             }
-        }
-        pendingMarkerIconUpdate = task
 
-        if (delayMs <= 0L) {
-            mainHandler.post(task)
-        } else {
-            mainHandler.postDelayed(task, delayMs)
+            if (scheduledGeneration != contentInvalidationGeneration) {
+                scheduleMarkerIconUpdateAfterContentSettles()
+                return@Runnable
+            }
+
+            scheduleMarkerIconUpdateForStableGeneration(scheduledGeneration)
+        }
+        pendingMarkerIconUpdate = settleTask
+        postOnAnimation(settleTask)
+    }
+
+    private fun scheduleMarkerIconUpdateForStableGeneration(expectedGeneration: Long) {
+        if (isRemoving || marker == null || isEmpty()) {
+            return
+        }
+
+        val renderTask = Runnable {
+            pendingMarkerIconUpdate = null
+            if (isRemoving || marker == null || isEmpty()) {
+                return@Runnable
+            }
+
+            if (expectedGeneration != contentInvalidationGeneration) {
+                scheduleMarkerIconUpdateAfterContentSettles()
+                return@Runnable
+            }
+
+            updateMarkerIcon()
+        }
+        pendingMarkerIconUpdate = renderTask
+        postOnAnimation(renderTask)
+    }
+
+    private fun cancelPendingMarkerIconUpdate() {
+        pendingMarkerIconUpdate?.let { removeCallbacks(it) }
+        pendingMarkerIconUpdate = null
+    }
+
+    private fun invalidateAppliedCustomMarkerCaches(clearGlobalCache: Boolean) {
+        val key = lastAppliedCustomMarkerKey ?: return
+        if (clearGlobalCache) {
+            BitmapDescriptorCache.remove(key)
+            IconBitmapCache.remove(key)
+        }
+        lastAppliedCustomMarkerKey = null
+    }
+
+    private fun invalidateCurrentSnapshotCache() {
+        val key = resolveMarkerBitmapSnapshot()?.fullCacheKey ?: return
+        BitmapDescriptorCache.remove(key)
+        IconBitmapCache.remove(key)
+    }
+
+    private fun markCustomMarkerContentDirty() {
+        if (isRemoving || isEmpty()) {
+            return
+        }
+
+        contentInvalidationGeneration += 1
+
+        // children（尤其是 Image）异步加载完成后，需要强制淘汰当前 marker 已应用的位图缓存，
+        // 否则同一个 cacheKey 会一直命中“占位态”的旧 bitmap，表现为灰块/蒙层不更新。
+        // 这里仅清理当前 marker 已应用的 key，不会影响其它 marker。
+        invalidateAppliedCustomMarkerCaches(clearGlobalCache = true)
+        if (marker != null) {
+            scheduleMarkerIconUpdateAfterContentSettles()
         }
     }
 
@@ -1165,8 +1071,8 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             if (child != null && contains(child)) {
                 super.removeView(child)
                 // 不要在这里恢复默认图标
-                // 如果 MarkerView 整体要被移除，onDetachedFromWindow 会处理
-                // 如果只是移除 children 并保留 Marker，应该由外部重新设置 children
+                // 如果 MarkerView 整体被移除，父 MapView / OnViewDestroys 会清理原生 Marker。
+                // 如果只是替换 children，后续 add/layout invalidation 会生成新快照。
             }
         } catch (_: Exception) {
             // 忽略异常
@@ -1178,69 +1084,23 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
             if (index in 0..<childCount) {
                 super.removeViewAt(index)
                 // 只在还有子视图时更新图标
-                if (!isRemoving && childCount > 1 && marker != null) {
-                    scheduleMarkerIconUpdate(50)
+                if (!isRemoving && isNotEmpty() && marker != null) {
+                    markCustomMarkerContentDirty()
                 }
-                // 如果最后一个子视图被移除，什么都不做
-                // 让 onDetachedFromWindow 处理完整的清理
+                // 最后一个子视图被移除时保留 last-good 快照；新 child 加入后原子替换，
+                // MarkerView 真正销毁则由父 MapView / OnViewDestroys 负责清理。
             }
         } catch (_: Exception) {
             // 忽略异常
         }
     }
-    private fun resolveRenderableContentView(view: View?): View? {
-        var current = view ?: return null
-
-        while (current is ViewGroup && current.childCount == 1) {
-            val next = current.getChildAt(0) ?: break
-            current = next
-        }
-
-        return current
-    }
-
-    private fun computeContentBounds(view: View?): Rect? {
-        view ?: return null
-        if (view.visibility != View.VISIBLE) return null
-
-        var resolvedBounds: Rect? = null
-
-        if (view is ViewGroup && view.childCount > 0) {
-          for (i in 0 until view.childCount) {
-            val child = view.getChildAt(i) ?: continue
-            val childBounds = computeContentBounds(child) ?: continue
-            val shiftedBounds = Rect(childBounds)
-            shiftedBounds.offset(child.left, child.top)
-            resolvedBounds = if (resolvedBounds == null) {
-              shiftedBounds
-            } else {
-              Rect(resolvedBounds).apply { union(shiftedBounds) }
-            }
-          }
-        }
-
-        val hasOwnVisualBounds =
-          view.background != null ||
-            view.paddingLeft != 0 ||
-            view.paddingTop != 0 ||
-            view.paddingRight != 0 ||
-            view.paddingBottom != 0 ||
-            view !is ViewGroup
-
-        val ownWidth = view.measuredWidth.takeIf { it > 0 } ?: view.width
-        val ownHeight = view.measuredHeight.takeIf { it > 0 } ?: view.height
-
-        if (hasOwnVisualBounds && ownWidth > 0 && ownHeight > 0) {
-          val ownBounds = Rect(0, 0, ownWidth, ownHeight)
-          resolvedBounds = if (resolvedBounds == null) {
-            ownBounds
-          } else {
-            Rect(resolvedBounds).apply { union(ownBounds) }
-          }
-        }
-
-        return resolvedBounds
-    }
+    private fun resolveMarkerBitmapSnapshot(): MarkerBitmapSnapshot? =
+        MarkerBitmapRenderer.resolveSnapshot(
+            container = this,
+            contentWidth = contentWidth,
+            contentHeight = contentHeight,
+            cacheKey = cacheKey,
+        )
 
 
     override fun addView(child: View?, index: Int, params: android.view.ViewGroup.LayoutParams?) {
@@ -1279,7 +1139,7 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       // 🔑 修复：需要延迟更新图标，等待 children 完成布局
       // 原因：立即更新会在 children 还未完成测量/布局时就渲染，导致内容为空
       if (!isRemoving && marker != null && childCount > childCountBefore) {
-        scheduleMarkerIconUpdate()
+        markCustomMarkerContentDirty()
       }
     }
 
@@ -1288,8 +1148,17 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
       // 🔑 修复：布局完成后延迟更新图标
       // 即使 changed 为 false，只要有内容，也应该检查是否需要更新（例如子 View 尺寸变化但 MarkerView 没变）
       if (!isRemoving && isNotEmpty() && marker != null) {
-        scheduleMarkerIconUpdate()
+        markCustomMarkerContentDirty()
       }
+    }
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun invalidateChildInParent(location: IntArray?, dirty: Rect?): ViewParent? {
+        val parentRef = super.invalidateChildInParent(location, dirty)
+        if (!isRemoving && isNotEmpty() && marker != null) {
+            markCustomMarkerContentDirty()
+        }
+        return parentRef
     }
 
   
@@ -1503,6 +1372,9 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
      * 移除标记
      */
     fun removeMarker() {
+        cancelPendingMarkerIconUpdate()
+        contentInvalidationGeneration += 1
+
         // 停止平滑移动
         stopSmoothMove()
         smoothMoveMarker?.destroy()
@@ -1515,109 +1387,19 @@ class MarkerView(context: Context, appContext: AppContext) : ExpoView(context, a
         marker = null
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        isRemoving = false
+
+        if (isNotEmpty() && marker != null) {
+            markCustomMarkerContentDirty()
+        }
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-
-        // 🔑 关键修复：使用 post 延迟检查
-        // 清理所有延迟任务
-        mainHandler.removeCallbacksAndMessages(null)
-        pendingMarkerIconUpdate = null
-
-        // 延迟检查 parent 状态
-        mainHandler.post {
-            if (parent == null) {
-                // 标记正在移除
-                isRemoving = true
-
-                // 🔑 修复：不要清空全局缓存
-                // 理由：会影响其他 Marker 的性能
-                // 缓存应该由 LruCache 自动管理，或在合适的时机（如内存警告）统一清理
-
-                // 移除 marker
-                removeMarker()
-            }
-        }
-    }
-
-
-    /**
-     * 为 view 和其子树生成一个轻量“指纹”字符串，用作缓存 key。
-     * 注意：这是启发式的，不追求 100% 唯一性，但在大部分自定义 view 场景下能稳定复用。
-     */
-    fun computeViewFingerprint(view: View?): String {
-        if (view == null) return "null"
-
-        val sb = StringBuilder()
-        // 首先尝试使用开发者可能预设的 tag 或 contentDescription 作为优先标识（稳定且快速）
-        val tag = view.tag
-        if (tag != null) {
-            sb.append("tag=").append(tag.toString()).append(";")
-            return sb.toString()
-        }
-
-        val contentDesc = view.contentDescription
-        if (!contentDesc.isNullOrEmpty()) {
-            sb.append("cdesc=").append(contentDesc.toString()).append(";")
-            return sb.toString()
-        }
-
-        // 否则做一个递归采样：className + 对于 TextView 获取 text + 对于 ImageView 获取 resourceId 或 drawable hash
-        fun appendFor(v: View) {
-            sb.append(v.javaClass.simpleName)
-            when (v) {
-                is TextView -> {
-                    val t = v.text?.toString() ?: ""
-                    if (t.isNotEmpty()) {
-                        sb.append("[text=").append(t).append("]")
-                    }
-                }
-                is ImageView -> {
-                    // 尝试读取资源 id（若使用 setImageResource 时可取到），否则取 drawable 的 hashCode 作为近似
-                    val resId = v.tag // 开发者可将资源 id 放到 tag 以便稳定识别
-                    if (resId is Int && resId != 0) {
-                        sb.append("[imgRes=").append(resId).append("]")
-                    } else {
-                        val dr = v.drawable
-                        if (dr != null) {
-                            sb.append("[drawableHash=").append(dr.hashCode()).append("]")
-                        }
-                    }
-                }
-            }
-            sb.append(";")
-            if (v is ViewGroup) {
-                for (i in 0 until v.childCount) {
-                    val c = v.getChildAt(i)
-                    appendFor(c)
-                }
-            }
-        }
-
-        appendFor(view)
-        // 最终返回一个截断的 sha-like 形式（避免 key 过长）
-        return sb.toString().take(1024)
-    }
-
-    private fun hasPendingAsyncImageContent(view: View?): Boolean {
-        view ?: return false
-        if (view.visibility != View.VISIBLE) return false
-
-        if (view is ImageView) {
-            val resolvedWidth = view.measuredWidth.takeIf { it > 0 } ?: view.width
-            val resolvedHeight = view.measuredHeight.takeIf { it > 0 } ?: view.height
-            if (resolvedWidth > 0 && resolvedHeight > 0 && view.drawable == null) {
-                return true
-            }
-        }
-
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                if (hasPendingAsyncImageContent(view.getChildAt(i))) {
-                    return true
-                }
-            }
-        }
-
-        return false
+        // Window detach 可能只是页面转场或 Fabric 重挂载，不代表 Marker 已销毁。
+        // 父 MapView 的 removeView/removeViewAt 与 OnViewDestroys 才负责真实清理。
+        cancelPendingMarkerIconUpdate()
     }
 }
