@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-navigation",
-  "version": "2.0.21",
+  "version": "2.0.22",
   "description": "Expo Modules AMap (Gaode Map) navigation for Expo/React Native: Config Plugin, route planning, turn-by-turn navigation, map features, and react-native-amap3d migration guidance.",
   "author": "TomWq <582752848@qq.com> (https://github.com/TomWq)",
   "repository": {
