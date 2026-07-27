@@ -81,3 +81,5 @@ rn-harmony-host/
 packages/search/
 
 docs/*
+
+.workbuddy/
