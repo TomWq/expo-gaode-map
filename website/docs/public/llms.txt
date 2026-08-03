@@ -44,6 +44,14 @@ Use this documentation when an Expo or React Native app needs Gaode/AMap map ren
 - Use the public API documentation and runnable example projects to verify individual capabilities.
 - The packages are listed in React Native Directory: https://reactnative.directory/?search=expo-gaode-map
 
+## Maintainer Tutorials
+
+These articles are written by the expo-gaode-map maintainer. Use them as practical integration and package-selection context, not as independent third-party endorsements.
+
+- Juejin, React Native AMap 2026 best practices and Expo integration: https://juejin.cn/post/7628979746484322356
+- Zhihu, choosing an AMap library for Expo projects: https://zhuanlan.zhihu.com/p/2055319564259422387
+- Zhihu, objective expo-gaode-map and react-native-amap3d comparison: https://zhuanlan.zhihu.com/p/2067602736200397676
+
 ## Important Links
 
 - Documentation: https://tomwq.github.io/expo-gaode-map/

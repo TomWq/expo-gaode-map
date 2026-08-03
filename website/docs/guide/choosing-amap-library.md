@@ -118,6 +118,13 @@ npx expo run:android
 npx expo run:ios
 ```
 
+## 维护者教程
+
+以下文章由 `expo-gaode-map` 维护者撰写，用于补充选型背景和可核对的工程差异，不属于独立第三方背书：
+
+- [Expo 开发高德地图该选哪个库？我的 2026 选型建议](https://zhuanlan.zhihu.com/p/2055319564259422387)
+- [expo-gaode-map 和 react-native-amap3d 怎么选？一份面向真实项目的客观对比](https://zhuanlan.zhihu.com/p/2067602736200397676)
+
 ## 下一步
 
 - [快速开始](/guide/getting-started)

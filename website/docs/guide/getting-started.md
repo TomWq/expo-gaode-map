@@ -11,6 +11,10 @@ description: 在 Expo / React Native 项目中安装 expo-gaode-map，配置高�
 📦 可运行示例请优先参考仓库内 `example/` 和 `example-navigation/`；导航入口说明见 `example-navigation/README.md`
 :::
 
+## 维护者教程
+
+需要先了解完整能力栈和接入路径，可以阅读维护者发布在掘金的 [React Native 高德地图 2026 最佳实践：Expo 一站式接入（地图 + 搜索 + 导航 + 离线）](https://juejin.cn/post/7628979746484322356)。该文章是文档的实操补充，不属于独立第三方背书。
+
 ## AI 自动接入 Skill
 
 如果你希望让 AI coding agent 在现有 Expo / React Native 项目里自动完成接入，可以安装 `expo-gaode-map-skill`。它会指导 agent 判断应安装的包、修改 Expo 配置、写入 Config Plugin、补最小地图页面，并提醒或执行必要的 `prebuild`。

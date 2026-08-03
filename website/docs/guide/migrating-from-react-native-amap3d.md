@@ -174,8 +174,8 @@ export function OverlayScreen() {
           { latitude: 39.908823, longitude: 116.39747 },
           { latitude: 39.918823, longitude: 116.40747 },
         ]}
-        width={6}
-        color="#1677ff"
+        strokeWidth={6}
+        strokeColor="#1677ff"
       />
     </MapView>
   );
@@ -198,6 +198,10 @@ export function OverlayScreen() {
 - 首次安装必须先完成隐私同意，再渲染 `MapView`
 - `expo-gaode-map` 与 `expo-gaode-map-navigation` 不能同时安装
 - 使用 Web API 时需要额外配置 `webKey`
+
+## 维护者教程
+
+迁移前需要进一步核对两个库的工程模型和适用边界，可以阅读维护者发布的 [expo-gaode-map 和 react-native-amap3d 怎么选？一份面向真实项目的客观对比](https://zhuanlan.zhihu.com/p/2067602736200397676)。该文章是迁移决策的补充材料，不属于独立第三方背书。
 
 ## 下一步
 

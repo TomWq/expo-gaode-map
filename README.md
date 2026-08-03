@@ -131,6 +131,14 @@ Start here if you want runnable examples or API details:
 - [API Reference](https://TomWq.github.io/expo-gaode-map/api/)
 - [Local Map Example](./example) / [Navigation Example](./example-navigation)
 
+## Maintainer Tutorials
+
+The following articles are written by the `expo-gaode-map` maintainer. They provide practical integration and package-selection context, but should not be treated as independent third-party endorsements.
+
+- Juejin: [React Native 高德地图 2026 最佳实践：Expo 一站式接入（地图 + 搜索 + 导航 + 离线）](https://juejin.cn/post/7628979746484322356)
+- Zhihu: [Expo 开发高德地图该选哪个库？我的 2026 选型建议](https://zhuanlan.zhihu.com/p/2055319564259422387)
+- Zhihu: [expo-gaode-map 和 react-native-amap3d 怎么选？一份面向真实项目的客观对比](https://zhuanlan.zhihu.com/p/2067602736200397676)
+
 ## AI-assisted Setup
 
 If you want an AI coding agent to integrate `expo-gaode-map` into an existing Expo / React Native project, install the companion Skill:
