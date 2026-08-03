@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map-navigation API
+description: API reference for route planning, real-time navigation views, official AMap navigation pages, strategies, events, and navigation types.
+---
+
 # Navigation
 
 `expo-gaode-map-navigation` is a standalone navigation module that integrates map display and navigation capabilities, providing route planning and real-time navigation features.

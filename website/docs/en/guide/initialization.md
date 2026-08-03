@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map Initialization
+description: Initialize expo-gaode-map correctly with native and Web API keys, privacy consent, startup timing, and Android or iOS platform requirements.
+---
+
 # Initialization
 
 This guide explains how to initialize the AMap SDK and configure permissions.

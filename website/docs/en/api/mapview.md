@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map MapView API
+description: Reference for expo-gaode-map MapView props, events, camera control, user location display, snapshots, and imperative Ref methods.
+---
+
 # MapView API
 
 `MapView` is the core component for map rendering, user location display, camera control, event callbacks, and snapshots.

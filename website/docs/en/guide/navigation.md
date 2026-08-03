@@ -1,3 +1,8 @@
+---
+title: Expo AMap Navigation Guide
+description: Integrate route planning, embedded turn-by-turn navigation, official AMap navigation pages, and Android or iOS background navigation.
+---
+
 # Navigation
 
 `expo-gaode-map-navigation` is an all-in-one navigation module. It includes the map rendering stack and provides route planning plus an official navigation UI.

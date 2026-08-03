@@ -1,6 +1,16 @@
 # expo-gaode-map-web-api
 
-高德地图 Web API 服务模块（纯 JavaScript 实现），提供地理编码、路径规划、POI 搜索、输入提示等服务能力。支持与导航模块或核心地图模块协同，统一在应用初始化时下发 Web 服务 Key，随后直接无参构造使用。
+高德地图 Web API 服务模块（纯 JavaScript 实现），提供地理编码、路径规划、POI 搜索、输入提示等服务能力。它既可以通过显式 Web 服务 Key 独立使用，也可以与 `expo-gaode-map` 或 `expo-gaode-map-navigation` 协同，从统一初始化配置中读取 Key。
+
+> Pure JavaScript AMap Web API toolkit for Expo / React Native: geocoding, POI search, route planning, input tips, and route-data adapters.
+
+## 适用范围与限制
+
+- 只需要调用高德 Web API 时，可以显式传入 Web 服务 Key 独立使用，无需安装原生地图包。
+- 通过标准 `fetch` 工作，没有原生编译依赖；显式传入 Key 时可在 Expo Go 中使用。
+- 需要原生地图渲染时，再配合 `expo-gaode-map` 或 `expo-gaode-map-navigation`。
+- Web 服务 Key 与 Android/iOS 原生 Key 不同，需要在高德开放平台单独申请。
+- Key 会存在于客户端请求中；对配额、签名或密钥保护要求较高的业务应通过自有服务端代理。
 
 ## 特性
 
@@ -28,9 +38,9 @@
 
 ## 安装
 
-本模块要求先安装且初始化基础地图组件（导航模块或核心地图模块其一即可），用于提供 Web API Key：
+本模块可以独立使用，也可以从基础地图组件读取 Web API Key：
 
-- 任选其一：
+- 可选安装其一：
   - `expo-gaode-map-navigation`（导航一体化，内置地图能力）
   - `expo-gaode-map`（核心地图）
 
@@ -42,7 +52,7 @@ yarn add expo-gaode-map-web-api
 # 或
 npm install expo-gaode-map-web-api
 ```
-注：若未安装上述基础包，安装时或运行时会给出明确提示。
+未安装基础地图包时，请在构造 `GaodeWebAPI` 时显式传入 `key`。
 
 ## 快速开始
 
@@ -781,9 +791,10 @@ try {
 
 ## 📚 文档与资源
 - [在线文档](https://tomwq.github.io/expo-gaode-map/api/web-api.html)
-- [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/packages/web-api)
-- [地图示例工程](../../example)
-- [导航示例工程](../../example-navigation)
+- [选型指南](https://tomwq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [GitHub 源码](https://github.com/TomWq/expo-gaode-map/tree/main/packages/web-api)
+- [地图示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example)
+- [导航示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

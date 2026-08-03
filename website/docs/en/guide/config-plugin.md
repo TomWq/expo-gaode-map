@@ -1,3 +1,8 @@
+---
+title: Expo AMap Config Plugin
+description: Configure Android and iOS AMap keys, permissions, location capabilities, and native build settings with the expo-gaode-map Config Plugin.
+---
+
 # Config Plugin
 
 ## Overview

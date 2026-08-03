@@ -51,7 +51,8 @@
   },
   "files": [
     "build",
-    "android",
+    "android/build.gradle",
+    "android/src",
     "ios",
     "widget-template",
     "shared",

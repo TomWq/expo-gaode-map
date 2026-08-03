@@ -1,3 +1,7 @@
+---
+title: Expo 高德地图导航接入指南
+description: 使用 expo-gaode-map-navigation 接入路径规划、嵌入式导航视图、官方导航页和 Android/iOS 后台导航能力。
+---
 
 # 导航功能
 

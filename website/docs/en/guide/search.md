@@ -1,3 +1,8 @@
+---
+title: Expo AMap Native Search
+description: Use built-in native POI search, nearby search, route search, input tips, reverse geocoding, and autocomplete with expo-gaode-map.
+---
+
 # Search Features
 
 Search is built into `expo-gaode-map` and `expo-gaode-map-navigation`. It provides comprehensive POI (Point of Interest) search functionality based on AMap SDK, including keyword search, nearby search, route search, geocoding, and autocomplete features.

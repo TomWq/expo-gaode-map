@@ -1,3 +1,8 @@
+---
+title: Expo AMap Getting Started
+description: Install expo-gaode-map in an Expo or React Native app, configure AMap keys and the Config Plugin, complete privacy consent, and build Android and iOS projects.
+---
+
 # Getting Started
 
 Quick start guide to help you integrate expo-gaode-map into your Expo project.

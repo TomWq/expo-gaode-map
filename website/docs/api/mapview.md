@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map MapView API
+description: expo-gaode-map MapView 的属性、事件、相机控制、定位蓝点、截图和 Ref 方法参考。
+---
+
 # MapView API
 
 `MapView` 是地图显示的核心组件，支持地图渲染、定位蓝点、相机控制、事件监听和截图。

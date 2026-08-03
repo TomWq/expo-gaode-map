@@ -1,3 +1,8 @@
+---
+title: Expo 高德地图快速开始
+description: 在 Expo / React Native 项目中安装 expo-gaode-map，配置高德 Key、Config Plugin、隐私合规并完成 Android 与 iOS 原生构建。
+---
+
 # 快速开始
 
 本指南将帮助你快速开始使用 expo-gaode-map。

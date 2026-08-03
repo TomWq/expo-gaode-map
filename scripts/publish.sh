@@ -369,8 +369,8 @@ publish_web_api() {
     echo "   或指定版本: npm install expo-gaode-map-web-api@${NEW_VERSION}"
   fi
   
-  echo "恢复 workspace:* 协议..."
-  mv package.json.backup package.json
+  echo "恢复 workspace:* 协议并保留已发布版本号..."
+  node -e "const fs=require('fs');const published=JSON.parse(fs.readFileSync('package.json','utf8'));const workspace=JSON.parse(fs.readFileSync('package.json.backup','utf8'));workspace.version=published.version;fs.writeFileSync('package.json',JSON.stringify(workspace,null,2)+'\n');fs.unlinkSync('package.json.backup');"
   
   cd ../..
   

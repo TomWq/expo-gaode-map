@@ -484,7 +484,7 @@ MIT
 
 - [在线文档](https://tomwq.github.io/expo-gaode-map/api/search.html)
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/tree/main/packages/search)
-- [地图示例工程](../../example)
-- [导航示例工程](../../example-navigation)
+- [地图示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example)
+- [导航示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)

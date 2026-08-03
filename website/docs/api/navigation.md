@@ -1,3 +1,7 @@
+---
+title: expo-gaode-map-navigation API
+description: expo-gaode-map-navigation 的路径规划、实时导航视图、官方导航页、导航策略、事件和类型 API 参考。
+---
 
 # 导航 API
 

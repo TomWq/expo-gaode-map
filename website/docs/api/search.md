@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map 搜索 API
+description: expo-gaode-map 原生 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码和详情查询 API 参考。
+---
+
 # 搜索 API
 
 搜索 API 提供高德地图原生搜索功能，包括 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码和 POI 详情查询。

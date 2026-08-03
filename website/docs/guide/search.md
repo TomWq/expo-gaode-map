@@ -1,3 +1,8 @@
+---
+title: Expo 高德地图搜索功能
+description: 在 expo-gaode-map 或 expo-gaode-map-navigation 中使用内置原生 POI 搜索、周边搜索、沿途搜索、输入提示和逆地理编码。
+---
+
 # 搜索功能
 
 搜索功能已经内置在 `expo-gaode-map` 和 `expo-gaode-map-navigation` 中，包括 POI 搜索、周边搜索、沿途搜索、输入提示、逆地理编码等。

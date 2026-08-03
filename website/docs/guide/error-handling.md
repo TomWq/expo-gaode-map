@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map 错误处理与排查
+description: 排查 expo-gaode-map 的初始化、API Key、隐私合规、权限、原生构建和运行时错误，并使用类型化错误信息定位问题。
+---
+
 # 错误处理指南
 
 expo-gaode-map 提供了完善的错误处理系统，帮助开发者快速定位和解决问题。

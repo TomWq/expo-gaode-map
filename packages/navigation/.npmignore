@@ -5,6 +5,9 @@ node_modules/
 src/
 tsconfig.json
 .eslintrc.js
+android/.gradle/
+android/.cxx/
+android/build/
 
 # 确保包含构建产物
 !build/

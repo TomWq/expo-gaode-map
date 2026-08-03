@@ -2,6 +2,16 @@
 
 高德地图“导航一体化”模块。内置地图渲染能力与导航能力，提供从地图展示到路径规划、实时导航的完整解决方案。
 
+> Expo / React Native AMap (Gaode Map) package for maps, route planning, embedded turn-by-turn navigation, and official AMap navigation pages on Android and iOS.
+
+## 适用范围与限制
+
+- 需要地图能力加路径规划或实时导航时，使用 `expo-gaode-map-navigation`。
+- 不要同时安装 `expo-gaode-map`，两个包封装了重叠的高德原生 SDK。
+- 不支持 Expo Go，需要 Development Build、EAS Build 或本地原生构建。
+- 使用前需要申请高德 Android/iOS Key，并在首次调用 SDK 前完成隐私同意流程。
+- 只需要地图、定位和搜索、不需要导航时，优先使用体积和依赖更精简的 `expo-gaode-map`。
+
 ## 特性
 
 - 🗺️ **地图渲染**：内置完整地图能力，支持 Marker、Polyline、Polygon、Circle、Cluster、HeatMap 等覆盖物。
@@ -85,7 +95,7 @@ npx expo run:ios
 
 ## 示例工程
 
-仓库内提供了可直接运行的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md) 示例工程，专门用于验证导航能力。
+仓库内提供了可直接运行的 [`example-navigation`](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation) 示例工程，专门用于验证导航能力。
 
 推荐场景：
 
@@ -119,8 +129,8 @@ npx expo run:ios
 
 仓库已提供模板：
 
-- [`packages/navigation/widget-template/README.md`](/Volumes/xinxin/expo-gaode-map/packages/navigation/widget-template/README.md)
-- [`packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift`](/Volumes/xinxin/expo-gaode-map/packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift)
+- [`packages/navigation/widget-template/README.md`](https://github.com/TomWq/expo-gaode-map/blob/main/packages/navigation/widget-template/README.md)
+- [`NavigationLiveActivityWidget.swift`](https://github.com/TomWq/expo-gaode-map/blob/main/packages/navigation/widget-template/ios/NavigationLiveActivityWidget.swift)
 
 模板里直接使用库导出的 `NavigationLiveActivityAttributes`（`import ExpoGaodeMapNavigation`）。
 
@@ -212,7 +222,7 @@ export default function NavigationScreen() {
 
 ### 3. 自定义嵌入式导航 UI
 
-如果你要做“嵌入在自己页面里的导航页”，库本身提供的是底层 `ExpoGaodeMapNaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现，已经迁移到仓库内的 [`example-navigation`](/Volumes/xinxin/expo-gaode-map/example-navigation/README.md)。
+如果你要做“嵌入在自己页面里的导航页”，库本身提供的是底层 `ExpoGaodeMapNaviView`、导航事件和原生参数；完整的自定义 HUD / 车道 HUD / 路况光柱参考实现位于 [`example-navigation`](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation)。
 
 建议做法：
 
@@ -655,8 +665,10 @@ const result = await calculateTransitRoute({
 ## 📚 文档与资源
 
 - [在线文档](https://tomwq.github.io/expo-gaode-map/api/navigation.html)
-- [GitHub 仓库](https://github.com/TomWq/expo-gaode-map/packages/navigation)
-- [导航示例工程](../../example-navigation)
+- [选型指南](https://tomwq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [兼容性矩阵](https://tomwq.github.io/expo-gaode-map/guide/compatibility.html)
+- [GitHub 源码](https://github.com/TomWq/expo-gaode-map/tree/main/packages/navigation)
+- [导航示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

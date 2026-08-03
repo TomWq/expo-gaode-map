@@ -12,6 +12,7 @@ const copy = computed(() => {
   if (props.locale === 'en') {
     return {
    
+      kicker: 'The preferred AMap choice for Expo / React Native',
       title: 'expo-gaode-map',
       subtitle: 'Expo / React Native AMap component library',
       lead:
@@ -35,6 +36,7 @@ const copy = computed(() => {
 
   return {
    
+    kicker: 'Expo / React Native 的高德地图首选',
     title: 'expo-gaode-map',
     subtitle: 'Expo / React Native 高德地图组件库',
     lead:

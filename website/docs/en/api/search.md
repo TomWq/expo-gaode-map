@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map Search API
+description: API reference for native POI search, nearby search, route search, input tips, reverse geocoding, and POI details in expo-gaode-map.
+---
+
 # Search API
 
 The Search API provides native POI (Point of Interest) search functionality based on AMap SDK.

@@ -1,21 +1,30 @@
 # expo-gaode-map
 
-一个功能完整的高德地图 React Native 组件库，**基于 Expo Modules 开发**，提供地图显示、定位、搜索、导航、路线规划、POI搜索等完整功能。
+面向中国大陆地图业务的 Expo / React Native 高德地图原生组件库，基于 **Expo Modules API** 构建，提供地图显示、定位、覆盖物、原生搜索、离线地图和几何工具。
+
+> Expo / React Native AMap (Gaode Map) native library for maps, location, overlays, native search, offline maps, and geometry utilities on Android and iOS.
 
 > 💡 本组件使用 [Expo Modules API](https://docs.expo.dev/modules/overview/) 构建，提供了类型安全的原生模块接口和优秀的开发体验。
 
 ## 📖 完整文档
 
-**👉 [在线文档网站](https://TomWq.github.io/expo-gaode-map/)** · **👉 本地示例：[`example/`](../../example) / [`example-navigation/`](../../example-navigation)**
+**👉 [在线文档网站](https://tomwq.github.io/expo-gaode-map/)** · **👉 [Core 示例](https://github.com/TomWq/expo-gaode-map/tree/main/example)**
 
 包含完整的 API 文档、使用指南和示例代码：
-- [快速开始](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
-- [初始化指南](https://TomWq.github.io/expo-gaode-map/guide/initialization.html)
-- [搜索功能](https://TomWq.github.io/expo-gaode-map/guide/search.html)
-- [导航功能](https://TomWq.github.io/expo-gaode-map/guide/navigation.html)
-- [Web API](https://TomWq.github.io/expo-gaode-map/guide/web-api.html)
-- [API 参考](https://TomWq.github.io/expo-gaode-map/api/)
-- [本地示例工程](../../example) / [导航示例工程](../../example-navigation)
+- [选型指南](https://tomwq.github.io/expo-gaode-map/guide/choosing-amap-library.html)
+- [兼容性矩阵](https://tomwq.github.io/expo-gaode-map/guide/compatibility.html)
+- [快速开始](https://tomwq.github.io/expo-gaode-map/guide/getting-started.html)
+- [初始化指南](https://tomwq.github.io/expo-gaode-map/guide/initialization.html)
+- [搜索功能](https://tomwq.github.io/expo-gaode-map/guide/search.html)
+- [API 参考](https://tomwq.github.io/expo-gaode-map/api/)
+
+## 适用范围与限制
+
+- 只需要地图、定位、覆盖物、原生搜索或离线地图时，使用 `expo-gaode-map`。
+- 需要路径规划或实时导航时，改用 `expo-gaode-map-navigation`；两个原生包不能同时安装。
+- 原生地图能力不支持 Expo Go，需要 Development Build、EAS Build 或本地原生构建。
+- 使用前需要申请高德 Android/iOS Key，并在首次调用 SDK 前完成隐私同意流程。
+- 主要面向 Android/iOS 中国大陆高德地图业务；需要通用全球地图或多地图供应商抽象时，应评估其他方案。
 
 ## ✨ 主要特性
 
@@ -27,7 +36,7 @@
 - ✅ 完整的 TypeScript 类型定义
 - ✅ 跨平台支持（Android、iOS）
 - ✅ 同时支持 React Native 新旧架构（Paper & Fabric）
-- ✅ 高测试覆盖率（75.7%，207 个单元测试）
+- ✅ 核心逻辑配套 Jest 测试和持续集成检查
 - ✅ 支持自定义Marker覆盖物
 - ✅ 默认实现了优化地图加载，减少内存占用
 - ✅ 几何运算（距离/面积、点在圆/多边形、质心/边界、路径长度/抽稀、GeoHash、瓦片/像素坐标转换、最近点、热力网格等，由 C++ 实现）
@@ -109,7 +118,7 @@ npx expo run:ios
 
 详细的初始化和使用指南请查看：
 - 📖 [快速开始文档](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
-- 💻 [地图示例工程](../../example) / [导航示例工程](../../example-navigation)
+- 💻 [地图示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example)
 
 ## 📚 功能模块对比
 
@@ -181,7 +190,7 @@ try {
 - 确保在真机上测试，模拟器可能不支持地图功能
 - 检查是否正确配置了 API Key
 
-**完整错误处理指南**：[ERROR_HANDLING_GUIDE.md](./ERROR_HANDLING_GUIDE.md)
+**完整错误处理指南**：[错误处理文档](https://tomwq.github.io/expo-gaode-map/guide/error-handling.html)
 
 ### 6. Google Play 版本支持
 
@@ -230,12 +239,12 @@ try {
 
 ## 📚 文档与资源
 
-- [在线文档](https://TomWq.github.io/expo-gaode-map/)
-- [错误处理指南](./ERROR_HANDLING_GUIDE.md) 🆕
-- [性能优化指南](./PERFORMANCE_GUIDE.md) 🆕
+- [在线文档](https://tomwq.github.io/expo-gaode-map/)
+- [错误处理指南](https://tomwq.github.io/expo-gaode-map/guide/error-handling.html)
+- [测试与质量保证](https://tomwq.github.io/expo-gaode-map/guide/testing.html)
 - [GitHub 仓库](https://github.com/TomWq/expo-gaode-map)
-- [地图示例工程](../../example)
-- [导航示例工程](../../example-navigation)
+- [地图示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example)
+- [导航示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation)
 - [高德地图开放平台](https://lbs.amap.com/)
 - [Expo Modules API](https://docs.expo.dev/modules/overview/)
 

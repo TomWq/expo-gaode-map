@@ -6,7 +6,8 @@
   "types": "build/index.d.ts",
   "files": [
     "build",
-    "android",
+    "android/build.gradle",
+    "android/src",
     "ios",
     "shared",
     "scripts",

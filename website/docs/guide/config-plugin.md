@@ -1,3 +1,8 @@
+---
+title: Expo 高德地图 Config Plugin 配置
+description: 使用 expo-gaode-map Config Plugin 自动配置 Android 与 iOS 高德 Key、权限、定位能力和原生构建选项。
+---
+
 # Config Plugin 配置
 
 ## 概述

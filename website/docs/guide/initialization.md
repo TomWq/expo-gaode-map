@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map 初始化指南
+description: 正确初始化 expo-gaode-map，配置原生与 Web API Key、隐私同意流程、初始化时机和 Android/iOS 平台差异。
+---
+
 # 初始化指南
 
 本文档详细说明如何正确初始化和配置 expo-gaode-map。

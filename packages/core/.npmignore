@@ -10,6 +10,8 @@ __tests__
 /babel.config.js
 /android/src/androidTest/
 /android/src/test/
+/android/.gradle/
+/android/.cxx/
 /android/build/
 /example/
 /website/

@@ -23,6 +23,10 @@ function resolveCanonicalUrl(routePath: string): string {
   return `${siteOrigin}${normalizedPath}`
 }
 
+function removeHtmlExtension(url: string): string {
+  return url.endsWith('.html') ? url.slice(0, -'.html'.length) : url
+}
+
 function resolveAlternateLinks(routePath: string): Array<{ lang: string; url: string }> {
   if (routePath.startsWith('/en/')) {
     const zhPath = routePath.replace(/^\/en/, '') || '/'
@@ -43,10 +47,64 @@ function resolveAlternateLinks(routePath: string): Array<{ lang: string; url: st
   ]
 }
 
+function resolvePageDescription(context: TransformContext): string {
+  if (context.pageData.description) {
+    return context.pageData.description
+  }
+
+  return context.pageData.relativePath.startsWith('en/')
+    ? 'Expo / React Native AMap documentation for maps, location, search, navigation, offline maps, and Web API helpers.'
+    : 'Expo / React Native 高德地图文档：地图、定位、搜索、导航、离线地图与 Web API。'
+}
+
 function createJsonLd(context: TransformContext, canonicalUrl: string): string {
   const pageTitle = context.pageData.title || 'expo-gaode-map'
-  const pageDescription = context.pageData.description || 'Expo / React Native AMap documentation site.'
+  const pageDescription = resolvePageDescription(context)
   const inEnglish = context.pageData.relativePath.startsWith('en/')
+  const isHomePage = context.pageData.relativePath === 'index.md' || context.pageData.relativePath === 'en/index.md'
+
+  if (isHomePage) {
+    return JSON.stringify(
+      {
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'WebSite',
+            '@id': `${siteOrigin}#website`,
+            name: 'expo-gaode-map',
+            description: pageDescription,
+            url: siteOrigin,
+            inLanguage: ['zh-CN', 'en-US'],
+          },
+          {
+            '@type': 'SoftwareSourceCode',
+            '@id': `${siteOrigin}#software`,
+            name: 'expo-gaode-map',
+            description: pageDescription,
+            url: canonicalUrl,
+            codeRepository: 'https://github.com/TomWq/expo-gaode-map',
+            license: 'https://opensource.org/license/mit',
+            programmingLanguage: ['TypeScript', 'Kotlin', 'Swift', 'C++'],
+            runtimePlatform: ['Android', 'iOS', 'Expo', 'React Native'],
+            isAccessibleForFree: true,
+            isPartOf: { '@id': `${siteOrigin}#website` },
+            author: {
+              '@type': 'Person',
+              name: 'TomWq',
+              url: 'https://github.com/TomWq',
+            },
+            sameAs: [
+              'https://www.npmjs.com/package/expo-gaode-map',
+              'https://www.npmjs.com/package/expo-gaode-map-navigation',
+              'https://www.npmjs.com/package/expo-gaode-map-web-api',
+            ],
+          },
+        ],
+      },
+      null,
+      0
+    )
+  }
 
   return JSON.stringify(
     {
@@ -58,13 +116,20 @@ function createJsonLd(context: TransformContext, canonicalUrl: string): string {
       inLanguage: inEnglish ? 'en-US' : 'zh-CN',
       isPartOf: {
         '@type': 'WebSite',
+        '@id': `${siteOrigin}#website`,
         name: 'expo-gaode-map',
         url: siteOrigin,
       },
+      mainEntityOfPage: canonicalUrl,
+      author: {
+        '@type': 'Person',
+        name: 'TomWq',
+        url: 'https://github.com/TomWq',
+      },
       publisher: {
-        '@type': 'Organization',
-        name: 'expo-gaode-map',
-        url: siteOrigin,
+        '@type': 'Person',
+        name: 'TomWq',
+        url: 'https://github.com/TomWq',
       },
       image: defaultOgImage,
     },
@@ -78,7 +143,7 @@ function buildSeoHead(context: TransformContext): HeadConfig[] {
   const canonicalUrl = resolveCanonicalUrl(routePath)
   const alternateLinks = resolveAlternateLinks(routePath)
   const pageTitle = context.pageData.title || 'expo-gaode-map'
-  const pageDescription = context.pageData.description || 'Expo / React Native AMap documentation site.'
+  const pageDescription = resolvePageDescription(context)
   const locale = context.pageData.relativePath.startsWith('en/') ? 'en_US' : 'zh_CN'
 
   return [
@@ -100,7 +165,17 @@ export default defineConfig({
   title: "expo-gaode-map",
   description: "Expo / React Native 高德地图（AMap）组件库文档：地图、定位、搜索、导航、离线地图。",
   sitemap: {
-    hostname: siteOrigin
+    hostname: siteOrigin,
+    transformItems(items) {
+      return items.map((item) => ({
+        ...item,
+        url: removeHtmlExtension(item.url),
+        links: item.links?.map((link) => ({
+          ...link,
+          url: removeHtmlExtension(link.url),
+        })),
+      }))
+    },
   },
   transformHead(context) {
     return buildSeoHead(context)
@@ -183,6 +258,8 @@ export default defineConfig({
     root: {
       label: '简体中文',
       lang: 'zh-CN',
+      title: 'expo-gaode-map',
+      description: 'Expo / React Native 高德地图文档：地图、定位、搜索、导航、离线地图与 Web API。',
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
@@ -265,6 +342,8 @@ export default defineConfig({
       label: 'English',
       lang: 'en-US',
       link: '/en/',
+      title: 'expo-gaode-map',
+      description: 'Expo / React Native AMap documentation for maps, location, search, navigation, offline maps, and Web API helpers.',
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },

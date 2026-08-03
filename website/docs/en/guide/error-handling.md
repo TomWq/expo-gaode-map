@@ -1,3 +1,8 @@
+---
+title: expo-gaode-map Error Handling
+description: Diagnose expo-gaode-map initialization, API key, privacy, permission, native build, and runtime errors with typed error information.
+---
+
 # Error Handling
 
 expo-gaode-map provides a structured error system to help you quickly locate
