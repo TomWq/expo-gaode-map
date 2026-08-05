@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map",
-  "version": "2.2.44",
+  "version": "2.2.45",
   "description": "React Native AMap (Gaode Map) library for Expo, built with Expo Modules: Config Plugin, New Architecture, maps, location, search, offline maps, and react-native-amap3d migration guidance.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
