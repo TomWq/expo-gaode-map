@@ -16,6 +16,7 @@ import com.amap.api.services.help.InputtipsQuery
 import com.amap.api.services.help.Tip
 import com.amap.api.services.poisearch.PoiResultV2
 import com.amap.api.services.poisearch.PoiSearchV2
+import com.amap.api.services.poisearch.VisualSearchResult
 
 import com.amap.api.services.routepoisearch.RoutePOISearch
 import com.amap.api.services.routepoisearch.RoutePOISearchQuery
@@ -72,6 +73,10 @@ class ExpoGaodeMapSearchModule : Module() {
           override fun onPoiItemSearched(item: PoiItemV2?, rCode: Int) {
             // 不使用单个 POI 搜索
           }
+
+          override fun onVisualSearched(result: VisualSearchResult?, rCode: Int) {
+            // 不使用视觉搜索
+          }
         })
         
         poiSearch.searchPOIAsyn()
@@ -124,6 +129,8 @@ class ExpoGaodeMapSearchModule : Module() {
           }
 
           override fun onPoiItemSearched(item: PoiItemV2?, rCode: Int) {}
+
+          override fun onVisualSearched(result: VisualSearchResult?, rCode: Int) {}
         })
         
         poiSearch.searchPOIAsyn()
@@ -262,6 +269,8 @@ class ExpoGaodeMapSearchModule : Module() {
           }
 
           override fun onPoiItemSearched(item: PoiItemV2?, rCode: Int) {}
+
+          override fun onVisualSearched(result: VisualSearchResult?, rCode: Int) {}
         })
         
         poiSearch.searchPOIAsyn()
@@ -369,6 +378,8 @@ class ExpoGaodeMapSearchModule : Module() {
               promise.reject("SEARCH_ERROR", "Get POI detail failed with code: $rCode", null)
             }
           }
+
+          override fun onVisualSearched(result: VisualSearchResult?, rCode: Int) {}
         })
 
         poiSearch.searchPOIIdAsyn(id)

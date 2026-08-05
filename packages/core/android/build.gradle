@@ -61,8 +61,8 @@ dependencies {
             throw new FileNotFoundException("ExpoGaodeMap: Could not find custom SDK at ${customSdkPath}. Please check your customMapSdkPath configuration.")
         }
     } else {
-        // 10.1.600 is the last Android 3D map SDK line that supports offline
-        // map downloads without the separate 11.x offline-download permission.
-        implementation('com.amap.api:3dmap-location-search:10.1.700_loc6.5.1_sea9.7.4')
+        // AMap 11.1.200+ requires separate commercial enablement for offline
+        // map downloads. Online map, location, and search features are unaffected.
+        implementation('com.amap.api:3dmap-location-search:11.2.000_loc11.2.000_sea9.8.0')
     }
 }

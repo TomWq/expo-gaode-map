@@ -86,6 +86,9 @@ npm install expo-gaode-map-web-api     # Web API
 
 > ⚠️ **重要**：`expo-gaode-map` 和 `expo-gaode-map-navigation` 由于 SDK 冲突不能同时安装，二选一使用。
 
+> [!IMPORTANT]
+> **离线地图与原生 SDK 版本**：`expo-gaode-map@2.2.45` 使用 Android 地图 SDK `10.1.700` 和 iOS 地图 SDK `10.1.600`。从 `expo-gaode-map@2.3.0` 开始，Android 和 iOS 地图 SDK 升级为 `11.2.000`。根据高德官方客服回复，从地图 SDK `11.1.200` 开始，离线地图下载需要联系高德商务单独开通权限；不使用离线地图的项目无需申请。需要离线地图但不准备申请权限的项目，请继续固定使用 `expo-gaode-map@2.2.45`。具体政策以高德最新官方说明及商务答复为准。
+
 ### Config Plugin 配置（推荐）
 
 在 `app.json` 中配置，自动设置原生 API Key 和权限：

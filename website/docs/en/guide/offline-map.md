@@ -6,6 +6,21 @@ expo-gaode-map supports offline map functionality, allowing users to download ci
 Offline maps require the **3D Map SDK**. The 2D SDK does not support offline maps.
 :::
 
+## SDK Versions and Commercial Enablement
+
+| expo-gaode-map version | Android Map SDK | iOS Map SDK | Offline map behavior |
+|---|---:|---:|---|
+| `2.2.45` | `10.1.700` | `10.1.600` | Not subject to the offline-map commercial enablement introduced with `11.1.200` |
+| `2.3.0+` | `11.2.000` | `11.2.000` | Offline map downloads require separate enablement from AMap's commercial team |
+
+According to AMap's changelogs, Map SDK `11.1.000` temporarily removed offline map support and `11.1.200` restored offline map downloads. AMap support has confirmed that offline map downloads require separate commercial enablement starting with `11.1.200`.
+
+- Apps that do not use offline maps can use `expo-gaode-map@2.3.0+` without requesting offline-map access.
+- Apps with offline-map access enabled can use `expo-gaode-map@2.3.0+`.
+- Apps that require offline maps but do not plan to request access should remain on `expo-gaode-map@2.2.45`.
+
+See the official [Android 3D Map SDK changelog](https://lbs.amap.com/api/android-sdk/changelog/3d) and [iOS 3D Map SDK changelog](https://lbs.amap.com/api/ios-sdk/changelog/3d). Policies may change; follow AMap's latest official and commercial guidance.
+
 ::: tip Android Permission Requirements
 Offline maps require the following permissions (Config Plugin adds them automatically):
 ```xml

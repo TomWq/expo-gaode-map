@@ -235,6 +235,9 @@ npm install expo-gaode-map-web-api     # Web API
 
 > ⚠️ **Important**: `expo-gaode-map` and `expo-gaode-map-navigation` cannot be installed simultaneously due to SDK conflicts. Choose one.
 
+> [!IMPORTANT]
+> **Offline maps and native SDK versions**: `expo-gaode-map@2.2.45` uses AMap Android SDK `10.1.700` and AMap iOS SDK `10.1.600`. Starting with `expo-gaode-map@2.3.0`, both platforms use AMap Map SDK `11.2.000`. According to AMap support, offline map downloads require separate commercial enablement starting with Map SDK `11.1.200`. Apps that do not use offline maps do not need this enablement. If your app requires offline maps and you do not plan to request access, remain on `expo-gaode-map@2.2.45`. AMap's latest official and commercial guidance takes precedence.
+
 ### Bare React Native (Non-Expo) Projects
 
 This library is built with Expo Modules. If your app is a plain React Native project (not Expo managed), install Expo Modules first:
