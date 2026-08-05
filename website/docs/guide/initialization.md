@@ -131,7 +131,7 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 // 检查权限状态
 const status = await ExpoGaodeMapModule.checkLocationPermission();
 console.log('权限状态:', status);
-// { granted: boolean, status: string }
+// { granted: boolean, accuracyAuthorization: 'full' | 'reduced' | 'none', ... }
 
 // 请求权限
 if (!status.granted) {
@@ -181,6 +181,10 @@ try {
 
 - **granted: true** - 用户已授予权限,可以使用定位功能
 - **granted: false** - 用户未授予权限
+- **accuracyAuthorization: full** - 当前为精准定位
+- **accuracyAuthorization: reduced** - 当前为粗略定位，仍可使用地图定位点、坐标和逆地理编码
+
+不要把粗略定位当成拒绝。只有具体功能确实依赖米级精度时，才在该功能入口提示用户开启精准定位。详见[定位 API](/api/location)。
 
 
 ## 完整示例

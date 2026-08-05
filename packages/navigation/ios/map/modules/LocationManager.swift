@@ -161,6 +161,10 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
         manager.delegate = self
 
         // 默认配置
+        if #available(iOS 14.0, *) {
+            // Continue with the user's current precision instead of requiring full accuracy.
+            manager.locationAccuracyMode = .reduceAccuracy
+        }
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         manager.distanceFilter = 10
         manager.locationTimeout = 10
@@ -223,7 +227,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     }
 
     func amapLocationManager(_ manager: AMapLocationManager!, didFailWithError error: Error!) {
-        // 定位失败 - 静默处理（连续定位会自动重试）
+        log.warn("[ExpoGaodeMap] iOS continuous location failed: \(error.localizedDescription)")
     }
 
     // MARK: - 工具方法

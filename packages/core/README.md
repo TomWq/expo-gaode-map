@@ -30,7 +30,7 @@
 
 ### 核心功能（expo-gaode-map）
 - ✅ 完整的地图功能（多种地图类型、手势控制、相机操作，离线地图,自定义地图样式）
-- ✅ 精准定位（连续定位、单次定位、坐标转换，定位蓝点配置）
+- ✅ 定位（支持精准/粗略定位、连续定位、单次定位、坐标转换和定位蓝点配置）
 - ✅ 丰富的覆盖物（Circle、Marker、Polyline、Polygon、HeatMap、Cluster 等）
 - ✅ 友好的错误提示系统（详细的解决方案和文档链接）
 - ✅ 完整的 TypeScript 类型定义
@@ -119,6 +119,16 @@ npx expo run:ios
 详细的初始化和使用指南请查看：
 - 📖 [快速开始文档](https://TomWq.github.io/expo-gaode-map/guide/getting-started.html)
 - 💻 [地图示例工程](https://github.com/TomWq/expo-gaode-map/tree/main/example)
+
+## 定位精度策略
+
+`checkLocationPermission()` 返回的 `granted: true` 同时包含精准定位和粗略定位。通过 `accuracyAuthorization` 区分当前精度：`full` 为精准定位，`reduced` 为粗略定位，`none` 为无定位权限。
+
+- 地图定位点、当前位置、逆地理编码和区域级业务应接受粗略定位，不要阻止整个地图页面加载。
+- 米级签到、精确围栏、道路匹配、精确上车点或正式导航等功能，可以在具体功能入口要求精准定位。
+- 只有完全未授权时才调用 `requestLocationPermission()`；已经是粗略定位时，不要循环请求，用户确认后使用 `openAppSettings()` 引导到系统设置。
+
+完整决策表和代码示例见[定位 API](https://tomwq.github.io/expo-gaode-map/api/location.html#粗略定位与精准定位如何选择)，可运行示例见 `example` 工程中的“权限基础示例”。
 
 ## 📚 功能模块对比
 

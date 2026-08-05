@@ -1,14 +1,23 @@
 const mockNavigationModule = {
   setPrivacyConfig: jest.fn(),
   initSDK: jest.fn(),
+  checkLocationPermission: jest.fn().mockResolvedValue({
+    granted: true,
+    canAskAgain: true,
+    status: 'granted',
+    accuracyAuthorization: 'reduced',
+  }),
   requestLocationPermission: jest.fn().mockResolvedValue({
     granted: true,
     canAskAgain: true,
     status: 'granted',
+    accuracyAuthorization: 'reduced',
   }),
+  setLocatingWithReGeocode: jest.fn(),
   getCurrentLocation: jest.fn().mockResolvedValue({
     latitude: 39.9,
     longitude: 116.4,
+    address: '北京市东城区测试地址',
   }),
 };
 

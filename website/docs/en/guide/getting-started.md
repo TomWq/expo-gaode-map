@@ -342,10 +342,14 @@ export default function App() {
       // 2. Only needed for Web API features
       // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-      // 3. Request location permission
-      const result = await ExpoGaodeMapModule.requestLocationPermission();
+      // 3. Check first and request only if no foreground permission exists
+      let result = await ExpoGaodeMapModule.checkLocationPermission();
+      if (!result.granted) {
+        result = await ExpoGaodeMapModule.requestLocationPermission();
+      }
       
       if (result.granted) {
+        // Both precise and approximate permission can load the map.
         setIsReady(true);
       } else {
         Alert.alert('Location permission is required');

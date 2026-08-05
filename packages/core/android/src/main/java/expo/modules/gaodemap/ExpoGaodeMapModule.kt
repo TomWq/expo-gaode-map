@@ -784,7 +784,7 @@ class ExpoGaodeMapModule : Module() {
      * @return 权限状态对象，包含详细的权限信息
      */
     AsyncFunction("checkLocationPermission") { promise: expo.modules.kotlin.Promise ->
-      val context = appContext.reactContext!!
+      val context = appContext.currentActivity ?: appContext.reactContext!!
 
       // 使用增强的权限检查
       val foregroundStatus = PermissionHelper.checkForegroundLocationPermission(context)
@@ -795,6 +795,11 @@ class ExpoGaodeMapModule : Module() {
         "status" to if (foregroundStatus.granted) "granted" else if (foregroundStatus.isPermanentlyDenied) "denied" else "notDetermined",
         "fineLocation" to foregroundStatus.fineLocation,
         "coarseLocation" to foregroundStatus.coarseLocation,
+        "accuracyAuthorization" to when {
+          foregroundStatus.fineLocation -> "full"
+          foregroundStatus.coarseLocation -> "reduced"
+          else -> "none"
+        },
         "backgroundLocation" to backgroundStatus.backgroundLocation,
         "shouldShowRationale" to foregroundStatus.shouldShowRationale,
         "isPermanentlyDenied" to foregroundStatus.isPermanentlyDenied,
@@ -842,6 +847,11 @@ class ExpoGaodeMapModule : Module() {
               "status" to if (status.granted) "granted" else if (status.isPermanentlyDenied) "denied" else "notDetermined",
               "fineLocation" to status.fineLocation,
               "coarseLocation" to status.coarseLocation,
+              "accuracyAuthorization" to when {
+                status.fineLocation -> "full"
+                status.coarseLocation -> "reduced"
+                else -> "none"
+              },
               "shouldShowRationale" to status.shouldShowRationale,
               "isPermanentlyDenied" to status.isPermanentlyDenied
             ))

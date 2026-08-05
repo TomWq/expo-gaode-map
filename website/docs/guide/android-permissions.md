@@ -206,15 +206,16 @@ useEffect(() => {
 }, []);
 ```
 
-## Android 14+ 特殊说明
+## Android 12+ 精准与粗略定位
 
-Android 14 引入了更细粒度的位置权限控制：
+Android 12 起，用户授予位置权限时可以只选择粗略定位：
 
 - **精确位置** (FINE_LOCATION)：获取精确的 GPS 位置
 - **粗略位置** (COARSE_LOCATION)：获取大概的网络位置
-- **仅本次** (One-time)：仅本次使用时允许
 
-本库会自动处理这些权限，开发者无需额外配置。
+本库会把任意一种前台位置权限视为已授权。只有粗略定位时，`granted` 为 `true`，`accuracyAuthorization` 为 `reduced`，地图定位点、单次/连续定位和逆地理编码仍可继续使用。
+
+不要在应用启动时强制要求 `FINE_LOCATION`。仅在米级签到、精确围栏、道路匹配或实时导航等明确依赖精准定位的功能入口提示用户升级，并在用户确认后使用 `openAppSettings()` 打开系统设置。完整的跨平台决策规则和代码见[定位 API](/api/location)。
 
 ## 常见错误码
 
@@ -253,6 +254,7 @@ console.log('权限详情:', {
   granted: status.granted,
   fineLocation: status.fineLocation,
   coarseLocation: status.coarseLocation,
+  accuracyAuthorization: status.accuracyAuthorization,
   isPermanentlyDenied: status.isPermanentlyDenied,
   shouldShowRationale: status.shouldShowRationale
 });
@@ -268,5 +270,5 @@ console.log('权限详情:', {
 ## 相关链接
 
 - [Android 权限最佳实践](https://developer.android.com/training/permissions/requesting)
-- [Android 14 位置权限变更](https://developer.android.com/about/versions/14/behavior-changes-14#location-permissions)
+- [Android 12 大概位置说明](https://developer.android.com/develop/sensors-and-location/location/permissions/runtime#approximate)
 - [高德地图 Android SDK 权限说明](https://lbs.amap.com/api/android-sdk/guide/create-project/android-studio-create-project)

@@ -278,6 +278,7 @@ type LocationProtocol = 'HTTP' | 'HTTPS';
 interface PermissionStatus {
   granted: boolean;
   status: 'granted' | 'denied' | 'undetermined';
+  accuracyAuthorization?: 'full' | 'reduced' | 'none';
   fineLocation?: boolean;
   coarseLocation?: boolean;
   backgroundLocation?: boolean;
@@ -287,6 +288,8 @@ interface PermissionStatus {
   message?: string;
 }
 ```
+
+`granted: true` includes both precise and approximate foreground access. Use `accuracyAuthorization` to decide whether a specific feature has the precision it needs. See the [Location API](/en/api/location) for the full policy.
 
 ## Overlay types
 

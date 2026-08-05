@@ -67,6 +67,7 @@ describe('ExpoGaodeMapModule', () => {
         granted: true,
         status: 'authorizedWhenInUse',
         backgroundLocation: false,
+        accuracyAuthorization: 'reduced',
       });
 
       const permission = await ExpoGaodeMapModule.checkLocationPermission();
@@ -76,6 +77,7 @@ describe('ExpoGaodeMapModule', () => {
         status: 'granted',
         canAskAgain: true,
         backgroundLocation: false,
+        accuracyAuthorization: 'reduced',
       });
     });
 

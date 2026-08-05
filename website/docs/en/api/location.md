@@ -20,11 +20,16 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
 // 2. Only needed for Web API features
 ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-// 3. Request permission
-await ExpoGaodeMapModule.requestLocationPermission();
+// 3. Check first and request only when no foreground permission exists
+let permission = await ExpoGaodeMapModule.checkLocationPermission();
+if (!permission.granted) {
+  permission = await ExpoGaodeMapModule.requestLocationPermission();
+}
 
-// 4. Start location updates
-ExpoGaodeMapModule.start();
+// 4. Both precise and approximate permission can start location updates
+if (permission.granted) {
+  ExpoGaodeMapModule.start();
+}
 ```
 
 > ⚠️ In the current version, calling map / location APIs before privacy consent is ready throws a clear `PRIVACY_NOT_AGREED` style error in JS instead of letting the native SDK crash.
@@ -129,6 +134,7 @@ export default function PermissionExample() {
 interface PermissionStatus {
   granted: boolean;
   status: 'granted' | 'denied' | 'undetermined';
+  accuracyAuthorization?: 'full' | 'reduced' | 'none';
   fineLocation?: boolean;
   coarseLocation?: boolean;
   backgroundLocation?: boolean;
@@ -138,6 +144,86 @@ interface PermissionStatus {
   message?: string;
 }
 ```
+
+`granted` means that usable foreground location access exists. It remains `true` when Android grants only `ACCESS_COARSE_LOCATION`, or when an iOS user turns off Precise Location.
+
+Use `accuracyAuthorization` to distinguish the current precision:
+
+| Value | Meaning | Recommended handling |
+|-------|---------|----------------------|
+| `full` | Precise location | Precision-dependent features may proceed |
+| `reduced` | Approximate location | Keep maps, location, and reverse geocoding available; gate only features that truly require precision |
+| `none` | No usable location permission | Request foreground permission or provide a no-location fallback |
+
+> `accuracyAuthorization` is optional for compatibility with older native builds. Rebuild the Android/iOS app after upgrading the package so the new native implementation returns this field.
+
+## Choosing between approximate and precise location
+
+The default policy should be to **accept approximate location**. Do not treat `reduced` as a denial, and do not block the entire map screen when the user disables precise location. Approximate permission can still show the user-location indicator, return coordinates, and perform reverse geocoding, although the coordinate error is larger and the resulting address may only be suitable for area-level display.
+
+Require precise location only at the entry point of a feature that genuinely depends on meter-level accuracy:
+
+| Product scenario | Is approximate location usable? | Recommended policy |
+|------------------|---------------------------------|--------------------|
+| Map browsing, current-area display, city/district content | Yes | Continue normally |
+| Reverse geocoding, weather, regional recommendations, broad nearby search | Yes | Continue and widen the search radius based on `location.accuracy` when needed |
+| Route preview and address selection | Usually | Let the user correct the start point or select a point on the map |
+| Live navigation, road matching, exact pickup or delivery points | Not recommended | Require precise location before starting that feature |
+| Small-radius check-in, meter-level geofencing, arrival verification | Not recommended | Require precise location before submission or evaluation |
+| Safety or emergency workflows where error creates material risk | Not recommended | Explain the reason, require precise location, and offer an exit or fallback |
+
+When a feature requires precise location:
+
+1. Gate only that feature, not app startup or the entire map screen.
+2. Explain why precision is required and what approximate location would affect.
+3. If the user declines, keep map browsing, approximate location, and unrelated features available.
+4. If the status is already `reduced`, do not loop on `requestLocationPermission()` expecting an automatic upgrade. After the user confirms, call `openAppSettings()` and check permission again when the app returns.
+
+```tsx
+import { Alert } from 'react-native';
+import { ExpoGaodeMapModule, type PermissionStatus } from 'expo-gaode-map';
+
+function hasFullAccuracy(permission: PermissionStatus) {
+  return permission.accuracyAuthorization === 'full' ||
+    (permission.accuracyAuthorization == null && permission.fineLocation === true);
+}
+
+async function getLocationForFeature(requiresPreciseLocation: boolean) {
+  let permission = await ExpoGaodeMapModule.checkLocationPermission();
+
+  // Request only when permission is absent. Approximate is already authorized.
+  if (!permission.granted) {
+    permission = await ExpoGaodeMapModule.requestLocationPermission();
+  }
+
+  if (!permission.granted) {
+    return null;
+  }
+
+  if (requiresPreciseLocation && !hasFullAccuracy(permission)) {
+    Alert.alert(
+      'Precise Location Required',
+      'This feature needs meter-level accuracy. Enable Precise Location for this app in system settings.',
+      [
+        { text: 'Not Now', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => ExpoGaodeMapModule.openAppSettings() },
+      ]
+    );
+    return null;
+  }
+
+  ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+  return ExpoGaodeMapModule.getCurrentLocation();
+}
+
+// Map location and reverse geocoding: approximate is accepted
+const mapLocation = await getLocationForFeature(false);
+
+// Meter-level check-in or live navigation: precise is required
+const preciseLocation = await getLocationForFeature(true);
+```
+
+`expo-gaode-map-navigation` exposes the same `ExpoGaodeMapModule` and `PermissionStatus`; replace only the package name in the import.
 
 ## Location configuration
 
@@ -302,7 +388,10 @@ export default function LocationExample() {
       // Only needed for Web API features
       // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-      const permission = await ExpoGaodeMapModule.requestLocationPermission();
+      let permission = await ExpoGaodeMapModule.checkLocationPermission();
+      if (!permission.granted) {
+        permission = await ExpoGaodeMapModule.requestLocationPermission();
+      }
       if (!permission.granted) return;
 
       ExpoGaodeMapModule.setLocatingWithReGeocode(true);

@@ -1,4 +1,5 @@
 import MAMapKit
+import CoreLocation
 
 /**
  * UI 和手势管理器
@@ -114,6 +115,11 @@ class UIManager: NSObject, MAMapViewDelegate {
         guard let mapView = mapView else { return }
         
         if show {
+            if #available(iOS 14.0, *) {
+                mapView.desiredAccuracy = CLLocationManager().accuracyAuthorization == .reducedAccuracy
+                    ? kCLLocationAccuracyReduced
+                    : kCLLocationAccuracyBest
+            }
             // 设置代理以监听定位更新
             if mapView.delegate == nil {
                 mapView.delegate = self

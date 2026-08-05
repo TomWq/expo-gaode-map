@@ -53,7 +53,10 @@ export async function ensureDemoSdkReady(): Promise<DemoPoint> {
     ...(EXAMPLE_WEB_API_KEY ? { webKey: EXAMPLE_WEB_API_KEY } : {}),
   });
 
-  const permission = await ExpoGaodeMapModule.requestLocationPermission();
+  let permission = await ExpoGaodeMapModule.checkLocationPermission();
+  if (!permission.granted) {
+    permission = await ExpoGaodeMapModule.requestLocationPermission();
+  }
   if (!permission.granted) {
     throw new Error("定位权限未授予");
   }

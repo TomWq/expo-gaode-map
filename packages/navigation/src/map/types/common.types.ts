@@ -50,6 +50,8 @@ export interface PrivacyStatus {
 export interface PermissionStatus extends PermissionResponse{
   /** 是否已授权（前台位置权限） */
   granted: boolean;
+  /** 当前可用的定位精度；粗略定位仍属于已授权 */
+  accuracyAuthorization?: 'full' | 'reduced' | 'none';
   
   // Android 专用字段
   /** Android 精确位置权限 */

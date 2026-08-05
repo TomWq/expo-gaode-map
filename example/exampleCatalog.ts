@@ -164,8 +164,8 @@ export const EXAMPLE_REGISTRY: Record<string, ExampleDefinition> = {
   permissions: {
     id: 'permissions',
     title: '权限基础示例',
-    description: '演示定位权限检查、请求和常见权限流程。',
-    outcome: '进入权限流程示例页',
+    description: '演示精准/粗略定位权限检查，以及当前位置、地图定位点和逆地理编码。',
+    outcome: '验证当前定位精度下的完整定位链路',
     component: PermissionExample,
   },
   'new-permissions': {

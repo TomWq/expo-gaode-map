@@ -92,7 +92,8 @@ object PermissionHelper {
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
         
-        val granted = fineGranted && coarseGranted
+        // Android 12+ allows approximate location without precise location.
+        val granted = fineGranted || coarseGranted
         
         val activity = context as? Activity
         val shouldShowRationale = if (activity != null && !granted) {

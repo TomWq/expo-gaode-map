@@ -278,6 +278,7 @@ type LocationProtocol = 'HTTP' | 'HTTPS';
 interface PermissionStatus {
   granted: boolean;
   status: 'granted' | 'denied' | 'undetermined';
+  accuracyAuthorization?: 'full' | 'reduced' | 'none';
   fineLocation?: boolean;
   coarseLocation?: boolean;
   backgroundLocation?: boolean;
@@ -287,6 +288,8 @@ interface PermissionStatus {
   message?: string;
 }
 ```
+
+`granted: true` 同时包含精准和粗略定位。使用 `accuracyAuthorization` 判断具体功能是否具备所需精度；完整策略见[定位 API](/api/location)。
 
 ## 覆盖物类型
 

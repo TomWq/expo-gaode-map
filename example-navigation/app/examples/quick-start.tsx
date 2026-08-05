@@ -1,4 +1,9 @@
-import { ExpoGaodeMapModule, type NaviPoint,  ExpoGaodeMapNaviViewRef } from "expo-gaode-map-navigation";
+import {
+  ExpoGaodeMapModule,
+  type NaviPoint,
+  type PermissionStatus,
+  ExpoGaodeMapNaviViewRef,
+} from "expo-gaode-map-navigation";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
@@ -21,6 +26,25 @@ const DEMO_DESTINATION: DemoPoint = {
   longitude: 116.39723,
 };
 
+function getAccuracyLabel(permission: PermissionStatus): string {
+  if (!permission.granted) {
+    return "未授权";
+  }
+  if (permission.accuracyAuthorization === "reduced") {
+    return "粗略定位";
+  }
+  if (permission.accuracyAuthorization === "full") {
+    return "精准定位";
+  }
+  if (permission.fineLocation === true) {
+    return "精准定位";
+  }
+  if (permission.coarseLocation === true) {
+    return "粗略定位";
+  }
+  return "已授权";
+}
+
 export default function QuickStartScreen() {
   const naviViewRef = React.useRef<ExpoGaodeMapNaviViewRef>(null);
   const [privacyReady, setPrivacyReady] = React.useState(false);
@@ -28,6 +52,8 @@ export default function QuickStartScreen() {
   const [initializing, setInitializing] = React.useState(false);
   const [showNaviView, setShowNaviView] = React.useState(false);
   const [currentLocation, setCurrentLocation] = React.useState<DemoPoint | null>(null);
+  const [locationAccuracy, setLocationAccuracy] = React.useState("未检查");
+  const [currentAddress, setCurrentAddress] = React.useState("尚未获取");
   const [statusText, setStatusText] = React.useState("等待隐私确认和 SDK 初始化");
 
   useHideNavigationHeader(showNaviView);
@@ -49,21 +75,31 @@ export default function QuickStartScreen() {
         ...(EXAMPLE_WEB_API_KEY ? { webKey: EXAMPLE_WEB_API_KEY } : {}),
       });
 
-      const permission = await ExpoGaodeMapModule.requestLocationPermission();
+      let permission = await ExpoGaodeMapModule.checkLocationPermission();
+      if (!permission.granted) {
+        permission = await ExpoGaodeMapModule.requestLocationPermission();
+      }
       if (!permission.granted) {
         throw new Error("定位权限未授予");
       }
+      const accuracyLabel = getAccuracyLabel(permission);
+      setLocationAccuracy(accuracyLabel);
 
+      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
       const location = await ExpoGaodeMapModule.getCurrentLocation();
+      const address = location.address || "未返回逆地理地址";
       setCurrentLocation({
         latitude: location.latitude,
         longitude: location.longitude,
       });
+      setCurrentAddress(address);
       setSdkReady(true);
       setStatusText(
         [
           "初始化完成",
+          `定位精度: ${accuracyLabel}`,
           `当前位置: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+          `地址: ${address}`,
           EXAMPLE_ANDROID_KEY || EXAMPLE_IOS_KEY
             ? "原生 Key 已提供"
             : "当前未检测到原生 Key，prebuild 后请先配置 EXPO_PUBLIC_AMAP_ANDROID_KEY / EXPO_PUBLIC_AMAP_IOS_KEY",
@@ -80,12 +116,29 @@ export default function QuickStartScreen() {
 
   const refreshLocation = React.useCallback(async () => {
     try {
+      const permission = await ExpoGaodeMapModule.checkLocationPermission();
+      if (!permission.granted) {
+        throw new Error("定位权限未授予");
+      }
+      const accuracyLabel = getAccuracyLabel(permission);
+      setLocationAccuracy(accuracyLabel);
+
+      ExpoGaodeMapModule.setLocatingWithReGeocode(true);
       const location = await ExpoGaodeMapModule.getCurrentLocation();
+      const address = location.address || "未返回逆地理地址";
       setCurrentLocation({
         latitude: location.latitude,
         longitude: location.longitude,
       });
-      setStatusText(`定位刷新成功\n${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`);
+      setCurrentAddress(address);
+      setStatusText(
+        [
+          "定位刷新成功",
+          `定位精度: ${accuracyLabel}`,
+          `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+          `地址: ${address}`,
+        ].join("\n")
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       Alert.alert("定位失败", message);
@@ -184,11 +237,13 @@ export default function QuickStartScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>当前位置</Text>
+          <Text style={styles.cardText}>授权精度: {locationAccuracy}</Text>
           <Text style={styles.cardText}>
             {currentLocation
               ? `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`
               : "尚未获取"}
           </Text>
+          <Text style={styles.cardText}>地址: {currentAddress}</Text>
           <Text style={styles.cardHint}>终点已固定为天安门，用于模拟导航验证。</Text>
         </View>
 
@@ -223,7 +278,8 @@ export default function QuickStartScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>本页验证点</Text>
           <Text style={styles.feature}>• `setPrivacyConfig` / `initSDK` 启动链路</Text>
-          <Text style={styles.feature}>• 定位权限申请和 `getCurrentLocation`</Text>
+          <Text style={styles.feature}>• 精准/粗略定位权限和 `getCurrentLocation`</Text>
+          <Text style={styles.feature}>• 粗略定位下的坐标与逆地理地址</Text>
           <Text style={styles.feature}>• `ExpoGaodeMapNaviViewRef.startNavigation` / `stopNavigation`</Text>
           <Text style={styles.feature}>• Android 顶部状态栏、锚点、路口模型、车道信息等 UI props</Text>
           <Text style={styles.feature}>• iOS `driveViewEdgePadding` / `screenAnchor` / `showBackupRoute`</Text>

@@ -974,6 +974,10 @@ extension ExpoGaodeMapView {
             "timestamp": Date().timeIntervalSince1970 * 1000
         ])
     }
+
+    public func mapView(_ mapView: MAMapView, didFailToLocateUserWithError error: Error) {
+        print("[ExpoGaodeMap] iOS map user location failed: \(error.localizedDescription)")
+    }
     
     /**
      * 地图区域即将改变时触发 - 应用节流优化

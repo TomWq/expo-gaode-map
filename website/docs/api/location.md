@@ -20,11 +20,16 @@ if (!ExpoGaodeMapModule.getPrivacyStatus().isReady) {
 // 2. 仅在使用 Web API 时调用
 ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-// 3. 请求定位权限
-await ExpoGaodeMapModule.requestLocationPermission();
+// 3. 先检查权限，仅在完全未授权时请求
+let permission = await ExpoGaodeMapModule.checkLocationPermission();
+if (!permission.granted) {
+  permission = await ExpoGaodeMapModule.requestLocationPermission();
+}
 
-// 4. 开始定位
-ExpoGaodeMapModule.start();
+// 4. 精准或粗略定位都可以开始定位
+if (permission.granted) {
+  ExpoGaodeMapModule.start();
+}
 ```
 
 > ⚠️ 从当前版本开始，如果在隐私同意前调用地图 / 定位能力，JS 层会明确抛出 `PRIVACY_NOT_AGREED` 相关错误，避免原生 SDK 直接崩溃。
@@ -128,6 +133,7 @@ export default function PermissionExample() {
 interface PermissionStatus {
   granted: boolean;
   status: 'granted' | 'denied' | 'undetermined';
+  accuracyAuthorization?: 'full' | 'reduced' | 'none';
   fineLocation?: boolean;
   coarseLocation?: boolean;
   backgroundLocation?: boolean;
@@ -137,6 +143,86 @@ interface PermissionStatus {
   message?: string;
 }
 ```
+
+`granted` 表示应用已经获得可用的前台定位权限。Android 只有 `ACCESS_COARSE_LOCATION`，或 iOS 用户关闭“精准位置”时，`granted` 仍然是 `true`。
+
+`accuracyAuthorization` 用于区分当前精度：
+
+| 值 | 含义 | 建议处理 |
+|----|------|----------|
+| `full` | 精准定位 | 可以执行依赖米级精度的功能 |
+| `reduced` | 粗略定位 | 继续地图、定位和逆地理编码，仅限制真正依赖精准定位的功能 |
+| `none` | 没有可用定位权限 | 请求前台定位权限或提供无定位降级方案 |
+
+> `accuracyAuthorization` 保持可选是为了兼容尚未重新构建的旧原生客户端。升级包版本后需要重新构建 Android/iOS 应用，新的原生实现才会返回该字段。
+
+## 粗略定位与精准定位：如何选择
+
+默认策略是**接受粗略定位**，不要把 `reduced` 当成权限拒绝，也不要因为用户关闭精准定位而阻止整个地图页面加载。粗略定位仍然可以显示定位点、返回坐标并执行逆地理编码，但坐标误差会更大，地址可能只适合区域级展示。
+
+只有当一个具体功能确实依赖米级精度时，才在用户进入或执行该功能时要求精准定位：
+
+| 业务场景 | 粗略定位是否可用 | 推荐策略 |
+|----------|------------------|----------|
+| 地图浏览、显示当前位置、城市/区县内容 | 可以 | 直接继续 |
+| 逆地理编码、天气、区域推荐、较大范围附近搜索 | 可以 | 继续使用，并根据 `location.accuracy` 适当扩大搜索半径 |
+| 路线预览、地址选择 | 通常可以 | 允许用户手动修正起点或地图选点 |
+| 实时导航、道路匹配、精确上车点或配送点 | 不建议 | 在启动该功能前要求精准定位 |
+| 小范围签到、米级电子围栏、到店/到岗判定 | 不建议 | 在提交或判定前要求精准定位 |
+| 安全、救援等位置误差会造成明显风险的功能 | 不建议 | 明确说明原因后要求精准定位，并提供退出或替代流程 |
+
+要求精准定位时，应满足以下原则：
+
+1. 只限制依赖精准定位的功能，不要在应用启动或地图首页全局拦截。
+2. 说明该功能为什么需要精准定位，以及粗略定位可能造成的影响。
+3. 用户拒绝后保留地图浏览、粗略定位和其他不依赖米级精度的功能。
+4. 已经是 `reduced` 时，不要循环调用 `requestLocationPermission()` 期待自动升级；应由用户确认后调用 `openAppSettings()`，返回应用时重新检查权限。
+
+```tsx
+import { Alert } from 'react-native';
+import { ExpoGaodeMapModule, type PermissionStatus } from 'expo-gaode-map';
+
+function hasFullAccuracy(permission: PermissionStatus) {
+  return permission.accuracyAuthorization === 'full' ||
+    (permission.accuracyAuthorization == null && permission.fineLocation === true);
+}
+
+async function getLocationForFeature(requiresPreciseLocation: boolean) {
+  let permission = await ExpoGaodeMapModule.checkLocationPermission();
+
+  // 完全未授权时才请求；粗略定位已经属于有效授权。
+  if (!permission.granted) {
+    permission = await ExpoGaodeMapModule.requestLocationPermission();
+  }
+
+  if (!permission.granted) {
+    return null;
+  }
+
+  if (requiresPreciseLocation && !hasFullAccuracy(permission)) {
+    Alert.alert(
+      '需要开启精准定位',
+      '该功能依赖米级位置精度，请在系统设置中为本应用开启精准定位。',
+      [
+        { text: '暂不使用', style: 'cancel' },
+        { text: '打开设置', onPress: () => ExpoGaodeMapModule.openAppSettings() },
+      ]
+    );
+    return null;
+  }
+
+  ExpoGaodeMapModule.setLocatingWithReGeocode(true);
+  return ExpoGaodeMapModule.getCurrentLocation();
+}
+
+// 地图定位、逆地理编码：接受粗略定位
+const mapLocation = await getLocationForFeature(false);
+
+// 米级签到、实时导航等：要求精准定位
+const preciseLocation = await getLocationForFeature(true);
+```
+
+`expo-gaode-map-navigation` 提供相同的 `ExpoGaodeMapModule` 和 `PermissionStatus`，使用时只需把示例中的导入包名替换为 `expo-gaode-map-navigation`。
 
 ## 定位配置
 
@@ -301,7 +387,10 @@ export default function LocationExample() {
       // 仅在使用 Web API 时调用
       // ExpoGaodeMapModule.initSDK({ webKey: 'your-web-api-key' });
 
-      const permission = await ExpoGaodeMapModule.requestLocationPermission();
+      let permission = await ExpoGaodeMapModule.checkLocationPermission();
+      if (!permission.granted) {
+        permission = await ExpoGaodeMapModule.requestLocationPermission();
+      }
       if (!permission.granted) return;
 
       ExpoGaodeMapModule.setLocatingWithReGeocode(true);

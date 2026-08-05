@@ -57,6 +57,9 @@ describe('quick-start smoke', () => {
       navigationModule: {
         setPrivacyConfig: jest.Mock;
         initSDK: jest.Mock;
+        checkLocationPermission: jest.Mock;
+        requestLocationPermission: jest.Mock;
+        setLocatingWithReGeocode: jest.Mock;
       };
       naviViewMethods: {
         startNavigation: jest.Mock;
@@ -82,7 +85,12 @@ describe('quick-start smoke', () => {
       iosKey: 'ios-key',
       webKey: 'web-key',
     });
+    expect(mocks.navigationModule.checkLocationPermission).toHaveBeenCalled();
+    expect(mocks.navigationModule.requestLocationPermission).not.toHaveBeenCalled();
+    expect(mocks.navigationModule.setLocatingWithReGeocode).toHaveBeenCalledWith(true);
     expect(getTexts(tree).join('\n')).toContain('初始化完成');
+    expect(getTexts(tree).join('\n')).toContain('定位精度: 粗略定位');
+    expect(getTexts(tree).join('\n')).toContain('地址: 北京市东城区测试地址');
 
     await act(async () => {
       await findPressableByText(tree, '开始模拟导航').props.onPress();

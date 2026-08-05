@@ -207,15 +207,16 @@ useEffect(() => {
 }, []);
 ```
 
-## Android 14+ Special Notes
+## Precise and approximate location on Android 12+
 
-Android 14 introduced more granular location permission controls:
+On Android 12 and later, users can grant approximate location instead of precise location:
 
 - **Precise Location** (FINE_LOCATION): Get precise GPS location
 - **Approximate Location** (COARSE_LOCATION): Get approximate network location
-- **One-time**: Allow only for this session
 
-This library automatically handles these permissions without additional configuration.
+The library treats either foreground permission as authorized. With approximate-only access, `granted` is `true`, `accuracyAuthorization` is `reduced`, and the user-location indicator, single/continuous location, and reverse geocoding remain available.
+
+Do not require `FINE_LOCATION` globally at app startup. Ask users to upgrade only at the entry point of a feature that genuinely depends on precision, such as a small-radius check-in, an exact geofence, road matching, or live navigation. After the user confirms, use `openAppSettings()` to open system settings. See the [Location API](/en/api/location) for the complete cross-platform policy and code.
 
 ## Common Error Codes
 
@@ -254,6 +255,7 @@ console.log('Permission details:', {
   granted: status.granted,
   fineLocation: status.fineLocation,
   coarseLocation: status.coarseLocation,
+  accuracyAuthorization: status.accuracyAuthorization,
   isPermanentlyDenied: status.isPermanentlyDenied,
   shouldShowRationale: status.shouldShowRationale
 });
@@ -269,5 +271,5 @@ console.log('Permission details:', {
 ## Related Links
 
 - [Android Permissions Best Practices](https://developer.android.com/training/permissions/requesting)
-- [Android 14 Location Permission Changes](https://developer.android.com/about/versions/14/behavior-changes-14#location-permissions)
+- [Android 12 Approximate Location](https://developer.android.com/develop/sensors-and-location/location/permissions/runtime#approximate)
 - [AMap Android SDK Permission Guide](https://lbs.amap.com/api/android-sdk/guide/create-project/android-studio-create-project)

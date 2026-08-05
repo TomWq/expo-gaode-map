@@ -80,12 +80,12 @@ import ExpoGaodeMapModule from 'expo-gaode-map';
 
 async function requestLocationPermission() {
   try {
-    const hasPermission = await ExpoGaodeMapModule.checkLocationPermission();
+    const status = await ExpoGaodeMapModule.checkLocationPermission();
     
-    if (!hasPermission) {
-      const granted = await ExpoGaodeMapModule.requestLocationPermission();
+    if (!status.granted) {
+      const result = await ExpoGaodeMapModule.requestLocationPermission();
       
-      if (!granted) {
+      if (!result.granted) {
         Alert.alert(
           '需要定位权限',
           '请在设置中开启定位权限',

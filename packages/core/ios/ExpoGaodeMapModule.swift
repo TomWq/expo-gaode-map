@@ -863,10 +863,12 @@ public class ExpoGaodeMapModule: Module {
         let canAskAgain = status == .notDetermined
         let isPermanentlyDenied = status == .denied || status == .restricted
         let backgroundLocation = backgroundLocationOverride ?? (status == .authorizedAlways)
+        let accuracyAuthorization = self.getAccuracyAuthorizationString(granted: granted)
 
         var result: [String: Any] = [
             "granted": granted,
             "status": self.getAuthorizationStatusString(status),
+            "accuracyAuthorization": accuracyAuthorization,
             "canAskAgain": canAskAgain,
             "backgroundLocation": backgroundLocation,
             "isPermanentlyDenied": isPermanentlyDenied,
@@ -878,5 +880,13 @@ public class ExpoGaodeMapModule: Module {
         }
 
         return result
+    }
+
+    private func getAccuracyAuthorizationString(granted: Bool) -> String {
+        guard granted else { return "none" }
+        if #available(iOS 14.0, *) {
+            return CLLocationManager().accuracyAuthorization == .fullAccuracy ? "full" : "reduced"
+        }
+        return "full"
     }
 }

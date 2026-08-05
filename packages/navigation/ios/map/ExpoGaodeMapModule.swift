@@ -738,7 +738,8 @@ public class ExpoGaodeMapModule: Module {
             
             promise.resolve([
                 "granted": granted,
-                "status": self.getAuthorizationStatusString(status)
+                "status": self.getAuthorizationStatusString(status),
+                "accuracyAuthorization": self.getAccuracyAuthorizationString(granted: granted)
             ])
         }
         
@@ -764,7 +765,8 @@ public class ExpoGaodeMapModule: Module {
                     
                     promise.resolve([
                         "granted": finalGranted,
-                        "status": finalStatusString
+                        "status": finalStatusString,
+                        "accuracyAuthorization": self.getAccuracyAuthorizationString(granted: finalGranted)
                     ])
                 }
             }
@@ -801,6 +803,7 @@ public class ExpoGaodeMapModule: Module {
                         "granted": hasBackground,
                         "backgroundLocation": hasBackground,
                         "status": self.getAuthorizationStatusString(finalStatus),
+                        "accuracyAuthorization": self.getAccuracyAuthorizationString(granted: true),
                         "message": hasBackground
                             ? "已授予后台权限"
                             : "后台权限未授予，请在系统设置中将定位权限改为“始终允许”"
@@ -873,5 +876,13 @@ public class ExpoGaodeMapModule: Module {
         case .authorizedWhenInUse: return "authorizedWhenInUse"
         @unknown default: return "unknown"
         }
+    }
+
+    private func getAccuracyAuthorizationString(granted: Bool) -> String {
+        guard granted else { return "none" }
+        if #available(iOS 14.0, *) {
+            return CLLocationManager().accuracyAuthorization == .fullAccuracy ? "full" : "reduced"
+        }
+        return "full"
     }
 }

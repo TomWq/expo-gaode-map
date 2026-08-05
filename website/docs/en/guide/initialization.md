@@ -137,9 +137,14 @@ import { ExpoGaodeMapModule } from 'expo-gaode-map';
 
 async function requestLocationPermission() {
   try {
-    const result = await ExpoGaodeMapModule.requestLocationPermission();
-    if (result.granted) {
+    let status = await ExpoGaodeMapModule.checkLocationPermission();
+    if (!status.granted) {
+      status = await ExpoGaodeMapModule.requestLocationPermission();
+    }
+
+    if (status.granted) {
       console.log('Location permission granted');
+      console.log('Location accuracy:', status.accuracyAuthorization);
     } else {
       console.log('Location permission denied');
     }
@@ -154,7 +159,10 @@ async function requestLocationPermission() {
 ```typescript
 const status = await ExpoGaodeMapModule.checkLocationPermission();
 console.log('Has location permission:', status.granted);
+console.log('Location accuracy:', status.accuracyAuthorization);
 ```
+
+`granted: true` covers both precise and approximate foreground access. Do not treat approximate access as a denial. Require precise location only at the entry point of a feature that genuinely depends on meter-level accuracy. See the [Location API](/en/api/location).
 
 ## Privacy Compliance
 

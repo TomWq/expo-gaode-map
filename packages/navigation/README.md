@@ -93,6 +93,16 @@ npx expo run:ios
 - 运行时还需要在 `ExpoGaodeMapNaviView` 里显式传 `androidBackgroundNavigationNotificationEnabled={true}` 才会在应用退到后台后显示导航常驻通知。
 - iOS 运行时还需要在 `ExpoGaodeMapNaviView` 里显式传 `iosLiveActivityEnabled={true}` 才会持续更新 Live Activity。
 
+## 定位精度策略
+
+`checkLocationPermission()` 返回的 `granted: true` 同时包含精准定位和粗略定位。通过 `accuracyAuthorization` 区分当前精度：`full` 为精准定位，`reduced` 为粗略定位，`none` 为无定位权限。
+
+- 地图显示、当前位置、逆地理编码和路线预览可以继续使用粗略定位。
+- 当正式导航依赖道路匹配、准确起点或持续轨迹质量时，应在“开始导航”这个功能入口要求精准定位，而不是在应用启动时全局拦截。
+- 只有完全未授权时才调用 `requestLocationPermission()`；已经是粗略定位时，不要循环请求，用户确认后使用 `openAppSettings()` 引导到系统设置。
+
+完整决策表和代码示例见[定位 API](https://tomwq.github.io/expo-gaode-map/api/location.html#粗略定位与精准定位如何选择)，可运行示例见 `example-navigation` 的“快速导航接入验证”。
+
 ## 示例工程
 
 仓库内提供了可直接运行的 [`example-navigation`](https://github.com/TomWq/expo-gaode-map/tree/main/example-navigation) 示例工程，专门用于验证导航能力。
@@ -657,7 +667,7 @@ const result = await calculateTransitRoute({
 
 1.  **二进制冲突**：严禁与 `expo-gaode-map` 共存。本模块已包含 `3dmap` SDK。
 2.  **Web API**：如果需要更灵活的 HTTP 算路（如公交跨城规划、Web端展示），推荐配合 `expo-gaode-map-web-api` 使用。
-3.  **权限**：使用导航功能前，请确保应用已获取定位权限（`ACCESS_FINE_LOCATION`）。
+3.  **权限**：粗略定位也属于有效的前台定位授权；仅当导航功能确实依赖道路匹配、准确起点或持续轨迹质量时，才在启动导航前要求精准定位（Android `ACCESS_FINE_LOCATION` / iOS“精准位置”）。
 4.  **Android 状态栏兼容性**：`naviStatusBarEnabled` 依赖高德 Android 导航 SDK 某些版本才提供的 `AMapNaviViewOptions.setNaviStatusBarEnabled(...)`。当前封装已做兼容处理：若宿主工程解析到的 SDK 不包含该方法，则不会再编译失败，而是在运行时跳过该设置并输出 warning。此时该 prop 在 Android 上等价于 no-op。
 5.  **嵌入式 UI 边界**：库导出的是底层 `ExpoGaodeMapNaviView` 能力；完整自定义导航界面请参考 `example-navigation` 里的示例实现，它也不是高德官方黑盒导航页的 UI 替代品。
 
