@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map-web-api",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "description": "Pure JavaScript AMap (Gaode Map) Web API toolkit for Expo/React Native: geocoding, POI search, route planning, input tips, and expo-gaode-map integration.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
