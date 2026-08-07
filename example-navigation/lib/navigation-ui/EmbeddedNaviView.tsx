@@ -4,6 +4,7 @@
  * 底部摘要、路况光柱、全览按钮以及它们之间的布局联动。
  */
 import { BlurTargetView } from "expo-blur";
+import { MaterialIcons } from "@expo/vector-icons";
 import type {
   ExpoGaodeMapNaviViewProps,
   NaviInfoUpdateEvent,
@@ -22,6 +23,7 @@ import {
   Pressable,
   StatusBar,
   StyleSheet,
+  Text,
   View,
   type LayoutChangeEvent,
   type StyleProp,
@@ -48,10 +50,23 @@ type LaneInfoUpdateHandler = NonNullable<ExpoGaodeMapNaviViewProps["onLaneInfoUp
 type TrafficStatusesUpdateHandler = NonNullable<
   ExpoGaodeMapNaviViewProps["onTrafficStatusesUpdate"]
 >;
+type NaviStartHandler = NonNullable<ExpoGaodeMapNaviViewProps["onNaviStart"]>;
+type NaviEndHandler = NonNullable<ExpoGaodeMapNaviViewProps["onNaviEnd"]>;
+type NaviArriveHandler = NonNullable<ExpoGaodeMapNaviViewProps["onArrive"]>;
+
+type NavigationPresentationState = "navigating" | "arrived";
+
+const initialVisualState: NaviVisualStateEvent = {
+  isCrossVisible: false,
+  isModeCrossVisible: false,
+  isLaneInfoVisible: false,
+};
 
 export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   /** 是否显示示例内置的顶部导航 HUD */
   showDefaultHud?: boolean;
+  /** 是否显示到达目的地后的自定义终态提示；默认跟随 showDefaultHud */
+  showArrivalPresentation?: boolean;
   /** 是否显示示例内置的车道 HUD */
   showDefaultLaneHud?: boolean;
   /** 是否显示示例内置的统一自绘路况光柱 */
@@ -79,11 +94,56 @@ export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   onExitPress?: () => void;
 }
 
+function EmbeddedNaviArrivalPresentation({
+  exitButtonText,
+  onExitPress,
+  showExitButton,
+}: {
+  exitButtonText: string;
+  onExitPress?: () => void;
+  showExitButton: boolean;
+}) {
+  const insets = useSafeAreaInsets();
+  const topInset = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : insets.top;
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[styles.arrivalContainer, { paddingTop: topInset + 14 }]}
+      testID="embedded-navi-arrival-presentation"
+    >
+      <View style={styles.arrivalPanel}>
+        <View style={styles.arrivalIcon}>
+          <MaterialIcons name="sports-score" size={24} color="#ffffff" />
+        </View>
+        <View style={styles.arrivalCopy}>
+          <Text style={styles.arrivalTitle}>已到达目的地</Text>
+          <Text style={styles.arrivalSubtitle}>现在进入目的地</Text>
+        </View>
+        {showExitButton && onExitPress ? (
+          <Pressable
+            accessibilityLabel={exitButtonText}
+            accessibilityRole="button"
+            onPress={onExitPress}
+            style={styles.arrivalExitButton}
+          >
+            <MaterialIcons name="logout" size={18} color="#dbeafe" />
+            <Text numberOfLines={1} style={styles.arrivalExitText}>
+              {exitButtonText}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, EmbeddedNaviViewProps>(
   (
     {
       style,
       showDefaultHud = true,
+      showArrivalPresentation,
       showDefaultLaneHud = true,
       showDefaultTrafficBar = true,
       hideLaneHudWhenCrossVisible = true,
@@ -135,12 +195,16 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       onLaneInfoUpdate,
       onTrafficStatusesUpdate,
       onNaviVisualStateChange,
+      onNaviStart,
+      onNaviEnd,
+      onArrive,
       ...restProps
     },
     ref
   ) => {
     const insets = useSafeAreaInsets();
     const blurTargetRef = React.useRef<React.ElementRef<typeof View> | null>(null);
+    const presentationStateRef = React.useRef<NavigationPresentationState>("navigating");
     const [latestNaviInfo, setLatestNaviInfo] = React.useState<NaviInfoUpdateEvent | null>(null);
     const [latestLaneInfo, setLatestLaneInfo] = React.useState<NaviLaneInfoEvent | null>(null);
     const [latestTrafficStatuses, setLatestTrafficStatuses] =
@@ -151,11 +215,9 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
     const [containerWidth, setContainerWidth] = React.useState(0);
     const [currentShowMode, setCurrentShowMode] = React.useState(showMode);
     const [trafficLayerVisible, setTrafficLayerVisible] = React.useState(trafficLayerEnabled);
-    const [visualState, setVisualState] = React.useState<NaviVisualStateEvent>({
-      isCrossVisible: false,
-      isModeCrossVisible: false,
-      isLaneInfoVisible: false,
-    });
+    const [visualState, setVisualState] = React.useState<NaviVisualStateEvent>(initialVisualState);
+    const [presentationState, setPresentationState] =
+      React.useState<NavigationPresentationState>("navigating");
 
     React.useEffect(() => {
       setCurrentShowMode(showMode);
@@ -165,9 +227,34 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       setTrafficLayerVisible(trafficLayerEnabled);
     }, [trafficLayerEnabled]);
 
+    const clearNavigationChrome = React.useCallback(() => {
+      setLatestNaviInfo(null);
+      setLatestLaneInfo(null);
+      setLatestTrafficStatuses(null);
+      setVisualState(initialVisualState);
+    }, []);
+
+    const resetNavigationPresentation = React.useCallback(() => {
+      presentationStateRef.current = "navigating";
+      setPresentationState("navigating");
+      clearNavigationChrome();
+    }, [clearNavigationChrome]);
+
+    const enterArrivalPresentation = React.useCallback(() => {
+      if (presentationStateRef.current === "arrived") {
+        return;
+      }
+
+      presentationStateRef.current = "arrived";
+      setPresentationState("arrived");
+      clearNavigationChrome();
+    }, [clearNavigationChrome]);
+
     const handleNaviInfoUpdate = React.useCallback<NaviInfoUpdateHandler>(
       (event) => {
-        setLatestNaviInfo(event.nativeEvent);
+        if (presentationStateRef.current !== "arrived") {
+          setLatestNaviInfo(event.nativeEvent);
+        }
         onNaviInfoUpdate?.(event);
       },
       [onNaviInfoUpdate]
@@ -175,9 +262,11 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
 
     const handleVisualStateChange = React.useCallback<NaviVisualStateChangeHandler>(
       (event) => {
-        setVisualState(event.nativeEvent);
-        if (!event.nativeEvent.isLaneInfoVisible) {
-          setLatestLaneInfo(null);
+        if (presentationStateRef.current !== "arrived") {
+          setVisualState(event.nativeEvent);
+          if (!event.nativeEvent.isLaneInfoVisible) {
+            setLatestLaneInfo(null);
+          }
         }
         onNaviVisualStateChange?.(event);
       },
@@ -186,7 +275,9 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
 
     const handleLaneInfoUpdate = React.useCallback<LaneInfoUpdateHandler>(
       (event) => {
-        setLatestLaneInfo(event.nativeEvent);
+        if (presentationStateRef.current !== "arrived") {
+          setLatestLaneInfo(event.nativeEvent);
+        }
         onLaneInfoUpdate?.(event);
       },
       [onLaneInfoUpdate]
@@ -194,10 +285,39 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
 
     const handleTrafficStatusesUpdate = React.useCallback<TrafficStatusesUpdateHandler>(
       (event) => {
-        setLatestTrafficStatuses(event.nativeEvent);
+        if (presentationStateRef.current !== "arrived") {
+          setLatestTrafficStatuses(event.nativeEvent);
+        }
         onTrafficStatusesUpdate?.(event);
       },
       [onTrafficStatusesUpdate]
+    );
+
+    const handleNaviStart = React.useCallback<NaviStartHandler>(
+      (event) => {
+        resetNavigationPresentation();
+        onNaviStart?.(event);
+      },
+      [onNaviStart, resetNavigationPresentation]
+    );
+
+    const handleNaviEnd = React.useCallback<NaviEndHandler>(
+      (event) => {
+        // The emulator can end without emitting a final 0 m info frame. Present
+        // the terminal state for either completion callback instead of retaining
+        // the last turn instruction in the custom chrome.
+        enterArrivalPresentation();
+        onNaviEnd?.(event);
+      },
+      [enterArrivalPresentation, onNaviEnd]
+    );
+
+    const handleArrive = React.useCallback<NaviArriveHandler>(
+      (event) => {
+        enterArrivalPresentation();
+        onArrive?.(event);
+      },
+      [enterArrivalPresentation, onArrive]
     );
 
     const handleHudLayout = React.useCallback((event: LayoutChangeEvent) => {
@@ -256,7 +376,10 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
     const bottomInset = insets.bottom;
     const leftInset = insets.left;
     const rightInset = insets.right;
-    const shouldShowBottomSummary = showDefaultHud && (latestNaviInfo?.pathRetainDistance ?? 0) > 0;
+    const hasArrived = presentationState === "arrived";
+    const shouldShowArrivalPresentation = showArrivalPresentation ?? showDefaultHud;
+    const shouldShowBottomSummary =
+      !hasArrived && showDefaultHud && (latestNaviInfo?.pathRetainDistance ?? 0) > 0;
     const resolvedBottomSummaryHeight = bottomSummaryHeight > 0 ? bottomSummaryHeight : 52;
     const bottomSummaryBottom = Math.max(bottomInset + 10, 16);
     const overviewButtonBottom = shouldShowBottomSummary
@@ -437,11 +560,14 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
             onNaviVisualStateChange={handleVisualStateChange}
             onLaneInfoUpdate={handleLaneInfoUpdate}
             onTrafficStatusesUpdate={handleTrafficStatusesUpdate}
+            onNaviStart={handleNaviStart}
+            onNaviEnd={handleNaviEnd}
+            onArrive={handleArrive}
             {...restProps}
           />
         </BlurTargetView>
 
-        {showDefaultHud ? (
+        {showDefaultHud && !hasArrived ? (
           <EmbeddedNaviHud
             info={latestNaviInfo}
             compact={isCompactHud}
@@ -450,7 +576,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           />
         ) : null}
 
-        {showDefaultHud ? (
+        {showDefaultHud && !hasArrived ? (
           <EmbeddedNaviBottomSummary
             info={latestNaviInfo}
             onLayout={handleBottomSummaryLayout}
@@ -461,7 +587,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           />
         ) : null}
 
-        {showDefaultLaneHud ? (
+        {showDefaultLaneHud && !hasArrived ? (
           <EmbeddedNaviLaneView
             laneInfo={latestLaneInfo}
             visible={visualState.isLaneInfoVisible && !shouldHideLaneHud}
@@ -473,7 +599,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           />
         ) : null}
 
-        {showDefaultTrafficBar && showTrafficBar ? (
+        {showDefaultTrafficBar && showTrafficBar && !hasArrived ? (
           <EmbeddedNaviTrafficBar
             info={latestNaviInfo}
             trafficStatuses={latestTrafficStatuses}
@@ -482,7 +608,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           />
         ) : null}
 
-        {shouldShowTrafficToggleButton ? (
+        {shouldShowTrafficToggleButton && !hasArrived ? (
           <Pressable
             style={[styles.trafficToggleButton, trafficToggleButtonPositionStyle]}
             onPress={() => {
@@ -511,6 +637,14 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
               style={styles.overviewButtonImage}
             />
           </Pressable>
+        ) : null}
+
+        {hasArrived && shouldShowArrivalPresentation ? (
+          <EmbeddedNaviArrivalPresentation
+            exitButtonText={exitButtonText}
+            onExitPress={onExitPress}
+            showExitButton={showExitButton}
+          />
         ) : null}
       </View>
     );
@@ -547,6 +681,71 @@ const styles = StyleSheet.create({
   trafficToggleButtonImage: {
     width: 50,
     height: 50,
+  },
+  arrivalContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+  },
+  arrivalPanel: {
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 380,
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 12,
+    overflow: "hidden",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(9, 18, 33, 0.94)",
+    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.26)",
+  },
+  arrivalIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563eb",
+  },
+  arrivalCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 12,
+  },
+  arrivalTitle: {
+    color: "#ffffff",
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "800",
+  },
+  arrivalSubtitle: {
+    marginTop: 2,
+    color: "#bfdbfe",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  arrivalExitButton: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 14,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: "rgba(191, 219, 254, 0.34)",
+    backgroundColor: "rgba(30, 64, 175, 0.36)",
+  },
+  arrivalExitText: {
+    maxWidth: 88,
+    color: "#dbeafe",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "800",
   },
 });
 

@@ -110,11 +110,7 @@ export default function UiPropsExampleScreen() {
         carImage={require("../../assets/images/customCar.png")}
         carImageSize={{ width: 50/2, height: 104/2 }}
         onExitPress={() => void stopNavigation()}
-        onNaviEnd={() => {
-          // void stopNavigation();
-          //弹框提示导航结束
-          Alert.alert("导航已结束", "是否退出导航？", [{ text: "确定", onPress: stopNavigation }, { text: "取消" }]);
-        }}
+        // 到达和模拟结束由 EmbeddedNaviView 切换到原地终态；用户点击退出后才关闭页面。
         onCalculateRouteFailure={(event) => {
           Alert.alert("导航失败", event.nativeEvent.error || "未知错误");
           void stopNavigation();

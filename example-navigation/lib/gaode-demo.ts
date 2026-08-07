@@ -30,6 +30,10 @@ export interface DemoScenario {
 }
 
 const PRIVACY_VERSION = "2026-04-18";
+const TIANANMEN_DEMO_POINT: DemoPoint = {
+  latitude: 39.908823,
+  longitude: 116.39747,
+};
 
 function roundCoord(value: number): number {
   return Number(value.toFixed(6));
@@ -78,10 +82,7 @@ export async function getCurrentDemoPoint(): Promise<DemoPoint> {
 }
 
 export function buildDemoScenario(from: DemoPoint): DemoScenario {
-  const to: DemoPoint = {
-    latitude: roundCoord(from.latitude + 0.018),
-    longitude: roundCoord(from.longitude + 0.028),
-  };
+  const to: DemoPoint = { ...TIANANMEN_DEMO_POINT };
 
   const via: DemoPoint = {
     latitude: roundCoord(from.latitude + 0.011),

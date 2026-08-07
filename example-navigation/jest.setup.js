@@ -13,6 +13,12 @@ const mockNavigationModule = {
     status: 'granted',
     accuracyAuthorization: 'reduced',
   }),
+  requestBackgroundLocationPermission: jest.fn().mockResolvedValue({
+    granted: true,
+    canAskAgain: true,
+    status: 'granted',
+  }),
+  setAllowsBackgroundLocationUpdates: jest.fn(),
   setLocatingWithReGeocode: jest.fn(),
   getCurrentLocation: jest.fn().mockResolvedValue({
     latitude: 39.9,
@@ -30,6 +36,7 @@ jest.mock('react-native', () => ({
   StyleSheet: {
     create: (styles) => styles,
     flatten: (style) => style,
+    hairlineWidth: 1,
   },
   Platform: {
     OS: 'ios',
@@ -98,14 +105,32 @@ jest.mock('react-native-safe-area-context', () => {
 jest.mock('expo-gaode-map-navigation', () => {
   const React = require('react');
   const { View } = require('react-native');
+  const createMockNaviView = (defaultTestID) => React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => mockNaviViewMethods);
+    return React.createElement(
+      View,
+      { ...props, testID: props.testID || defaultTestID },
+      props.children
+    );
+  });
+
   return {
     ExpoGaodeMapModule: mockNavigationModule,
     ExpoGaodeMapNaviViewRef: {},
-    EmbeddedNaviView: React.forwardRef((props, ref) => {
-      React.useImperativeHandle(ref, () => mockNaviViewMethods);
-      return React.createElement(View, { ...props, testID: 'embedded-navi-view' }, props.children);
-    }),
+    ExpoGaodeMapNaviView: createMockNaviView('native-navi-view'),
+    EmbeddedNaviView: createMockNaviView('embedded-navi-view'),
   };
+}, { virtual: true });
+
+jest.mock('expo-blur', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const BlurTargetView = React.forwardRef(({ children, ...props }, ref) =>
+    React.createElement(View, { ...props, ref }, children)
+  );
+  const BlurView = ({ children, ...props }) => React.createElement(View, props, children);
+
+  return { BlurTargetView, BlurView };
 }, { virtual: true });
 
 jest.mock('@/lib/navigation-ui', () => {
