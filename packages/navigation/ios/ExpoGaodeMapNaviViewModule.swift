@@ -112,6 +112,10 @@ public class ExpoGaodeMapNaviViewModule: Module {
       Prop("isNightMode") { (view: ExpoGaodeMapNaviView, value: Bool) in
         view.isNightMode = value
       }
+
+      Prop("carOverlayVisible") { (view: ExpoGaodeMapNaviView, value: Bool) in
+        view.carOverlayVisible = value
+      }
       
       // iOS 特有属性
       Prop("showRoute") { (view: ExpoGaodeMapNaviView, value: Bool) in

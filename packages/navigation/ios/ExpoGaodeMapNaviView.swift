@@ -502,6 +502,9 @@ public class ExpoGaodeMapNaviView: ExpoView {
   var isNightMode: Bool = false {
     didSet { applyNightMode(isNightMode) }
   }
+  var carOverlayVisible: Bool = true {
+    didSet { driveView?.showCar = carOverlayVisible }
+  }
   
   // Props - iOS 特有属性
   var showRoute: Bool = true {
@@ -1400,6 +1403,7 @@ public class ExpoGaodeMapNaviView: ExpoView {
     (driveView as? ExpoGaodeMapCustomDriveView)?.suppressBottomRightUI = showUIElements == false
     driveView.showUIElements = pendingShowUIElements ?? showUIElements
     driveView.showCamera = showCamera
+    driveView.showCar = carOverlayVisible
     driveView.autoSwitchShowModeToCarPositionLocked = autoLockCar
     driveView.autoZoomMapLevel = autoChangeZoom
     driveView.mapShowTraffic = trafficLayerEnabled

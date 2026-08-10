@@ -562,6 +562,7 @@ const result = await calculateTransitRoute({
 | `naviType` | number | 导航类型（0: GPS, 1: 模拟） |
 | `realCrossDisplay` | boolean | 是否显示路口放大图 |
 | `showCamera` | boolean | 是否显示摄像头 |
+| `carOverlayVisible` | boolean | 是否显示自车和罗盘；Android / iOS 均支持，iOS 仅驾车 `AMapNaviDriveView` 生效，步行/骑行场景不保证该属性生效 |
 | `carImage` | string \| ImageSourcePropType | 自定义导航车标；iOS 映射 `setCarImage`，Android 映射 `setCarBitmap` |
 | `carImageSize` | object | 自定义导航车标尺寸，格式 `{ width, height }`（单位 dp/pt，需同时传宽高） |
 | `startPointImage` | string \| ImageSourcePropType | 自定义起点标注图 |
@@ -616,12 +617,12 @@ const result = await calculateTransitRoute({
 - `showGreyAfterPass`
 - `showVectorline`
 - `showCompassEnabled`
+- `carOverlayVisible`（iOS 仅驾车 `AMapNaviDriveView`；步行/骑行场景不保证生效）
 - `showDriveCongestion`
 - `showTrafficLightView`
 
 仅 Android 已开放：
 
-- `carOverlayVisible`
 - `fourCornersImage`
 - `routeMarkerVisible`
 - `naviArrowVisible`

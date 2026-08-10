@@ -35,8 +35,6 @@ import EmbeddedNaviHud from "./EmbeddedNaviHud";
 import EmbeddedNaviLaneView from "./EmbeddedNaviLaneView";
 import EmbeddedNaviTrafficBar from "./EmbeddedNaviTrafficBar";
 
-const defaultStartPointImage = require("./assets/markers/start-marker.png");
-const defaultEndPointImage = require("./assets/markers/end-marker.png");
 const overviewNormalButtonImage = require("./assets/markers/default_navi_browse_ver_normal.png");
 const overviewSelectedButtonImage = require("./assets/markers/default_navi_browse_ver_selected.png");
 const trafficOpenButtonImage = require("./assets/markers/default_navi_traffic_open_normal.png");
@@ -67,6 +65,14 @@ export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   showDefaultHud?: boolean;
   /** 是否显示到达目的地后的自定义终态提示；默认跟随 showDefaultHud */
   showArrivalPresentation?: boolean;
+  /** 到达终态时是否隐藏自车图标；下一次导航启动时恢复 carOverlayVisible；默认 true */
+  hideCarOnArrival?: boolean;
+  /**
+   * 到达后是否在 Android 突出 SDK 原生终点图钉；导航中始终尊重 routeMarkerVisible。
+   * iOS 继续使用 SDK 默认终点标记，避免接入仅驾车可用的路线隐藏行为。
+   * @default true
+   */
+  emphasizeDestinationOnArrival?: boolean;
   /** 是否显示示例内置的车道 HUD */
   showDefaultLaneHud?: boolean;
   /** 是否显示示例内置的统一自绘路况光柱 */
@@ -114,11 +120,16 @@ function EmbeddedNaviArrivalPresentation({
     >
       <View style={styles.arrivalPanel}>
         <View style={styles.arrivalIcon}>
-          <MaterialIcons name="sports-score" size={24} color="#ffffff" />
+          <MaterialIcons
+            testID="embedded-navi-arrival-success-icon"
+            name="check"
+            size={25}
+            color="#ffffff"
+          />
         </View>
         <View style={styles.arrivalCopy}>
           <Text style={styles.arrivalTitle}>已到达目的地</Text>
-          <Text style={styles.arrivalSubtitle}>现在进入目的地</Text>
+          <Text style={styles.arrivalSubtitle}>请注意停车安全</Text>
         </View>
         {showExitButton && onExitPress ? (
           <Pressable
@@ -144,6 +155,8 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       style,
       showDefaultHud = true,
       showArrivalPresentation,
+      hideCarOnArrival = true,
+      emphasizeDestinationOnArrival = true,
       showDefaultLaneHud = true,
       showDefaultTrafficBar = true,
       hideLaneHudWhenCrossVisible = true,
@@ -187,6 +200,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       trafficBarFrame,
       trafficBarColors,
       screenAnchor,
+      carOverlayVisible,
       startPointImage,
       wayPointImage,
       endPointImage,
@@ -377,6 +391,8 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
     const leftInset = insets.left;
     const rightInset = insets.right;
     const hasArrived = presentationState === "arrived";
+    const resolvedCarOverlayVisible =
+      hasArrived && hideCarOnArrival ? false : carOverlayVisible ?? true;
     const shouldShowArrivalPresentation = showArrivalPresentation ?? showDefaultHud;
     const shouldShowBottomSummary =
       !hasArrived && showDefaultHud && (latestNaviInfo?.pathRetainDistance ?? 0) > 0;
@@ -445,6 +461,16 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
             ...routeMarkerVisible,
           }
         : routeMarkerVisible;
+    // 到达后只在 Android 打开 SDK 原生终点图钉。两端都保留原生地图的真实状态，
+    // 不尝试把车标移动到终点，也不使用 iOS 独有的路线隐藏 API。
+    const arrivalRouteMarkerVisible =
+      Platform.OS === "android" && hasArrived && emphasizeDestinationOnArrival
+        ? {
+            ...resolvedRouteMarkerVisible,
+            showStartEndVia: true,
+            showRouteEndIcon: true,
+          }
+        : resolvedRouteMarkerVisible;
     const autoTrafficBarLayout =
       containerWidth > 0 && containerHeight > 0
         ? {
@@ -548,12 +574,13 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
               Platform.OS === "android" ? androidBackgroundNavigationNotificationEnabled : false
             }
             iosLiveActivityEnabled={Platform.OS === "ios" ? iosLiveActivityEnabled : false}
+            carOverlayVisible={resolvedCarOverlayVisible}
             driveViewEdgePadding={resolvedDriveViewEdgePadding}
             screenAnchor={resolvedScreenAnchor}
             startPointImage={startPointImage}
             wayPointImage={wayPointImage}
             endPointImage={endPointImage}
-            routeMarkerVisible={resolvedRouteMarkerVisible}
+            routeMarkerVisible={arrivalRouteMarkerVisible}
             showBackupRoute={showBackupRoute}
             showEagleMap={showEagleMap}
             onNaviInfoUpdate={handleNaviInfoUpdate}
@@ -622,8 +649,9 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           </Pressable>
         ) : null}
 
-        {showOverviewToggleButton ? (
+        {showOverviewToggleButton && !hasArrived ? (
           <Pressable
+            testID="embedded-navi-overview-toggle"
             style={[
               styles.overviewButton,
               { right: 18 + rightInset, bottom: overviewButtonBottom },

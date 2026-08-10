@@ -1,5 +1,6 @@
 import React from "react";
 import renderer, { act } from "react-test-renderer";
+import { Platform } from "react-native";
 
 jest.mock("@expo/vector-icons", () => {
   const React = require("react");
@@ -64,14 +65,31 @@ function getHud(tree) {
 }
 
 function expectArrivalPresentation(tree) {
-  expect(tree.root.findAllByProps({ testID: "embedded-navi-arrival-presentation" })).toHaveLength(1);
+  const presentation = tree.root.findByProps({ testID: "embedded-navi-arrival-presentation" });
+  const arrivalText = presentation
+    .findAllByType("Text")
+    .map((node) => node.children.join(""));
+
+  expect(arrivalText).toEqual(
+    expect.arrayContaining(["已到达目的地", "请注意停车安全"])
+  );
+  expect(
+    presentation.findByProps({ testID: "embedded-navi-arrival-success-icon" }).props.name
+  ).toBe("check");
   expect(tree.root.findAllByType("EmbeddedNaviHud")).toHaveLength(0);
   expect(tree.root.findAllByType("EmbeddedNaviBottomSummary")).toHaveLength(0);
   expect(tree.root.findAllByType("EmbeddedNaviLaneView")).toHaveLength(0);
   expect(tree.root.findAllByType("EmbeddedNaviTrafficBar")).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: "embedded-navi-overview-toggle" })).toHaveLength(0);
 }
 
 describe("EmbeddedNaviView terminal presentation", () => {
+  const originalPlatform = Platform.OS;
+
+  afterEach(() => {
+    Platform.OS = originalPlatform;
+  });
+
   it("shows arrival presentation for an emulator-end-only callback and ignores late navigation info", () => {
     const onNaviEnd = jest.fn();
     const onNaviInfoUpdate = jest.fn();
@@ -178,5 +196,136 @@ describe("EmbeddedNaviView terminal presentation", () => {
     });
 
     expect(getHud(tree).props.info.pathRetainDistance).toBe(220);
+  });
+
+  it("hides the car at arrival by default and restores the caller visibility on the next start", () => {
+    let tree;
+
+    act(() => {
+      tree = renderer.create(<EmbeddedNaviView carOverlayVisible />);
+    });
+
+    expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(true);
+
+    act(() => {
+      getNativeNaviView(tree).props.onArrive({ nativeEvent: { arrived: true } });
+    });
+
+    expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(false);
+
+    act(() => {
+      getNativeNaviView(tree).props.onNaviStart({ nativeEvent: { type: 1 } });
+    });
+
+    expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(true);
+  });
+
+  it("keeps a caller-hidden car hidden after the next navigation start", () => {
+    let tree;
+
+    act(() => {
+      tree = renderer.create(<EmbeddedNaviView carOverlayVisible={false} />);
+    });
+
+    act(() => {
+      getNativeNaviView(tree).props.onArrive({ nativeEvent: { arrived: true } });
+      getNativeNaviView(tree).props.onNaviStart({ nativeEvent: { type: 1 } });
+    });
+
+    expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(false);
+  });
+
+  it("keeps the caller car visibility at arrival when hiding is disabled", () => {
+    let tree;
+
+    act(() => {
+      tree = renderer.create(<EmbeddedNaviView carOverlayVisible hideCarOnArrival={false} />);
+    });
+
+    act(() => {
+      getNativeNaviView(tree).props.onArrive({ nativeEvent: { arrived: true } });
+    });
+
+    expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(true);
+  });
+
+  it("keeps a caller-provided destination image and promotes the Android SDK destination pin only after arrival", () => {
+    Platform.OS = "android";
+    const endPointImage = { uri: "file:///destination-pin.png" };
+    const routeMarkerVisible = {
+      showStartEndVia: false,
+      showFootFerry: false,
+      showForbidden: false,
+      showRouteStartIcon: false,
+      showRouteEndIcon: false,
+    };
+    let tree;
+
+    act(() => {
+      tree = renderer.create(
+        <EmbeddedNaviView
+          endPointImage={endPointImage}
+          routeMarkerVisible={routeMarkerVisible}
+        />
+      );
+    });
+
+    expect(getNativeNaviView(tree).props.endPointImage).toBe(endPointImage);
+    expect(getNativeNaviView(tree).props.routeMarkerVisible).toEqual(
+      expect.objectContaining({
+        showStartEndVia: false,
+        showRouteEndIcon: false,
+      })
+    );
+
+    act(() => {
+      getNativeNaviView(tree).props.onArrive({ nativeEvent: { arrived: true } });
+    });
+
+    expectArrivalPresentation(tree);
+    expect(getNativeNaviView(tree).props.endPointImage).toBe(endPointImage);
+    expect(getNativeNaviView(tree).props.routeMarkerVisible).toEqual(
+      expect.objectContaining({
+        showStartEndVia: true,
+        showRouteEndIcon: true,
+      })
+    );
+
+    act(() => {
+      getNativeNaviView(tree).props.onNaviStart({ nativeEvent: { type: 1 } });
+    });
+
+    expect(getNativeNaviView(tree).props.routeMarkerVisible).toEqual(
+      expect.objectContaining({
+        showStartEndVia: false,
+        showRouteEndIcon: false,
+      })
+    );
+  });
+
+  it("does not override Android route marker visibility when arrival emphasis is disabled", () => {
+    Platform.OS = "android";
+    let tree;
+
+    act(() => {
+      tree = renderer.create(
+        <EmbeddedNaviView
+          emphasizeDestinationOnArrival={false}
+          routeMarkerVisible={{ showStartEndVia: false, showRouteEndIcon: false }}
+        />
+      );
+    });
+
+    act(() => {
+      getNativeNaviView(tree).props.onArrive({ nativeEvent: { arrived: true } });
+    });
+
+    expectArrivalPresentation(tree);
+    expect(getNativeNaviView(tree).props.routeMarkerVisible).toEqual(
+      expect.objectContaining({
+        showStartEndVia: false,
+        showRouteEndIcon: false,
+      })
+    );
   });
 });

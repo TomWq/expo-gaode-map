@@ -1,5 +1,6 @@
 import {
   ExpoGaodeMapModule,
+  ExpoGaodeMapNaviView,
   NaviView,
   type Coordinates,
   type NaviViewRef,
@@ -103,7 +104,7 @@ export default function NaviViewExample() {
     return (
       <View style={styles.naviContainer}>
         <StatusBar translucent barStyle={'dark-content'} backgroundColor={'transparent'}/>
-        <NaviView
+        <ExpoGaodeMapNaviView
           ref={naviViewRef}
           style={styles.naviView}
           naviType={1} // 1 = 模拟导航，0 = GPS 导航

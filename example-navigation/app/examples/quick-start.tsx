@@ -174,7 +174,7 @@ export default function QuickStartScreen() {
   if (showNaviView) {
     return (
       <>
-        <StatusBar style="dark" translucent />
+        <StatusBar style="dark"  />
         <EmbeddedNaviView
           ref={naviViewRef}
           style={styles.naviContainer}

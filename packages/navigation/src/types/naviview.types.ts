@@ -229,7 +229,8 @@ export interface ExpoGaodeMapNaviViewProps extends ViewProps {
   
   /**
    * 是否显示自车和罗盘
-   * @platform android
+   * @platform android ios
+   * 说明：Android 映射 `setCarOverlayVisible`；iOS 仅驾车导航映射 `AMapNaviDriveView.showCar`，步行/骑行场景不保证该属性生效
    * @default true
    * @since 6.2.0
    */
