@@ -115,7 +115,7 @@ export function EmbeddedNaviTrafficBar({
   const cursorTop = clamp((retainDistance / totalLength) * drawableHeight, 0, drawableHeight);
 
   return (
-    <View pointerEvents="none" style={[styles.container, style]}>
+    <View accessibilityLabel="路线实时路况" pointerEvents="none" style={[styles.container, style]}>
       <View style={styles.shadowShell}>
         <View style={styles.track} onLayout={handleLayout}>
           {renderedSegments.map((segment) => (

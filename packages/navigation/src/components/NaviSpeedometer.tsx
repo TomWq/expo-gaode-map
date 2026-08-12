@@ -22,7 +22,7 @@ export interface NaviSpeedometerProps {
  */
 export function NaviSpeedometer({
   speed,
-  size = 76,
+  size = 64,
   color = '#2f67ff',
   backgroundColor = '#ffffff',
   unit = 'km/h',
@@ -31,7 +31,10 @@ export function NaviSpeedometer({
   const diameter = Math.max(56, size);
   const numericSpeed = typeof speed === 'number' && Number.isFinite(speed) ? Math.max(0, speed) : null;
   const speedText = numericSpeed == null ? '--' : String(Math.round(numericSpeed));
-  const valueFontSize = Math.max(28, Math.round(diameter * 0.34));
+  const valueFontSize = Math.max(28, Math.round(diameter * 0.48));
+  const valueLineHeight = Math.round(valueFontSize * 1.08);
+  const unitFontSize = Math.max(10, Math.round(diameter * 0.17));
+  const unitLineHeight = Math.round(unitFontSize * 1.2);
 
   return (
     <View
@@ -53,9 +56,9 @@ export function NaviSpeedometer({
         style={[
           styles.innerRing,
           {
-            width: diameter - 12,
-            height: diameter - 12,
-            borderRadius: (diameter - 12) / 2,
+            width: diameter - 10,
+            height: diameter - 10,
+            borderRadius: (diameter - 10) / 2,
             borderColor: color,
             opacity: 0.16,
           },
@@ -66,11 +69,13 @@ export function NaviSpeedometer({
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.7}
-          style={[styles.value, { color, fontSize: valueFontSize }]}
+          style={[styles.value, { color, fontSize: valueFontSize, lineHeight: valueLineHeight }]}
         >
           {speedText}
         </Text>
-        <Text style={[styles.unit, { color }]}>{unit}</Text>
+        <Text style={[styles.unit, { color, fontSize: unitFontSize, lineHeight: unitLineHeight }]}>
+          {unit}
+        </Text>
       </View>
     </View>
   );
@@ -80,7 +85,7 @@ const styles = StyleSheet.create({
   shadow: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
+    borderWidth: 3,
     shadowColor: '#12234d',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
@@ -94,16 +99,15 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     justifyContent: 'center',
+    transform: [{ translateY: -1 }],
   },
   value: {
     fontWeight: '800',
-    lineHeight: 40,
     includeFontPadding: false,
   },
   unit: {
-    marginTop: 2,
-    fontSize: 14,
+    marginTop: 0,
     fontWeight: '600',
-    lineHeight: 18,
+    includeFontPadding: false,
   },
 });

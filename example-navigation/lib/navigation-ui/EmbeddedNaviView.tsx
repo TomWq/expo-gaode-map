@@ -183,7 +183,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       style,
       showDefaultHud = true,
       showSpeedometer = false,
-      speedometerSize = 76,
+      speedometerSize = 64,
       speedometerStyle,
       showArrivalPresentation,
       hideCarOnArrival = true,
@@ -408,6 +408,8 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
     const isCompactHud =
       (realCrossDisplay !== false && visualState.isCrossVisible) ||
       (resolvedModeCrossDisplay !== false && visualState.isModeCrossVisible);
+    // 路口放大图需要完整可视区域；车道条则通过下方的动态 top 偏移避让，而不是隐藏速度盘。
+    const shouldHideSpeedometer = isCompactHud;
     // 锁车态把车位压低，保证前方可视距离；全览态则回到中心，避免路线只露出半截。
     const defaultIosCustomAnchor =
       usesManagedCustomChrome
@@ -436,14 +438,14 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
     const resolvedLaneScale = Math.min(Math.max(laneHudScale ?? 0.88, 0.65), 1.3);
     const showsCustomControlButtons = resolvedShowUIElements === false;
     const compactBaseTop = showDefaultHud ? hudHeight : topInset + 14;
-    const compactLaneHeight = 56 * resolvedLaneScale;
+    const laneHudHeight = (isCompactHud ? 56 : 64) * resolvedLaneScale;
     // 原生层只告诉我们“路口大图显示中”，不会直接给出大图 frame，
     // 所以这里按容器高度估一个稳定区间，把车道 HUD 锚到大图底部附近。
     // 这是示例侧的经验值，不是 SDK 的精确布局接口。
     const estimatedCrossHeight = Math.min(Math.max(containerHeight * 0.3, 156), 220);
     const autoLaneCrossTopOffset = Math.max(
       compactBaseTop + 10,
-      compactBaseTop + estimatedCrossHeight - compactLaneHeight
+      compactBaseTop + estimatedCrossHeight - laneHudHeight
     );
     let resolvedLaneTopOffset: number | undefined;
     if (laneHudPlacement === "top") {
@@ -453,12 +455,29 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
         resolvedLaneTopOffset = hudHeight + 8;
       }
     }
+    const isTopLaneHudVisible =
+      showDefaultLaneHud &&
+      laneHudPlacement === "top" &&
+      visualState.isLaneInfoVisible &&
+      latestLaneInfo != null &&
+      !shouldHideLaneHud &&
+      resolvedLaneTopOffset != null;
+    const defaultSpeedometerTop =
+      showDefaultHud && hudHeight > 0 ? hudHeight + 18 : topInset + 92;
+    // 车道条高度随缩放变化。只在它实际压住速度盘时才向下避让，避免控件无故跳动。
+    const laneHudBottom =
+      isTopLaneHudVisible && resolvedLaneTopOffset != null
+        ? resolvedLaneTopOffset + laneHudHeight + 12
+        : null;
+    const speedometerTop = isTopLaneHudVisible
+      ? Math.max(defaultSpeedometerTop, laneHudBottom ?? defaultSpeedometerTop)
+      : defaultSpeedometerTop;
     const autoTopVisibleBottom =
       showDefaultLaneHud &&
       laneHudPlacement === "top" &&
       !shouldHideLaneHud &&
       resolvedLaneTopOffset != null
-        ? resolvedLaneTopOffset + compactLaneHeight
+        ? resolvedLaneTopOffset + laneHudHeight
         : 0;
     const autoTopPadding = Math.max(showDefaultHud ? hudHeight + 16 : 20, autoTopVisibleBottom + 12);
     const autoBottomPadding = Math.max(
@@ -466,7 +485,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       shouldShowBottomSummary ? bottomSummaryBottom + resolvedBottomSummaryHeight + 14 : 0,
       showOverviewToggleButton ? overviewButtonBottom + compactFloatingButtonHeight : 0,
       showDefaultLaneHud && laneHudPlacement === "bottom" && !shouldHideLaneHud
-        ? compactLaneHeight + 28
+        ? laneHudHeight + 28
         : 0
     );
     // 全览态要尽量把路线塞进屏幕，所以这里故意收紧上下边距，
@@ -634,14 +653,14 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           />
         ) : null}
 
-        {showSpeedometer && !hasArrived && !isCompactHud ? (
+        {showSpeedometer && !hasArrived && !shouldHideSpeedometer ? (
           <NaviSpeedometer
             speed={latestNaviInfo?.currentSpeed}
             size={speedometerSize}
             style={[
               styles.speedometer,
               {
-                top: showDefaultHud && hudHeight > 0 ? hudHeight + 18 : topInset + 92,
+                top: speedometerTop,
               },
               speedometerStyle,
             ]}
@@ -682,6 +701,8 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
 
         {shouldShowTrafficToggleButton && !hasArrived ? (
           <Pressable
+            accessibilityLabel={trafficLayerVisible ? "关闭路况图层" : "打开路况图层"}
+            accessibilityRole="button"
             style={[styles.trafficToggleButton, trafficToggleButtonPositionStyle]}
             onPress={() => {
               setTrafficLayerVisible((current) => !current);
@@ -696,6 +717,8 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
 
         {showOverviewToggleButton && !hasArrived ? (
           <Pressable
+            accessibilityLabel={showsOverviewMode ? "返回锁车视图" : "查看路线全览"}
+            accessibilityRole="button"
             testID="embedded-navi-overview-toggle"
             style={[
               styles.overviewButton,

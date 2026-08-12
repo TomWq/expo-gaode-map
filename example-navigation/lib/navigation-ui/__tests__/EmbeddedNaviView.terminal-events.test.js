@@ -283,14 +283,46 @@ describe("EmbeddedNaviView terminal presentation", () => {
     expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(true);
   });
 
-  it("hides the speedometer while a junction enlargement is visible", () => {
+  it("moves the speedometer below the lane strip and hides it for a junction enlargement", () => {
     let tree;
 
     act(() => {
       tree = renderer.create(<EmbeddedNaviView showSpeedometer />);
     });
 
-    expect(tree.root.findAllByProps({ testID: "navi-speedometer" })).toHaveLength(1);
+    const defaultSpeedometer = tree.root.findByProps({ testID: "navi-speedometer" });
+    expect(defaultSpeedometer.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ top: 92 })])
+    );
+
+    act(() => {
+      getHud(tree).props.onLayout({ nativeEvent: { layout: { height: 120 } } });
+    });
+
+    act(() => {
+      getNativeNaviView(tree).props.onNaviVisualStateChange({
+        nativeEvent: { isCrossVisible: false, isModeCrossVisible: false, isLaneInfoVisible: true },
+      });
+      getNativeNaviView(tree).props.onLaneInfoUpdate({
+        nativeEvent: { laneCount: 1, backgroundLane: [1], frontLane: [1] },
+      });
+    });
+
+    const laneAwareSpeedometer = tree.root.findByProps({ testID: "navi-speedometer" });
+    expect(laneAwareSpeedometer.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ top: 196.32 })])
+    );
+
+    act(() => {
+      getNativeNaviView(tree).props.onNaviVisualStateChange({
+        nativeEvent: { isCrossVisible: false, isModeCrossVisible: false, isLaneInfoVisible: false },
+      });
+    });
+
+    const restoredSpeedometer = tree.root.findByProps({ testID: "navi-speedometer" });
+    expect(restoredSpeedometer.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ top: 138 })])
+    );
 
     act(() => {
       getNativeNaviView(tree).props.onNaviVisualStateChange({

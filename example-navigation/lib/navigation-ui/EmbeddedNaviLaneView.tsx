@@ -302,9 +302,10 @@ export function EmbeddedNaviLaneView({
       ? { top: topOffset ?? topInset + (compact ? 54 : 110) }
       : { bottom: compact ? 112 : 88 };
   const laneRadius = (compact ? 5 : 6) * resolvedScale;
+  const laneHeight = (compact ? 56 : 64) * resolvedScale;
   const laneStyle: ViewStyle = {
     width: (compact ? 35 : 40) * resolvedScale,
-    height: (compact ? 56 : 64) * resolvedScale,
+    height: laneHeight,
     paddingHorizontal: 4 * resolvedScale,
     paddingVertical: 6 * resolvedScale,
   };

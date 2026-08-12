@@ -6,7 +6,6 @@
 [![downloads](https://img.shields.io/npm/dm/expo-gaode-map.svg)](https://www.npmjs.com/package/expo-gaode-map)
 
 
-[![oosmetrics](https://api.oosmetrics.com/api/v1/badge/achievement/48b42d9e-d007-4a63-9252-347a56d4fa12.svg)](https://oosmetrics.com/repo/TomWq/expo-gaode-map)
 
 > Production-first AMap (Gaode Map) stack for Expo and React Native apps in China.
 
