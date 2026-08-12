@@ -118,6 +118,8 @@ jest.mock('expo-gaode-map-navigation', () => {
     ExpoGaodeMapModule: mockNavigationModule,
     ExpoGaodeMapNaviViewRef: {},
     ExpoGaodeMapNaviView: createMockNaviView('native-navi-view'),
+    NaviSpeedometer: ({ speed, ...props }) =>
+      React.createElement(View, { ...props, testID: 'navi-speedometer', speed }),
     EmbeddedNaviView: createMockNaviView('embedded-navi-view'),
   };
 }, { virtual: true });

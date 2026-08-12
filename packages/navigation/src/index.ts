@@ -3,6 +3,7 @@ import {
   ExpoGaodeMapNaviView,
   type ExpoGaodeMapNaviViewRef,
 } from './ExpoGaodeMapNaviView';
+export { NaviSpeedometer, type NaviSpeedometerProps } from './components/NaviSpeedometer';
 export * from './map';
 import {
   DriveStrategy,

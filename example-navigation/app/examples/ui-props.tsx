@@ -87,6 +87,7 @@ export default function UiPropsExampleScreen() {
         enableVoice
         mapViewModeType={2}
         showDefaultHud
+        showSpeedometer
         showDefaultLaneHud
         hideLaneHudWhenCrossVisible
         showTrafficBar
@@ -139,6 +140,7 @@ export default function UiPropsExampleScreen() {
           <Text style={styles.cardTitle}>本页展示内容</Text>
           <Text style={styles.feature}>• 默认完整自定义 UI 模式，`showUIElements=false`</Text>
           <Text style={styles.feature}>• 顶部 HUD / 车道 HUD / 路况光柱都由示例侧自行绘制</Text>
+          <Text style={styles.feature}>• 左上速度圆盘消费 `onNaviInfoUpdate.currentSpeed`，实时显示 km/h</Text>
           <Text style={styles.feature}>• 起点 / 终点标记也使用示例自定义图标，便于验证原生标注替换能力</Text>
           <Text style={styles.feature}>• 路口大图出现时，顶部 HUD 自动切换为紧凑模式</Text>
           <Text style={styles.feature}>• Android / iOS 复用同一套示例封装，方便你按需二次改造</Text>

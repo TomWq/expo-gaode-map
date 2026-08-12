@@ -283,6 +283,32 @@ describe("EmbeddedNaviView terminal presentation", () => {
     expect(getNativeNaviView(tree).props.carOverlayVisible).toBe(true);
   });
 
+  it("hides the speedometer while a junction enlargement is visible", () => {
+    let tree;
+
+    act(() => {
+      tree = renderer.create(<EmbeddedNaviView showSpeedometer />);
+    });
+
+    expect(tree.root.findAllByProps({ testID: "navi-speedometer" })).toHaveLength(1);
+
+    act(() => {
+      getNativeNaviView(tree).props.onNaviVisualStateChange({
+        nativeEvent: { isCrossVisible: true, isModeCrossVisible: false, isLaneInfoVisible: false },
+      });
+    });
+
+    expect(tree.root.findAllByProps({ testID: "navi-speedometer" })).toHaveLength(0);
+
+    act(() => {
+      getNativeNaviView(tree).props.onNaviVisualStateChange({
+        nativeEvent: { isCrossVisible: false, isModeCrossVisible: false, isLaneInfoVisible: false },
+      });
+    });
+
+    expect(tree.root.findAllByProps({ testID: "navi-speedometer" })).toHaveLength(1);
+  });
+
   it("keeps a caller-provided destination image and promotes the Android SDK destination pin only after arrival", () => {
     Platform.OS = "android";
     const endPointImage = { uri: "file:///destination-pin.png" };

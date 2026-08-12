@@ -14,6 +14,7 @@ import type {
 } from "expo-gaode-map-navigation";
 import {
   ExpoGaodeMapNaviView,
+  NaviSpeedometer,
   type ExpoGaodeMapNaviViewRef,
 } from "expo-gaode-map-navigation";
 import React from "react";
@@ -63,6 +64,11 @@ const initialVisualState: NaviVisualStateEvent = {
 export interface EmbeddedNaviViewProps extends ExpoGaodeMapNaviViewProps {
   /** 是否显示示例内置的顶部导航 HUD */
   showDefaultHud?: boolean;
+  /** 是否显示示例内置的速度圆盘；速度来自 `onNaviInfoUpdate.currentSpeed` */
+  showSpeedometer?: boolean;
+  /** 速度圆盘直径，单位为 RN 逻辑像素 */
+  speedometerSize?: number;
+  speedometerStyle?: StyleProp<ViewStyle>;
   /** 是否显示到达目的地后的自定义终态提示；默认跟随 showDefaultHud */
   showArrivalPresentation?: boolean;
   /** 到达终态时是否隐藏自车图标；下一次导航启动时恢复 carOverlayVisible；默认 true */
@@ -176,6 +182,9 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
     {
       style,
       showDefaultHud = true,
+      showSpeedometer = false,
+      speedometerSize = 76,
+      speedometerStyle,
       showArrivalPresentation,
       hideCarOnArrival = true,
       emphasizeDestinationOnArrival = true,
@@ -625,6 +634,20 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
           />
         ) : null}
 
+        {showSpeedometer && !hasArrived && !isCompactHud ? (
+          <NaviSpeedometer
+            speed={latestNaviInfo?.currentSpeed}
+            size={speedometerSize}
+            style={[
+              styles.speedometer,
+              {
+                top: showDefaultHud && hudHeight > 0 ? hudHeight + 18 : topInset + 92,
+              },
+              speedometerStyle,
+            ]}
+          />
+        ) : null}
+
         {showDefaultHud && !hasArrived ? (
           <EmbeddedNaviBottomSummary
             info={latestNaviInfo}
@@ -731,6 +754,10 @@ const styles = StyleSheet.create({
   trafficToggleButtonImage: {
     width: 50,
     height: 50,
+  },
+  speedometer: {
+    position: "absolute",
+    left: 18,
   },
   arrivalContainer: {
     position: "absolute",

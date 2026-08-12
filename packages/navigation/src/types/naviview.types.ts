@@ -30,6 +30,7 @@ export interface NaviInfoUpdateEvent {
   curStepRetainTime?: number;
   currentRoadName: string;
   nextRoadName: string;
+  /** 当前车速，单位 km/h；GPS 暂无速度时可能为 0。 */
   currentSpeed?: number;
   iconType?: number;
   nextIconType?: number;
