@@ -96,7 +96,11 @@ describe('quick-start smoke', () => {
       await findPressableByText(tree, '开始模拟导航').props.onPress();
     });
 
-    expect(tree.root.findByProps({ testID: 'embedded-navi-view' })).toBeTruthy();
+    const embeddedNaviView = tree.root.findByProps({ testID: 'embedded-navi-view' });
+    expect(embeddedNaviView).toBeTruthy();
+    expect(embeddedNaviView.props.onArrive).toBeUndefined();
+    expect(embeddedNaviView.props.onNaviEnd).toBeUndefined();
+    expect(embeddedNaviView.props.onExitPress).toEqual(expect.any(Function));
     expect(mocks.naviViewMethods.startNavigation).not.toHaveBeenCalled();
 
     await act(async () => {

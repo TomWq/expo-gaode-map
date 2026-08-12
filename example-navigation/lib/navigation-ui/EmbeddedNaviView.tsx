@@ -110,35 +110,57 @@ function EmbeddedNaviArrivalPresentation({
   showExitButton: boolean;
 }) {
   const insets = useSafeAreaInsets();
-  const topInset = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : insets.top;
 
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.arrivalContainer, { paddingTop: topInset + 14 }]}
+      style={styles.arrivalContainer}
       testID="embedded-navi-arrival-presentation"
     >
-      <View style={styles.arrivalPanel}>
-        <View style={styles.arrivalIcon}>
-          <MaterialIcons
-            testID="embedded-navi-arrival-success-icon"
-            name="check"
-            size={25}
-            color="#ffffff"
-          />
-        </View>
-        <View style={styles.arrivalCopy}>
-          <Text style={styles.arrivalTitle}>已到达目的地</Text>
-          <Text style={styles.arrivalSubtitle}>请注意停车安全</Text>
+      <View
+        style={[
+          styles.arrivalPanel,
+          {
+            paddingBottom: Math.max(insets.bottom + 14, 22),
+            paddingLeft: insets.left + 20,
+            paddingRight: insets.right + 20,
+          },
+        ]}
+        testID="embedded-navi-arrival-sheet"
+      >
+        <View style={styles.arrivalHeader}>
+          <View style={styles.arrivalIcon}>
+            <MaterialIcons
+              testID="embedded-navi-arrival-success-icon"
+              name="done"
+              size={28}
+              color="#067647"
+            />
+          </View>
+          <View style={styles.arrivalCopy}>
+            <Text numberOfLines={1} style={styles.arrivalTitle}>
+              已到达目的地
+            </Text>
+            <View style={styles.arrivalSubtitleRow}>
+              <MaterialIcons name="local-parking" size={16} color="#667085" />
+              <Text numberOfLines={2} style={styles.arrivalSubtitle}>
+                请确认车辆停稳，注意周边安全
+              </Text>
+            </View>
+          </View>
         </View>
         {showExitButton && onExitPress ? (
           <Pressable
             accessibilityLabel={exitButtonText}
             accessibilityRole="button"
+            android_ripple={{ color: "rgba(255, 255, 255, 0.16)" }}
             onPress={onExitPress}
-            style={styles.arrivalExitButton}
+            style={({ pressed }) => [
+              styles.arrivalExitButton,
+              pressed && styles.arrivalExitButtonPressed,
+            ]}
+            testID="embedded-navi-arrival-exit-action"
           >
-            <MaterialIcons name="logout" size={18} color="#dbeafe" />
             <Text numberOfLines={1} style={styles.arrivalExitText}>
               {exitButtonText}
             </Text>
@@ -164,7 +186,7 @@ export const EmbeddedNaviView = React.forwardRef<ExpoGaodeMapNaviViewRef, Embedd
       showOverviewToggleButton = true,
       showTrafficToggleButton = true,
       showExitButton = true,
-      exitButtonText = "退出导航",
+      exitButtonText = "结束导航",
       laneHudPlacement = "top",
       laneHudScale,
       laneHudStyle,
@@ -712,67 +734,75 @@ const styles = StyleSheet.create({
   },
   arrivalContainer: {
     position: "absolute",
-    top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 12,
   },
   arrivalPanel: {
     alignSelf: "center",
     width: "100%",
-    maxWidth: 380,
-    minHeight: 72,
+    maxWidth: 560,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    backgroundColor: "#ffffff",
+    boxShadow: "0px -8px 28px rgba(16, 24, 40, 0.18)",
+  },
+  arrivalHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 12,
-    overflow: "hidden",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-    backgroundColor: "rgba(9, 18, 33, 0.94)",
-    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.26)",
   },
   arrivalIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 52,
+    height: 52,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2563eb",
+    backgroundColor: "#dcfae6",
   },
   arrivalCopy: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 12,
+    paddingLeft: 14,
   },
   arrivalTitle: {
-    color: "#ffffff",
-    fontSize: 17,
-    lineHeight: 22,
+    color: "#101828",
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: "800",
   },
+  arrivalSubtitleRow: {
+    marginTop: 5,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 5,
+  },
   arrivalSubtitle: {
-    marginTop: 2,
-    color: "#bfdbfe",
+    flex: 1,
+    color: "#667085",
     fontSize: 13,
     lineHeight: 18,
     fontWeight: "600",
   },
   arrivalExitButton: {
-    alignSelf: "stretch",
+    minHeight: 52,
+    marginTop: 20,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 14,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: "rgba(191, 219, 254, 0.34)",
-    backgroundColor: "rgba(30, 64, 175, 0.36)",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: "#155eef",
+  },
+  arrivalExitButtonPressed: {
+    opacity: 0.88,
   },
   arrivalExitText: {
-    maxWidth: 88,
-    color: "#dbeafe",
-    fontSize: 13,
-    lineHeight: 18,
+    flexShrink: 1,
+    color: "#ffffff",
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: "800",
   },
 });

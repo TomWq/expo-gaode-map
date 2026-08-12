@@ -66,16 +66,26 @@ function getHud(tree) {
 
 function expectArrivalPresentation(tree) {
   const presentation = tree.root.findByProps({ testID: "embedded-navi-arrival-presentation" });
+  const sheet = presentation.findByProps({ testID: "embedded-navi-arrival-sheet" });
   const arrivalText = presentation
     .findAllByType("Text")
     .map((node) => node.children.join(""));
 
+  expect(presentation.props.style).toEqual(
+    expect.objectContaining({ bottom: 0, left: 0, position: "absolute", right: 0 })
+  );
+  expect(sheet.props.style).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ backgroundColor: "#ffffff", maxWidth: 560, width: "100%" }),
+      expect.objectContaining({ paddingBottom: 22 }),
+    ])
+  );
   expect(arrivalText).toEqual(
-    expect.arrayContaining(["已到达目的地", "请注意停车安全"])
+    expect.arrayContaining(["已到达目的地", "请确认车辆停稳，注意周边安全"])
   );
   expect(
     presentation.findByProps({ testID: "embedded-navi-arrival-success-icon" }).props.name
-  ).toBe("check");
+  ).toBe("done");
   expect(tree.root.findAllByType("EmbeddedNaviHud")).toHaveLength(0);
   expect(tree.root.findAllByType("EmbeddedNaviBottomSummary")).toHaveLength(0);
   expect(tree.root.findAllByType("EmbeddedNaviLaneView")).toHaveLength(0);
@@ -99,6 +109,7 @@ describe("EmbeddedNaviView terminal presentation", () => {
     act(() => {
       tree = renderer.create(
         <EmbeddedNaviView
+          exitButtonText="结束导航"
           onExitPress={onExitPress}
           onNaviEnd={onNaviEnd}
           onNaviInfoUpdate={onNaviInfoUpdate}
@@ -133,9 +144,32 @@ describe("EmbeddedNaviView terminal presentation", () => {
     expectArrivalPresentation(tree);
 
     act(() => {
-      tree.root.findByProps({ accessibilityLabel: "退出导航" }).props.onPress();
+      const exitAction = tree.root.findByProps({ accessibilityLabel: "结束导航" });
+      expect(exitAction.props.style).toEqual(expect.any(Function));
+      expect(exitAction.props.style({ pressed: false })[0]).toEqual(
+        expect.objectContaining({ backgroundColor: "#155eef", minHeight: 52 })
+      );
+      exitAction.props.onPress();
     });
     expect(onExitPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the bottom completion panel but hides its exit action when showExitButton is false", () => {
+    const onExitPress = jest.fn();
+    let tree;
+
+    act(() => {
+      tree = renderer.create(
+        <EmbeddedNaviView onExitPress={onExitPress} showExitButton={false} />
+      );
+    });
+
+    act(() => {
+      getNativeNaviView(tree).props.onArrive({ nativeEvent: { arrived: true } });
+    });
+
+    expectArrivalPresentation(tree);
+    expect(tree.root.findAllByProps({ testID: "embedded-navi-arrival-exit-action" })).toHaveLength(0);
   });
 
   it("keeps one terminal presentation when arrival is followed by navigation end", () => {

@@ -202,12 +202,7 @@ export default function QuickStartScreen() {
           onNaviStart={() => {
             setStatusText("导航已开始");
           }}
-          onArrive={() => {
-            Alert.alert("已到达", "模拟导航已到达目的地");
-          }}
-          onNaviEnd={() => {
-            void stopNavigation();
-          }}
+          // 到达和模拟结束由 EmbeddedNaviView 保持终态，点击“结束导航”后再关闭页面。
           onCalculateRouteFailure={(event) => {
             Alert.alert("算路失败", event.nativeEvent.error || "未知错误");
           }}
