@@ -23,8 +23,8 @@ export function RouteOverlay({
     return null;
   }
 
-  const start = normalizedPoints[0];
-  const end = normalizedPoints[normalizedPoints.length - 1];
+  const start = normalizedPoints[0]!;
+  const end = normalizedPoints[normalizedPoints.length - 1]!;
 
   return (
     <>

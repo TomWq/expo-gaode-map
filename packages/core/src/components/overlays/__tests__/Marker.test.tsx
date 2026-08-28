@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Text } from 'react-native';
+import { Image, Platform, Text } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { jest } from '@jest/globals';
 
@@ -73,6 +73,23 @@ describe('Marker 组件', () => {
         iconHeight: 60,
         customViewWidth: 50,
         customViewHeight: 60,
+      }),
+      undefined
+    );
+  });
+
+  it('应该将静态图片 source 解析成原生可用的 uri', () => {
+    render(
+      <Marker
+        {...defaultProps}
+        icon={123 as never}
+      />
+    );
+
+    expect(Image.resolveAssetSource).toHaveBeenCalledWith(123);
+    expect(mockNativeMarker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon: 'asset_123.png',
       }),
       undefined
     );

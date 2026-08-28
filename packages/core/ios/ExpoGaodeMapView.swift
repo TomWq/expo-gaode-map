@@ -98,6 +98,8 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     private var isMapLoaded = false
     /// 初始相机是否已应用（仅应用一次，避免与运行时相机控制冲突）
     private var hasAppliedInitialCameraPosition = false
+    /// 用户位置样式是否已在首次定位后重新应用
+    private var hasAppliedUserLocationStyleAfterLocationUpdate = false
     /// 是否正在处理 annotation 选择事件
     private var isHandlingAnnotationSelect = false
     /// MarkerView 的隐藏容器（用于渲染 children）
@@ -573,6 +575,9 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     func setShowsUserLocation(_ show: Bool) {
         showsUserLocation = show
         uiManager?.setShowsUserLocation(show, followUser: followUserLocation)
+        if !show {
+            hasAppliedUserLocationStyleAfterLocationUpdate = false
+        }
         if show {
             applyUserLocationStyle()
         }
@@ -580,6 +585,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
     
     func setUserLocationRepresentation(_ config: [String: Any]) {
         userLocationRepresentation = config
+        hasAppliedUserLocationStyleAfterLocationUpdate = false
         if showsUserLocation {
             uiManager?.setUserLocationRepresentation(config)
         }
@@ -589,8 +595,15 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
      * 应用用户位置样式
      */
     private func applyUserLocationStyle() {
-        guard let config = userLocationRepresentation else { return }
+        guard showsUserLocation, let config = userLocationRepresentation else { return }
         uiManager?.setUserLocationRepresentation(config)
+    }
+
+    private func restoreFollowWithHeadingIfNeeded(_ mapView: MAMapView) {
+        guard showsUserLocation, followUserLocation else { return }
+        if mapView.userTrackingMode != .followWithHeading {
+            mapView.userTrackingMode = .followWithHeading
+        }
     }
     
 
@@ -835,6 +848,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         appleMapView = nil
         cameraManager = nil
         uiManager = nil
+        hasAppliedUserLocationStyleAfterLocationUpdate = false
     }
 
     @objc
@@ -861,6 +875,7 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         super.addSubview(resolvedMapView)
         isMapLoaded = false
         hasAppliedInitialCameraPosition = false
+        hasAppliedUserLocationStyleAfterLocationUpdate = false
 
         cameraManager = CameraManager(mapView: resolvedMapView)
         uiManager = UIManager(mapView: resolvedMapView)
@@ -887,6 +902,36 @@ class ExpoGaodeMapView: ExpoView, MAMapViewDelegate, UIGestureRecognizerDelegate
         if !isZoomEnabled {
             stopInertiaAnimation()
         }
+    }
+
+    /**
+     * 定位更新回调
+     *
+     * MAMapView 的 delegate 是 ExpoGaodeMapView。不要依赖 UIManager 接收该回调，
+     * 否则地图已设置 delegate 后，MapView.onLocation 不会被分发。
+     */
+    public func mapView(_ mapView: MAMapView, didUpdate userLocation: MAUserLocation, updatingLocation: Bool) {
+        guard updatingLocation, let location = userLocation.location else { return }
+
+        if !hasAppliedUserLocationStyleAfterLocationUpdate {
+            applyUserLocationStyle()
+            hasAppliedUserLocationStyleAfterLocationUpdate = true
+        }
+        restoreFollowWithHeadingIfNeeded(mapView)
+
+        let latitude = location.coordinate.latitude
+        let longitude = location.coordinate.longitude
+        guard latitude >= -90 && latitude <= 90,
+              longitude >= -180 && longitude <= 180 else {
+            return
+        }
+
+        onLocation([
+            "latitude": latitude,
+            "longitude": longitude,
+            "accuracy": location.horizontalAccuracy,
+            "timestamp": location.timestamp.timeIntervalSince1970 * 1000
+        ])
     }
 }
 

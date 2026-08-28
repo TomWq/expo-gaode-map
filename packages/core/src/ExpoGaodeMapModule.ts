@@ -1,7 +1,9 @@
 import { requireNativeModule } from 'expo';
+import { EventEmitter } from 'expo-modules-core';
 import { Platform } from 'react-native';
 
-import {
+import { CoordinateType } from './types';
+import type {
   LatLng,
   Coordinates,
   ReGeocode,
@@ -9,15 +11,21 @@ import {
   HeadingListener,
   HeadingUpdate,
   LatLngPoint,
-  CoordinateType,
   GeoLanguage,
 } from './types';
 import type { ExpoGaodeMapModule as NativeExpoGaodeMapModule } from './types/native-module.types';
 import { ErrorHandler, ErrorLogger } from './utils/ErrorHandler';
-import { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
+import type { PrivacyConfig, PrivacyStatus, SDKConfig, PermissionStatus } from './types/common.types';
 import { normalizeLatLng, normalizeLatLngList } from './utils/GeoUtils';
 
 let nativeModuleCache: NativeExpoGaodeMapModule | null = null;
+type NativeEventEmitter = {
+  addListener(
+    eventName: string,
+    listener: (payload: unknown) => void
+  ): { remove: () => void };
+};
+let nativeEventEmitterCache: NativeEventEmitter | null = null;
 
 function normalizeCoordinateType(type: CoordinateType): number | null {
   switch (type) {
@@ -166,6 +174,21 @@ function getNativeModule(optional = false): NativeExpoGaodeMapModule | null {
     ErrorLogger.log(moduleError);
     throw moduleError;
   }
+}
+
+function getNativeEventEmitter(module: NativeExpoGaodeMapModule): NativeEventEmitter {
+  if (nativeEventEmitterCache) {
+    return nativeEventEmitterCache;
+  }
+
+  if (typeof module.addListener === 'function') {
+    return module;
+  }
+
+  // Expo SDK 50 的 JSI 模块没有直接暴露 addListener。EventEmitter 会为该模块补上
+  // React Native 事件桥接；SDK 52+ 的原生模块则可直接订阅。
+  nativeEventEmitterCache = new EventEmitter(module as never) as unknown as NativeEventEmitter;
+  return nativeEventEmitterCache;
 }
 
 function getBoundNativeValue(
@@ -619,18 +642,10 @@ const helperMethods = {
     if (!module) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
-    if (!module.addListener) {
-      ErrorLogger.warn('Native module does not support events');
-      return {
-        remove: () => { },
-      };
-    }
 
-    return module.addListener('onLocationUpdate', (location) => {
-      listener(normalizeLocationResult(location));
-    }) || {
-      remove: () => { },
-    };
+    return getNativeEventEmitter(module).addListener('onLocationUpdate', (location) => {
+      listener(normalizeLocationResult(location as Coordinates | ReGeocode));
+    });
   },
 
   /**
@@ -643,18 +658,10 @@ const helperMethods = {
     if (!module) {
       throw ErrorHandler.nativeModuleUnavailable();
     }
-    if (!module.addListener) {
-      ErrorLogger.warn('Native module does not support events');
-      return {
-        remove: () => { },
-      };
-    }
 
-    return module.addListener('onHeadingUpdate', (heading) => {
-      listener(normalizeHeadingEvent(heading));
-    }) || {
-      remove: () => { },
-    };
+    return getNativeEventEmitter(module).addListener('onHeadingUpdate', (heading) => {
+      listener(normalizeHeadingEvent(heading as HeadingUpdate | Record<string, unknown>));
+    });
   },
 
   // ==================== 几何计算方法 ====================
@@ -997,7 +1004,7 @@ const helperMethods = {
         );
 
         for (let index = 0; index < normalizedMultiPolygons.length; index += 1) {
-          if (nativeModule.isPointInPolygon(normalizedPoint, normalizedMultiPolygons[index])) {
+          if (nativeModule.isPointInPolygon(normalizedPoint, normalizedMultiPolygons[index]!)) {
             return index;
           }
         }

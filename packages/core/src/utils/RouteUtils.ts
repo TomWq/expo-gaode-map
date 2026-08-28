@@ -135,7 +135,7 @@ export async function fitCameraToCoordinates(
     await map.getCameraPosition().catch(() => ({}));
 
   if (normalized.length === 1) {
-    const single = normalizeLatLng(normalized[0]);
+    const single = normalizeLatLng(normalized[0]!);
     await map.moveCamera(
       {
         target: single,

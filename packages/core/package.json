@@ -1,6 +1,6 @@
 {
   "name": "expo-gaode-map",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A full-featured React Native AMap (Gaode Map) library for Expo, including map display, location, overlays, offline maps, and geometry utilities.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -14,12 +14,12 @@
     "plugin/build"
   ],
   "scripts": {
-    "build": "expo-module build && yarn build:plugin",
+    "build": "expo-module build && npm run build:plugin",
     "build:plugin": "tsc --project plugin/tsconfig.json",
     "clean": "expo-module clean && rm -rf plugin/build",
     "lint": "expo-module lint",
     "test": "expo-module test",
-    "prepare": "expo-module prepare && yarn build:plugin",
+    "prepare": "expo-module prepare && npm run build:plugin",
     "prepublishOnly": "echo 'Skipping proofread check' && exit 0",
     "expo-module": "expo-module",
     "open:ios": "xed example/ios",

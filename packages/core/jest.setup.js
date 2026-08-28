@@ -105,6 +105,14 @@ jest.mock('expo', () => ({
 
 // Mock React Native components - 在实际模块加载之前，完全替换
 jest.mock('react-native', () => {
+  const MockImage = () => null;
+  MockImage.resolveAssetSource = jest.fn((source) => {
+    if (typeof source === 'number') {
+      return { uri: `asset_${source}.png` };
+    }
+    return source;
+  });
+
   return {
     StyleSheet: {
       create: (styles) => styles,
@@ -122,7 +130,7 @@ jest.mock('react-native', () => {
     },
     View: 'View',
     Text: 'Text',
-    Image: 'Image',
+    Image: MockImage,
     ScrollView: 'ScrollView',
     FlatList: 'FlatList',
     TouchableOpacity: 'TouchableOpacity',

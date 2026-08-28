@@ -1,4 +1,4 @@
-import { LatLng, LatLngPoint } from '../types/common.types';
+import type { LatLng, LatLngPoint } from '../types/common.types';
 
 type LatLngLike = {
   latitude?: unknown;

@@ -6,6 +6,7 @@
 import ExpoGaodeMapModule from '../ExpoGaodeMapModule';
 import { CoordinateType } from '../types';
 import { requireNativeModule } from 'expo';
+import { EventEmitter } from 'expo-modules-core';
 import { Platform } from 'react-native';
 
 describe('ExpoGaodeMapModule - 深度测试', () => {
@@ -336,13 +337,24 @@ describe('ExpoGaodeMapModule - 深度测试', () => {
       ExpoGaodeMapModule.stop?.();
     });
 
-    it('原生模块不支持事件时应返回安全订阅对象', () => {
+    it('原生模块缺少 addListener 时应通过 EventEmitter 订阅事件', () => {
       const nativeModule = getNativeMock();
       nativeModule.addListener = undefined;
+      (EventEmitter as unknown as jest.Mock).mockClear();
 
       const locationSubscription = ExpoGaodeMapModule.addLocationListener(jest.fn());
       const headingSubscription = ExpoGaodeMapModule.addHeadingListener(jest.fn());
+      const eventEmitterInstance = (EventEmitter as unknown as jest.Mock).mock.results[0]?.value;
 
+      expect(EventEmitter).toHaveBeenCalledWith(nativeModule);
+      expect(eventEmitterInstance.addListener).toHaveBeenCalledWith(
+        'onLocationUpdate',
+        expect.any(Function)
+      );
+      expect(eventEmitterInstance.addListener).toHaveBeenCalledWith(
+        'onHeadingUpdate',
+        expect.any(Function)
+      );
       expect(locationSubscription.remove).toBeDefined();
       expect(headingSubscription.remove).toBeDefined();
     });

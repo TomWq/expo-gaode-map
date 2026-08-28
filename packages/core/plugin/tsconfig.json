@@ -1,8 +1,10 @@
 {
- "extends": "expo-module-scripts/tsconfig.plugin",
+  "extends": "expo-module-scripts/tsconfig.plugin",
   "compilerOptions": {
-   "outDir": "build",
-    "rootDir": "src"
+    "outDir": "build",
+    "rootDir": "src",
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build"]

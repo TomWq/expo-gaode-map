@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import type { MarkerProps } from '../../types';
 import ExpoGaodeMapModule from '../../ExpoGaodeMapModule';
 import { normalizeLatLng, normalizeLatLngList } from '../../utils/GeoUtils';
@@ -32,8 +32,8 @@ function areSmoothMovePathsEqual(
   }
 
   for (let index = 0; index < prevPath.length; index += 1) {
-    const prevPoint = normalizeLatLng(prevPath[index]);
-    const nextPoint = normalizeLatLng(nextPath[index]);
+    const prevPoint = normalizeLatLng(prevPath[index]!);
+    const nextPoint = normalizeLatLng(nextPath[index]!);
 
     if (
       prevPoint.latitude !== nextPoint.latitude ||
@@ -69,12 +69,20 @@ function Marker(props: MarkerProps) {
     children,
     smoothMovePath,
     cacheKey,
+    icon,
     ...restProps
   } = props;
   
   // 归一化坐标处理
   const normalizedPosition = normalizeLatLng(position);
   const normalizedSmoothMovePath = smoothMovePath ? normalizeLatLngList(smoothMovePath) : undefined;
+  const resolvedIcon = React.useMemo(() => {
+    if (!icon || typeof icon === 'string') {
+      return icon;
+    }
+
+    return Image.resolveAssetSource(icon)?.uri;
+  }, [icon]);
 
   // 根据是否有 children 来决定使用哪个尺寸属性
   const hasChildren = !!children;
@@ -197,6 +205,7 @@ function Marker(props: MarkerProps) {
       smoothMovePath={normalizedSmoothMovePath}
       {...optionalNativeProps}
       {...restProps}
+      icon={resolvedIcon}
     >
       {hasChildren && shouldWrapChildrenForMeasurement ? (
         <View
