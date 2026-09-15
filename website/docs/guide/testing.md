@@ -89,3 +89,15 @@ cd packages/navigation && yarn test --watch
 - [架构](/guide/architecture)
 - [导航指南](/guide/navigation)
 - [Web API](/guide/web-api)
+
+## iOS 定位生命周期回归
+
+在 macOS（已安装 Xcode 命令行工具）运行：
+
+```bash
+bash scripts/test-ios-location.sh
+```
+
+脚本分别编译 core 与 navigation 实际发布的 `LocationManager.swift`，验证单次与连续定位隔离、请求被拒绝、销毁与迟到回调、资源释放、配置继承和原生错误信息。CI 的 `ios-location` job 执行同一脚本。
+
+测试使用按高德公开调用约束实现的 SDK 边界替身，不需要 API Key。它验证封装层生命周期，不执行真实高德 SDK、GPS 或逆地理编码；设备定位仍需真机验证。

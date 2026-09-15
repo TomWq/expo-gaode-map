@@ -25,6 +25,16 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     // 连续定位 event 回调（给 JS map listener 用）
     var onLocationUpdate: (([String: Any]) -> Void)?
     var onHeadingUpdate: (([String: Any]) -> Void)?
+    private var reGeocodeLanguage: Int?
+    private var isDestroyed = false
+    private typealias LocationCompletion = (CLLocation?, AMapLocationReGeocode?, Error?) -> Void
+    private struct SingleLocationRequest {
+        let manager: AMapLocationManager
+        let completion: LocationCompletion
+    }
+    // Single requests are owned separately: AMap start/stop cancels requests on that manager.
+    // All access to this collection is confined to the main queue.
+    private var singleLocationRequests: [UUID: SingleLocationRequest] = [:]
 
     override init() {
         super.init()
@@ -103,6 +113,7 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     }
 
     private func setReGeocodeLanguage(_ rawValue: Int) {
+        reGeocodeLanguage = rawValue
         ensureLocationManager()?.setValue(rawValue, forKey: "reGeocodeLanguage")
     }
 
@@ -126,20 +137,69 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
     }
 
     func requestSingleLocation(completion: @escaping (_ location: CLLocation?, _ reGeocode: AMapLocationReGeocode?, _ error: Error?) -> Void) {
-        guard let manager = ensureLocationManager() else {
+        onMain {
+            self.beginSingleLocation(completion: completion)
+        }
+    }
+
+    private func beginSingleLocation(completion: @escaping LocationCompletion) {
+        guard !isDestroyed, let configuration = ensureLocationManager() else {
             let error = NSError(
                 domain: "ExpoGaodeMap",
                 code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "定位管理器未初始化，请先完成隐私协议确认"]
+                userInfo: [NSLocalizedDescriptionKey: "定位管理器不可用，请确认模块及隐私状态"]
             )
             completion(nil, nil, error)
             return
         }
 
-        manager.requestLocation(
+        let manager = AMapLocationManager()
+        manager.locationAccuracyMode = configuration.locationAccuracyMode
+        manager.desiredAccuracy = configuration.desiredAccuracy
+        manager.distanceFilter = configuration.distanceFilter
+        manager.locationTimeout = configuration.locationTimeout
+        manager.reGeocodeTimeout = configuration.reGeocodeTimeout
+        manager.locatingWithReGeocode = configuration.locatingWithReGeocode
+        manager.pausesLocationUpdatesAutomatically = configuration.pausesLocationUpdatesAutomatically
+        manager.allowsBackgroundLocationUpdates = configuration.allowsBackgroundLocationUpdates
+        manager.detectRiskOfFakeLocation = configuration.detectRiskOfFakeLocation
+        if let reGeocodeLanguage {
+            manager.setValue(reGeocodeLanguage, forKey: "reGeocodeLanguage")
+        }
+
+        let requestId = UUID()
+        singleLocationRequests[requestId] = SingleLocationRequest(manager: manager, completion: completion)
+        let accepted = manager.requestLocation(
             withReGeocode: manager.locatingWithReGeocode,
-            completionBlock: completion
+            completionBlock: { [weak self] location, reGeocode, error in
+                self?.onMain {
+                    self?.finishSingleLocation(requestId, location: location, reGeocode: reGeocode, error: error)
+                }
+            }
         )
+        if !accepted {
+            finishSingleLocation(requestId, location: nil, reGeocode: nil, error: NSError(
+                domain: "ExpoGaodeMap",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "定位请求未被 SDK 接受"]
+            ))
+        }
+    }
+
+    private func finishSingleLocation(_ requestId: UUID, location: CLLocation?, reGeocode: AMapLocationReGeocode?, error: Error?) {
+        guard let request = singleLocationRequests.removeValue(forKey: requestId) else { return }
+        // Retire ownership before stopping: stop may synchronously invoke a cancellation callback.
+        request.manager.stopUpdatingLocation()
+        request.manager.delegate = nil
+        request.completion(location, reGeocode, error)
+    }
+
+    private func onMain(_ action: @escaping () -> Void) {
+        if Thread.isMainThread {
+            action()
+        } else {
+            DispatchQueue.main.async(execute: action)
+        }
     }
 
     // MARK: - 初始化
@@ -272,11 +332,36 @@ class LocationManager: NSObject, AMapLocationManagerDelegate {
 
     // MARK: - 销毁
     func destroy() {
-        locationManager?.stopUpdatingLocation()
-        locationManager?.stopUpdatingHeading()
-        locationManager?.delegate = nil
-        locationManager = nil
-        onLocationUpdate = nil
-        onHeadingUpdate = nil
+        onMain {
+            self.isDestroyed = true
+            let error = NSError(domain: "ExpoGaodeMap", code: -3,
+                                userInfo: [NSLocalizedDescriptionKey: "定位模块已销毁，请求已取消"])
+            for requestId in Array(self.singleLocationRequests.keys) {
+                self.finishSingleLocation(requestId, location: nil, reGeocode: nil, error: error)
+            }
+            self.locationManager?.stopUpdatingLocation()
+            self.locationManager?.stopUpdatingHeading()
+            self.locationManager?.delegate = nil
+            self.locationManager = nil
+            self.isLocationStarted = false
+            self.onLocationUpdate = nil
+            self.onHeadingUpdate = nil
+        }
+    }
+}
+
+// Keep the native details in both Expo description and debugDescription.
+// Expo SDK 57 formats debug errors using reason, not the description initializer argument.
+final class LocationRequestException: Exception, @unchecked Sendable {
+    private let nativeError: NSError
+
+    init(_ error: Error) {
+        nativeError = error as NSError
+        super.init()
+    }
+
+    override var code: String { "LOCATION_ERROR" }
+    override var reason: String {
+        "定位失败（\(nativeError.domain):\(nativeError.code)）：\(nativeError.localizedDescription)"
     }
 }

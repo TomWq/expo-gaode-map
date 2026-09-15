@@ -188,7 +188,7 @@ public class ExpoGaodeMapModule: Module {
                 let manager = self.getLocationManager()
                 manager.requestSingleLocation { location, regeocode, error in
                     if let error = error {
-                        promise.reject("LOCATION_ERROR", error.localizedDescription)
+                        promise.reject(LocationRequestException(error))
                         return
                     }
                     
