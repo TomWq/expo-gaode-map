@@ -34,3 +34,12 @@ jobs:
 
       - name: Run verification suite
         run: yarn verify
+
+  ios-location:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test iOS location request lifecycle
+        run: bash scripts/test-ios-location.sh

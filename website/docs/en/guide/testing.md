@@ -89,3 +89,15 @@ cd packages/navigation && yarn test --watch
 - [Architecture](/en/guide/architecture)
 - [Navigation Guide](/en/guide/navigation)
 - [Web API Guide](/en/guide/web-api)
+
+## iOS location lifecycle regression tests
+
+On macOS with Xcode command line tools installed, run:
+
+```bash
+bash scripts/test-ios-location.sh
+```
+
+The script compiles the shipped core and navigation `LocationManager.swift` files. It covers isolated one-shot and continuous requests, refused requests, teardown and late callbacks, resource release, option propagation, and native error details. The `ios-location` CI job runs the same script.
+
+SDK boundary doubles model AMap's documented call constraints, so no API key is needed. These tests exercise wrapper lifecycle behavior, not the real AMap SDK, GPS, or reverse geocoding. Device location still requires on-device verification.
