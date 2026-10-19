@@ -33,13 +33,25 @@ import androidx.core.view.isGone
 @SuppressLint("ViewConstructor")
 class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
+    private var isDestroyed = false
+    private val measureAndLayout = Runnable {
+        if (isDestroyed || !isAttachedToWindow || width <= 0 || height <= 0) {
+            return@Runnable
+        }
+
+        measure(
+            MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+        )
+        layout(left, top, right, bottom)
+    }
+
     init {
         orientation = VERTICAL
     }
 
     /**
-     * 拦截 React Native 的 ViewManager 操作
-     * 重写 requestLayout 防止在移除视图时触发布局异常
+     * Fabric 不一定会响应原生子视图发起的布局请求，因此需要主动重排高德控件层。
      */
     override fun requestLayout() {
         try {
@@ -47,6 +59,13 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
         } catch (_: Exception) {
             // 忽略异常
         }
+
+        if (isDestroyed) {
+            return
+        }
+
+        removeCallbacks(measureAndLayout)
+        post(measureAndLayout)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -645,7 +664,10 @@ class ExpoGaodeMapView(context: Context, appContext: AppContext) : ExpoView(cont
     /** 销毁地图 */
     @Suppress("unused")
     fun onDestroy() {
-               try {
+        isDestroyed = true
+        removeCallbacks(measureAndLayout)
+
+        try {
             // 清理 Handler 回调,防止内存泄露
             mainHandler.removeCallbacksAndMessages(null)
             pendingCameraMoveData = null
