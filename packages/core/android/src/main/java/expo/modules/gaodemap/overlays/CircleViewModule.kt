@@ -21,11 +21,11 @@ class CircleViewModule : Module() {
         view.setRadius(radius)
       }
       
-      Prop<String?>("fillColor") { view: CircleView, color ->
+      Prop<Any?>("fillColor") { view: CircleView, color ->
         view.setFillColor(color)
       }
       
-      Prop<String?>("strokeColor") { view: CircleView, color ->
+      Prop<Any?>("strokeColor") { view: CircleView, color ->
         view.setStrokeColor(color)
       }
       

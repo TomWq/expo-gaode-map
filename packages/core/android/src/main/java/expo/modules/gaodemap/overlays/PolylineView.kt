@@ -70,7 +70,7 @@ class PolylineView(context: Context, appContext: AppContext) : ExpoView(context,
   /**
    * 设置线条颜色
    */
-  fun setStrokeColor(color: String?) {
+  fun setStrokeColor(color: Any?) {
     strokeColor = ColorParser.parseColor(color)
     polyline?.let {
       it.color = strokeColor

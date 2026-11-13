@@ -67,7 +67,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   /**
    * 设置填充颜色
    */
-  fun setFillColor(color: String?) {
+  fun setFillColor(color: Any?) {
     fillColor = ColorParser.parseColor(color)
     polygon?.let {
       it.fillColor = fillColor
@@ -77,7 +77,7 @@ class PolygonView(context: Context, appContext: AppContext) : ExpoView(context, 
   /**
    * 设置边框颜色
    */
-  fun setStrokeColor(color: String?) {
+  fun setStrokeColor(color: Any?) {
    strokeColor = ColorParser.parseColor(color)
     polygon?.let {
       it.strokeColor = strokeColor

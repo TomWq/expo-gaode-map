@@ -100,17 +100,32 @@ class LocationManager(context: Context) {
         }
 
         val tempClient = AMapLocationClient(appContext)
-        tempClient.setLocationOption(onceOption)
-        tempClient.setLocationListener { location ->
-            if (location != null && location.errorCode == 0) {
-                promise.resolve(formatLocation(location))
-            } else {
-                promise.reject("LOCATION_ERROR", location?.errorInfo ?: "定位失败", null)
-            }
-            tempClient.stopLocation()
-            tempClient.onDestroy()
+        var cleanedUp = false
+        fun cleanup() {
+            if (cleanedUp) return
+            cleanedUp = true
+            runCatching { tempClient.stopLocation() }
+            runCatching { tempClient.onDestroy() }
         }
-        tempClient.startLocation()
+
+        try {
+            tempClient.setLocationOption(onceOption)
+            tempClient.setLocationListener { location ->
+                try {
+                    if (location != null && location.errorCode == 0) {
+                        promise.resolve(formatLocation(location))
+                    } else {
+                        promise.reject("LOCATION_ERROR", location?.errorInfo ?: "定位失败", null)
+                    }
+                } finally {
+                    cleanup()
+                }
+            }
+            tempClient.startLocation()
+        } catch (e: Exception) {
+            cleanup()
+            promise.reject("LOCATION_ERROR", e.message ?: "定位失败", e)
+        }
     }
 
     /**

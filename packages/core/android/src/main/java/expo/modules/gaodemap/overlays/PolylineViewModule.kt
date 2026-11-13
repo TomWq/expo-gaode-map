@@ -21,7 +21,7 @@ class PolylineViewModule : Module() {
         view.setStrokeWidth(width)
       }
       
-      Prop<String?>("strokeColor") { view: PolylineView, color ->
+      Prop<Any?>("strokeColor") { view: PolylineView, color ->
         view.setStrokeColor(color)
       }
       

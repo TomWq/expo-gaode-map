@@ -50,8 +50,8 @@ export interface POI {
   name: string;
   /** 地址 */
   address: string;
-  /** 坐标 */
-  location: Coordinates;
+  /** 坐标（高德可能不返回） */
+  location?: Coordinates;
   /** 类型编码 */
   typeCode: string;
   /** 类型描述 */

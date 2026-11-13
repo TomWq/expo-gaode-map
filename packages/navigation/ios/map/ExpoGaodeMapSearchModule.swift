@@ -531,10 +531,6 @@ class SearchDelegate: NSObject, AMapSearchDelegate {
         "id": poi.uid ?? "",
         "name": poi.name ?? "",
         "address": poi.address ?? "",
-        "location": [
-          "latitude": poi.location?.latitude ?? 0,
-          "longitude": poi.location?.longitude ?? 0
-        ],
         "typeCode": poi.typecode ?? "",
         "typeDes": poi.type ?? "",
         "tel": poi.tel ?? "",
@@ -550,6 +546,13 @@ class SearchDelegate: NSObject, AMapSearchDelegate {
         "email": poi.email ?? "",
         "postcode": poi.postcode ?? ""
       ]
+
+      if let location = poi.location {
+          result["location"] = [
+              "latitude": location.latitude,
+              "longitude": location.longitude
+          ]
+      }
       
       // 图片信息
       if let images = poi.images {
@@ -689,7 +692,7 @@ class SearchDelegate: NSObject, AMapSearchDelegate {
     
     if let pois = regeocode.pois {
       result["pois"] = pois.map { poi -> [String: Any] in
-        return [
+        var item: [String: Any] = [
           "id": poi.uid ?? "",
           "name": poi.name ?? "",
           "typeCode": poi.typecode ?? "",
@@ -697,12 +700,15 @@ class SearchDelegate: NSObject, AMapSearchDelegate {
           "tel": poi.tel ?? "",
           "distance": poi.distance,
           "direction": poi.direction ?? "",
-          "address": poi.address ?? "",
-          "location": [
-            "latitude": poi.location?.latitude ?? 0,
-            "longitude": poi.location?.longitude ?? 0
-          ]
+          "address": poi.address ?? ""
         ]
+        if let location = poi.location {
+          item["location"] = [
+            "latitude": location.latitude,
+            "longitude": location.longitude
+          ]
+        }
+        return item
       }
     }
     

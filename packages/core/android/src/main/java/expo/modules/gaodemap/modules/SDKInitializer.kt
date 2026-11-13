@@ -28,6 +28,7 @@ object SDKInitializer {
     private var privacyVersion: String? = null
     private var agreedPrivacyVersion: String? = null
     private var restoredFromStorage = false
+    private var configuredApiKey: String? = null
 
     private fun resolveContext(context: Context): Context {
         return context.applicationContext ?: context
@@ -154,12 +155,15 @@ object SDKInitializer {
             // 设置 API Key
             MapsInitializer.setApiKey(androidKey)
             AMapLocationClient.setApiKey(androidKey)
+            configuredApiKey = androidKey.takeIf { it.isNotBlank() }
             
 
         } catch (e: Exception) {
             throw Exception("SDK 初始化失败: ${e.message}")
         }
     }
+
+    fun getConfiguredApiKey(): String? = configuredApiKey
 
     /**
      * 获取 SDK 版本号

@@ -24,6 +24,7 @@ import com.amap.api.services.routepoisearch.RoutePOISearchResult
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.gaodemap.modules.SDKInitializer
 import kotlin.collections.mapOf
 
 class ExpoGaodeMapSearchModule : Module() {
@@ -56,7 +57,7 @@ class ExpoGaodeMapSearchModule : Module() {
         
         val query = PoiSearchV2.Query(keyword, types, city)
         query.pageSize = pageSize
-        query.pageNum = pageNum - 1 // 高德 SDK 从 0 开始
+        query.pageNum = pageNum
           query.showFields = PoiSearchV2.ShowFields(PoiSearchV2.ShowFields.ALL)
         
         val poiSearch = PoiSearchV2(context, query)
@@ -110,7 +111,7 @@ class ExpoGaodeMapSearchModule : Module() {
         
         val query = PoiSearchV2.Query(keyword, types)
         query.pageSize = pageSize
-        query.pageNum = pageNum - 1
+        query.pageNum = pageNum
           query.showFields = PoiSearchV2.ShowFields(PoiSearchV2.ShowFields.ALL)
         
         val poiSearch = PoiSearchV2(context, query)
@@ -218,7 +219,7 @@ class ExpoGaodeMapSearchModule : Module() {
         // 注意：这会破坏精确的分页对应关系，但在多边形搜索场景下，优先保证返回有效数据更重要
         val sdkPageSize = 50
         query.pageSize = sdkPageSize
-        query.pageNum = pageNum - 1
+        query.pageNum = pageNum
           query.showFields = PoiSearchV2.ShowFields(PoiSearchV2.ShowFields.ALL)
         
         val poiSearch = PoiSearchV2(context, query)
@@ -347,7 +348,7 @@ class ExpoGaodeMapSearchModule : Module() {
         
         val point = LatLonPoint(latitude, longitude)
         val query = RegeocodeQuery(point, radius, GeocodeSearch.AMAP)
-        query.extensions = "all"
+        query.extensions = if (options["requireExtension"] as? Boolean ?: true) "all" else "base"
         
         geocodeSearch.getFromLocationAsyn(query)
       } catch (e: Exception) {
@@ -473,7 +474,7 @@ class ExpoGaodeMapSearchModule : Module() {
    * 优先级：已设置 > AndroidManifest.xml
    */
   private fun ensureAPIKeyIsSet() {
-    val apiKey = try {
+    val apiKey = SDKInitializer.getConfiguredApiKey() ?: try {
       context.packageManager
         .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
         .metaData
@@ -609,7 +610,7 @@ class ExpoGaodeMapSearchModule : Module() {
     return mapOf(
       "pois" to pois,
       "total" to totalCount,
-      "pageNum" to (result.query.pageNum + 1),
+      "pageNum" to result.query.pageNum,
       "pageSize" to pageSize,
       "pageCount" to pageCount
     )

@@ -87,14 +87,34 @@ class CameraManager(private val aMap: AMap) {
         }
         
         val latLng = LatLng(lat, lng)
-        
-        val builder = CameraPosition.Builder().target(latLng)
+        val current = aMap.cameraPosition
+        val builder = CameraPosition.Builder()
+          .target(latLng)
+          .zoom(current.zoom)
+          .tilt(current.tilt)
+          .bearing(current.bearing)
         zoom?.let { builder.zoom(it.coerceIn(3f, 20f)) }
         tilt?.let { builder.tilt(it.coerceIn(0f, 60f)) }
         bearing?.let { builder.bearing(it) }
         
         val cameraUpdate = CameraUpdateFactory.newCameraPosition(builder.build())
         
+        if (duration > 0) {
+          aMap.animateCamera(cameraUpdate, duration.toLong(), null)
+        } else {
+          aMap.moveCamera(cameraUpdate)
+        }
+      } else if (zoom != null || tilt != null || bearing != null) {
+        val current = aMap.cameraPosition
+        val builder = CameraPosition.Builder()
+          .target(current.target)
+          .zoom(current.zoom)
+          .tilt(current.tilt)
+          .bearing(current.bearing)
+        zoom?.let { builder.zoom(it.coerceIn(3f, 20f)) }
+        tilt?.let { builder.tilt(it.coerceIn(0f, 60f)) }
+        bearing?.let { builder.bearing(it) }
+        val cameraUpdate = CameraUpdateFactory.newCameraPosition(builder.build())
         if (duration > 0) {
           aMap.animateCamera(cameraUpdate, duration.toLong(), null)
         } else {
